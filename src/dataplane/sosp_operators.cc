@@ -79,7 +79,7 @@ BlobReader::emit_data()  {
 
   boost::filesystem::path& p = paths[cur_path];
   if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p)) {
-    LOG(INFO) << "reading from " << p;
+    VLOG(1) << "reading from " << p;
     uintmax_t len = boost::filesystem::file_size(p);
     if (len < MAX_READ_SIZE) {
       char* data_buf = new char[len];
@@ -160,7 +160,6 @@ ImageSampler::configure(std::map<std::string,std::string> &config) {
 void
 ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
 
-
 //  LOG(INFO) << "reporter got a tuple";
   {
     boost::unique_lock<boost::mutex> l(mutex);
@@ -178,8 +177,10 @@ ImageQualityReporter::emit_stats() {
 
   {
     boost::unique_lock<boost::mutex> l(mutex);
-    LOG(INFO) << "IMGREPORT: " << bytes_this_period << " bytes. Median latency " <<
-      latencies_this_period.quantile(0.5) << " and 95th percentile is " << latencies_this_period.quantile(0.95);
+    LOG(INFO) << "IMGREPORT: " << bytes_this_period << " bytes and "
+        << latencies_this_period.pop_seen()  << " total images. Median latency "
+        << latencies_this_period.quantile(0.5) << " and 95th percentile is "
+        << latencies_this_period.quantile(0.95);
     
     latencies_this_period.clear();
     bytes_this_period = 0;
