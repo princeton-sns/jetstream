@@ -1,0 +1,24 @@
+This document lists libraries we might use.
+
+
+Serialization / RPC:
+	Java-specific:
+		Kyro is pure serialization [http://code.google.com/p/kryo/]
+		Standard Java RMI/serialization is slow and awkward.
+		Hadoop RPC + serialization is faster
+		Michael Armbrust's Scala-Avro plugin and scads message passing layer is useful if we opt for Avro + Scala.
+
+	Cross-language:
+		Avro serialization is mature, RPC is less so. Apache license (Permissive).
+		Thrift.  Apache license (Permissive).
+		Protobufs is just serialization but more mature. BSD license.
+		
+
+
+Networking:
+	Twitter Finagle is a network stack for asynch RPC on the JVM.  Apache license (Permissive).
+	Netty is the underlying layer
+
+
+Threading:
+	The disruptor threading library that Storm uses.
