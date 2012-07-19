@@ -1,0 +1,26 @@
+This document describes the current vision for the high-level architecture of JetStream.
+
+DEFINITIONS:
+
+A query is a request by the user for a particular fact about a system. Queries are never standing. All query results must be present in some hypercube.
+
+A computation is the process by which the system materializes data in hypercubes. A computation can be either standing or one-shot.
+
+A task is the smallest unit of a computation that JetStream will explicitly place.
+
+A source is a task that emits hypercubes.
+
+An operator transforms one or more source hypercubes into a destination hypercube. Operators run on nodes.
+
+A node is a computer on which JetStream can place sources or operators.
+
+
+
+SEMANTICS:
+
+JetStream exists to maintain views of changing data. Data will be structured as tables or hypercubes (THIS IS VAGUE SO FAR.)
+
+Each hypercube exists on a particular node.
+
+Nodes may periodically checkpoint the hypercubes. These can be stored on either local or shared storage.
+
