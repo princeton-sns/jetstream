@@ -24,3 +24,15 @@ Each hypercube exists on a particular node.
 
 Nodes may periodically checkpoint the hypercubes. These can be stored on either local or shared storage.
 
+
+
+RATIONALE:
+Doing straight-ahead streaming of tuples seems to have miserable difficulties with failure recovery. Hypercubes make the state and buffering explicit. They also make time explicit.
+
+Because time is part of the explicit state, the code to modify hypercubes and handle failures will no longer need to reason about ordering and time, greatly simplifying failure recovery. We may be able to avoid having any explicit recovery code -- just pour new data down the pipe and it'll get aggregated.
+
+
+DIFFICULTIES:
+Suppose we have a source, S1. and it's currently sending data to aggregation node A. And then A fails, and S1 fails over to aggregator B. How do we make sure that S1's input is counted exactly once?  Perhaps it's okay to keep linear state for "which nodes were included in this hypercube"?
+
+
