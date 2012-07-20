@@ -1,11 +1,28 @@
-This document lists libraries we might use.
+This document lists libraries we plan to use or that we might use.
+
+-------- intend to use ------
+
+
+Cross-language:
+	Protocol Buffers
+
+C/C++:
+	Boost (threading / asynchrony)
+	
+
+
+-------- might use ---
+
+
+Data storage:
+	Google's LevelDB. (Replaces BerkeleyDB)
+
+
+-------- other libraries we'll conceivably use ----
 
 
 Serialization / RPC:
 	Java-specific:
-		Kyro is pure serialization [http://code.google.com/p/kryo/]
-		Standard Java RMI/serialization is slow and awkward.
-		Hadoop RPC + serialization is faster
 		Michael Armbrust's Scala-Avro plugin and scads message passing layer is useful if we opt for Avro + Scala.
 
 	Cross-language:
@@ -13,12 +30,9 @@ Serialization / RPC:
 		Thrift.  Apache license (Permissive).
 		Protobufs is just serialization but more mature. BSD license.
 		
-
-
 Networking:
 	Twitter Finagle is a network stack for asynch RPC on the JVM.  Apache license (Permissive).
 	Netty is the underlying layer
-
 
 Threading:
 	The disruptor threading library that Storm uses.

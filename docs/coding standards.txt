@@ -1,0 +1,17 @@
+- Indent by two spaces. Use spaces, not tabs.
+
+Rationale: This saves screen real estate
+
+- Open brace should be on the same line as the statements.
+
+GOOD:  if(  )  {
+
+BAD:  if() 
+    {
+
+Rationale:  Saves screen real estate
+
+- Use underscores to separate words in names, not camelCase.
+
+Rationale: this is the usual pattern for C programmers.
+
