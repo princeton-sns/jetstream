@@ -35,4 +35,21 @@ Because time is part of the explicit state, the code to modify hypercubes and ha
 DIFFICULTIES:
 Suppose we have a source, S1. and it's currently sending data to aggregation node A. And then A fails, and S1 fails over to aggregator B. How do we make sure that S1's input is counted exactly once?  Perhaps it's okay to keep linear state for "which nodes were included in this hypercube"?
 
+POSSIBLE API:
+
+TYPES:
+CubeID -- the ID of a data cube. WHAT DO THESE LOOK LIKE?
+TaskID -- ID of a task. WHAT DO THEY LOOK LIKE?
+DataCube -- A chunk o' data. 
+DataCubeMeta -- Metadata for a cube. Includes schema.
+Directive -- instructions about what to start and stop
+	StartTasks: list of (TaskID,TaskMeta)
+	StopTasks: list of TaskID
+	AddEdges: list of TaskID,TaskID pairs
+	RemoveEdges: list of TaskID,TaskID pairs
+ 
+WORKER NODE API:
+	getCube(CubeID): DataCube
+	getCubeMeta(CubeID): DataCubeMeta
+	alterTasks(Directive)
 
