@@ -1,0 +1,8 @@
+package edu.princeton.jetstream;
+
+import "jetstream_types.proto";
+
+message getTaskMeta {
+  required TaskID tid = 1;
+}
+

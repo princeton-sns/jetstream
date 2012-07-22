@@ -4,3 +4,7 @@ message TaskID {
   required int32 computationID = 1;
   required int32 task = 2;
 }
+
+message TaskMeta {
+  required string cmd = 1;
+}
