@@ -1,18 +1,19 @@
 Before we start coding:
-	Need to fix terminology.
-	Need to pick RPC framework. Probably Avro or Thrift?
-	Need to specify a preliminary set of RPCs. Is scheduling push from the controller or pull via heartbeats?
+	Need to fix terminology.   (Done?)
+	Need to pick RPC framework. Probably ProtoBufs.
+	Need to specify a preliminary set of RPCs. Partly done?
+
+Data plane is probably C-ish C++.
+Control plane for now is Python.
+
+Control will be a single central server, presumably plus on-node coordinator.
 
 
 Version 0.1:
 	Must run some useful query on a cluster.
 	Should run it quickly -- low start latency and decent performance
 	Should have minimal code movement challenges
-
-Data plane is probably C++ or Java -- C++ if Mike writes it, else Java
-Control likely to be Scala -- especially if Ari writes it.
-
-Control will be a single central server, presumably plus on-node coordinator.
+	Goal:  Distributed grep.
 
 
 Version 0.2:

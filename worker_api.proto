@@ -1,0 +1,6 @@
+package edu.princeton.jetstream;
+
+message TaskID {
+  required int32 computationID = 1;
+  required int32 task = 2;
+}
