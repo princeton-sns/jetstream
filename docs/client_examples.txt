@@ -10,8 +10,8 @@ clust = JetStream.get_jetstream_cluster("hostname") #connect to controller and f
 nodes = clust.all_nodes()  #returns a set of node IDs
 
 	# The next set of method calls construct an operator graph locally
-tailer = new operator("tail -l /var/log/foo", "line")
-local_table = new table(schema=[("line","string")],name="local_results") #create a table with one column
+tailer = new operator("grep ERROR /var/log/foo", "line")  #run command, output is a one-entry tuple with column name 'line'
+local_table = new table(schema=[("line","string")],name="local_results") #create a table for results
 tailer.store_to(local_table)
 
 local_tables = JetStream.on_each(nodes, local_table) #copy the subgraph that builds local_table, return set of tables
@@ -19,9 +19,12 @@ local_tables = JetStream.on_each(nodes, local_table) #copy the subgraph that bui
 fetcher = new multiFetchOperator(local_tables, indicate_source = True)
 final_table = new table(schema=[("line","string"), ("source","string")]) #create a table with two columns
 fetcher.store_to(final_table)
+fetcher.on_node( cluster.get_a_node())
 	#  End local 'record' section
 
 concrete_final_table = clust.create(final_table) #serializes the defined graph, creates it across the cluster, and returns a table ID for the result
-
+sleep(...)
+t = cluster.fetch(concrete_final_table)
+print t
 
 ------------

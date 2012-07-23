@@ -8,3 +8,9 @@ message TaskID {
 message TaskMeta {
   required string cmd = 1;
 }
+
+
+message NodeID {
+  required bytes address = 1;
+  required int32 portno = 2;
+}

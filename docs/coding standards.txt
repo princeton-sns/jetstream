@@ -13,5 +13,8 @@ Rationale:  Saves screen real estate
 
 - Use underscores to separate words in names, not camelCase.
 
-Rationale: this is the usual pattern for C programmers.
+Rationale: this is the usual pattern for C programmers and Python programmers, which are our two main languages.
 
+- Types are capitalized, variables are not
+
+Rationale: this is standard in Java and Python and sometimes in C++
