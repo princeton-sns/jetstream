@@ -1,0 +1,27 @@
+This document lists some examples of JetStream programs we hope to support.
+Examples are in Python but similar code should be possible in other languages.
+
+
+
+
+---- Example 1:  Distributed Grep ----
+
+clust = JetStream.get_jetstream_cluster("hostname") #connect to controller and fetch metadata
+nodes = clust.all_nodes()  #returns a set of node IDs
+
+	# The next set of method calls construct an operator graph locally
+tailer = new operator("tail -l /var/log/foo", "line")
+local_table = new table(schema=[("line","string")],name="local_results") #create a table with one column
+tailer.store_to(local_table)
+
+local_tables = JetStream.on_each(nodes, local_table) #copy the subgraph that builds local_table, return set of tables
+
+fetcher = new multiFetchOperator(local_tables, indicate_source = True)
+final_table = new table(schema=[("line","string"), ("source","string")]) #create a table with two columns
+fetcher.store_to(final_table)
+	#  End local 'record' section
+
+concrete_final_table = clust.create(final_table) #serializes the defined graph, creates it across the cluster, and returns a table ID for the result
+
+
+------------
