@@ -1,1 +1,5 @@
-# This is my README
+# Software requirements:
+#
+#   -- Google Protobufs
+#   -- BOOST
+
