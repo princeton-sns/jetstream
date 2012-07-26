@@ -41,3 +41,20 @@ message AlterTopo {
   repeated string tableToStop = 4; 
   repeated Edge edges = 5;
 }
+
+
+
+message ServerRequest {
+  enum Type {GET_NODES = 1; DEPLOY = 3 ; COUNT_NODES = 4;}
+  required Type type = 1;
+
+  optional AlterTopo alter = 3;
+}
+
+
+message ServerResponse {
+  optional string error = 147; //use unusual number to catch errors on parsing
+  repeated NodeID nodes = 148; //in response to a get_nodes or get_node command
+
+  optional int32 count_nodes = 149;
+}

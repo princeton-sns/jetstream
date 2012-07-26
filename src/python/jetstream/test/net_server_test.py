@@ -19,17 +19,27 @@ class TestRemoteServer(unittest.TestCase):
     
   def test_connect(self):
     server = JetStreamServer( ('localhost', 0) )
+    server.start_as_thread()
+    
     print "connecting to",server.address
     sock = socket.create_connection(server.address, 1)
-    sock.send(  struct.pack("!l", 10))
-    sock.send( "1234567890abcd")
-
+    
+    req = ServerRequest()
+    req.type = ServerRequest.GET_NODES
+    buf = req.SerializeToString()
+    
+    sock.send(  struct.pack("!l", len(buf)))
+    sock.send(buf)
     print "sent"
-    
-    
-    t = threading.Thread(group = None, target =asyncore.loop, args = ()).start()
-    print "continuing..."
     time.sleep(1)
+    pbframe_len = sock.recv(4)
+#    print "got back response of length %d" % len(pbframe_len)
+    unpacked_len = struct.unpack("!l", pbframe_len)[0]
+    print "reading another %d bytes" % unpacked_len
+    buf = sock.recv(unpacked_len)
+    resp = ServerResponse()
+    resp.ParseFromString(buf)
+    print resp
     server.stop()
 
 if __name__ == '__main__':
