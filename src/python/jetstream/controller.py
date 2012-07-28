@@ -7,6 +7,7 @@ from jetstream.gen.jetstream_types_pb2 import *
 
 from operator_graph import *
 
+
 class Controller(Server):
   """Represents a stand-alone controller."""
   DEFAULT_PORTNO = 12345
