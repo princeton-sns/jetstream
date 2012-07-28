@@ -113,6 +113,8 @@ class ConnHandler(asynchat.async_chat):
     if req.type == ServerRequest.GET_NODES:
       node_list = self.coordinator.get_nodes()
       response.nodes.extend(node_list)
+    #elif req.type == ServerRequest.DEPLOY:
+    #  self.coordinator.deploy(req.alter)
     buf = response.SerializeToString()
     self.push( struct.pack("!l", len(buf)))
     self.push(buf)
