@@ -1,8 +1,13 @@
 This document describes the current vision for the high-level architecture of JetStream.
 
+
 DEFINITIONS:
 
+// SS: I don't think "queries are never standing", since a streaming query may continuously deliver.
+// Perhaps all we need to say is that queries pull results from some hypercube (at any pace).
 A query is a request by the user for a particular fact about a system. Queries are never standing. All query results must be present in some hypercube.
+
+A hypercube stores multi-dimensional data about a system, typically in aggregate form. Hypercubes are the basic unit for representing data.
 
 A computation is the process by which the system materializes data in hypercubes. A computation can be either standing or one-shot.
 
@@ -14,16 +19,17 @@ An operator transforms one or more source hypercubes into a destination hypercub
 
 A node is a computer on which JetStream can place sources or operators.
 
+// SS: Need to define a "worker". Is it a process running on a node, or a thread? Should the coordinator be concerned about the worker -> node mapping?
 
 
 SEMANTICS:
 
+// SS: Since a table is just a 2-cube, we can make hypercubes the universal unit of data.
 JetStream exists to maintain views of changing data. Data will be structured as tables or hypercubes (THIS IS VAGUE SO FAR.)
 
 Each hypercube exists on a particular node.
 
 Nodes may periodically checkpoint the hypercubes. These can be stored on either local or shared storage.
-
 
 
 RATIONALE:
@@ -37,6 +43,7 @@ Suppose we have a source, S1. and it's currently sending data to aggregation nod
 
 Should CubeIDs include version numbers?  What happens if we have a series of cubes with a schema change
 
+
 POSSIBLE API:
 
 TYPES:
@@ -46,6 +53,10 @@ TaskMeta -- Information about a task. Includes a TaskID
 CubeID -- the ID of a data cube. WHAT DO THESE LOOK LIKE?
 DataCube -- A chunk o' data. 
 DataCubeMeta -- Metadata for a cube. Includes schema.
+
+// SS: Need to figure this out.
+//NodeID -- ID of a worker node. WHAT DO THEY LOOK LIKE?
+//WorkerID -- ID of a worker. WHAT DO THEY LOOK LIKE?
 
 Directive -- instructions about what to start and stop
 	StartTasks: list of TaskMeta
@@ -58,4 +69,23 @@ WORKER NODE API:
 	getCubeMeta(CubeID): DataCubeMeta
 	alterTasks(Directive)
 	listTasks():  list of TaskMeta
+	// SS: Consider changing to ListCubes()
 	listTables(): list of DataCubeMeta
+
+COORDINATOR API:
+	// For workers
+	//register(workerID, ...)
+
+	// For clients
+	// SS: I don't see the need for clients to be aware of nodes in the system.
+	all_nodes(): list of Node
+	// SS: I don't see the need for clients to be aware of nodes in the system.
+	get_a_node(): Node
+	deploy(String, OperatorGraph):
+	kill(String):
+    
+CUBE API:
+	// SS: Was this inadvertently copied from above?
+	getCube(CubeID): DataCube
+	// SS: Add APIs to add datapoints, bucket dimensions, etc..
+
