@@ -9,7 +9,7 @@ import threading
 import time
 
 from jetstream.gen.jetstream_types_pb2 import *
-from jetstream.server import Server
+from jetstream.server import WorkerAPI
 
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
@@ -18,23 +18,22 @@ def main():
   bind_port = DEFAULT_BIND_PORT
   
   address = ('localhost', bind_port) 
-  server = JetStreamServer(address)
+  worker = JetStreamWorker(address)
   asyncore.loop()
 
-
-class Coordinator(Server):
+class Worker(WorkerAPI):
   
   def get_nodes(self):
     return []
 
-class JetStreamServer(asyncore.dispatcher):
+class JetStreamWorker(asyncore.dispatcher):
   """Receives connections and establishes handlers for each client.
   Based on code from http://blog.doughellmann.com/2009/03/pymotw-asynchat.html
   """
   
   def __init__(self, address):
     asyncore.dispatcher.__init__(self)
-    self.coordinator = Coordinator()
+    self.worker = Worker()
 
     self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
     self.bind(address)
@@ -47,7 +46,7 @@ class JetStreamServer(asyncore.dispatcher):
   def handle_accept(self):
     # Called when a client connects to our socket
     client_info = self.accept()
-    ConnHandler(sock=client_info[0], coordinator= self.coordinator)
+    ConnHandler(sock=client_info[0], worker= self.worker)
     
     # We only want to deal with one client at a time,
     # so close as soon as we set up the handler.
@@ -80,9 +79,9 @@ class ConnHandler(asynchat.async_chat):
   """Handles echoing messages from a single client.
   """
   
-  def __init__(self, sock, coordinator):
+  def __init__(self, sock, worker):
     self.received_data = []
-    self.coordinator = coordinator
+    self.worker = worker
 #        self.logger = logging.getLogger('EchoHandler%s' % str(sock.getsockname()))
     asynchat.async_chat.__init__(self, sock)
     pbframe_len = sock.recv(4)
@@ -109,12 +108,12 @@ class ConnHandler(asynchat.async_chat):
     req.ParseFromString(buf)
     print req
     response = ServerResponse()
-    response.count_nodes = len(self.coordinator.get_nodes())
+    response.count_nodes = len(self.worker.get_nodes())
     if req.type == ServerRequest.GET_NODES:
-      node_list = self.coordinator.get_nodes()
+      node_list = self.worker.get_nodes()
       response.nodes.extend(node_list)
-    #elif req.type == ServerRequest.DEPLOY:
-    #  self.coordinator.deploy(req.alter)
+    elif req.type == ServerRequest.DEPLOY:
+      self.worker.deploy(req.alter)
     buf = response.SerializeToString()
     self.push( struct.pack("!l", len(buf)))
     self.push(buf)
