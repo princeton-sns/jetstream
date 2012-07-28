@@ -1,0 +1,61 @@
+- Indent by two spaces. Use spaces, not tabs.
+
+- Classes and Types use capitalized camelCase
+- variables use lower-case camelCase
+- Function names use underscore
+
+  class ServerMessage {
+    ServerMsg get_message (int thisMsg);
+  };
+
+- Open brace should be on the same line as the statements.  
+- Space between if/else/while/do and open pare or open brace
+
+  GOOD:  if (  )  {
+
+  BAD:  if() {
+  BAD:  if () 
+    {
+
+- Else on separate line
+  
+  GOOD:  }
+         else {
+
+  BAD:   } else {
+
+- Single-line bodies on separate lines for conditions:
+
+  GOOD:  if (x)
+           body1;
+         else
+           body2
+
+  BAD:   if (x) body1;
+         else body2;
+
+- Function type on same line as name for function declaration:
+- Descriptive name for variable in function declaration:
+
+  GOOD:  int foo (int bar) {
+
+- Function type on separate line in function definition:
+
+  GOOD:  static int
+         foo (int bar) {
+
+- Close braces on separate lines:
+
+  GOOD: if (x) {
+          if (y) {
+            body1;
+            body2;
+          }
+        }
+
+- Multi-line comments should use /* */ with close on separate line:
+
+  GOOD:  /* Comment1
+          * Comment2
+          */
+
