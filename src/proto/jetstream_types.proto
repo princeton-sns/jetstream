@@ -1,12 +1,9 @@
 package edu.princeton.jetstream;
 
-
-
 message NodeID {
   required bytes address = 1;
   required int32 portno = 2;
 }
-
 
 message TaskID {
   required int32 computationID = 1;
@@ -19,42 +16,32 @@ message TaskMeta {
   optional NodeID site = 3;
 }
 
-
-message TableMeta {
+message TableName {
   required string name = 1;
-  required string schema = 2;
-  required int32 id = 3;
-  optional NodeID site = 4;
+  required int32 id = 2;
 }
 
-//Next comes server API things
+message TableMeta {
+  required TableName name = 1;
+  required string schema = 2;
+  optional NodeID site = 3;
+}
 
 message Edge {
   required int32 src = 1;
   required int32 dest = 2;
 }
 
-message AlterTopo {
-  repeated TaskMeta toStart = 1;
-  repeated TableMeta toCreate = 2;
-  repeated TaskID taskToStop = 3; 
-  repeated string tableToStop = 4; 
-  repeated Edge edges = 5;
-}
-
-
-
-message ServerRequest {
-  enum Type {GET_NODES = 1; DEPLOY = 3 ; COUNT_NODES = 4;}
+message Table {
+  enum Type {BYTES = 1; STRING = 2; INT32 = 3;}
   required Type type = 1;
 
-  optional AlterTopo alter = 3;
+  optional TableMeta meta = 2;
+  repeated bytes bytesData = 3;
+  repeated string stringData = 4;
+  repeated int32 int32Data = 5 [packed=true];
 }
 
-
-message ServerResponse {
-  optional string error = 147; //use unusual number to catch errors on parsing
-  repeated NodeID nodes = 148; //in response to a get_nodes or get_node command
-
-  optional int32 count_nodes = 149;
+message Cube {
+  repeated Table tables = 1;
 }
