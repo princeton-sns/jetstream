@@ -11,9 +11,9 @@ set (BUILD_SHARED_LIBS ON)
 #set (CMAKE_CXX_FLAGS "-g -O0 -Wall")
 add_definitions ( -g -O0 -Wall -Werror )
 
-set (TOP_LEVEL ${CMAKE_CURRENT_SOURCE_DIR})
-set (SRC_DIR ${TOP_LEVEL}/src)
-set (BUILD_DIR ${TOP_LEVEL}/src)
+set (TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set (SRC_DIR ${TOP_DIR}/src)
+set (BUILD_DIR ${TOP_DIR}/src)
 
 #######################################################
 # Project flags
@@ -45,8 +45,6 @@ include (FindProtobuf)
 find_package (Protobuf REQUIRED)
 include_directories (${PROTOBUF_INCLUDE_DIR})
 
-message (STATUS "before=${INCLUDE_DIRECTORIES}")
-
 #######################################################
 # Set library locations and sources
 
@@ -57,8 +55,6 @@ link_directories (${BUILD_DIR}/utils)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 include_directories (${SRC_DIR}/utils)
-
-message (STATUS "after=${INCLUDE_DIRECTORIES}")
 
 set (LIBRARY_NAME jsproto)
 add_subdirectory (${SRC_DIR}/proto)
@@ -82,9 +78,11 @@ set (LIBRARIES ${LIBRARIES}
 
 message (STATUS "Linking libraries ${LIBRARIES}")
 
-set (JS_NODE_DAEMON ${TOP_LEVEL}/src/dataplane/nodedataplane_daemon.cc)
-add_executable (jsnoded ${JS_NODE_DAEMON})
-add_dependencies (jsnoded ${LIBRARIES})
-target_link_libraries (jsnoded ${LIBRARIES})
+#set (JSNODED ${BUILD_DIR}/dataplane/jsnoded)
+set (JSNODED jsnoded)
+
+add_executable (${JSNODED} ${SRC_DIR}/dataplane/nodedataplane_daemon.cc)
+add_dependencies (${JSNODED} ${LIBRARIES})
+target_link_libraries (${JSNODED} ${LIBRARIES})
 
 # install (TARGETS jetstream DESTINATION bin)
