@@ -20,7 +20,9 @@ An operator transforms one or more source hypercubes into a destination hypercub
 A node is a computer on which JetStream can place sources or operators.
 
 //SS: Need to define a "worker". Is it a process running on a node, or a thread? Should the coordinator 
-//be concerned about the worker -> physical node mapping (i.e. that many workers may be colocated on a node?)
+//be concerned about workers, or just nodes?
+A worker is the finest execution environment running on a node. A node runs one or more workers; a worker runs one or more tasks. 
+
 
 
 SEMANTICS:
@@ -73,9 +75,10 @@ WORKER NODE API:
 	//SS: Consider changing to ListCubes()
 	listTables(): list of DataCubeMeta
 
-COORDINATOR API:
+CONTROLLER API:
 	// For workers
-	//register(workerID, ...)
+	//SS: Should this be a NodeID instead (i.e. controller is agnostic to worker threads)?
+	register(WorkerID)
 
 	// For clients
 	//SS: I don't see the need for clients to be aware of nodes in the system.
