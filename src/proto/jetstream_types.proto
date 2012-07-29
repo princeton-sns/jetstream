@@ -1,21 +1,40 @@
 package edu.princeton.jetstream;
 
+/**
+* Identifies a single node (host).
+* Bytes should be an IP4 or IP6 address
+*/
 message NodeID {
   required bytes address = 1;
   required int32 portno = 2;
 }
 
+/**
+* A running task (aka operator). The computationID is globally  unique within a 
+* particular JetStream cluster and identifies the computation or topology to 
+* which this task belongs. The task number is unique within a computation.
+*/
 message TaskID {
   required int32 computationID = 1;
   required int32 task = 2;
 }
 
+/**
+* Metadata about a task. Includes its ID, the command being run, and optionally
+* the site on which it is being run. An unscheduled task need not have the site
+* field filled in.
+*/
 message TaskMeta {
   required string cmd = 1;
   required TaskID id = 2;
   optional NodeID site = 3;
 }
 
+/**
+* A table, aka cube fragment.
+* Name should be of the form hostname/tablename, if the table is on a particular
+* node, else should just be tablename. No slashes allowed in either piece.
+*/
 message TableName {
   required string name = 1;
   required int32 id = 2;
@@ -25,11 +44,6 @@ message TableMeta {
   required TableName name = 1;
   required string schema = 2;
   optional NodeID site = 3;
-}
-
-message Edge {
-  required int32 src = 1;
-  required int32 dest = 2;
 }
 
 message Table {

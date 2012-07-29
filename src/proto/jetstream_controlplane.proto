@@ -3,6 +3,15 @@ package edu.princeton.jetstream;
 import "jetstream_types.proto";
 
 
+
+/**
+* A connection between two operators on the same host
+*/
+message Edge {
+  required int32 src = 1;
+  required int32 dest = 2;
+}
+
 /**
 * An AlterTopo specifies a set of mutations to the operator graph.
 * It includes tasks and tables to start, tasks and tables to stop, 
