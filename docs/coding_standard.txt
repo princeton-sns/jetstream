@@ -1,3 +1,5 @@
+- Maximum line length is 79 spaces
+
 - Indent by two spaces. Use spaces, not tabs.
 
 - Classes and Types use capitalized camelCase

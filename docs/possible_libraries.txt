@@ -9,7 +9,9 @@ Cross-language:
 C/C++:
 	Boost (threading / asynchrony)
 	
-
+Build platform:
+	cmake
+	
 
 -------- might use ---
 
