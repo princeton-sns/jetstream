@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.4)
 
-set (CMAKE_VERBOSE_MAKEFILE ON)
+# set (CMAKE_VERBOSE_MAKEFILE ON)
 
 #######################################################
 # Require ProtoBufs
@@ -35,8 +35,8 @@ foreach (PROTO_FILE ${PROTO_FILES})
   set (PROTO_SRCS ${PROTO_SRCS} ${PROTO_SRC})
   set (PROTO_HDRS ${PROTO_HDRS} ${PROTO_HDR})
   set (PROTO_PYS ${PROTO_PYS} ${PROTO_PY})
+
 endforeach (PROTO_FILE ${PROTO_FILES})
 
-#add_subdirectory (${PROTO_GEN_DIR}/cpp)
-
-add_library (jsproto ${PROTO_SRCS})
+add_library (${LIBRARY_NAME} ${PROTO_SRCS})
+target_link_libraries (${LIBRARY_NAME} ${PROTOBUF_LIBRARY})

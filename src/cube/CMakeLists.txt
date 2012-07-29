@@ -4,4 +4,4 @@ cmake_minimum_required (VERSION 2.4)
 
 file (GLOB LIB_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
 
-add_library (${LIBRARY_NAME} ${LIB_SRCS})
+add_library (jscube ${LIB_SRCS})
