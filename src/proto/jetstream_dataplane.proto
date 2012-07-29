@@ -1,0 +1,15 @@
+package edu.princeton.jetstream;
+
+import "jetstream_types.proto";
+
+message TableRequest {
+  repeated TableName names = 1;
+}
+
+message TableResponse {
+  required Cube tables = 1;
+}
+
+service TableService {
+  rpc getTable (TableRequest) returns (TableResponse);
+}
