@@ -9,7 +9,9 @@ import threading
 import time
 
 from jetstream.gen.jetstream_types_pb2 import *
+from jetstream.gen.jetstream_controlplane_pb2 import *
 from jetstream.server import Server
+
 
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456

@@ -2,6 +2,21 @@ package edu.princeton.jetstream;
 
 import "jetstream_types.proto";
 
+
+
+/**
+* A connection between two operators on the same host
+*/
+message Edge {
+  required int32 src = 1;
+  required int32 dest = 2;
+}
+
+/**
+* An AlterTopo specifies a set of mutations to the operator graph.
+* It includes tasks and tables to start, tasks and tables to stop, 
+* and edges to add. 
+*/
 message AlterTopo {
   repeated TaskMeta toStart = 1;
   repeated TableMeta toCreate = 2;
@@ -11,7 +26,13 @@ message AlterTopo {
 }
 
 
-/* Name isn't sufficient descriptive */
+/* An RPC request to a JetStream coordinator server.
+* The type field specifies the type of request. The optional fields specify the
+* parameters for that particular request type.
+*
+* TODO: should probably have IDs for requests so we can have multiple concurrent
+* request/responses from a single client
+*/
 message ServerRequest {
   enum Type {GET_NODES = 1; DEPLOY = 3 ; COUNT_NODES = 4;}
   required Type type = 1;
@@ -20,7 +41,13 @@ message ServerRequest {
 }
 
 
-/* Name isn't sufficient descriptive */
+/* An RPC response from a JetStream coordinator server.
+* Currently the only messages with responses are "get nodes" and "get 1 node".
+* There is also an optional error message field.
+*
+* TODO: should probably have IDs for requests so we can have multiple concurrent
+* request/responses from a single client
+*/
 message ServerResponse {
   optional string error = 147; //use unusual number to catch errors on parsing
   repeated NodeID nodes = 148; //in response to a get_nodes or get_node command

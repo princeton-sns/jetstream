@@ -1,0 +1,107 @@
+A few thoughts on the cube:
+
+/* the keys along one dimension */
+typedef struct DimKeys {
+  DKType dk_type; /* regular, intermediate, sum */
+  int64  dk_count; /* sum of populated values */
+} DimKeys;
+
+/* 
+   the keys look like this:
+   URL (regular):      ./www.cs.princeton.edu/~vivek/index.html
+   URL (intermediate): ./www.cs.princeton.edu/~vivek
+   URL (intermediate): ./www.cs.princeton.edu
+   URL (sum):          .
+
+   for scalars, you can also do something similar by padding
+   out the upper layers. So, for example, let's say that you
+   have a file size, of 1031 bytes. You could make groups that
+   are logarithmic at the top level, and broken down in deciles
+   at the next, like the following:
+   size (regular):      ./0-10000/1000-2000/1031
+   size (intermediate): ./0-10000/1000-2000
+   size (intermediate): ./0-10000
+   size (sum):          .
+
+   if the size was 31415, it would look like
+   size (regular):      ./0-100000/30000-40000/31415
+   size (intermediate): ./0-100000/30000-40000
+   etc.
+
+   one could also pad out the upper layers to their max ranges
+   to enable lexicographic sorting. If we assume that size can
+   be no longer than 8 digits (for example), that would be
+   size (regular):      ./00000000-00010000/00001000-00002000/00001031
+   size (intermediate): ./00000000-00010000/00001000-00002000
+   size (intermediate): ./00000000-00010000
+   size (sum):          .
+
+*/
+
+typedef struct Dimension {
+  String d_name;
+  String d_type;
+  int d_numKeys; /* number of keys in this dimension */
+  DimKeys *d_dimKeys; /* the keys themselves */  
+} Dimension;
+
+/*
+   the dk_name field is presumably mostly for debug use,
+   but can also be checked when performing operations
+
+   the dk_type field indicates what the type of the
+   keys are, and presumably has associated operations.
+   this has not been fully defined yet
+*/ 
+
+typedef struct Cell {
+  int *c_tuple; /* which entries along each axis */
+  int64 c_count; /* population count for this cell */
+} Cell;
+
+typedef struct Cube {
+  CubeType c_type; /* raw, expanded, reduced */
+  int64 c_flags; /* bit flags */
+  int c_numDimensions;
+  Dimension *c_dimensions; /* the dimensions themselves, with keys, etc */
+  int c_numCells;
+  Cell *c_cells; /* presumably in sorted order */
+} Cube;
+
+/* the cube is basically a collection of dimensions and
+   a collection of cells. For now, it seemed to make sense
+   to keep the representation of cells simple.
+
+   the different cube types are
+   raw - just a straight representation of the data
+   expanded - includes all of the intermediate entries
+   reduced - each dimension has been reduced by heavy hitter or
+             some similar approach
+   ...
+
+   the flags bit vector is included but not used at the moment
+
+*/
+
+/* possible functions: */
+
+/* takes two cubes with same number and kinds of dimensions,
+   and creates a new cube that contains the sum/union. This
+   operation can handle different keys along the same dimension,
+   producing a result that has the union of the keys */
+Cube *CubeMerge(Cube *c1, Cube *c2);
+
+/* takes two cubes that have exactly the same dimensions and
+   keys, and produces a cube that's either the sum or the difference,
+   with exactly the same dimensions and keys */
+Cube *CubeAdd(Cube *c1, Cube *c2);
+Cube *CubSub(Cube *c1, Cube *c2);
+
+/* given a cube and some reduction operation, produces
+   a new cube that performs the specified reduction. The
+   reduction may be something like 
+   "apply heavy hitter to all dimensions",
+   "apply topk to the specified dimension",
+   "remove the specified dimension", etc
+*/
+Cube *CubeReduce(Cube *c, int whichDim, ReduceType rt, double val);

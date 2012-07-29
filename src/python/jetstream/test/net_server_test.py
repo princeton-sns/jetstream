@@ -9,6 +9,7 @@ import unittest
 from jetstream.server_netinterface import *
 from jetstream.operator_graph import OperatorGraph,Operators
 from jetstream.gen.jetstream_types_pb2 import *
+from jetstream.gen.jetstream_controlplane_pb2 import *
 
 
 class TestRemoteServer(unittest.TestCase):
