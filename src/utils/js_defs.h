@@ -1,6 +1,8 @@
 #ifndef _JS_CONST_H_
 #define _JS_CONST_H_
 
+#include <stdio.h> 
+#include <stdlib.h> 
 #include <sys/types.h>
 #include <sys/time.h>
 #include <assert.h>
