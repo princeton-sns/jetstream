@@ -1,3 +1,5 @@
 cmake_minimum_required (VERSION 2.4)
 
-add_library (utils js_utils.cc)
+set (CMAKE_VERBOSE_MAKEFILE ON)
+
+add_library (jsutils js_utils.cc)
