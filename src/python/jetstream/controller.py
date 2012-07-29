@@ -1,23 +1,14 @@
-import socket
-import subprocess
-import threading
-
-from jetstream.server import Server
+from jetstream.controller_api import ControllerAPI
 from jetstream.gen.jetstream_types_pb2 import *
 
 from operator_graph import *
 
-
-class Controller(Server):
+class Controller(ControllerAPI):
   """Represents a stand-alone controller."""
   DEFAULT_PORTNO = 12345
   
-  def __init__(self):
-    n_id = NodeID()
-    n_id.portno = self.DEFAULT_PORTNO
-    n_id.address = socket.gethostbyname(socket.gethostname())
-    self.thisNode = n_id
-    self.cubes = {}
+  def __init__(self, netInterface):
+    self.netInterface = netInterface
 
   def get_nodes(self):
     return []
