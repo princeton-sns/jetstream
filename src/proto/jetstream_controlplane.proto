@@ -27,6 +27,16 @@ message AlterTopo {
 }
 
 
+/***
+* A heartbeat is a message from the data plane to the server
+*/
+message Heartbeat {
+  required int32 freemem_mb = 17; //MB of free mem on node
+  required int32 cpuload_pct = 18; //percentage of CPU resources that's free. 
+
+}
+
+
 /* An RPC request to a JetStream coordinator server.
 * The type field specifies the type of request. The optional fields specify the
 * parameters for that particular request type.
@@ -35,10 +45,11 @@ message AlterTopo {
 * request/responses from a single client
 */
 message ServerRequest {
-  enum Type {GET_NODES = 1; DEPLOY = 3 ; COUNT_NODES = 4;}
+  enum Type {GET_NODES = 1; DEPLOY = 3 ; COUNT_NODES = 4; HEARTBEAT = 5;}
   required Type type = 1;
 
   optional AlterTopo alter = 3;
+  optional Heartbeat heartbeat = 4;
 }
 
 

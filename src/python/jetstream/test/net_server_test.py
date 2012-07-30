@@ -22,7 +22,7 @@ class TestRemoteServer(unittest.TestCase):
     server = get_server_on_this_node()
     server.start_as_thread()
     
-    print "connecting to",server.address
+    print "connecting to %s:%d" % server.address
     sock = socket.create_connection(server.address, 1)
     
     req = ServerRequest()
@@ -31,15 +31,15 @@ class TestRemoteServer(unittest.TestCase):
     
     sock.send(  struct.pack("!l", len(buf)))
     sock.send(buf)
-    print "sent"
     time.sleep(1)
     pbframe_len = sock.recv(4)
-    print "got back response of length %d" % len(pbframe_len)
+#    print "got back response of length %d" % len(pbframe_len)
     unpacked_len = struct.unpack("!l", pbframe_len)[0]
-    print "reading another %d bytes" % unpacked_len
+#    print "reading another %d bytes" % unpacked_len
     buf = sock.recv(unpacked_len)
     resp = ServerResponse()
     resp.ParseFromString(buf)
+    self.assertEquals(resp.count_nodes, 0)
     print resp
     server.stop()
 

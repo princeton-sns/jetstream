@@ -10,7 +10,7 @@ import time
 
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
-from server import Server
+from server import ServerAPI
 from generic_netinterface import JSServer
 
 
@@ -29,26 +29,41 @@ def get_server_on_this_node():
   return server
 
 
-class CoordinatorServer(Server, JSServer):
+class CoordinatorServer(ServerAPI, JSServer):
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)
+    self.nodelist = {}
     
   def get_nodes(self):
-    return []
-
+    return self.nodelist.keys()
+    
+    
+  def handle_heartbeat(self, hbeat, handler):
+    t = long(time.time())
+    print "got heartbeat at %s." % time.ctime(t)
+    print "sender was " + str(handler.cli_addr)
+    print hbeat
+    print ""
+    self.nodelist[handler.cli_addr] = t  #TODO more meta here
+    
   def process_message(self, buf, handler):
   
     req = ServerRequest()
     req.ParseFromString(buf)
-    print req
+#    print ("server got %d bytes," % len(buf)), req
     response = ServerResponse()
-    response.count_nodes = len(self.get_nodes())
+    
+      #always send node count so length is never zero
+    response.count_nodes = len(self.get_nodes()) 
     if req.type == ServerRequest.GET_NODES:
       node_list = self.get_nodes()
       response.nodes.extend(node_list)
     #elif req.type == ServerRequest.DEPLOY:
-    #  self.coordinator.deploy(req.alter)
+    #  deploy(req.alter)
+    elif req.type == ServerRequest.HEARTBEAT:
+      self.handle_heartbeat(req, handler)
+      return #without sending response to heartbeat
     handler.send_pb(response)
 
 if __name__ == '__main__':

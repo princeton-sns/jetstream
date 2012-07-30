@@ -1,6 +1,6 @@
 
 
-class Server():
+class ServerAPI():
   def all_nodes(self):
     """Returns a list of all nodes in the system."""
     raise "Unimplemented!"

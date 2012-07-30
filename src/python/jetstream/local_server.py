@@ -3,12 +3,12 @@ import subprocess
 import threading
 
 
-from server import Server
+from server import ServerAPI
 from jetstream_types_pb2 import *
 
 from operator_graph import *
 
-class LocalServer(Server):
+class LocalServer(ServerAPI):
   """Represents a local execution environment"""
   DEFAULT_PORTNO = 12345
   

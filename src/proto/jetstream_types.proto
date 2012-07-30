@@ -36,14 +36,6 @@ message TableMeta {
   optional NodeID site = 3;
 }
 
-/**
-* Defines an edge between two operators in the same computation.
-*/
-message Edge {
-  required int32 src = 1;
-  required int32 dest = 2;
-}
-
 message Table {
   enum Type {BYTES = 1; STRING = 2; INT32 = 3;}
   required Type type = 1;
