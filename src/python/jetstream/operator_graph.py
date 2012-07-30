@@ -1,4 +1,4 @@
-from jetstream.gen.jetstream_types_pb2 import *
+from jetstream_types_pb2 import *
 
 
 #Enumeration of already-defined operators

@@ -3,8 +3,8 @@ import subprocess
 import threading
 
 
-from jetstream.server import Server
-from jetstream.gen.jetstream_types_pb2 import *
+from server import Server
+from jetstream_types_pb2 import *
 
 from operator_graph import *
 

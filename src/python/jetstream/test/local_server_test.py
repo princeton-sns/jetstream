@@ -3,9 +3,9 @@ import socket
 import time
 import unittest
 
-from jetstream.local_server import LocalServer
-from jetstream.operator_graph import OperatorGraph,Operators
-from jetstream.gen.jetstream_types_pb2 import *
+from local_server import LocalServer
+from operator_graph import OperatorGraph,Operators
+from jetstream_types_pb2 import *
 
 
 class TestLocalServer(unittest.TestCase):

@@ -8,9 +8,9 @@ import subprocess
 import threading
 import time
 
-from jetstream.gen.jetstream_types_pb2 import *
-from jetstream.gen.jetstream_controlplane_pb2 import *
-from jetstream.server import Server
+from jetstream_types_pb2 import *
+from jetstream_controlplane_pb2 import *
+from server import Server
 
 
 logger = logging.getLogger('JetStream')
