@@ -19,7 +19,7 @@ class TestRemoteServer(unittest.TestCase):
 #    self.server = LocalServer()
     
   def test_connect(self):
-    server = JetStreamServer( ('localhost', 0) )
+    server = get_server_on_this_node()
     server.start_as_thread()
     
     print "connecting to",server.address
@@ -34,7 +34,7 @@ class TestRemoteServer(unittest.TestCase):
     print "sent"
     time.sleep(1)
     pbframe_len = sock.recv(4)
-#    print "got back response of length %d" % len(pbframe_len)
+    print "got back response of length %d" % len(pbframe_len)
     unpacked_len = struct.unpack("!l", pbframe_len)[0]
     print "reading another %d bytes" % unpacked_len
     buf = sock.recv(unpacked_len)

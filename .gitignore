@@ -2,4 +2,6 @@
 *~
 *.pyc
 *.DS_Store
-
+*.pb.cc
+*.pb.h
+*.dylib

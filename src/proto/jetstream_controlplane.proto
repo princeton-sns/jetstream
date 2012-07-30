@@ -5,7 +5,8 @@ import "jetstream_types.proto";
 
 
 /**
-* A connection between two operators on the same host
+* A connection between two operators on the same host.
+* Operators must be in the same computation.
 */
 message Edge {
   required int32 src = 1;
