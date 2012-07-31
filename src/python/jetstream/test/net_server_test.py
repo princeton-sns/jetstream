@@ -7,6 +7,8 @@ import time
 import unittest
 
 from server_netinterface import *
+from generic_netinterface import JSClient
+
 from operator_graph import OperatorGraph,Operators
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
@@ -23,24 +25,16 @@ class TestRemoteServer(unittest.TestCase):
     server.start_as_thread()
     
     print "connecting to %s:%d" % server.address
-    sock = socket.create_connection(server.address, 1)
+    client = JSClient(server.address)
     
     req = ServerRequest()
     req.type = ServerRequest.GET_NODES
-    buf = req.SerializeToString()
-    
-    sock.send(  struct.pack("!l", len(buf)))
-    sock.send(buf)
-    time.sleep(1)
-    pbframe_len = sock.recv(4)
-#    print "got back response of length %d" % len(pbframe_len)
-    unpacked_len = struct.unpack("!l", pbframe_len)[0]
-#    print "reading another %d bytes" % unpacked_len
-    buf = sock.recv(unpacked_len)
+
+    buf = client.do_rpc(req)
     resp = ServerResponse()
     resp.ParseFromString(buf)
+    
     self.assertEquals(resp.count_nodes, 0)
-    print resp
     server.stop()
 
 if __name__ == '__main__':

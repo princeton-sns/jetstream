@@ -5,6 +5,7 @@ import logging
 import socket
 import struct
 import subprocess
+import sys
 import threading
 import time
 
@@ -18,8 +19,8 @@ logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
 def main():
 #  Could read config here
-  get_server_on_this_node()
-  asyncore.loop()
+  serv = get_server_on_this_node()
+  serv.evtloop()
 
   
 def get_server_on_this_node():  
@@ -36,7 +37,13 @@ class CoordinatorServer(ServerAPI, JSServer):
     self.nodelist = {}
     
   def get_nodes(self):
-    return self.nodelist.keys()
+    """Serialize node list as list of protobuf NodeIDs"""
+    res = []
+    for node in self.nodelist.keys():
+      nID = NodeID()
+      nID.address,nID.portno =  node
+      res.append(nID)
+    return res
     
     
   def handle_heartbeat(self, hbeat, handler):
@@ -59,6 +66,7 @@ class CoordinatorServer(ServerAPI, JSServer):
     if req.type == ServerRequest.GET_NODES:
       node_list = self.get_nodes()
       response.nodes.extend(node_list)
+      print "server responding to get_nodes with list of length %d" % len(node_list)
     #elif req.type == ServerRequest.DEPLOY:
     #  deploy(req.alter)
     elif req.type == ServerRequest.HEARTBEAT:

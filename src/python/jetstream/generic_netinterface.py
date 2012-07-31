@@ -10,9 +10,9 @@ import time
 from jetstream_types_pb2 import *
 
 logger = logging.getLogger('JetStream')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
@@ -26,8 +26,9 @@ class JSServer(asyncore.dispatcher):
   """
   
   def __init__(self, address):
-    asyncore.dispatcher.__init__(self)
-    
+    self.my_sockets = {}
+
+    asyncore.dispatcher.__init__(self, map=self.my_sockets)
     self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
     self.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
     self.bind(address)
@@ -40,15 +41,24 @@ class JSServer(asyncore.dispatcher):
 
   def handle_accept(self):
     client_info = self.accept()
-    
-    h = ConnHandler(sock=client_info[0], server=self, cli_addr = client_info[1])
+    while client_info is None:
+      print "accept failed, retrying"
+      client_info = self.accept()
+    print "accepted connection from %s:%d"% client_info[1]
+ #     logger.warn("Didn't expect None return from accept in handler running on %s -- what's broken?" % str(self.address))
+#      return
+    h = ConnHandler(sock=client_info[0], server=self, cli_addr = client_info[1],map=self.my_sockets)
     self.addr_to_handler[client_info[1]] = h
+    print "handler set; dict is",self.my_sockets
     return
   
   def connect_to(self, dest_addr):
     
     s = socket.create_connection(dest_addr)
-    h = ConnHandler(sock=s, server=self, cli_addr = dest_addr)
+    s.setblocking(0)
+    h = ConnHandler(sock=s, server=self, cli_addr = dest_addr, map=self.my_sockets)
+    print "client connected to %s:%d" % dest_addr
+
     self.addr_to_handler[dest_addr] = h
     return h
   
@@ -66,10 +76,10 @@ class JSServer(asyncore.dispatcher):
 
   def evtloop(self):
     try:
-      asyncore.loop()
+      asyncore.loop(map=self.my_sockets)
     except Exception as e:
       if not self.stopped:
-        print e
+        print "Exception caught leaving loop",e
     
     
   def process_message(self, buf, handler):
@@ -83,15 +93,14 @@ class ConnHandler(asynchat.async_chat):
   """
   
   
-  def __init__(self, sock, server, cli_addr):
+  def __init__(self, sock, server, cli_addr, map):
     self.received_data = []
     self.server = server
     self.cli_addr = cli_addr
     self.next_frame_len = -1
     self.set_terminator(4)
 #        self.logger = logging.getLogger('EchoHandler%s' % str(sock.getsockname()))
-    asynchat.async_chat.__init__(self, sock)
-
+    asynchat.async_chat.__init__(self, sock,map) #,map
     return
 
   def collect_incoming_data(self, data):
@@ -133,3 +142,27 @@ class ConnHandler(asynchat.async_chat):
     self.close()
     if self.cli_addr in self.server.addr_to_handler:
       del self.server.addr_to_handler[self.cli_addr]
+
+
+
+class JSClient():
+  """Simple synchronous client that speaks appropriate protobuf interface"""
+  def __init__(self, address):
+    self.sock = socket.create_connection(address, 1)
+
+  def do_rpc(self, req):
+    buf = req.SerializeToString()
+    
+    self.sock.send(  struct.pack("!l", len(buf)))
+    self.sock.send(buf)
+    pbframe_len = self.sock.recv(4)
+    unpacked_len = struct.unpack("!l", pbframe_len)[0]
+    print "JSClient sent req, got back response of length %d" % unpacked_len
+
+#    print "reading another %d bytes" % unpacked_len
+    buf = self.sock.recv(unpacked_len)
+    return buf  
+    
+  def close(self):
+    self.sock.close()
+    
