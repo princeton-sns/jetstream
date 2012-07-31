@@ -33,7 +33,7 @@ class JSServer(asyncore.dispatcher):
     self.bind(address)
     self.addr_to_handler = {}
     self.address = self.socket.getsockname()
-    logger.info("server bound to %s:%d" % address)
+    logger.info("server bound to %s:%d" % self.address)
     self.stopped = False
     self.listen(1)
     return
@@ -44,6 +44,13 @@ class JSServer(asyncore.dispatcher):
     h = ConnHandler(sock=client_info[0], server=self, cli_addr = client_info[1])
     self.addr_to_handler[client_info[1]] = h
     return
+  
+  def connect_to(self, dest_addr):
+    
+    s = socket.create_connection(dest_addr)
+    h = ConnHandler(sock=s, server=self, cli_addr = dest_addr)
+    self.addr_to_handler[dest_addr] = h
+    return h
   
   def handle_close(self):
     self.close()
