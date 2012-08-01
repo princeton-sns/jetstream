@@ -59,6 +59,7 @@ class CoordinatorServer(ServerAPI, JSServer):
     self.nodelist[handler.cli_addr] = self.NodeInfo(t)  #TODO more meta here
     
   def handle_deploy(self, altertopo):
+    print "GOT DEPLOY COMMAND!"
     pass
 
   def process_message(self, buf, handler):
