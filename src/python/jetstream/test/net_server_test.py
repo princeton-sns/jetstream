@@ -30,11 +30,27 @@ class TestRemoteServer(unittest.TestCase):
     req = ServerRequest()
     req.type = ServerRequest.GET_NODES
 
-    buf = client.do_rpc(req)
+    buf = client.do_rpc(req, True)
     resp = ServerResponse()
     resp.ParseFromString(buf)
     
     self.assertEquals(resp.count_nodes, 0)
+
+    # Test heartbeat
+    req = ServerRequest()
+    req.type = ServerRequest.HEARTBEAT
+    req.heartbeat.freemem_mb = 3900
+    req.heartbeat.cpuload_pct = 90
+    buf = client.do_rpc(req, False)
+    # Since no response is expected, sleep a bit to allow server to process message.
+    time.sleep(1)
+
+    # Test deploy
+    #req = ServerRequest()
+    #req.type = ServerRequest.DEPLOY
+    #buf = client.do_rpc(req, True)
+
+    client.close()
     server.stop()
 
 if __name__ == '__main__':

@@ -53,7 +53,10 @@ class JSServer(asyncore.dispatcher):
     return
   
   def connect_to(self, dest_addr):
-    
+    # If a handler for the destination exists, then it is still valid as of this check (otherwise it
+    # would have been removed by ConnHandler.handle_close()). 
+    if dest_addr in self.addr_to_handler:
+      return self.addr_to_handler[dest_addr]
     s = socket.create_connection(dest_addr)
     s.setblocking(0)
     h = ConnHandler(sock=s, server=self, cli_addr = dest_addr, map=self.my_sockets)
@@ -150,19 +153,18 @@ class JSClient():
   def __init__(self, address):
     self.sock = socket.create_connection(address, 1)
 
-  def do_rpc(self, req):
+  def do_rpc(self, req, expectResponse):
     buf = req.SerializeToString()
     
     self.sock.send(  struct.pack("!l", len(buf)))
     self.sock.send(buf)
-    pbframe_len = self.sock.recv(4)
-    unpacked_len = struct.unpack("!l", pbframe_len)[0]
-    print "JSClient sent req, got back response of length %d" % unpacked_len
-
-#    print "reading another %d bytes" % unpacked_len
-    buf = self.sock.recv(unpacked_len)
-    return buf  
+    if expectResponse:
+      pbframe_len = self.sock.recv(4)
+      unpacked_len = struct.unpack("!l", pbframe_len)[0]
+      print "JSClient sent req, got back response of length %d" % unpacked_len
+      # print "reading another %d bytes" % unpacked_len
+      buf = self.sock.recv(unpacked_len)
+      return buf
     
   def close(self):
     self.sock.close()
-    

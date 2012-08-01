@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
@@ -35,7 +36,10 @@ class CoordinatorServer(ServerAPI, JSServer):
   def __init__(self, addr):
     JSServer.__init__(self, addr)
     self.nodelist = {}
-    
+    #SS: How do we feel about namedtuples?
+    # Values in nodelist will be of type NodeInfo
+    self.NodeInfo = namedtuple('NodeInfo', 'lastHeard')
+
   def get_nodes(self):
     """Serialize node list as list of protobuf NodeIDs"""
     res = []
@@ -52,8 +56,11 @@ class CoordinatorServer(ServerAPI, JSServer):
     print "sender was " + str(handler.cli_addr)
     print hbeat
     print ""
-    self.nodelist[handler.cli_addr] = t  #TODO more meta here
+    self.nodelist[handler.cli_addr] = self.NodeInfo(t)  #TODO more meta here
     
+  def handle_deploy(self, altertopo):
+    pass
+
   def process_message(self, buf, handler):
   
     req = ServerRequest()
@@ -67,8 +74,8 @@ class CoordinatorServer(ServerAPI, JSServer):
       node_list = self.get_nodes()
       response.nodes.extend(node_list)
       print "server responding to get_nodes with list of length %d" % len(node_list)
-    #elif req.type == ServerRequest.DEPLOY:
-    #  deploy(req.alter)
+    elif req.type == ServerRequest.DEPLOY:
+      self.handle_deploy(req.alter)
     elif req.type == ServerRequest.HEARTBEAT:
       self.handle_heartbeat(req, handler)
       return #without sending response to heartbeat
