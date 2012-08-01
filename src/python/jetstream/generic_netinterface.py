@@ -36,6 +36,7 @@ class JSServer(asyncore.dispatcher):
     self.address = self.socket.getsockname()
     logger.info("server bound to %s:%d" % self.address)
     self.stopped = False
+    self.thread = None
     self.listen(1)
     return
 
@@ -70,12 +71,14 @@ class JSServer(asyncore.dispatcher):
     
   def stop(self):
     self.stopped = True
-    self.close()      
+    self.close()
+    if (self.thread != None) and (self.thread.is_alive()):
+      self.thread.join()
 
   def start_as_thread(self):
-    t = threading.Thread(group = None, target =self.evtloop, args = ())
-    t.daemon = True
-    t.start()
+    self.thread = threading.Thread(group = None, target =self.evtloop, args = ())
+    self.thread.daemon = True
+    self.thread.start()
 
   def evtloop(self):
     try:
@@ -84,7 +87,7 @@ class JSServer(asyncore.dispatcher):
       if not self.stopped:
         print "Exception caught leaving loop",e
     
-    
+     
   def process_message(self, buf, handler):
     raise "Subclasses must override this"
        
