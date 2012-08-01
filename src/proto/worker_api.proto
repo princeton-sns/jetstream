@@ -6,3 +6,26 @@ message getTaskMeta {
   required TaskID tid = 1;
 }
 
+/* An RPC request to a JetStream worker node.
+* The type field specifies the type of request. The optional fields specify the
+* parameters for that particular request type.
+*
+* TODO: should probably have IDs for requests so we can have multiple concurrent
+* request/responses from a single client
+*/
+message WorkerRequest {
+  enum Type { DEPLOY = 1 }
+  required Type type = 1;
+
+  optional AlterTopo alter = 3;
+}
+
+/* An RPC response from a JetStream worker node.
+* Currently there is only an optional error message field.
+*
+* TODO: should probably have IDs for requests so we can have multiple concurrent
+* request/responses from a single client
+*/
+message WorkerResponse {
+  optional string error = 147; //use unusual number to catch errors on parsing
+}

@@ -59,8 +59,16 @@ class CoordinatorServer(ServerAPI, JSServer):
     self.nodelist[handler.cli_addr] = self.NodeInfo(t)  #TODO more meta here
     
   def handle_deploy(self, altertopo):
-    print "GOT DEPLOY COMMAND!"
-    pass
+    if len(self.nodelist) == 0:
+      #TODO: Return some error message here. Are we using ServerResponse.error for this?
+      return
+    # For now, just pick any worker and execute all tasks on it
+    workerAddr = self.nodelist.keys()[0]
+    req = WorkerRequest()
+    req.type = WorkerRequest.DEPLOY
+    req.alter.toStart.extend(altertopo.toStart)
+    h = connect_to(workerAddr)
+    h.send_pb(altertopo)
 
   def process_message(self, buf, handler):
   
