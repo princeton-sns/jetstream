@@ -27,13 +27,13 @@ def main():
  
 def create_worker(server_address):
   my_address = ('localhost', 0) 
-  cli_loop = WorkerAPIImpl(my_address)
+  cli_loop = Worker(my_address)
   cli_loop.connect_to_server(server_address)
   cli_loop.start_as_thread()
   return cli_loop
 
 
-class WorkerAPIImpl(JSServer):
+class Worker(JSServer):
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)

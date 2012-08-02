@@ -12,7 +12,7 @@ from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
-from server import ServerAPI
+from server import ControllerAPI
 from generic_netinterface import JSServer
 
 
@@ -27,11 +27,11 @@ def main():
 def get_server_on_this_node():  
   bind_port = DEFAULT_BIND_PORT
   address = ('localhost', bind_port) 
-  server = CoordinatorServer(address)
+  server = Controller(address)
   return server
 
 
-class CoordinatorServer(ServerAPI, JSServer):
+class Controller(ControllerAPI, JSServer):
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)

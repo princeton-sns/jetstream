@@ -1,6 +1,7 @@
+#TODO: This doesn't really correspond to the Controller implementation, since right now we are using
+#handcrafted protobuf messages and process_message handlers in lieu of the traditional RPC stubs. Resolve.
 
-
-class ServerAPI():
+class ControllerAPI():
   def all_nodes(self):
     """Returns a list of all nodes in the system."""
     raise "Unimplemented!"

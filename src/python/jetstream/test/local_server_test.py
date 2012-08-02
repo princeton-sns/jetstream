@@ -3,15 +3,15 @@ import socket
 import time
 import unittest
 
-from local_server import LocalServer
+from local_server import LocalController
 from operator_graph import OperatorGraph,Operators
 from jetstream_types_pb2 import *
 
 
-class TestLocalServer(unittest.TestCase):
+class TestLocalController(unittest.TestCase):
 
   def setUp(self):
-    self.server = LocalServer()
+    self.server = LocalController()
     
   def test_get_nodes(self):
     nodes = self.server.all_nodes()
@@ -21,7 +21,7 @@ class TestLocalServer(unittest.TestCase):
     self.assertEquals(str(node), str(nodes[0]))
     
     node_as_str = str(node)
-    self.assertTrue(str(LocalServer.DEFAULT_PORTNO) in node_as_str )
+    self.assertTrue(str(LocalController.DEFAULT_PORTNO) in node_as_str )
     my_hostname =  "localhost" #socket.gethostbyname(socket.gethostname())
     self.assertTrue(my_hostname in node_as_str )
 
