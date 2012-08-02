@@ -1,6 +1,7 @@
 package edu.princeton.jetstream;
 
 import "jetstream_types.proto";
+import "jetstream_controlplane.proto";
 
 message TableRequest {
   repeated TableName names = 1;
@@ -9,6 +10,15 @@ message TableRequest {
 message TableResponse {
   required Cube tables = 1;
 }
+
+
+message WorkerRequest {
+  enum Type {GET_TABLE =1;ALTER=2;}
+
+  optional TableRequest table_request = 1;
+  optional AlterTopo alteration = 2;
+}
+
 
 service TableService {
   rpc getTable (TableRequest) returns (TableResponse);
