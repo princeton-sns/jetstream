@@ -20,6 +20,17 @@ message WorkerRequest {
 }
 
 
+/* An RPC response from a JetStream worker node.
+* Currently there is only an optional error message field.
+*
+* TODO: should probably have IDs for requests so we can have multiple concurrent
+* request/responses from a single client
+*/
+message WorkerResponse {
+  optional string error = 147; //use unusual number to catch errors on parsing
+}
+
+
 service TableService {
   rpc getTable (TableRequest) returns (TableResponse);
 }

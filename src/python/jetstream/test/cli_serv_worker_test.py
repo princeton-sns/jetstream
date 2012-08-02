@@ -42,7 +42,7 @@ class TestRemoteServer(unittest.TestCase):
     req = ServerRequest()
     req.type = ServerRequest.GET_NODES
 
-    buf = client.do_rpc(req)
+    buf = client.do_rpc(req, True)
     resp = ServerResponse()
     resp.ParseFromString(buf)
     
