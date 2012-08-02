@@ -42,10 +42,21 @@ class WorkerAPIImpl(JSServer):
   def connect_to_server(self, server_address):
     self.connection_to_server = self.connect_to(server_address)
 
-    
+  def handle_deploy(self, altertopo):
+    print "GOT WORKER DEPLOY!"
+
   def process_message(self, buf, handler):
-    print "received",buf
-    raise "This isn't really done yet"
+  
+    req = WorkerRequest()
+    req.ParseFromString(buf)
+    response = WorkerResponse()
+    # Always send some message so length is not 0
+    response.error = "No error"
+    if req.type == WorkerRequest.DEPLOY:
+      self.handle_deploy(req.alter)
+    handler.send_pb(response)
+    
+    
 
   def start_heartbeat_thread(self):
     t = threading.Thread(group = None, target =self.heartbeat_thread, args = ())
