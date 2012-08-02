@@ -70,6 +70,10 @@ class JSServer(asyncore.dispatcher):
   def stop(self):
     self.stopped = True
     self.close()
+    # Close any outgoing connections we have initiated (since these are part of our socket map,
+    # they will prevent asyncore.loop() from exiting)
+    for h in self.addr_to_handler.values():
+      h.close()
     if (self.thread != None) and (self.thread.is_alive()):
       self.thread.join()
 
@@ -80,7 +84,9 @@ class JSServer(asyncore.dispatcher):
 
   def evtloop(self):
     try:
-      asyncore.loop(map=self.my_sockets)
+      # Use a low timeout so the loop terminates when all channels have been closed. For some reason
+      # the default is 30 seconds, which takes forever.
+      asyncore.loop(map=self.my_sockets, timeout=1)
     except Exception as e:
       if not self.stopped:
         print "Exception caught leaving loop",e
@@ -95,8 +101,7 @@ class ConnHandler(asynchat.async_chat):
   Specializes async_chat for the case where communication is by length-prefixed
   ProtoBufs records
   """
-  
-  
+    
   def __init__(self, sock, server, cli_addr, map):
     self.received_data = []
     self.server = server

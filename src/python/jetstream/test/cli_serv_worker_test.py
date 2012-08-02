@@ -34,7 +34,7 @@ class TestRemoteServer(unittest.TestCase):
     
 #    while True:
 #      print "main thread is pausing..."
-    time.sleep(8)
+    time.sleep(5)
     
     print "connecting to %s:%d" % server.address
     

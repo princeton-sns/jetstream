@@ -38,6 +38,11 @@ class WorkerAPIImpl(JSServer):
   def __init__(self, addr):
     JSServer.__init__(self, addr)
     self.looping = True
+    self.hbThread = None
+
+  def stop(self):
+    self.stop_heartbeat_thread()
+    JSServer.stop(self)
 
   def connect_to_server(self, server_address):
     self.connection_to_server = self.connect_to(server_address)
@@ -56,12 +61,15 @@ class WorkerAPIImpl(JSServer):
       self.handle_deploy(req.alter)
     handler.send_pb(response)
     
-    
-
   def start_heartbeat_thread(self):
-    t = threading.Thread(group = None, target =self.heartbeat_thread, args = ())
-    t.daemon = True
-    t.start()
+    self.hbThread = threading.Thread(group = None, target =self.heartbeat_thread, args = ())
+    self.hbThread.daemon = True
+    self.hbThread.start()
+
+  def stop_heartbeat_thread(self):
+    self.looping = False
+    if (self.hbThread != None) and (self.hbThread.is_alive()):
+      self.hbThread.join()
 
   def heartbeat_thread(self):
     req = ServerRequest()
@@ -72,7 +80,7 @@ class WorkerAPIImpl(JSServer):
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
       self.connection_to_server.send_pb(req)
   
-      time.sleep(5)
+      time.sleep(3)
   
 
 if __name__ == '__main__':
