@@ -16,7 +16,7 @@ class LocalServer(ServerAPI):
   def __init__(self):
     n_id = NodeID()
     n_id.portno = self.DEFAULT_PORTNO
-    n_id.address = socket.gethostbyname(socket.gethostname())
+    n_id.address = "localhost" #socket.gethostbyname(socket.gethostname()) #not all hosts have a resolvable name for their own IP addr
     self.thisNode = n_id
     self.cubes = {}
     

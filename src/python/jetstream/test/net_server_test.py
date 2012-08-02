@@ -16,26 +16,51 @@ from jetstream_controlplane_pb2 import *
 
 class TestRemoteServer(unittest.TestCase):
 
+  @classmethod
+  def setUpClass(self):
+    self.server = get_server_on_this_node()
+    self.server.start_as_thread()
+    print "connecting to %s:%d" % self.server.address
+    self.client = JSClient(self.server.address)
+
+  @classmethod
+  def tearDownClass(self):
+    self.client.close()
+    self.server.stop()
+    
   def setUp(self):
     pass
-#    self.server = LocalServer()
     
   def test_connect(self):
-    server = get_server_on_this_node()
-    server.start_as_thread()
-    
-    print "connecting to %s:%d" % server.address
-    client = JSClient(server.address)
-    
+    # Test the connection by a simple GET_NODES call
     req = ServerRequest()
     req.type = ServerRequest.GET_NODES
 
-    buf = client.do_rpc(req)
+    buf = self.client.do_rpc(req, True)
     resp = ServerResponse()
     resp.ParseFromString(buf)
     
     self.assertEquals(resp.count_nodes, 0)
-    server.stop()
+
+  def test_heartbeat(self):
+    req = ServerRequest()
+    req.type = ServerRequest.HEARTBEAT
+    req.heartbeat.freemem_mb = 3900
+    req.heartbeat.cpuload_pct = 90
+    buf = self.client.do_rpc(req, False)
+    # Since no response is expected, sleep a little to give the server time to process message
+    time.sleep(1)
+
+  def test_deploy(self):
+    req = ServerRequest()
+    req.type = ServerRequest.DEPLOY
+    newTask = TaskMeta()
+    newTask.cmd = "cat /etc/shells"
+    newTask.id.computationID = 1
+    newTask.id.task = 1
+    #FIXME: Why does append() not work??
+    req.alter.toStart.extend([newTask])
+    buf = self.client.do_rpc(req, True)
 
 if __name__ == '__main__':
   unittest.main()

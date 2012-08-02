@@ -36,6 +36,7 @@ class JSServer(asyncore.dispatcher):
     self.address = self.socket.getsockname()
     logger.info("server bound to %s:%d" % self.address)
     self.stopped = False
+    self.thread = None
     self.listen(1)
     return
 
@@ -52,7 +53,10 @@ class JSServer(asyncore.dispatcher):
     return
   
   def connect_to(self, dest_addr):
-    
+    # If a handler for the destination exists, then it is still valid as of this check (otherwise it
+    # would have been removed by ConnHandler.handle_close()). 
+    if dest_addr in self.addr_to_handler:
+      return self.addr_to_handler[dest_addr]
     s = socket.create_connection(dest_addr)
     s.setblocking(0)
     h = ConnHandler(sock=s, server=self, cli_addr = dest_addr, map=self.my_sockets)
@@ -65,12 +69,14 @@ class JSServer(asyncore.dispatcher):
     
   def stop(self):
     self.stopped = True
-    self.close()      
+    self.close()
+    if (self.thread != None) and (self.thread.is_alive()):
+      self.thread.join()
 
   def start_as_thread(self):
-    t = threading.Thread(group = None, target =self.evtloop, args = ())
-    t.daemon = True
-    t.start()
+    self.thread = threading.Thread(group = None, target =self.evtloop, args = ())
+    self.thread.daemon = True
+    self.thread.start()
 
   def evtloop(self):
     try:
@@ -79,7 +85,7 @@ class JSServer(asyncore.dispatcher):
       if not self.stopped:
         print "Exception caught leaving loop",e
     
-    
+     
   def process_message(self, buf, handler):
     raise "Subclasses must override this"
        
@@ -148,19 +154,18 @@ class JSClient():
   def __init__(self, address):
     self.sock = socket.create_connection(address, 1)
 
-  def do_rpc(self, req):
+  def do_rpc(self, req, expectResponse):
     buf = req.SerializeToString()
     
     self.sock.send(  struct.pack("!l", len(buf)))
     self.sock.send(buf)
-    pbframe_len = self.sock.recv(4)
-    unpacked_len = struct.unpack("!l", pbframe_len)[0]
-    print "JSClient sent req, got back response of length %d" % unpacked_len
-
-#    print "reading another %d bytes" % unpacked_len
-    buf = self.sock.recv(unpacked_len)
-    return buf  
+    if expectResponse:
+      pbframe_len = self.sock.recv(4)
+      unpacked_len = struct.unpack("!l", pbframe_len)[0]
+      print "JSClient sent req, got back response of length %d" % unpacked_len
+      # print "reading another %d bytes" % unpacked_len
+      buf = self.sock.recv(unpacked_len)
+      return buf
     
   def close(self):
     self.sock.close()
-    

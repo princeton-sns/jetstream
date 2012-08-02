@@ -22,7 +22,7 @@ class TestLocalServer(unittest.TestCase):
     
     node_as_str = str(node)
     self.assertTrue(str(LocalServer.DEFAULT_PORTNO) in node_as_str )
-    my_hostname = socket.gethostbyname(socket.gethostname())
+    my_hostname =  "localhost" #socket.gethostbyname(socket.gethostname())
     self.assertTrue(my_hostname in node_as_str )
 
 

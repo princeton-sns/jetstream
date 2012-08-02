@@ -31,9 +31,10 @@ message AlterTopo {
 * A heartbeat is a message from the data plane to the server
 */
 message Heartbeat {
+  //SS: Consider including an explicit nodeID, in case heartbeats are aggregated/forwarded.
+  //required NodeID nodeId = 16;
   required int32 freemem_mb = 17; //MB of free mem on node
   required int32 cpuload_pct = 18; //percentage of CPU resources that's free. 
-
 }
 
 
