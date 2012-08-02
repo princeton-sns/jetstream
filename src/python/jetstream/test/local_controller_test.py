@@ -3,7 +3,7 @@ import socket
 import time
 import unittest
 
-from local_server import LocalController
+from local_controller import LocalController
 from operator_graph import OperatorGraph,Operators
 from jetstream_types_pb2 import *
 

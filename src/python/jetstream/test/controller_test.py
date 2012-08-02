@@ -6,7 +6,7 @@ import thread
 import time
 import unittest
 
-from server_netinterface import *
+from controller import *
 from generic_netinterface import JSClient
 
 from operator_graph import OperatorGraph,Operators
@@ -14,7 +14,7 @@ from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
 
 
-class TestRemoteServer(unittest.TestCase):
+class TestController(unittest.TestCase):
 
   def setUp(self):
     self.server = Controller(('localhost', 0))

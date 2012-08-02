@@ -12,7 +12,7 @@ from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
-from server import ControllerAPI
+from controller_api import ControllerAPI
 from generic_netinterface import JSServer
 
 

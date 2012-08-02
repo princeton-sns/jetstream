@@ -6,7 +6,7 @@ import thread
 import time
 import unittest
 
-from server_netinterface import *
+from controller import *
 from worker import *
 from generic_netinterface import JSClient
 
@@ -16,7 +16,7 @@ from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
 
 
-class TestRemoteServer(unittest.TestCase):
+class TestWorker(unittest.TestCase):
 
   def setUp(self):
     pass

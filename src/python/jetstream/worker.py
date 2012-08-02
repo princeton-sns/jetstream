@@ -14,7 +14,7 @@ from jetstream_dataplane_pb2 import *
 
 
 from generic_netinterface import JSServer
-from server_netinterface import DEFAULT_BIND_PORT
+from controller import DEFAULT_BIND_PORT
 
 logger = logging.getLogger('JetStream')
 def main():

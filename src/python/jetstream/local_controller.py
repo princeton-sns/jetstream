@@ -3,7 +3,7 @@ import subprocess
 import threading
 
 
-from server import ControllerAPI
+from controller_api import ControllerAPI
 from jetstream_types_pb2 import *
 
 from operator_graph import *
