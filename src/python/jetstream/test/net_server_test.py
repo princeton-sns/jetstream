@@ -16,20 +16,16 @@ from jetstream_controlplane_pb2 import *
 
 class TestRemoteServer(unittest.TestCase):
 
-  @classmethod
-  def setUpClass(self):
-    self.server = get_server_on_this_node()
-    self.server.start_as_thread()
-    print "connecting to %s:%d" % self.server.address
-    self.client = JSClient(self.server.address)
 
-  @classmethod
-  def tearDownClass(self):
+  def tearDown(self):
     self.client.close()
     self.server.stop()
     
   def setUp(self):
-    pass
+    self.server = CoordinatorServer(  ('localhost', 0) )
+    self.server.start_as_thread()
+    print "connecting to %s:%d" % self.server.address
+    self.client = JSClient(self.server.address)
     
   def test_connect(self):
     # Test the connection by a simple GET_NODES call

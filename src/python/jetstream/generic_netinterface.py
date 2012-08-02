@@ -34,7 +34,7 @@ class JSServer(asyncore.dispatcher):
     self.bind(address)
     self.addr_to_handler = {}
     self.address = self.socket.getsockname()
-    logger.info("server bound to %s:%d" % self.address)
+    logger.info("server bound to %s:%d" % (self.address[0], self.address[1]) )
     self.stopped = False
     self.thread = None
     self.listen(1)
@@ -45,7 +45,7 @@ class JSServer(asyncore.dispatcher):
     while client_info is None:
       logger.warn("accept failed, retrying")
       client_info = self.accept()
-    logger.debug("accepted connection from %s:%d", client_info[1])
+    logger.debug("accepted connection from %s:%d" % client_info[1])
  #     logger.warn("Didn't expect None return from accept in handler running on %s -- what's broken?" % str(self.address))
 #      return
     h = ConnHandler(sock=client_info[0], server=self, cli_addr = client_info[1],map=self.my_sockets)
