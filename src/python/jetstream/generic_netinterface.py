@@ -106,6 +106,7 @@ class ConnHandler(asynchat.async_chat):
     self.received_data = []
     self.server = server
     self.cli_addr = cli_addr
+    self.pushLock = threading.Lock()
     self.next_frame_len = -1
     self.set_terminator(4)
 #        self.logger = logging.getLogger('EchoHandler%s' % str(sock.getsockname()))
@@ -139,12 +140,17 @@ class ConnHandler(asynchat.async_chat):
       self.server.process_message(buf, self)
       self.set_terminator(4)
       self.next_frame_len = -1
-    
+  
+  # Overwrite to make thread-safe
+  def push(self, data):
+    with self.pushLock:
+      asynchat.async_chat.push(self, data)
 
   def send_pb(self, response):  #name 'send' already in use for socket send
     buf = response.SerializeToString()
-    self.push( struct.pack("!l", len(buf)))
-    self.push(buf)
+    # Use one call to push to guarantee protobuf is sent contiguously
+    self.push(struct.pack("!l", len(buf)) + buf)
+    #self.push(buf)
 
   def handle_close(self):
     logger.info("Socket closed by remote end %s:%d" % self.cli_addr)

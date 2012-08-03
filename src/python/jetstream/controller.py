@@ -12,6 +12,7 @@ from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
+from jetstream_dataplane_pb2 import *
 from controller_api import ControllerAPI
 from generic_netinterface import JSServer
 
@@ -60,15 +61,16 @@ class Controller(ControllerAPI, JSServer):
     
   def handle_deploy(self, altertopo):
     if len(self.nodelist) == 0:
+      print "WARNING: Worker node list on controller is empty!!"
       #TODO: Return some error message here. Are we using ServerResponse.error for this?
       return
     # For now, just pick any worker and execute all tasks on it
     workerAddr = self.nodelist.keys()[0]
     req = WorkerRequest()
-    req.type = WorkerRequest.DEPLOY
-    req.alter.toStart.extend(altertopo.toStart)
-    h = connect_to(workerAddr)
-    h.send_pb(altertopo)
+    req.type = WorkerRequest.ALTER
+    req.alteration.toStart.extend(altertopo.toStart)
+    h = self.connect_to(workerAddr)
+    h.send_pb(req)
 
   def process_message(self, buf, handler):
   

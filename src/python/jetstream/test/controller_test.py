@@ -7,6 +7,7 @@ import time
 import unittest
 
 from controller import *
+from worker import *
 from generic_netinterface import JSClient
 
 from operator_graph import OperatorGraph,Operators
@@ -23,9 +24,7 @@ class TestController(unittest.TestCase):
     self.client = JSClient(self.server.address)
 
   def tearDown(self):
-    print "Closing client in net test"
     self.client.close()
-    print "Stopping server in net test"
     self.server.stop()
     
   def test_connect(self):
@@ -49,6 +48,11 @@ class TestController(unittest.TestCase):
     time.sleep(1)
 
   def test_deploy(self):
+    # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
+    worker = create_worker(self.server.address)
+    worker.start_heartbeat_thread()
+    time.sleep(1)
+    # Tell the controller to deploy a topology (it will then deploy it on the worker)
     req = ServerRequest()
     req.type = ServerRequest.DEPLOY
     newTask = TaskMeta()
@@ -58,6 +62,9 @@ class TestController(unittest.TestCase):
     #FIXME: Why does append() not work??
     req.alter.toStart.extend([newTask])
     buf = self.client.do_rpc(req, True)
+    # Wait for the topology to start running on the worker
+    time.sleep(3)
+    worker.stop()
 
 if __name__ == '__main__':
   unittest.main()

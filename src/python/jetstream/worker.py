@@ -11,7 +11,7 @@ import time
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
 from jetstream_dataplane_pb2 import *
-
+from local_controller import LocalUnix
 
 from generic_netinterface import JSServer
 from controller import DEFAULT_BIND_PORT
@@ -37,6 +37,7 @@ class Worker(JSServer):
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)
+    self.tasks = {}
     self.looping = True
     self.hbThread = None
 
@@ -48,7 +49,19 @@ class Worker(JSServer):
     self.connection_to_server = self.connect_to(server_address)
 
   def handle_deploy(self, altertopo):
-    print "GOT WORKER DEPLOY!"
+    #TODO: Assumes operators are all command line execs
+    print "IN WORKER DEPLOY!!"
+    for task in altertopo.toStart:
+      if task.cmd != "":
+        #TODO: Why is TaskID unhashable?
+        print "STARTING NEW TASK"
+        self.tasks[task.id.task] = LocalUnix(task.id.task, task.cmd)
+        self.tasks[task.id.task].start()
+    for taskId in altertopo.taskToStop:
+      if taskId.task in self.tasks:
+        #TODO Add stop() method to operator interface and stop tasks here
+        del self.tasks[taskId.task]
+    print "LEAVING WORKER DEPLOY!!"
 
   def process_message(self, buf, handler):
   
@@ -57,8 +70,8 @@ class Worker(JSServer):
     response = WorkerResponse()
     # Always send some message so length is not 0
     response.error = "No error"
-    if req.type == WorkerRequest.DEPLOY:
-      self.handle_deploy(req.alter)
+    if req.type == WorkerRequest.ALTER:
+      self.handle_deploy(req.alteration)
     handler.send_pb(response)
     
   def start_heartbeat_thread(self):
@@ -81,7 +94,6 @@ class Worker(JSServer):
       self.connection_to_server.send_pb(req)
   
       time.sleep(3)
-  
 
 if __name__ == '__main__':
   main()

@@ -14,9 +14,10 @@ message TableResponse {
 
 message WorkerRequest {
   enum Type {GET_TABLE =1;ALTER=2;}
+  required Type type = 1;
 
-  optional TableRequest table_request = 1;
-  optional AlterTopo alteration = 2;
+  optional TableRequest table_request = 2;
+  optional AlterTopo alteration = 3;
 }
 
 

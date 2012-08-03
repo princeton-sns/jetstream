@@ -95,6 +95,7 @@ class LocalUnix(Operator):
     # TODO create stderr slurper
     while p.returncode is None:
       for ln in p.stdout.readlines():
+        print "Task %d outputs line: %s" % (self.id, ln)
         for dest in self.dests:
           dest.receive(ln)
       p.poll()
