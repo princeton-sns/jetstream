@@ -46,12 +46,14 @@ class TestController(unittest.TestCase):
     buf = self.client.do_rpc(req, False)
     # Since no response is expected, sleep a little to give the server time to process message
     time.sleep(1)
+    self.assertEquals(len(self.server.get_nodes()), 1)
 
   def test_deploy(self):
+    
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     worker = create_worker(self.server.address)
     worker.start_heartbeat_thread()
-    time.sleep(1)
+    time.sleep(2)
     # Tell the controller to deploy a topology (it will then deploy it on the worker)
     req = ServerRequest()
     req.type = ServerRequest.DEPLOY
@@ -61,9 +63,13 @@ class TestController(unittest.TestCase):
     newTask.id.task = 1
     #FIXME: Why does append() not work??
     req.alter.toStart.extend([newTask])
+    
     buf = self.client.do_rpc(req, True)
+    print "deploy finished..."
     # Wait for the topology to start running on the worker
-    time.sleep(3)
+    time.sleep(2)
+    self.assertEquals(len(worker.tasks), 1)
+    print "stopping worker"
     worker.stop()
 
 if __name__ == '__main__':

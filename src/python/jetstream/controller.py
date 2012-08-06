@@ -15,6 +15,7 @@ from jetstream_controlplane_pb2 import *
 from jetstream_dataplane_pb2 import *
 from controller_api import ControllerAPI
 from generic_netinterface import JSServer
+from server_http_interface import start_web_interface
 
 
 logger = logging.getLogger('JetStream')
@@ -22,6 +23,7 @@ DEFAULT_BIND_PORT = 3456
 def main():
 #  Could read config here
   serv = get_server_on_this_node()
+  start_web_interface(serv)
   serv.evtloop()
 
   
@@ -37,19 +39,46 @@ class Controller(ControllerAPI, JSServer):
   def __init__(self, addr):
     JSServer.__init__(self, addr)
     self.nodelist = {}
+    self.internals_lock = threading.RLock()
+    
     #SS: How do we feel about namedtuples?
     # Values in nodelist will be of type NodeInfo
     self.NodeInfo = namedtuple('NodeInfo', 'lastHeard')
 
+
+######## The methods below are part of the 'internal' interface. 
+#  They should acquire locks before accessing data structures
+
+
   def get_nodes(self):
+    """Returns a list of NodeInfos"""
+    self.internals_lock.acquire()
+    res = []
+    res.extend(self.nodelist.items())
+    self.internals_lock.release()
+    return res
+    
+  def get_one_node(self):
+    self.internals_lock.acquire()
+    res = self.nodelist.keys()[0]
+    self.internals_lock.release()
+    return res
+
+    
+#########  The methods below are part of the external interface.  
+#  They should go through the 'internal' interface OR acquire locks
+    
+    
+  def serialize_nodelist(self, nodes):
     """Serialize node list as list of protobuf NodeIDs"""
     res = []
-    for node in self.nodelist.keys():
+    for node,_ in nodes:
       nID = NodeID()
       nID.address,nID.portno =  node
       res.append(nID)
     return res
     
+
     
   def handle_heartbeat(self, hbeat, handler):
     t = long(time.time())
@@ -57,7 +86,10 @@ class Controller(ControllerAPI, JSServer):
     print "sender was " + str(handler.cli_addr)
     print hbeat
     print ""
+    self.internals_lock.acquire()
     self.nodelist[handler.cli_addr] = self.NodeInfo(t)  #TODO more meta here
+    self.internals_lock.release()
+
     
   def handle_deploy(self, altertopo):
     if len(self.nodelist) == 0:
@@ -65,12 +97,14 @@ class Controller(ControllerAPI, JSServer):
       #TODO: Return some error message here. Are we using ServerResponse.error for this?
       return
     # For now, just pick any worker and execute all tasks on it
-    workerAddr = self.nodelist.keys()[0]
+    workerAddr = self.get_one_node()
     req = WorkerRequest()
     req.type = WorkerRequest.ALTER
     req.alteration.toStart.extend(altertopo.toStart)
     h = self.connect_to(workerAddr)
     h.send_pb(req)
+    print "returning from handle_deploy"
+
 
   def process_message(self, buf, handler):
   
@@ -80,10 +114,10 @@ class Controller(ControllerAPI, JSServer):
     response = ServerResponse()
     
       #always send node count so length is never zero
-    response.count_nodes = len(self.get_nodes()) 
+    node_list = self.get_nodes()
+    response.count_nodes = len(node_list) 
     if req.type == ServerRequest.GET_NODES:
-      node_list = self.get_nodes()
-      response.nodes.extend(node_list)
+      response.nodes.extend( self.serialize_nodelist( node_list))
       print "server responding to get_nodes with list of length %d" % len(node_list)
     elif req.type == ServerRequest.DEPLOY:
       self.handle_deploy(req.alter)

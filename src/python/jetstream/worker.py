@@ -33,6 +33,7 @@ def create_worker(server_address):
   return cli_loop
 
 
+HB_INTERVAL = 3 #seconds
 class Worker(JSServer):
   
   def __init__(self, addr):
@@ -72,7 +73,7 @@ class Worker(JSServer):
     response.error = "No error"
     if req.type == WorkerRequest.ALTER:
       self.handle_deploy(req.alteration)
-    handler.send_pb(response)
+#    handler.send_pb(response)
     
   def start_heartbeat_thread(self):
     self.hbThread = threading.Thread(group = None, target =self.heartbeat_thread, args = ())
@@ -93,7 +94,7 @@ class Worker(JSServer):
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
       self.connection_to_server.send_pb(req)
   
-      time.sleep(3)
+      time.sleep(HB_INTERVAL)
 
 if __name__ == '__main__':
   main()
