@@ -10,9 +10,9 @@ import time
 from jetstream_types_pb2 import *
 
 logger = logging.getLogger('JetStream')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
@@ -150,7 +150,6 @@ class ConnHandler(asynchat.async_chat):
     buf = response.SerializeToString()
     # Use one call to push to guarantee protobuf is sent contiguously
     self.push(struct.pack("!l", len(buf)) + buf)
-    #self.push(buf)
 
   def handle_close(self):
     logger.info("Socket closed by remote end %s:%d" % self.cli_addr)
