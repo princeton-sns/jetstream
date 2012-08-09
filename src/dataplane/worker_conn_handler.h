@@ -14,9 +14,9 @@ using namespace boost::asio::ip;
 
 namespace jetstream {
 
-class WorkerClient {
+class WorkerConnHandler {
   public:
- WorkerClient(boost::asio::io_service& io_service,
+ WorkerConnHandler(boost::asio::io_service& io_service,
       tcp::resolver::iterator endpoint_iterator);
 
  void write(const protobuf::Message &msg);
@@ -32,7 +32,7 @@ private:
 
   void handle_read_body(const boost::system::error_code& error);
 
-  void do_write(chat_message msg);
+//  void do_write(chat_message msg);
 
   void handle_write(const boost::system::error_code& error);
 
@@ -41,8 +41,6 @@ private:
 private:
   boost::asio::io_service& io_service_;
   tcp::socket socket_;
-  chat_message read_msg_;
-  chat_message_queue write_msgs_;
 };
 
 }

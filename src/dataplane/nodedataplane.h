@@ -6,42 +6,44 @@
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "jetstream_dataplane.pb.h"
-#include "workerclient.h"
+#include "worker_conn_handler.h"
 
 
 namespace jetstream {
   
   class net_interface;
+
+  
+  class ConnectionToController: public WorkerConnHandler {
+  public:
+    ConnectionToController(boost::asio::io_service& io_service,
+                           tcp::resolver::iterator endpoint_iterator):
+    WorkerConnHandler(io_service,endpoint_iterator) {}
+    virtual void processMessage(protobuf::Message &msg);
+  };
+  
   
   class hb_loop {
-    WorkerClient* uplink;
+    ConnectionToController* uplink;
   public:
-    hb_loop(WorkerClient* t):uplink(t) {}
+    hb_loop(ConnectionToController* t):uplink(t) {}
     //could potentially add a ctor here with some args
     void operator()();
   };
   
   
-  class ConnectionToController: public WorkerClient {
-  public:
-    ConnectionToController(boost::asio::io_service& io_service,
-                           tcp::resolver::iterator endpoint_iterator):
-    WorkerClient(io_service,endpoint_iterator) {}
-    virtual void processMessage(protobuf::Message &msg);
-  };
-  
-class NodeDataPlane {
- private:
-  bool alive;
-  ConnectionToController* uplink;
+  class NodeDataPlane {
+   private:
+    bool alive;
+    ConnectionToController* uplink;
 
- public:
-  NodeDataPlane() : alive (false) {}
-  ~NodeDataPlane();
-  void connect_to_master();
-  void start_heartbeat_thread();
-  
-};
+   public:
+    NodeDataPlane() : alive (false) {}
+    ~NodeDataPlane();
+    void connect_to_master();
+    void start_heartbeat_thread();
+    
+  };
 
   const int HB_INTERVAL = 5; //seconds
   
