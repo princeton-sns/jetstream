@@ -31,16 +31,18 @@ jetstream::NodeDataPlane::connect_to_master()
   int portno = 3456;
 
   boost::asio::io_service io_service;
+//should do this up here
 
+  //find the controller
+  
   tcp::resolver resolver(io_service);
-    //???
-  tcp::resolver::query query(domain, portno);
+  tcp::resolver::query query(domain, boost::lexical_cast<string>(portno));//no flags
   tcp::resolver::iterator server_side = resolver.resolve(query);
 
-  tcp::resolver::iterator endpoint_iterator;
+  
+  this->uplink = new ConnectionToController(io_service, server_side);
   
   boost::thread select_loop(boost::bind(&boost::asio::io_service::run, &io_service));
-  this->uplink = new ConnectionToController(io_service, endpoint_iterator);
 }
 
 void
