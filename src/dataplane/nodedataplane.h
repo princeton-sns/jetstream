@@ -9,6 +9,15 @@
 
 namespace jetstream {
 
+  
+  class hb_loop {
+    
+  public:
+    hb_loop() {}
+    //could potentially add a ctor here with some args
+    void operator()();
+  };
+  
 class NodeDataPlane {
  private:
   bool alive;
@@ -16,9 +25,12 @@ class NodeDataPlane {
  public:
   NodeDataPlane() : alive (false) {}
   ~NodeDataPlane();
+  void start_heartbeat_thread();
   
 };
 
+  
 }
+
 
 #endif /* _nodedataplane_H_ */
