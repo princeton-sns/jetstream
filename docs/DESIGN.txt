@@ -32,7 +32,7 @@ JetStream exists to maintain views of changing data. Data will be structured as 
 
 Each hypercube exists on a particular node.
 
-Nodes may periodically checkpoint the hypercubes. These can be stored on either local or shared storage.
+Nodes may periodically checkpoint the hypercubes. These can be stored on either local or shared storage. Durability will be configured by the user.
 
 
 RATIONALE:
@@ -50,45 +50,16 @@ Should CubeIDs include version numbers?  What happens if we have a series of cub
 POSSIBLE API:
 
 TYPES:
-TaskID -- ID of a task. WHAT DO THEY LOOK LIKE?
+TaskID -- ID of a task. Currently 32-bit computation ID and 32-bit task ID
 TaskMeta -- Information about a task. Includes a TaskID
 
 CubeID -- the ID of a data cube. WHAT DO THESE LOOK LIKE?
 DataCube -- A chunk o' data. 
 DataCubeMeta -- Metadata for a cube. Includes schema.
 
-//SS: Need to figure this out.
-//NodeID -- ID of a worker node. WHAT DO THEY LOOK LIKE?
+
+NodeID -- ID of a worker node. Currently IP addr + portno.
 //WorkerID -- ID of a worker. WHAT DO THEY LOOK LIKE?
 
-Directive -- instructions about what to start and stop
-	StartTasks: list of TaskMeta
-	StopTasks: list of TaskID
-	AddEdges: list of TaskID,TaskID pairs
-	RemoveEdges: list of TaskID,TaskID pairs
- 
-WORKER NODE API:
-	getCube(CubeID): DataCube
-	getCubeMeta(CubeID): DataCubeMeta
-	alterTasks(Directive)
-	listTasks():  list of TaskMeta
-	//SS: Consider changing to ListCubes()
-	listTables(): list of DataCubeMeta
 
-CONTROLLER API:
-	// For workers
-	//SS: Should this be a NodeID instead (i.e. controller is agnostic to worker threads)?
-	register(WorkerID)
-
-	// For clients
-	//SS: I don't see the need for clients to be aware of nodes in the system.
-	all_nodes(): list of Node
-	//SS: I don't see the need for clients to be aware of nodes in the system.
-	get_a_node(): Node
-	deploy(String, OperatorGraph):
-	kill(String):
-    
-CUBE API:
-	//SS: Was this inadvertently copied from above?
-	getCube(CubeID): DataCube
-	//SS: Add APIs to add datapoints, bucket dimensions, etc..
+API itself has moved to the .proto files.

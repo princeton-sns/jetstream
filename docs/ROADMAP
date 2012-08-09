@@ -1,8 +1,3 @@
-Before we start coding:
-	Need to fix terminology.   (Done?)
-	Need to pick RPC framework. Probably ProtoBufs.
-	Need to specify a preliminary set of RPCs. Partly done?
-
 Data plane is probably C-ish C++.
 Control plane for now is Python.
 
