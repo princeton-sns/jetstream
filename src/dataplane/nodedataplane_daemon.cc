@@ -19,16 +19,16 @@ static void
 jsnode_start (std::string config)
 {
   if (!config.size()) {
+    //read a default config file here
   }
   NodeDataPlane t;
-  //create network interface here?
-  net_interface * iface = NULL; // new net_interface();
-//  t.start_heartbeat_thread(iface);
-  hb_loop loop = hb_loop(iface);
-  loop();
+  WorkerClient* controller_conn = t.connect_to_master();
   
-  boost::this_thread::sleep(boost::posix_time::seconds(5));
-
+  //create network interface here?
+//  t.start_heartbeat_thread(iface);
+  hb_loop loop = hb_loop(controller_conn);
+  loop();
+  //end of app; fall off and exit
 }
 
 
@@ -64,7 +64,7 @@ main (int argc, char **argv)
       stop = start = true;
     else if (boost::iequals(arg, std::string("-C"))) {
       if ((i+1) >= argc)
-	usage();
+        usage();
       
       config = argv[++i];
     }
