@@ -2,6 +2,7 @@
 #include <boost/date_time.hpp>
 
 #include "nodedataplane.h"
+
 #include "jetstream_controlplane.pb.h"
 
 
@@ -39,7 +40,7 @@ jetstream::NodeDataPlane::connect_to_master()
   tcp::resolver::iterator endpoint_iterator;
   
   boost::thread select_loop(boost::bind(&boost::asio::io_service::run, &io_service));
-  this->uplink = new WorkerClient(ioservice, endpoint_iterator);
+  this->uplink = new ConnectionToController(io_service, endpoint_iterator);
 }
 
 void
@@ -52,7 +53,7 @@ jetstream::hb_loop::operator()()
     Heartbeat h;
     h.set_cpuload_pct(0);
     h.set_freemem_mb(1000);
-    uplink -> write(h)
+    uplink -> write(h);
     cout << "HB looping" << endl;
     boost::this_thread::sleep(boost::posix_time::seconds(HB_INTERVAL));
   }

@@ -23,6 +23,10 @@ namespace jetstream {
   
   
   class ConnectionToController: public WorkerClient {
+  public:
+    ConnectionToController(boost::asio::io_service& io_service,
+                           tcp::resolver::iterator endpoint_iterator):
+    WorkerClient(io_service,endpoint_iterator) {}
     virtual void processMessage(protobuf::Message &msg);
   };
   

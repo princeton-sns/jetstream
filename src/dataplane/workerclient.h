@@ -9,6 +9,8 @@
 #include "jetstream_dataplane.pb.h"
 
 using namespace ::google;
+using namespace boost::asio::ip;
+
 
 namespace jetstream {
 
