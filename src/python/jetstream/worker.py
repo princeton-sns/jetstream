@@ -17,6 +17,8 @@ from generic_netinterface import JSServer
 from controller import DEFAULT_BIND_PORT
 
 logger = logging.getLogger('JetStream')
+DEFAULT_WORKER_BIND_PORT = 3457
+
 def main():
 #  Could read config here
   
@@ -26,7 +28,7 @@ def main():
   worker_thread.heartbeat_thread()
  
 def create_worker(server_address):
-  my_address = ('localhost', 0) 
+  my_address = ('localhost', DEFAULT_WORKER_BIND_PORT) 
   cli_loop = Worker(my_address)
   cli_loop.connect_to_server(server_address)
   cli_loop.start_as_thread()
@@ -51,7 +53,6 @@ class Worker(JSServer):
 
   def handle_deploy(self, altertopo):
     #TODO: Assumes operators are all command line execs
-    print "IN WORKER DEPLOY!!"
     for task in altertopo.toStart:
       if task.cmd != "":
         #TODO: Why is TaskID unhashable?

@@ -14,7 +14,6 @@ from operator_graph import OperatorGraph,Operators
 from jetstream_types_pb2 import *
 from jetstream_controlplane_pb2 import *
 
-
 class TestController(unittest.TestCase):
 
   def setUp(self):
@@ -61,8 +60,10 @@ class TestController(unittest.TestCase):
     newTask.cmd = "cat /etc/shells"
     newTask.id.computationID = 1
     newTask.id.task = 1
-    newTask.site.address = ""
-    newTask.site.portno = DEFAULT_BIND_PORT
+    # Get a worker address in the right format (note getaddrinfo returns a list of addresses)
+    workerAddr = socket.getaddrinfo('localhost', DEFAULT_WORKER_BIND_PORT)[0][4]
+    newTask.site.address = workerAddr[0]
+    newTask.site.portno = workerAddr[1]
     #FIXME: Why does append() not work??
     req.alter.toStart.extend([newTask])
     
