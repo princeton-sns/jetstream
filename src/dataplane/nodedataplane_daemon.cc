@@ -1,6 +1,8 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include "nodedataplane.h"
+#include <boost/thread/thread.hpp>
+
 
 using namespace jetstream;
 
@@ -18,6 +20,11 @@ jsnode_start (std::string config)
 {
   if (!config.size()) {
   }
+  NodeDataPlane t;
+  //create network interface here?
+  t.start_heartbeat_thread();
+  
+  boost::this_thread::sleep(boost::posix_time::seconds(5));
 
 }
 

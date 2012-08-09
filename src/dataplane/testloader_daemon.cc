@@ -17,13 +17,13 @@ main (int argc, char **argv)
 
 
   DataPlaneOperator *op = new DataPlaneOperator;
-  op->execute();
+  op->process(NULL);
   delete op;
 
   DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
   opl->load("test");
   op = opl->newOp("test");
-  op->execute();
+  op->process(NULL);
   delete op;
   opl->unload("test");
 

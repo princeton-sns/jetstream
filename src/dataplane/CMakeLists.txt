@@ -8,6 +8,8 @@ list (REMOVE_ITEM LIB_SRCS ${DAEMONS})
 list (REMOVE_ITEM LIB_SRCS ${OPS})
 
 add_library (${LIBRARY_NAME} ${LIB_SRCS})
+target_link_libraries (${LIBRARY_NAME} ${Boost_LIBRARIES})
+
 
 foreach(OP ${OPS})
   get_filename_component(OP_NAME ${OP} NAME_WE)
@@ -18,4 +20,5 @@ endforeach(OP)
 add_executable (testloader ${SRC_DIR}/dataplane/testloader_daemon.cc)
 #add_dependencies (testloader ${LIBRARY_NAME})
 target_link_libraries (testloader ${LIBRARY_NAME})
+
 

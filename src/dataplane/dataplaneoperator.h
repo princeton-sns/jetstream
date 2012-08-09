@@ -8,19 +8,32 @@
 #include "jetstream_types.pb.h"
 #include "jetstream_dataplane.pb.h"
 
+typedef void* tuple_t; //FIXME when we have a real tuple
+
 namespace jetstream {
+    
+    
+  class Receiver {
+   public:
+    virtual void process(tuple_t) = 0;
+  };
 
-class DataPlaneOperator {
- private:
-  bool active;
+  class DataPlaneOperator:Receiver  {
+   private:
+    bool active;
+    int operID;
+    Receiver * dest;
 
- public:
-  DataPlaneOperator() : active (false) {}
-  ~DataPlaneOperator();
-  virtual void execute();
-};
+  protected:
+    void emit(tuple_t); //
+      
+   public:
+    DataPlaneOperator() : active (false),dest(NULL) {}
+    virtual ~DataPlaneOperator();
+    virtual void process(tuple_t); //NOT abstract here
+  };
 
-typedef DataPlaneOperator *maker_t();
+  typedef DataPlaneOperator *maker_t();
 }
 
 #endif /* _dataplaneoperator_H_ */
