@@ -72,7 +72,7 @@ class Worker(JSServer):
     # Always send some message so length is not 0
     response.error = "No error"
     if req.type == WorkerRequest.ALTER:
-      self.handle_deploy(req.alteration)
+      self.handle_deploy(req.alter)
 #    handler.send_pb(response)
     
   def start_heartbeat_thread(self):

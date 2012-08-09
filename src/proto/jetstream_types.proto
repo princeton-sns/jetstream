@@ -23,6 +23,10 @@ message TaskMeta {
   required string cmd = 1;
   required TaskID id = 2;
   optional NodeID site = 3;
+
+  //TODO: Determine minimal set of attributes client must specify for submitted operators.
+  // optional int32 partialAggRatio
+  // optional boolean isUnion
 }
 
 message TableName {
