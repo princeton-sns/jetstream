@@ -2,10 +2,13 @@
 #define _workerclient_H_
 
 #include <sys/types.h>
+#include <boost/asio.hpp>
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "jetstream_dataplane.pb.h"
+
+using namespace ::google;
 
 namespace jetstream {
 
