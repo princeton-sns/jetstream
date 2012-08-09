@@ -96,15 +96,31 @@ class Controller(ControllerAPI, JSServer):
       print "WARNING: Worker node list on controller is empty!!"
       #TODO: Return some error message here. Are we using ServerResponse.error for this?
       return
-    # For now, just pick any worker and execute all tasks on it
-    workerAddr = self.get_one_node()
-    req = WorkerRequest()
-    req.type = WorkerRequest.ALTER
-    req.alteration.toStart.extend(altertopo.toStart)
-    h = self.connect_to(workerAddr)
-    h.send_pb(req)
-    print "returning from handle_deploy"
 
+    # TODO: The code below only handles starting tasks on workers.
+
+    # Assign pinned tasks to specified workers. For now, assign unpinned tasks to a default worker.
+    workerToTasks = {}
+    defaultWorker = self.get_one_node()
+    for task in altertopo.toStart:
+      workerAddr = defaultWorker
+      if task.site.address != '':
+        # Task is pinned, so overwrite the target worker address
+        workerAddr = (task.site.address, task.site.portno)
+      if workerAddr in workerToTasks:
+        workerToTasks[workerAddr].append(task)
+      else:
+        workerToTasks[workerAddr] = [task]
+
+    # Deploy the tasks assigned to each worker
+    for workerAddr in workerToTasks.keys():
+      req = WorkerRequest()
+      req.type = WorkerRequest.ALTER
+      req.alter.toStart.extend(workerToTasks[workerAddr])
+      h = self.connect_to(workerAddr)
+      h.send_pb(req)
+
+    print "returning from handle_deploy"
 
   def process_message(self, buf, handler):
   

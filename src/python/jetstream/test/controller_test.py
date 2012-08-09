@@ -61,6 +61,8 @@ class TestController(unittest.TestCase):
     newTask.cmd = "cat /etc/shells"
     newTask.id.computationID = 1
     newTask.id.task = 1
+    newTask.site.address = ""
+    newTask.site.portno = DEFAULT_BIND_PORT
     #FIXME: Why does append() not work??
     req.alter.toStart.extend([newTask])
     
