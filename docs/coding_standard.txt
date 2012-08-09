@@ -61,3 +61,6 @@
           * Comment2
           */
 
+
+- File names:
+	Headers end in .h, not .hh

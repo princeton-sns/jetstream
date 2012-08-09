@@ -9,11 +9,12 @@
 
 namespace jetstream {
 
+  class net_interface;
   
   class hb_loop {
-    
+    net_interface* iface;
   public:
-    hb_loop() {}
+    hb_loop(net_interface* t):iface(t) {}
     //could potentially add a ctor here with some args
     void operator()();
   };
@@ -21,6 +22,7 @@ namespace jetstream {
 class NodeDataPlane {
  private:
   bool alive;
+  net_interface* iface;
 
  public:
   NodeDataPlane() : alive (false) {}
@@ -29,6 +31,7 @@ class NodeDataPlane {
   
 };
 
+  const int HB_INTERVAL = 5; //seconds
   
 }
 

@@ -22,7 +22,10 @@ jsnode_start (std::string config)
   }
   NodeDataPlane t;
   //create network interface here?
-  t.start_heartbeat_thread();
+  net_interface * iface = NULL; // new net_interface();
+//  t.start_heartbeat_thread(iface);
+  hb_loop loop = hb_loop(iface);
+  loop();
   
   boost::this_thread::sleep(boost::posix_time::seconds(5));
 

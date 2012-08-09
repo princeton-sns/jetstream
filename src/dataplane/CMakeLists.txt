@@ -4,11 +4,13 @@
 file (GLOB DAEMONS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*_daemon.cc")
 file (GLOB OPS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*_operator.cc")
 file (GLOB LIB_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
+
 list (REMOVE_ITEM LIB_SRCS ${DAEMONS})
 list (REMOVE_ITEM LIB_SRCS ${OPS})
 
 add_library (${LIBRARY_NAME} ${LIB_SRCS})
 target_link_libraries (${LIBRARY_NAME} ${Boost_LIBRARIES})
+target_link_libraries (${LIBRARY_NAME} jsproto)
 
 
 foreach(OP ${OPS})
