@@ -31,7 +31,7 @@ jetstream::NodeDataPlane::connect_to_master()
   int portno = 3456;
 
   boost::asio::io_service io_service;
-//should do this up here
+//should do select loop up here, and also create an acceptor...
 
   //find the controller
   
@@ -52,10 +52,11 @@ jetstream::hb_loop::operator()()
   cout << "HB thread started" <<endl;
   //connect to server
   while( true ) {
-    Heartbeat h;
-    h.set_cpuload_pct(0);
-    h.set_freemem_mb(1000);
-    uplink -> write(h);
+    ServerRequest r;
+    Heartbeat * h = r.mutable_heartbeat();
+    h->set_cpuload_pct(0);
+    h->set_freemem_mb(1000);
+    uplink -> write(r);
     cout << "HB looping" << endl;
     boost::this_thread::sleep(boost::posix_time::seconds(HB_INTERVAL));
   }
