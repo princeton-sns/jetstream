@@ -1,5 +1,20 @@
 #include "worker_conn_handler.h"
 
+jetstream::WriteQueueElement::WriteQueueElement(const ProtobufMsg *msg)
+{
+  sz= msg->ByteSize();
+  buf = (char *) malloc(sz+4);
+  memcpy(&sz, buf, 4);
+  msg->SerializeToArray(((char *)buf)+4, sz);
+}
+
+jetstream::WriteQueueElement::~WriteQueueElement()
+{
+  free(buf);
+}
+
+
+
 jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_service,
       tcp::resolver::iterator endpoint_iterator)
     : io_service_(io_service),
@@ -45,7 +60,8 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
 
   void jetstream::WorkerConnHandler::write(const ProtobufMsg *msg)
   {
-    io_service_.post(boost::bind(&WorkerConnHandler::do_write, this, msg));
+    WriteQueueElement *we = new WriteQueueElement(msg);
+    io_service_.post(boost::bind(&WorkerConnHandler::do_write, this, we));
   }
 
   void jetstream::WorkerConnHandler::close()
@@ -97,24 +113,20 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
     }
   }
 
-  void jetstream::WorkerConnHandler::do_write(ProtobufMsg& msg)
+  void jetstream::WorkerConnHandler::do_write(WriteQueueElement *we)
   {
     bool write_in_progress = !writeQueue.empty();
-    writeQueue.push_back(msg);
+    writeQueue.push_back(we);
     if (!write_in_progress)
       send_one_off_write_queue();
   }
 
   void jetstream::WorkerConnHandler::send_one_off_write_queue()
   {
-      ProtobufMsg msg_send = writeQueue.front();
-      uint32_t size = msg_send.ByteSize();
-      expand_write_buf(size+4);
-      memcpy(&size, writeBuf, 4);
-      msg_send.SerializeToArray(((char *)writeBuf)+4, size);
+      WriteQueueElement * wqe = writeQueue.front();
 
       boost::asio::async_write(socket_,
-          boost::asio::buffer(writeBuf, size+4),
+          boost::asio::buffer(wqe->buf, wqe->sz+4),
           boost::bind(&WorkerConnHandler::handle_write, this,
             boost::asio::placeholders::error));
 
@@ -124,7 +136,10 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
   {
     if (!error)
     {
+      WriteQueueElement * wqe = writeQueue.front();
       writeQueue.pop_front();
+      delete wqe;
+
       if (!writeQueue.empty())
         send_one_off_write_queue();
     }

@@ -18,6 +18,19 @@ namespace jetstream {
 
 typedef protobuf::Message ProtobufMsg;
 
+
+class WriteQueueElement
+{
+  public:
+  char * buf;
+  uint32_t sz;
+
+  public:
+  WriteQueueElement(const ProtobufMsg *msg);
+  ~WriteQueueElement();
+};
+
+
 class WorkerConnHandler {
   public:
  WorkerConnHandler(boost::asio::io_service& io_service,
@@ -38,7 +51,7 @@ private:
 
   void handle_read_body(const boost::system::error_code& error);
 
-  void do_write(ProtobufMsg &msg);
+  void do_write(WriteQueueElement *we);
 
   void handle_write(const boost::system::error_code& error);
 
@@ -50,7 +63,7 @@ private:
   size_t readBufSize;
   uint32_t readSize;
 
-  std::deque<ProtobufMsg> writeQueue;
+  std::deque<WriteQueueElement *> writeQueue;
   void * writeBuf;
   size_t writeBufSize;
 

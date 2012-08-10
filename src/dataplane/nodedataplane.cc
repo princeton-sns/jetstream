@@ -56,7 +56,7 @@ jetstream::hb_loop::operator()()
     Heartbeat * h = r.mutable_heartbeat();
     h->set_cpuload_pct(0);
     h->set_freemem_mb(1000);
-    uplink -> write(r);
+    uplink -> write(&r);
     cout << "HB looping" << endl;
     boost::this_thread::sleep(boost::posix_time::seconds(HB_INTERVAL));
   }
@@ -65,7 +65,7 @@ jetstream::hb_loop::operator()()
 
 
 void
-jetstream::ConnectionToController::processMessage(char * buf, size_t sz)
+jetstream::ConnectionToController::process_message(char * buf, size_t sz)
 {
   cout << "got message from master" <<endl;  
 }
