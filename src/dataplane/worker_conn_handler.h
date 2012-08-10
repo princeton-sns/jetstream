@@ -45,7 +45,6 @@ class WorkerConnHandler {
 private:
 
   void expand_read_buf(size_t size);
-  void expand_write_buf(size_t size);
   void handle_connect(const boost::system::error_code& error);
   void handle_read_header(const boost::system::error_code& error);
 
@@ -64,8 +63,6 @@ private:
   uint32_t readSize;
 
   std::deque<WriteQueueElement *> writeQueue;
-  void * writeBuf;
-  size_t writeBufSize;
 
 
   boost::asio::io_service& io_service_;

@@ -22,12 +22,13 @@ jsnode_start (std::string config)
     //read a default config file here
   }
   NodeDataPlane t;
-  WorkerClient* controller_conn = t.connect_to_master();
-  
+  t.connect_to_master();
+  t.start_heartbeat_thread();
+
   //create network interface here?
 //  t.start_heartbeat_thread(iface);
-  hb_loop loop = hb_loop(controller_conn);
-  loop();
+ // hb_loop loop = hb_loop(controller_conn);
+  //loop();
   //end of app; fall off and exit
 }
 

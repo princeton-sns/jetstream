@@ -41,22 +41,6 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
       readBuf = realloc(readBuf, size);
   }
 
-  void jetstream::WorkerConnHandler::expand_write_buf(size_t size)
-  {
-    if(size <= writeBufSize) 
-      return;
-
-    if(size <= writeBufSize * 2)
-      size = writeBufSize * 2;
-    
-
-    if(writeBuf == NULL)
-      readBuf = malloc(size);
-    else
-      writeBuf = realloc(writeBuf, size);
-  }
-
-
 
   void jetstream::WorkerConnHandler::write(const ProtobufMsg *msg)
   {
