@@ -12,53 +12,38 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
           boost::asio::placeholders::error));
   }
 
-  void jetstream::WorkerConnHandler::expandReadBuf(size_t size)
+  void jetstream::WorkerConnHandler::expand_read_buf(size_t size)
   {
     if(size <= readBufSize) 
-    {
       return;
-    }
-
-    if(size <= readBufSize * 2)
-    {
+    
+    if(size <= readBufSize * 2) 
       size = readBufSize * 2;
-    }
 
-    if(readBuf == NULL)
-    {
+    if(readBuf == NULL) 
       readBuf = malloc(size);
-    }
-    else
-    {
+    else 
       readBuf = realloc(readBuf, size);
-    }
   }
 
-  void jetstream::WorkerConnHandler::expandWriteBuf(size_t size)
+  void jetstream::WorkerConnHandler::expand_write_buf(size_t size)
   {
     if(size <= writeBufSize) 
-    {
       return;
-    }
 
     if(size <= writeBufSize * 2)
-    {
       size = writeBufSize * 2;
-    }
+    
 
     if(writeBuf == NULL)
-    {
       readBuf = malloc(size);
-    }
     else
-    {
       writeBuf = realloc(writeBuf, size);
-    }
   }
 
 
 
-  void jetstream::WorkerConnHandler::write(const ProtobufMsg &msg)
+  void jetstream::WorkerConnHandler::write(const ProtobufMsg *msg)
   {
     io_service_.post(boost::bind(&WorkerConnHandler::do_write, this, msg));
   }
@@ -84,7 +69,7 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
   {
     if (!error)
     {
-      expandReadBuf((size_t)readSize);
+      expand_read_buf((size_t)readSize);
       boost::asio::async_read(socket_,
           boost::asio::buffer(readBuf, readSize),
           boost::bind(&WorkerConnHandler::handle_read_body, this,
@@ -100,10 +85,7 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
   {
     if (!error)
     {
-      ProtobufMsg *wr = new ProtobufMsg;
-      wr->ParseFromArray(readBuf, readSize);
-      processMessage(*wr);
-      delete wr;
+      process_message((char *)readBuf, readSize);
        boost::asio::async_read(socket_,
           boost::asio::buffer(&readSize, sizeof(uint32_t)),
           boost::bind(&WorkerConnHandler::handle_read_header, this,
@@ -120,16 +102,14 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
     bool write_in_progress = !writeQueue.empty();
     writeQueue.push_back(msg);
     if (!write_in_progress)
-    {
-      sendOneOffWriteQueue();
-    }
+      send_one_off_write_queue();
   }
 
-  void jetstream::WorkerConnHandler::sendOneOffWriteQueue()
+  void jetstream::WorkerConnHandler::send_one_off_write_queue()
   {
       ProtobufMsg msg_send = writeQueue.front();
       uint32_t size = msg_send.ByteSize();
-      expandWriteBuf(size+4);
+      expand_write_buf(size+4);
       memcpy(&size, writeBuf, 4);
       msg_send.SerializeToArray(((char *)writeBuf)+4, size);
 
@@ -146,9 +126,7 @@ jetstream::WorkerConnHandler::WorkerConnHandler(boost::asio::io_service& io_serv
     {
       writeQueue.pop_front();
       if (!writeQueue.empty())
-      {
-        sendOneOffWriteQueue();
-      }
+        send_one_off_write_queue();
     }
     else
     {

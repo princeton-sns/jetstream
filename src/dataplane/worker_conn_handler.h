@@ -16,23 +16,23 @@ using namespace boost::asio::ip;
 
 namespace jetstream {
 
-typedef edu::princeton::jetstream::Heartbeat ProtobufMsg;
+typedef protobuf::Message ProtobufMsg;
 
 class WorkerConnHandler {
   public:
  WorkerConnHandler(boost::asio::io_service& io_service,
       tcp::resolver::iterator endpoint_iterator);
 
- void write(const ProtobufMsg &msg);
+ void write(const ProtobufMsg *msg);
  void close();
 
- virtual void processMessage(ProtobufMsg &msg) = 0;
+ virtual void process_message(char * buf, size_t sz) = 0;
 
 
 private:
 
-  void expandReadBuf(size_t size);
-  void expandWriteBuf(size_t size);
+  void expand_read_buf(size_t size);
+  void expand_write_buf(size_t size);
   void handle_connect(const boost::system::error_code& error);
   void handle_read_header(const boost::system::error_code& error);
 
@@ -43,7 +43,7 @@ private:
   void handle_write(const boost::system::error_code& error);
 
   void do_close();
-  void sendOneOffWriteQueue();
+  void send_one_off_write_queue();
 
 private:
   void * readBuf;
