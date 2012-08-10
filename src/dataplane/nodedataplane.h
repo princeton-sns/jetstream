@@ -19,7 +19,7 @@ namespace jetstream {
     ConnectionToController(boost::asio::io_service& io_service,
                            tcp::resolver::iterator endpoint_iterator):
     WorkerConnHandler(io_service,endpoint_iterator) {}
-    virtual void processMessage(protobuf::Message &msg);
+    virtual void process_message(char * buf, size_t sz);
   };
   
   

@@ -65,7 +65,7 @@ jetstream::hb_loop::operator()()
 
 
 void
-jetstream::ConnectionToController::processMessage(protobuf::Message &msg)
+jetstream::ConnectionToController::processMessage(char * buf, size_t sz)
 {
   cout << "got message from master" <<endl;  
 }
