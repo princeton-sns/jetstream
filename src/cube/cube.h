@@ -27,8 +27,9 @@ class DataCube {
 public:
   void insert_tuple(const Tuple& t);
   iterator<forward_iterator_tag, Tuple> stream_tuples(Key k);
+  
   void process(Tuple t);
-    
+     
 
 //TODO: should have an entry here for the aggregation/update function.
   
