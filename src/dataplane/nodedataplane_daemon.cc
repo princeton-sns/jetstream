@@ -5,6 +5,7 @@
 
 
 using namespace jetstream;
+using namespace ::std;
 
 static void
 usage ()
@@ -30,6 +31,7 @@ jsnode_start (std::string config)
  // hb_loop loop = hb_loop(controller_conn);
   //loop();
   //end of app; fall off and exit
+  cout << "exiting cleanly" << endl;
 }
 
 
