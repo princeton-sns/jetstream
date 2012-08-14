@@ -6,18 +6,21 @@
 #ifndef JetStream_cube_h
 #define JetStream_cube_h
 
-
-#include "cube.h"
-
 #include <iterator>
+#include <vector>
+#include <boost/shared_ptr.hpp>
+
+
+
+#include "jetstream_types.pb.h"
+
 
 namespace jetstream {
 
+using namespace edu::princeton::jetstream;
 using namespace ::std;
-  
+using namespace boost;
 //FIXME: Can we use Boost types here?
-class Tuple;
-class Key;
 
 /**
 *  A class to represent a cube in memory. 
@@ -25,11 +28,10 @@ class Key;
 class DataCube {
   
 public:
-  void insert_tuple(const Tuple& t);
-  iterator<forward_iterator_tag, Tuple> stream_tuples(Key k);
+  void process(const Tuple& t); //inserts a tuple
+
+  //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
   
-  void process(Tuple t);
-     
 
 //TODO: should have an entry here for the aggregation/update function.
   

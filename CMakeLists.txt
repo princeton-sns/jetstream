@@ -109,4 +109,13 @@ add_executable (js_unit_tests ${TESTS})
 target_link_libraries (js_unit_tests ${LIBRARIES})
 target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
 
+
+file (GLOB_RECURSE OPS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*_operator.cc")
+foreach(OP ${OPS})
+  get_filename_component(OP_NAME ${OP} NAME_WE)
+#  add_library (${OP_NAME} ${OP})
+  target_link_libraries (js_unit_tests  ${OP_NAME})
+endforeach(OP)
+
+
 # install (TARGETS jetstream DESTINATION bin)

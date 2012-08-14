@@ -12,7 +12,8 @@ using namespace jetstream;
 TEST(Operator, BaseOp)
 {
   DataPlaneOperator *op = new DataPlaneOperator;
-  op->process(NULL);
+  shared_ptr<Tuple> t(new Tuple);
+  op->process(t);
   delete op;
 }
 
@@ -24,7 +25,8 @@ TEST(OperatorLoader, LoadAndUnloadWithPath)
   DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
   opl->load("test", "src/dataplane/libtest_operator.dylib");
   DataPlaneOperator * op = opl->newOp("test");
-  op->process(NULL);
+  shared_ptr<Tuple> t(new Tuple);
+  op->process(t);
   delete op;
   opl->unload("test");
   SUCCEED();
