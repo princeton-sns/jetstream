@@ -16,8 +16,10 @@ namespace jetstream {
 void
 FileReadOperator::start(map<string,string> config) {
   f_name = config["file"];
-  if (f_name.length() == 0)
+  if (f_name.length() == 0) {
+    cout << "no file to read, bailing"<<endl;
     return;
+  }
   
   running = true;
   loop_while_printing();

@@ -22,6 +22,6 @@ void jetstream::DataPlaneOperator::emit(shared_ptr<Tuple> t)
     dest->process(t);
   else
     cerr <<"WARN: no dest for operator "<<operID;
-  cout << "Base Operator emit" << endl;
+//  cout << "Base Operator emit" << endl;
 }
 

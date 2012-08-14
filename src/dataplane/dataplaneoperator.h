@@ -29,6 +29,7 @@ class DataPlaneOperator:public Receiver  {
   void emit(shared_ptr<Tuple>  t); //passes the tuple along the chain
     
  public:
+  void set_dest(Receiver* d) {dest = d;}
   DataPlaneOperator() : dest(NULL) {}
   virtual ~DataPlaneOperator();
   virtual void process(shared_ptr<Tuple> t); //NOT abstract here
