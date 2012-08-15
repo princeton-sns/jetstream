@@ -8,14 +8,9 @@
 using namespace jetstream;
 
 
-// Global configuration variables
-
-port_t jetstream::dataplane_port;   // Host byte order
-std::string jetstream::dataplane_config_file;
-
-
-NodeDataPlane::NodeDataPlane ()
-  : alive (false),
+NodeDataPlane::NodeDataPlane (const NodeDataPlaneConfig &conf)
+  : config (conf),
+    alive (false),
     iosrv (new boost::asio::io_service()),
     uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) 
 {
@@ -37,17 +32,17 @@ NodeDataPlane::start_heartbeat_thread ()
 void
 NodeDataPlane::connect_to_master ()
 {
-  
-  std::string domain = "localhost";
-  // int portno = 3456;
-
   boost::asio::io_service io_service;
   //should do select loop up here, and also create an acceptor...
 
-  //find the controller
-  
+  if (!config.controllers.size()) {
+    std::cerr << "No controllers known." << std::endl;
+    return;
+  }
+  std::pair<std::string, std::string> address = config.controllers[0];
+
   tcp::resolver resolver(io_service);
-  tcp::resolver::query query(domain, boost::lexical_cast<std::string> (dataplane_port));
+  tcp::resolver::query query(address.first, address.second);
   tcp::resolver::iterator server_side = resolver.resolve(query);
   
   boost::shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
