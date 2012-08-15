@@ -14,9 +14,9 @@ namespace jetstream {
 class FileReadOperator: public DataPlaneOperator {
  public:
   virtual void start(map<string,string> config); //starts chugging forward
+  void operator()(); //loop thread
 
  protected:
-  void loop_while_printing();
   string f_name;
   bool running;
 };
