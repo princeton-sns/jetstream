@@ -6,7 +6,7 @@
 #include "jetstream_controlplane.pb.h"
 
 using namespace jetstream;
-
+using namespace std;
 
 // Global configuration variables
 
@@ -81,4 +81,36 @@ void
 ConnectionToController::process_message (char * buf, size_t sz)
 {
   std::cout << "got message from master" << std::endl;  
+}
+
+
+void
+NodeDataPlane::handle_alter(AlterTopo topo)
+{
+  map<operator_id_t, map<string,string> > operator_configs;
+  for (int i=0; i < topo.tostart_size(); ++i) {
+    TaskMeta task = topo.tostart(i);
+    TaskID id = task.id();
+    string cmd = task.op_typename();
+    map<string,string> config;
+    for (int j=0; j < task.config_size(); ++j) {
+      TaskMeta_DictEntry cfg_param = task.config(j);
+      config[cfg_param.opt_name()] = cfg_param.val();
+    }
+    
+    //create operators here
+  }
+  
+  //add edges here
+  for (int i=0; i < topo.edges_size(); ++i) {
+    
+  }
+  
+}
+
+
+boost::shared_ptr<DataPlaneOperator>
+DataPlaneOperator::create_operator(string op_typename, operator_id_t name) {
+  
+  
 }
