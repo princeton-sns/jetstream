@@ -1,62 +1,69 @@
 //#include <boost/format.hpp>
 //#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "js_defs.h"
 #include "js_version.h"
 #include "node_dataplane.h"
 
 using namespace jetstream;
 using namespace ::std;
+using namespace boost;
+using namespace program_options;
 
 // Return 0 on success, -1 on failure
 static int
-parse_config (boost::program_options::variables_map *inputopts,
-	      int argc, char **argv)
+parse_config (program_options::variables_map *inputopts,
+	      int argc, char **argv,
+	      NodeDataPlaneConfig &config)
 {
-  namespace popts = boost::program_options;
-
   // Options input from command line
-  popts::options_description cmd_opts("Command line options");
+  options_description cmd_opts("Command line options");
   cmd_opts.add_options()
     ("version,V", "print version string")
     ("help,h", "produce help message")
-    ("config,C", popts::value<std::string>(), "supply config file location")
-    ("port,p", popts::value<u_int>(), "set dataplane port number")
+    ("config,C", value<string>(), "supply config file location")
     ("start", "start program")
     ("restart", "restart program")
     ("stop", "stop program")
     ;
   
   // Options from both cmd line and config file
-  popts::options_description conf_opts("Configuration options");
+  options_description conf_opts("Configuration file and command line options");
   conf_opts.add_options()
-    ("help,h", "produce help message")
-    ("hbtimer", popts::value<long>(), "set heartbeat timer")
-    ("port", popts::value<port_t>(), "set dataplane port number")
+    ("hbtimer,t", value<long>(), 
+     "liveness monitoring timer (in milliseconds)")
+    ("controller_addr,a", value<vector<string> >()->composing(),
+     "hostname:port of controller (can supply multiple entries)")
+    ("dataplane_port,d", value<u_int16_t>(), 
+     "my dataplane port number")
+    ("controlplane_port,c", value<u_int16_t>(), 
+     "my controlplane port number")
     ;
   
   // Build set of all allowable options
-  popts::options_description opts("Allowed options");
+  options_description opts("Allowed options");
   opts.add(cmd_opts).add(conf_opts);
   
-  popts::variables_map &input_opts = *inputopts;
+  variables_map &input_opts = *inputopts;
 
   try {
-    popts::store(popts::parse_command_line(argc, argv, cmd_opts), input_opts);
+    store(parse_command_line(argc, argv, cmd_opts), input_opts);
   }
-  catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
-    std::cout << opts << std::endl;
+  catch (const std::exception &e) {
+    cerr << e.what() << endl;
+    cout << opts << endl;
     return 1;
   };
   
   if (input_opts.count("help")) {
-    std::cout << opts << std::endl;
+    cout << opts << endl;
     return 1;
   }
   
   if (input_opts.count("version")) {
-    std::cout << getprogname() << ": vers " << JETSTREAM_VERSION << std::endl;
+    cout << getprogname() << ": vers " << JETSTREAM_VERSION << endl;
     return 1;
   }
   
@@ -64,45 +71,81 @@ parse_config (boost::program_options::variables_map *inputopts,
   if (!input_opts.count("restart") 
       && !input_opts.count("start")
       && !input_opts.count("stop")) {
-    std::cout << getprogname() << ": option (start|stop|restart) missing" 
-	      << std::endl;
-    std::cout << opts << std::endl;
+    cout << getprogname() << ": option (start|stop|restart) missing" 
+	 << endl;
+    cout << opts << endl;
     return 1;
   }
   
 
   if (input_opts.count ("config"))
-    dataplane_config_file = input_opts["config"].as<std::string>();
+    config.config_file = input_opts["config"].as<string>();
   else {
-    std::cout << getprogname() << ": configuration file missing"
-	      << std::endl;
+    cout << getprogname() << ": configuration file missing"
+	 << endl;
     return 1;
   }
 
   try {
-    //    popts::store(popts::parse_config_file(dataplane_config_file, opts),
-    popts::store(popts::parse_config_file<char>(dataplane_config_file.c_str(), opts),
-		 input_opts);
-    popts::notify(input_opts);
+    store(parse_config_file<char> (config.config_file.c_str(), opts),
+	  input_opts);
+    notify(input_opts);
   }
-  catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
-    std::cout << opts << std::endl;
+  catch (const std::exception &e) {
+    cerr << e.what() << endl;
+    cout << opts << endl;
     return 1;
   };
 
   // Configuration variables
-  if (input_opts.count("port"))
-    dataplane_port = input_opts["port"].as<port_t>();
+  if (input_opts.count("controlplane_port"))
+    config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
+
+  if (input_opts.count("dataplane_port"))
+    config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
+
+  // Configuration variables
+  if (input_opts.count("controller_addrs")) {
+    vector<string> addrs = input_opts["controller_addrs"].as<vector<string> >();
+    if (!addrs.size()) {
+      cerr << getprogname() << ": no controller addresses given" << endl;
+      cout << opts << endl;
+      return 1;
+    }
+
+    for (u_int i=0; i < addrs.size(); i++) {
+      const string &addr = addrs[i];
+      vector<string> a;
+      split(a, addr, is_any_of(":"));
+    
+      if (a.size() != 2) {
+	cerr << getprogname() << ": incorrect format for controller address:"
+	     << addr << endl;
+	cout << opts << endl;
+	return 1;
+      }
+
+      long tmpport = lexical_cast<long> (a[1]);
+      if (tmpport > MAX_UINT16) {
+	cerr << getprogname() << ": invalid port for controller address"
+	     << addr << endl;
+	cout << opts << endl;
+	return 1;
+      }
+      
+      pair<string, string> p (a[0], a[1]);
+      config.controllers.push_back (p);
+    }
+  }
 
   return 0;
 }
 
 
 static void
-jsnode_start ()
+jsnode_start (NodeDataPlaneConfig &config)
 {
-  NodeDataPlane t;
+  NodeDataPlane t (config);
   t.connect_to_master();
   t.start_heartbeat_thread();
 
@@ -128,23 +171,24 @@ main (int argc, char **argv)
 {
   setprogname(argv[0]);
 
-  boost::program_options::variables_map input_opts;
+  NodeDataPlaneConfig config;
+  variables_map input_opts;
 
-  int rc = parse_config (&input_opts, argc, argv);
+  int rc = parse_config (&input_opts, argc, argv, config);
   if (rc)
     exit(1);
 
   if (input_opts.count("restart")) {
     jsnode_stop();
-    jsnode_start();
+    jsnode_start(config);
   }
   else if (input_opts.count("stop"))
     jsnode_stop();
   else if (input_opts.count("start"))
-    jsnode_start();
+    jsnode_start(config);
   else {
-    std::cout << getprogname() 
-	      << "Missing appropriate start command" << std::endl;
+    cout << getprogname() 
+	 << "Missing appropriate start command" << endl;
     exit(1);
   }
     

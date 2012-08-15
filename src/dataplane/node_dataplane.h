@@ -14,6 +14,20 @@
 namespace jetstream {
   
 class net_interface;
+
+
+class NodeDataPlaneConfig {
+ public:
+  std::string config_file;
+  std::vector<std::pair<std::string, std::string> > controllers; // Domain, port
+  port_t controlplane_myport;  // Host byte order
+  port_t dataplane_myport;     // Host byte order
+
+  NodeDataPlaneConfig () 
+    : controlplane_myport (0), dataplane_myport (0)
+    {}
+};
+
   
 class ConnectionToController : public WorkerConnHandler {
  public:
@@ -47,13 +61,14 @@ struct operator_id_t {
   
 class NodeDataPlane {
  private:
+  NodeDataPlaneConfig config;
   bool alive;
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<ConnectionToController> uplink;
   //ClientConnectionPool pool;
   std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
  public:
-  NodeDataPlane();
+  NodeDataPlane(const NodeDataPlaneConfig &conf);
   ~NodeDataPlane();
   void connect_to_master ();
   void start_heartbeat_thread();

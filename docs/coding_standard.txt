@@ -89,3 +89,7 @@
   GOOD:  do_somethign(msec_t timeout);
   BAD:   do_somethign(int seconds);
 
+- Namespaces:
+  - Never include any namespaces in .h files
+  - May/always include ::std, boost, and jetstream in .cc files
+  
