@@ -1,4 +1,4 @@
-package edu.princeton.jetstream;
+package jetstream;
 
 /**
 * Identifies a single node (host).
