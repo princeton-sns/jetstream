@@ -26,7 +26,7 @@ bool jetstream::DataPlaneOperatorLoader::load(string name, string filename)
 
 bool jetstream::DataPlaneOperatorLoader::load(string name, string filename, string path)
 {
-  void *dl_handle = dlopen(filename.c_str(), RTLD_NOW);
+  void *dl_handle = dlopen((path + filename).c_str(), RTLD_NOW);
   if(dl_handle == NULL)
   {
     std::cerr << dlerror() << std::endl;
@@ -54,7 +54,9 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
 {
   if(cache.count(name) < 1)
   {
-    return NULL;
+    bool loaded = load(name);
+    if (!loaded)
+      return NULL;
   }
   void *dl_handle = this->cache[name];
   maker_t *mkr = (maker_t *) dlsym(dl_handle, "maker");

@@ -7,6 +7,8 @@
 #include "jetstream_types.pb.h"
 #include "jetstream_dataplane.pb.h"
 #include "worker_conn_handler.h"
+#include "dataplaneoperator.h"
+#include "dataplane_operator_loader.h"
 
 
 namespace jetstream {
@@ -35,6 +37,7 @@ class ConnectionToController : public WorkerConnHandler {
 
   virtual ~ConnectionToController () {}
   virtual void process_message (char *buf, size_t sz);
+  
 };
   
   
@@ -47,7 +50,15 @@ class hb_loop {
   void operator () ();
 };
   
-
+struct operator_id_t {
+  int32_t computation_id; //which computation
+  int32_t task_id; //which operator in the computation
+  bool operator<(const operator_id_t& rhs) const {
+    return computation_id < rhs.computation_id ||
+    task_id < rhs.task_id;
+  }
+}; 
+  
 class NodeDataPlane {
  private:
   NodeDataPlaneConfig config;
@@ -55,13 +66,25 @@ class NodeDataPlane {
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<ConnectionToController> uplink;
   //ClientConnectionPool pool;
-
+  std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
+  DataPlaneOperatorLoader operator_loader;
+  
  public:
   NodeDataPlane(const NodeDataPlaneConfig &conf);
   ~NodeDataPlane();
   void connect_to_master ();
   void start_heartbeat_thread();
   
+  boost::shared_ptr<jetstream::DataPlaneOperator>
+      get_operator(operator_id_t name)  {return operators[name];}
+  
+  boost::shared_ptr<jetstream::DataPlaneOperator>
+  create_operator(std::string op_typename, operator_id_t name);
+  
+
+  void handle_alter(AlterTopo t); //FIXME: this may be refactored away. For now
+  //it handles incoming alter messages, and starts/stops operators
+
 };
 
 const int HB_INTERVAL = 5; //seconds

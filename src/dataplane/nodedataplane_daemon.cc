@@ -12,6 +12,9 @@ using namespace ::std;
 using namespace boost;
 using namespace program_options;
 
+const int MAX_UINT16 = 1 << 16 -1; //FIXME: this should be defined somewhere in
+           //the system headers -- but isn't, on my machine. --Ari
+
 // Return 0 on success, -1 on failure
 static int
 parse_config (program_options::variables_map *inputopts,

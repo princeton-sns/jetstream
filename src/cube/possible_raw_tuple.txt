@@ -1,0 +1,17 @@
+
+union Element {
+  int64_t i_val;
+  double d_val; //64 bits everywhere
+  shared_ptr<string> s_val;
+};
+  
+enum ETypeTags {
+  INT,
+  DOUBLE,
+  STRING
+};
+  
+class Tuple {
+  vector<Element>  elems;
+  vector<ETypeTags> e_types;
+};
