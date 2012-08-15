@@ -7,12 +7,14 @@
 
 using namespace jetstream;
 using namespace std;
+using namespace boost;
 
 NodeDataPlane::NodeDataPlane (const NodeDataPlaneConfig &conf)
   : config (conf),
     alive (false),
     iosrv (new boost::asio::io_service()),
-    uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) 
+    uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) ,
+    operator_loader("src/dataplane/") //NOTE: path must end in a slash
 {
 }
 
@@ -99,13 +101,14 @@ NodeDataPlane::handle_alter(AlterTopo topo)
   //add edges here
   for (int i=0; i < topo.edges_size(); ++i) {
     
-  }
-  
+  }  
 }
 
 
 boost::shared_ptr<DataPlaneOperator>
-DataPlaneOperator::create_operator(string op_typename, operator_id_t name) {
-  
-  
+NodeDataPlane::create_operator(string op_typename, operator_id_t name) {
+  shared_ptr<DataPlaneOperator> d( operator_loader.newOp(op_typename));
+  operators[name] = d;
+  return d;
 }
+

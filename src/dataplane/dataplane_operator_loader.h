@@ -19,6 +19,8 @@ namespace jetstream {
    * The library will load an operator that is a child of DataPlaneOperator
    * from a dynamic library. It allows you then to instantiate new Instances of that
    * operator.
+   *
+   * Expects operators to be in dynamic lib files in the same dir as the executable.
    */
 class DataPlaneOperatorLoader {
  private:

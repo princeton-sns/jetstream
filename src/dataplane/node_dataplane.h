@@ -67,6 +67,8 @@ class NodeDataPlane {
   boost::shared_ptr<ConnectionToController> uplink;
   //ClientConnectionPool pool;
   std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
+  DataPlaneOperatorLoader operator_loader;
+  
  public:
   NodeDataPlane(const NodeDataPlaneConfig &conf);
   ~NodeDataPlane();
