@@ -1,5 +1,7 @@
 #include "dataplane_operator_loader.h"
 #include "dataplaneoperator.h"
+#include "operators.h"
+
 #include <iostream>
 #include <dlfcn.h>
 
@@ -52,6 +54,11 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
 
 jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
+  //some special cases
+  if (name.compare("DummyReceiver") == 0) {
+    return new DummyReceiver(); //special case; not bundled properly.
+  }
+  
   if(cache.count(name) < 1)
   {
     bool loaded = load(name);

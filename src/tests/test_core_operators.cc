@@ -13,18 +13,11 @@
 
 using namespace jetstream;
 using namespace boost;
-
-class DummyReceiver: public Receiver {
- public:
-  vector<Tuple> tuples;
-  virtual void process(shared_ptr<Tuple> t) {
-    tuples.push_back(*t);
-  }
-};
+using namespace std;
 
 
 TEST(Operator, ReadOperator) {
-  FileReadOperator reader;
+  FileRead reader;
   map<string,string> config;
   config["file"] =  "/etc/shells";
   DummyReceiver rec;

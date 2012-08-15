@@ -57,7 +57,10 @@ struct operator_id_t {
     return computation_id < rhs.computation_id ||
     task_id < rhs.task_id;
   }
-}; 
+    
+  operator_id_t(int32_t c, int32_t t): computation_id(c), task_id(t) {;}
+  operator_id_t(): computation_id(0),task_id(0) {;}
+};
   
 class Node {
  private:

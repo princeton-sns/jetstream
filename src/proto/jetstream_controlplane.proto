@@ -11,6 +11,8 @@ import "jetstream_types.proto";
 message Edge {
   required int32 src = 1;
   required int32 dest = 2;
+  
+  required int32 computation = 4; //which computation these operators are in
 }
 
 /**

@@ -7,8 +7,6 @@
 #include <string>
 
 
-using namespace std;
-
 namespace jetstream {
   
 /***
@@ -16,16 +14,26 @@ namespace jetstream {
  * 'file'. Emits tuples with one element, a string corresponding to a line from the
  * file. The carriage return at the end of line is NOT included.
  */
-class FileReadOperator: public DataPlaneOperator {
+class FileRead: public DataPlaneOperator {
  public:
-  virtual void start(map<string,string> config); 
+  virtual void start(std::map<std::string,std::string> config);
   void operator()(); //a thread that will loop while reading the file
 
  protected:
-  string f_name; //name of file to read
+  std::string f_name; //name of file to read
   bool running;
 };
 
+  
+class DummyReceiver: public DataPlaneOperator {
+public:
+  std::vector<Tuple> tuples;
+  virtual void process(boost::shared_ptr<Tuple> t) {
+    tuples.push_back(*t);
+  }
+};
+  
+  
 }
 
 #endif

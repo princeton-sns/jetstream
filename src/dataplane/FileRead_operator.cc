@@ -15,7 +15,7 @@ namespace jetstream {
   
   
 void
-FileReadOperator::start(map<string,string> config) {
+FileRead::start(map<string,string> config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     cout << "no file to read, bailing"<<endl;
@@ -28,7 +28,7 @@ FileReadOperator::start(map<string,string> config) {
 
   
 void
-FileReadOperator::operator()() {
+FileRead::operator()() {
   
   ifstream in_file (f_name.c_str());
   string line;
@@ -43,4 +43,11 @@ FileReadOperator::operator()() {
 }
 
 
+}
+
+
+extern "C" {
+  jetstream::DataPlaneOperator *maker(){
+    return new jetstream::FileRead();
+  }
 }
