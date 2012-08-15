@@ -1,8 +1,8 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-#include "nodedataplane.h"
+#include "node_dataplane.h"
 #include "dataplaneoperator.h"
-#include "dataplaneoperatorloader.h"
+#include "dataplane_operator_loader.h"
 #include <dlfcn.h>
 
 #include <gtest/gtest.h>
