@@ -1,4 +1,4 @@
-# Make a library out of everything except daemons and operators, which we 
+	# Make a library out of everything except daemons and operators, which we 
 # will build as separate executables
 
 file (GLOB DAEMONS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*_daemon.cc")

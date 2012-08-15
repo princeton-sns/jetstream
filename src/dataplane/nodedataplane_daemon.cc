@@ -7,11 +7,6 @@
 
 using namespace jetstream;
 
-// Global configuration variables
-
-port_t jetstream::dataplane_port;   // Host byte order
-std::string jetstream::dataplane_config_file;
-
 // Return 0 on success, -1 on failure
 static int
 parse_config (boost::program_options::variables_map *inputopts,
@@ -70,6 +65,7 @@ parse_config (boost::program_options::variables_map *inputopts,
       && !input_opts.count("stop")) {
     std::cout << getprogname() << ": option (start|stop|restart) missing" 
 	      << std::endl;
+    std::cout << opts << std::endl;
     return 1;
   }
   

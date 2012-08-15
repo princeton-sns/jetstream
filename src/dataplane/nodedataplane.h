@@ -11,41 +11,45 @@
 
 namespace jetstream {
   
-  class net_interface;
+class net_interface;
+  
+class ConnectionToController : public WorkerConnHandler {
+ public:
+  ConnectionToController (boost::asio::io_service& io_service,
+			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
+    : WorkerConnHandler (io_service, endpoint_iterator) {}
 
-  
-  class ConnectionToController: public WorkerConnHandler {
-  public:
-    ConnectionToController(boost::asio::io_service& io_service,
-                           tcp::resolver::iterator endpoint_iterator):
-    WorkerConnHandler(io_service,endpoint_iterator) {}
-    virtual void process_message(char * buf, size_t sz);
-  };
+  virtual ~ConnectionToController () {}
+  virtual void process_message (char *buf, size_t sz);
+};
   
   
-  class hb_loop {
-    ConnectionToController* uplink;
-  public:
-    hb_loop(ConnectionToController* t):uplink(t) {}
-    //could potentially add a ctor here with some args
-    void operator()();
-  };
+class hb_loop {
+ private:
+  boost::shared_ptr<ConnectionToController> uplink;
+ public:
+  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
+  //could potentially add a ctor here with some args
+  void operator () ();
+};
   
-  
-  class NodeDataPlane {
-   private:
-    bool alive;
-    ConnectionToController* uplink;
 
-   public:
-    NodeDataPlane() : alive (false) {}
-    ~NodeDataPlane();
-    void connect_to_master();
-    void start_heartbeat_thread();
-    
-  };
+class NodeDataPlane {
+ private:
+  bool alive;
+  boost::shared_ptr<boost::asio::io_service> iosrv;
+  boost::shared_ptr<ConnectionToController> uplink;
+  //ClientConnectionPool pool;
 
-  const int HB_INTERVAL = 5; //seconds
+ public:
+  NodeDataPlane();
+  ~NodeDataPlane();
+  void connect_to_master ();
+  void start_heartbeat_thread();
+  
+};
+
+const int HB_INTERVAL = 5; //seconds
   
 }
 

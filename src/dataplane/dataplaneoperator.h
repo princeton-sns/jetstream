@@ -11,29 +11,29 @@
 typedef void* tuple_t; //FIXME when we have a real tuple
 
 namespace jetstream {
-    
-    
-  class Receiver {
-   public:
-    virtual void process(tuple_t) = 0;
-  };
 
-  class DataPlaneOperator:Receiver  {
-   private:
-    bool active;
-    int operID;
-    Receiver * dest;
+class Receiver {
+ public:
+  virtual void process(tuple_t) = 0;
+};
 
-  protected:
-    void emit(tuple_t); //
+class DataPlaneOperator:Receiver {
+ private:
+  bool active;
+  int operID;
+  Receiver * dest;
+  
+ protected:
+  void emit(tuple_t); //
       
-   public:
-    DataPlaneOperator() : active (false),dest(NULL) {}
-    virtual ~DataPlaneOperator();
-    virtual void process(tuple_t); //NOT abstract here
-  };
+ public:
+ 
+  DataPlaneOperator() : active (false), dest(NULL) {}
+  virtual ~DataPlaneOperator();
+  virtual void process(tuple_t); //NOT abstract here
+};
 
-  typedef DataPlaneOperator *maker_t();
+typedef DataPlaneOperator *maker_t();
 }
 
 #endif /* _dataplaneoperator_H_ */

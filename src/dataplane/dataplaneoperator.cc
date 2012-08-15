@@ -9,21 +9,20 @@ jetstream::DataPlaneOperator::~DataPlaneOperator()
 }
 
 
-void jetstream::DataPlaneOperator::process(tuple_t t)
+void 
+jetstream::DataPlaneOperator::process(tuple_t t)
 {
   cout << "Base Operator process" << endl;
 }
 
 
-
-
-
-void jetstream::DataPlaneOperator::emit(tuple_t t)
+void 
+jetstream::DataPlaneOperator::emit(tuple_t t)
 {
-  if(dest)
+  if (dest)
     dest->process(t);
   else
-    cerr <<"WARN: no dest for operator "<<operID;
+    cerr << "WARN: no dest for operator "<<operID;
   cout << "Base Operator emit" << endl;
 }
 

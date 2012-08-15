@@ -5,59 +5,72 @@
 
 #include "jetstream_controlplane.pb.h"
 
+using namespace jetstream;
 
-using namespace std;
-using namespace edu::princeton::jetstream;
 
-jetstream::NodeDataPlane::~NodeDataPlane() 
+// Global configuration variables
+
+port_t jetstream::dataplane_port;   // Host byte order
+std::string jetstream::dataplane_config_file;
+
+
+NodeDataPlane::NodeDataPlane ()
+  : alive (false),
+    iosrv (new boost::asio::io_service()),
+    uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) 
 {
+}
 
+
+NodeDataPlane::~NodeDataPlane () 
+{
 }
 
 void
-jetstream::NodeDataPlane::start_heartbeat_thread()
+NodeDataPlane::start_heartbeat_thread ()
 {
-  hb_loop x= hb_loop(uplink);
+  hb_loop x = hb_loop(uplink);
   boost::thread hb_thread = boost::thread(x);
-  
-  
 }
 
 
 void
-jetstream::NodeDataPlane::connect_to_master()
+NodeDataPlane::connect_to_master ()
 {
+  
   std::string domain = "localhost";
-  int portno = 3456;
+  // int portno = 3456;
 
   boost::asio::io_service io_service;
-//should do select loop up here, and also create an acceptor...
+  //should do select loop up here, and also create an acceptor...
 
   //find the controller
   
   tcp::resolver resolver(io_service);
-  tcp::resolver::query query(domain, boost::lexical_cast<string>(portno));//no flags
+  tcp::resolver::query query(domain, boost::lexical_cast<std::string> (dataplane_port));
   tcp::resolver::iterator server_side = resolver.resolve(query);
-
   
-  this->uplink = new ConnectionToController(io_service, server_side);
+  boost::shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
+  uplink = tmp;
   
   boost::thread select_loop(boost::bind(&boost::asio::io_service::run, &io_service));
 }
 
+
+
 void
-jetstream::hb_loop::operator()()
+hb_loop::operator () ()
 {
   
-  cout << "HB thread started" <<endl;
-  //connect to server
-  while( true ) {
+  std::cout << "HB thread started" << std::endl;
+  // Connect to server
+  while (true) {
     ServerRequest r;
     Heartbeat * h = r.mutable_heartbeat();
     h->set_cpuload_pct(0);
     h->set_freemem_mb(1000);
-    uplink -> write(&r);
-    cout << "HB looping" << endl;
+    uplink->write(&r);
+    std::cout << "HB looping" << std::endl;
     boost::this_thread::sleep(boost::posix_time::seconds(HB_INTERVAL));
   }
 
@@ -65,7 +78,7 @@ jetstream::hb_loop::operator()()
 
 
 void
-jetstream::ConnectionToController::process_message(char * buf, size_t sz)
+ConnectionToController::process_message (char * buf, size_t sz)
 {
-  cout << "got message from master" <<endl;  
+  std::cout << "got message from master" << std::endl;  
 }
