@@ -1,7 +1,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/date_time.hpp>
 
-#include "nodedataplane.h"
+#include "node_dataplane.h"
 
 #include "jetstream_controlplane.pb.h"
 

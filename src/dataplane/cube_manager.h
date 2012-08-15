@@ -12,7 +12,10 @@
 
 namespace jetstream {
 
-
+/**
+* Responsible for local allocation and management of data cubes. Cubes are stored
+* in a table, listed by name.
+*/
 class CubeManager {
  private:
   std::map<string, shared_ptr<DataCube> > cubeDict;

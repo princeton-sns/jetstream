@@ -5,6 +5,9 @@
 #include "operators.h"
 #include <map>
 #include <iostream>
+#include <boost/thread/thread.hpp>
+#include <boost/date_time.hpp>
+
 #include <gtest/gtest.h>
 
 
@@ -27,11 +30,11 @@ TEST(Operator, ReadOperator) {
   DummyReceiver rec;
   reader.set_dest(&rec);
   reader.start(config);
-  
+  boost::this_thread::sleep(boost::posix_time::seconds(1));
+
   ASSERT_GT(rec.tuples.size(), 4);
-  
-/*  for(vector<Tuple>::iterator it = rec.tuples.begin() ; it != rec.tuples.end(); ++it) {
-    Tuple t = *it;
-    cout <<t;
-  }*/
+  string s = rec.tuples[0].e(0).s_val();
+  ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+  ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
+
 }

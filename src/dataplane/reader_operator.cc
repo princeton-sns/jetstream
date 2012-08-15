@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/thread.hpp>
 
 
 using namespace std;
@@ -22,12 +23,12 @@ FileReadOperator::start(map<string,string> config) {
   }
   
   running = true;
-  loop_while_printing();
+  boost::thread loop_thread = boost::thread(*this);
 }
 
   
 void
-FileReadOperator::loop_while_printing() {
+FileReadOperator::operator()() {
   
   ifstream in_file (f_name.c_str());
   string line;

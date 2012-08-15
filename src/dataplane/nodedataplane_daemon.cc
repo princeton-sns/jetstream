@@ -5,7 +5,7 @@
 
 #include "js_defs.h"
 #include "js_version.h"
-#include "nodedataplane.h"
+#include "node_dataplane.h"
 
 using namespace jetstream;
 using namespace ::std;
