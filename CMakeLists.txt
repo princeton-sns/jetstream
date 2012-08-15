@@ -68,15 +68,11 @@ include (FindProtobuf)
 find_package (Protobuf REQUIRED)
 include_directories (${PROTOBUF_INCLUDE_DIR})
 
-
-<<<<<<< HEAD
-=======
 # Require Google Test
 include (FindGTest)
 find_package (GTest REQUIRED)
 include_directories (${GTEST_INCLUDE_DIR})
 
->>>>>>> 6c93a202bad201cc54e12b492aff95c3711e7575
 #######################################################
 # Set library locations and sources
 

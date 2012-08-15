@@ -1,8 +1,3 @@
-//  Copyright (c) 2012 Princeton University. All rights reserved.
-//
-
-
-
 #ifndef JetStream_cube_h
 #define JetStream_cube_h
 
@@ -17,7 +12,6 @@
 
 namespace jetstream {
 
-using namespace edu::princeton::jetstream;
 using namespace ::std;
 using namespace boost;
 //FIXME: Can we use Boost types here?

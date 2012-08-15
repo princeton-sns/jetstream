@@ -22,7 +22,7 @@ class DataPlaneOperator : public Receiver {
   Receiver *dest;
 
  protected:
-  void emit(shared_ptr<Tuple>  t); //passes the tuple along the chain
+  void emit(boost::shared_ptr<Tuple> t); //passes the tuple along the chain
     
  public:
   DataPlaneOperator () : dest (NULL) {}
