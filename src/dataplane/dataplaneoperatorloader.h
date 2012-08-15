@@ -12,6 +12,9 @@
 
 namespace jetstream {
 
+/**
+* Responsible for loading operator code and creating operator objects.
+*/
 class DataPlaneOperatorLoader {
  private:
    std::map<std::string, void *> cache;
