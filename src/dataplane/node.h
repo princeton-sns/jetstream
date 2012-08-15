@@ -1,5 +1,5 @@
-#ifndef _nodedataplane_H_
-#define _nodedataplane_H_
+#ifndef _node_H_
+#define _node_H_
 
 #include <sys/types.h>
 
@@ -16,14 +16,14 @@ namespace jetstream {
 class net_interface;
 
 
-class NodeDataPlaneConfig {
+class NodeConfig {
  public:
   std::string config_file;
   std::vector<std::pair<std::string, std::string> > controllers; // Domain, port
   port_t controlplane_myport;  // Host byte order
   port_t dataplane_myport;     // Host byte order
 
-  NodeDataPlaneConfig () 
+  NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0)
     {}
 };
@@ -59,9 +59,9 @@ struct operator_id_t {
   }
 }; 
   
-class NodeDataPlane {
+class Node {
  private:
-  NodeDataPlaneConfig config;
+  NodeConfig config;
   bool alive;
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<ConnectionToController> uplink;
@@ -70,8 +70,8 @@ class NodeDataPlane {
   DataPlaneOperatorLoader operator_loader;
   
  public:
-  NodeDataPlane(const NodeDataPlaneConfig &conf);
-  ~NodeDataPlane();
+  Node(const NodeConfig &conf);
+  ~Node();
   void connect_to_master ();
   void start_heartbeat_thread();
   
@@ -92,4 +92,4 @@ const int HB_INTERVAL = 5; //seconds
 }
 
 
-#endif /* _nodedataplane_H_ */
+#endif /* _node_H_ */

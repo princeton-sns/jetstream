@@ -1,6 +1,6 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-#include "node_dataplane.h"
+#include "node.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include <dlfcn.h>
@@ -20,7 +20,6 @@ TEST(Operator, BaseOp)
 TEST(OperatorLoader, LoadAndUnloadWithPath)
 {
   setprogname("test loader");
-
   
   DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
   bool succ = opl->load("test", "src/dataplane/libtest_operator.dylib");

@@ -1,7 +1,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/date_time.hpp>
 
-#include "node_dataplane.h"
+#include "node.h"
 
 #include "jetstream_controlplane.pb.h"
 
@@ -9,48 +9,48 @@ using namespace jetstream;
 using namespace std;
 using namespace boost;
 
-NodeDataPlane::NodeDataPlane (const NodeDataPlaneConfig &conf)
+Node::Node (const NodeConfig &conf)
   : config (conf),
     alive (false),
-    iosrv (new boost::asio::io_service()),
+    iosrv (new asio::io_service()),
     uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) ,
     operator_loader("src/dataplane/") //NOTE: path must end in a slash
 {
 }
 
 
-NodeDataPlane::~NodeDataPlane () 
+Node::~Node () 
 {
 }
 
 void
-NodeDataPlane::start_heartbeat_thread ()
+Node::start_heartbeat_thread ()
 {
   hb_loop x = hb_loop(uplink);
-  boost::thread hb_thread = boost::thread(x);
+  thread hb_thread = thread(x);
 }
 
 
 void
-NodeDataPlane::connect_to_master ()
+Node::connect_to_master ()
 {
-  boost::asio::io_service io_service;
+  asio::io_service io_service;
   //should do select loop up here, and also create an acceptor...
 
   if (!config.controllers.size()) {
-    std::cerr << "No controllers known." << std::endl;
+    cerr << "No controllers known." << endl;
     return;
   }
-  std::pair<std::string, std::string> address = config.controllers[0];
+  pair<string, string> address = config.controllers[0];
 
   tcp::resolver resolver(io_service);
   tcp::resolver::query query(address.first, address.second);
   tcp::resolver::iterator server_side = resolver.resolve(query);
   
-  boost::shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
+  shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
   uplink = tmp;
   
-  boost::thread select_loop(boost::bind(&boost::asio::io_service::run, &io_service));
+  thread select_loop(bind(&asio::io_service::run, &io_service));
 }
 
 
@@ -59,7 +59,7 @@ void
 hb_loop::operator () ()
 {
   
-  std::cout << "HB thread started" << std::endl;
+  cout << "HB thread started" << endl;
   // Connect to server
   while (true) {
     ServerRequest r;
@@ -67,8 +67,8 @@ hb_loop::operator () ()
     h->set_cpuload_pct(0);
     h->set_freemem_mb(1000);
     uplink->write(&r);
-    std::cout << "HB looping" << std::endl;
-    boost::this_thread::sleep(boost::posix_time::seconds(HB_INTERVAL));
+    cout << "HB looping" << endl;
+    this_thread::sleep(posix_time::seconds(HB_INTERVAL));
   }
 
 }
@@ -77,12 +77,12 @@ hb_loop::operator () ()
 void
 ConnectionToController::process_message (char * buf, size_t sz)
 {
-  std::cout << "got message from master" << std::endl;  
+  cout << "got message from master" << endl;  
 }
 
 
 void
-NodeDataPlane::handle_alter(AlterTopo topo)
+Node::handle_alter(AlterTopo topo)
 {
   map<operator_id_t, map<string,string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
@@ -105,8 +105,8 @@ NodeDataPlane::handle_alter(AlterTopo topo)
 }
 
 
-boost::shared_ptr<DataPlaneOperator>
-NodeDataPlane::create_operator(string op_typename, operator_id_t name) {
+shared_ptr<DataPlaneOperator>
+Node::create_operator(string op_typename, operator_id_t name) {
   shared_ptr<DataPlaneOperator> d( operator_loader.newOp(op_typename));
   operators[name] = d;
   return d;

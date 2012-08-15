@@ -129,7 +129,7 @@ message (STATUS "Linking libraries ${LIBRARIES}")
 #set (JSNODED ${BUILD_DIR}/dataplane/jsnoded)
 set (JSNODED jsnoded)
 
-add_executable (${JSNODED} ${SRC_DIR}/dataplane/nodedataplane_daemon.cc)
+add_executable (${JSNODED} ${SRC_DIR}/dataplane/node_daemon.cc)
 add_dependencies (${JSNODED} jsproto) #A js-specific entry to add our protobuf generated code
 target_link_libraries (${JSNODED} ${LIBRARIES})
 

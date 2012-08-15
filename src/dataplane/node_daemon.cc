@@ -5,21 +5,18 @@
 
 #include "js_defs.h"
 #include "js_version.h"
-#include "node_dataplane.h"
+#include "node.h"
 
 using namespace jetstream;
-using namespace ::std;
+using namespace std;
 using namespace boost;
-using namespace program_options;
-
-const int MAX_UINT16 = 1 << 16 -1; //FIXME: this should be defined somewhere in
-           //the system headers -- but isn't, on my machine. --Ari
+using namespace boost::program_options;
 
 // Return 0 on success, -1 on failure
 static int
 parse_config (program_options::variables_map *inputopts,
 	      int argc, char **argv,
-	      NodeDataPlaneConfig &config)
+	      NodeConfig &config)
 {
   // Options input from command line
   options_description cmd_opts("Command line options");
@@ -146,9 +143,9 @@ parse_config (program_options::variables_map *inputopts,
 
 
 static void
-jsnode_start (NodeDataPlaneConfig &config)
+jsnode_start (NodeConfig &config)
 {
-  NodeDataPlane t (config);
+  Node t (config);
   t.connect_to_master();
   t.start_heartbeat_thread();
 
@@ -174,7 +171,7 @@ main (int argc, char **argv)
 {
   setprogname(argv[0]);
 
-  NodeDataPlaneConfig config;
+  NodeConfig config;
   variables_map input_opts;
 
   int rc = parse_config (&input_opts, argc, argv, config);
