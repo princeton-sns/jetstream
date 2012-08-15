@@ -1,30 +1,28 @@
-#include "dataplaneoperator.h"
 #include <iostream>
+#include "dataplaneoperator.h"
 
-using namespace std;
+using namespace jetstream;
 
-jetstream::DataPlaneOperator::~DataPlaneOperator() 
+DataPlaneOperator::~DataPlaneOperator() 
 {
 
 }
 
 
-void 
-jetstream::DataPlaneOperator::process(tuple_t t)
+void
+DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
 {
-  cout << "Base Operator process" << endl;
+  std::cout << "Base Operator process" << std::endl;
 }
 
 
 void 
-jetstream::DataPlaneOperator::emit(tuple_t t)
+DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
 {
   if (dest)
     dest->process(t);
   else
-    cerr << "WARN: no dest for operator "<<operID;
-  cout << "Base Operator emit" << endl;
+    std::cerr <<"WARN: no dest for operator " << operID << std::endl;
+  //  cout << "Base Operator emit" << endl;
 }
-
-
 

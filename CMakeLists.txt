@@ -37,6 +37,8 @@ set (TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set (SRC_DIR ${TOP_DIR}/src)
 set (BUILD_DIR ${TOP_DIR}/src)
 
+set (TESTLIB "js_tests") #name for the library containing our unit tests
+
 #######################################################
 # Project flags
 
@@ -67,6 +69,14 @@ find_package (Protobuf REQUIRED)
 include_directories (${PROTOBUF_INCLUDE_DIR})
 
 
+<<<<<<< HEAD
+=======
+# Require Google Test
+include (FindGTest)
+find_package (GTest REQUIRED)
+include_directories (${GTEST_INCLUDE_DIR})
+
+>>>>>>> 6c93a202bad201cc54e12b492aff95c3711e7575
 #######################################################
 # Set library locations and sources
 
@@ -114,15 +124,38 @@ set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 set (LIBRARIES ${LIBRARIES}
     ${Boost_LIBRARIES}
     ${PROTOBUF_LIBRARY}
+    ${GTEST_LIBRARY}
 )
 
+message ("GTest library: ${GTEST_LIBRARY}.  Include: ${GTEST_INCLUDE_DIR}")
 message (STATUS "Linking libraries ${LIBRARIES}")
 
 #set (JSNODED ${BUILD_DIR}/dataplane/jsnoded)
 set (JSNODED jsnoded)
 
 add_executable (${JSNODED} ${SRC_DIR}/dataplane/nodedataplane_daemon.cc)
-add_dependencies (${JSNODED} jsproto)
+add_dependencies (${JSNODED} jsproto) #A js-specific entry to add our protobuf generated code
 target_link_libraries (${JSNODED} ${LIBRARIES})
+
+
+###################################################
+# Build the unit tests
+
+file (GLOB_RECURSE TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/test_*.cc")
+
+set (TESTS ${SRC_DIR}/js_unit_tests.cc ${TESTS})
+
+add_executable (js_unit_tests ${TESTS})
+target_link_libraries (js_unit_tests ${LIBRARIES})
+target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
+
+
+file (GLOB_RECURSE OPS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*_operator.cc")
+foreach(OP ${OPS})
+  get_filename_component(OP_NAME ${OP} NAME_WE)
+#  add_library (${OP_NAME} ${OP})
+  target_link_libraries (js_unit_tests  ${OP_NAME})
+endforeach(OP)
+
 
 # install (TARGETS jetstream DESTINATION bin)

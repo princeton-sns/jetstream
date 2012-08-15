@@ -6,6 +6,7 @@
 #include "nodedataplane.h"
 
 using namespace jetstream;
+using namespace ::std;
 
 // Return 0 on success, -1 on failure
 static int
@@ -110,6 +111,7 @@ jsnode_start ()
   // hb_loop loop = hb_loop(controller_conn);
   //loop();
   //end of app; fall off and exit
+  cout << "exiting cleanly" << endl;
 }
 
 

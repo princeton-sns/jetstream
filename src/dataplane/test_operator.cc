@@ -1,12 +1,16 @@
 #include "dataplaneoperator.h"
 #include<iostream>
 
+#include <gtest/gtest.h>
+
 namespace jetstream {
 
 using namespace std;
+  
+  
 class TestOperator: public jetstream::DataPlaneOperator {
  public:
-  void execute(){
+  virtual void start(map<string,string> config) {
     cout << "test operator 2" << endl;
   }
 };
