@@ -28,7 +28,7 @@ foreach (PROTO_FILE ${PROTO_FILES})
     DEPENDS ${PROTO_NAME_ABS}
     COMMENT "Running C++ protocol buffer compiler on ${PROTO_NAME_ABS}"
     VERBATIM 
- )
+  )
 
   set (PROTO_SRCS ${PROTO_SRCS} ${PROTO_SRC})
   set (PROTO_HDRS ${PROTO_HDRS} ${PROTO_HDR})

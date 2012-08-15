@@ -2,38 +2,47 @@
 #define _dataplaneoperator_H_
 
 #include <sys/types.h>
-#include <map>
+#include <boost/shared_ptr.hpp>
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "jetstream_dataplane.pb.h"
-
-typedef void* tuple_t; //FIXME when we have a real tuple
+#include <map>
 
 namespace jetstream {
+
+class Receiver {
+ public:
+  virtual void process (boost::shared_ptr<Tuple> t) = 0;
+};
+
+class DataPlaneOperator : public Receiver {
+ private:
+  int operID; //TODO: when is this set???  -Ari
+  Receiver *dest;
+
+ protected:
+  void emit(boost::shared_ptr<Tuple> t); //passes the tuple along the chain
     
-    
-  class Receiver {
-   public:
-    virtual void process(tuple_t) = 0;
-  };
+ public:
+  DataPlaneOperator () : dest (NULL) {}
+  virtual ~DataPlaneOperator ();
 
-  class DataPlaneOperator:Receiver  {
-   private:
-    bool active;
-    int operID;
-    Receiver * dest;
+  virtual void process (boost::shared_ptr<Tuple> t); //NOT abstract here
+  void set_dest (Receiver* d) {dest = d;}
 
-  protected:
-    void emit(tuple_t); //
-      
-   public:
-    DataPlaneOperator() : active (false),dest(NULL) {}
-    virtual ~DataPlaneOperator();
-    virtual void process(tuple_t); //NOT abstract here
-  };
+  /**
+   * An operator must not start emitting tuples until start() has been called.
+   */
+  virtual void start (std::map<std::string, std::string> config) {};
 
-  typedef DataPlaneOperator *maker_t();
+  /**
+   *
+   */
+  virtual void stop () {};
+};
+
+typedef DataPlaneOperator *maker_t();
 }
 
 #endif /* _dataplaneoperator_H_ */

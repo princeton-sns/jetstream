@@ -1,4 +1,4 @@
-package edu.princeton.jetstream;
+package jetstream;
 
 /**
 * Identifies a single node (host).
@@ -40,8 +40,26 @@ message TableMeta {
   optional NodeID site = 3;
 }
 
+
+
+message Element {
+    optional int32 i_val = 5;
+    optional string s_val = 6;
+    optional double d_val = 7 ;
+}
+
+message Tuple {
+ repeated Element e = 1;
+}
+
+
+/*  These can't be right, I don't think. Tables can have a mix of string, int, etc fields.
+These defns give no way to keep track of order.  --Ari
+
+*/
 message Table {
-  enum Type {BYTES = 1; STRING = 2; INT32 = 3;}
+ enum Type {INT32 = 1; STRING = 2; DOUBLE = 3;}
+
   required Type type = 1;
 
   optional TableMeta meta = 2;

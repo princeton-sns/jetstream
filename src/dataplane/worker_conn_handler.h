@@ -19,54 +19,44 @@ namespace jetstream {
 typedef protobuf::Message ProtobufMsg;
 
 
-class WriteQueueElement
-{
-  public:
-  char * buf;
-  uint32_t sz;
-
-  public:
-  WriteQueueElement(const ProtobufMsg *msg);
-  ~WriteQueueElement();
-};
-
-
 class WorkerConnHandler {
-  public:
- WorkerConnHandler(boost::asio::io_service& io_service,
-      tcp::resolver::iterator endpoint_iterator);
+ public:
+  WorkerConnHandler (boost::asio::io_service &io_service,
+		     tcp::resolver::iterator endpoint_iterator);
 
- void write(const ProtobufMsg *msg);
- void close();
-
- virtual void process_message(char * buf, size_t sz) = 0;
-
-
-private:
-
-  void expand_read_buf(size_t size);
-  void handle_connect(const boost::system::error_code& error);
-  void handle_read_header(const boost::system::error_code& error);
-
-  void handle_read_body(const boost::system::error_code& error);
-
-  void do_write(WriteQueueElement *we);
-
-  void handle_write(const boost::system::error_code& error);
-
-  void do_close();
-  void send_one_off_write_queue();
+  void write (const ProtobufMsg *msg);
+  void close ();
+  
+  virtual void process_message (char *buf, size_t sz) = 0;
 
 private:
+  class WriteQueueElement;
+
   void * readBuf;
   size_t readBufSize;
-  uint32_t readSize;
-
+  u_int32_t readSize;
   std::deque<WriteQueueElement *> writeQueue;
+  boost::asio::io_service &iosrv;
+  tcp::socket sock;
 
+  void expand_read_buf (size_t size);
+  void handle_connect (const boost::system::error_code &error);
+  void handle_read_header (const boost::system::error_code &error);
+  void handle_read_body (const boost::system::error_code &error);
 
-  boost::asio::io_service& io_service_;
-  tcp::socket socket_;
+  void do_write (WriteQueueElement *we);
+  void handle_write (const boost::system::error_code &error);
+
+  void do_close ();
+  void send_one_off_write_queue ();
+
+  class WriteQueueElement {
+   public:
+    char *buf;
+    u_int32_t sz;
+    WriteQueueElement (const ProtobufMsg *msg);
+    ~WriteQueueElement () { free(buf); }
+  };
 };
 
 }

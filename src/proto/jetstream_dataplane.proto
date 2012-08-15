@@ -1,4 +1,4 @@
-package edu.princeton.jetstream;
+package jetstream;
 
 import "jetstream_types.proto";
 import "jetstream_controlplane.proto";

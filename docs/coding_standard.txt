@@ -38,6 +38,7 @@
 
 - Function type on same line as name for function declaration:
 - Descriptive name for variable in function declaration:
+- Notice space between declaration and variables
 
   GOOD:  int foo (int bar) {
 
@@ -45,6 +46,16 @@
 
   GOOD:  static int
          foo (int bar) {
+
+- Space between type and pointer/reference in declaractions
+  
+  GOOD:  int foo (int *bar)
+         int foo (int &bar)
+         int *bar;
+
+  BAD:   int foo (int* bar)
+         int* bar;
+         int * bar;
 
 - Close braces on separate lines:
 
@@ -63,4 +74,18 @@
 
 
 - File names:
-	Headers end in .h, not .hh
+  Headers end in .h and .cc, not .hh, .hpp, .cpp, or .C
+  File names should use underscores where appropriate, not CamelCase
+
+- White space around pointers and class functions: Don't do it!
+  GOOD:  foo.bar()
+         foo->bar()
+  BAD:   foo . bar()
+         foo -> bar ()
+
+- Never use seconds for timeout, always use milliseconds or shorter.
+- Also use defined native types for time, never 'ints':
+
+  GOOD:  do_somethign(msec_t timeout);
+  BAD:   do_somethign(int seconds);
+
