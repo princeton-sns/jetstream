@@ -28,13 +28,10 @@ static const u_long  usec_in_sec             = 1000000;
 static const u_long  nsec_in_sec             = (usec_in_sec * 1000);
 
 static const u_int32_t MAX_UINT32            = 4294967295;
+static const u_int16_t MAX_UINT16            = 65535;
 
 // Global variables defined here
 extern timespec tsnow;
-
-// Dataplane configuration
-extern port_t dataplane_port;  // Host byte order
-extern std::string dataplane_config_file;
 };
 
 #endif /* _JS_DEFS_H_ */
