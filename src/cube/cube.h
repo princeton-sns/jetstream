@@ -4,7 +4,7 @@
 #include <iterator>
 #include <vector>
 #include <boost/shared_ptr.hpp>
-
+#include "dataplaneoperator.h"  //needed only for Receiver
 
 
 #include "jetstream_types.pb.h"
@@ -19,11 +19,12 @@ using namespace boost;
 /**
 *  A class to represent a cube in memory. 
 */
-class DataCube {
+class DataCube : public Receiver {
   
 public:
-  void process(const Tuple& t); //inserts a tuple
-
+  void process(boost::shared_ptr<Tuple> t); //inserts a tuple
+  DataCube(std::string schema);
+  
   //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
   
 
