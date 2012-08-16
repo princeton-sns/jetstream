@@ -1,4 +1,5 @@
 #include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/date_time.hpp>
 
 #include "node.h"
@@ -11,11 +12,24 @@ using namespace boost;
 
 Node::Node (const NodeConfig &conf)
   : config (conf),
-    alive (false),
     iosrv (new asio::io_service()),
-    uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator())) ,
-    operator_loader("src/dataplane/") //NOTE: path must end in a slash
+    conn_mgr (new ClientConnectionManager(iosrv)),
+    liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
+    // uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator()))
+    // XXX This should get set through config files
+    operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
+  asio::io_service::work work(*iosrv);
+
+  if (conf.heartbeat_time > 0) {
+    // XXX Can't dynamically modify heartbeat_time. Pass pointer to config?
+    for (u_int i=0; i < config.controllers.size(); i++) {
+      pair<string, port_t> cntrl = config.controllers[i];
+      conn_mgr->create_connection (cntrl.first, cntrl.second,
+				   bind(&Node::controller_connected, 
+					this, _1, _2));
+    }
+  }
 }
 
 
@@ -23,6 +37,55 @@ Node::~Node ()
 {
 }
 
+
+
+void
+Node::run ()
+{
+
+  for (u_int i=0; i < config.thread_pool_size; i++) {
+    shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
+    threads.push_back(t);
+  }
+
+
+  // Wait for all threads in pool to exit
+  for (u_int i=0; i < threads.size(); i++)
+    threads[i]->join();
+
+  iosrv->run ();
+
+  cout << "Finished node::run" << endl;
+}
+
+
+void
+Node::stop ()
+{
+  liveness_mgr->stop_all_notifications();
+  iosrv->stop();
+}
+
+
+void
+Node::controller_connected (shared_ptr<ClientConnection> dest, 
+			    system::error_code error)
+{
+  if (error)
+    cerr << "Node: Monitoring connection failed: " << error.message() << endl;
+  else if (!liveness_mgr)
+    cerr << "Node: Liveness manager NULL" << endl;
+  else {
+    {
+      mutex::scoped_lock sl;
+      cout << "Node: Connected to controller: " << dest->get_endpoint() << endl;
+    }
+    liveness_mgr->start_notifications(dest);
+  }
+}
+
+
+#if 0
 void
 Node::start_heartbeat_thread ()
 {
@@ -41,10 +104,10 @@ Node::connect_to_master ()
     cerr << "No controllers known." << endl;
     return;
   }
-  pair<string, string> address = config.controllers[0];
+  pair<string, port_t> address = config.controllers[0];
 
   tcp::resolver resolver(io_service);
-  tcp::resolver::query query(address.first, address.second);
+  tcp::resolver::query query(address.first, lexical_cast<string> (address.second));
   tcp::resolver::iterator server_side = resolver.resolve(query);
   
   shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
@@ -72,7 +135,7 @@ hb_loop::operator () ()
   }
 
 }
-
+#endif
 
 void
 ConnectionToController::process_message (char * buf, size_t sz)

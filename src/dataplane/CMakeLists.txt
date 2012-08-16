@@ -12,7 +12,9 @@ list (REMOVE_ITEM LIB_SRCS ${TESTS})
 
 add_library (${LIBRARY_NAME} ${LIB_SRCS}) #building the jetstream library
 target_link_libraries (${LIBRARY_NAME} ${Boost_LIBRARIES})
+target_link_libraries (${LIBRARY_NAME} jsutils)
 target_link_libraries (${LIBRARY_NAME} jsproto)
+target_link_libraries (${LIBRARY_NAME} jscomm)
 
 
 foreach(OP ${OPS})

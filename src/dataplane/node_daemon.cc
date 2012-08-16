@@ -32,14 +32,16 @@ parse_config (program_options::variables_map *inputopts,
   // Options from both cmd line and config file
   options_description conf_opts("Configuration file and command line options");
   conf_opts.add_options()
-    ("hbtimer,t", value<long>(), 
-     "liveness monitoring timer (in milliseconds)")
     ("controller_addr,a", value<vector<string> >()->composing(),
      "hostname:port of controller (can supply multiple entries)")
-    ("dataplane_port,d", value<u_int16_t>(), 
+    ("dataplane_port,d", value<port_t>(), 
      "my dataplane port number")
-    ("controlplane_port,c", value<u_int16_t>(), 
+    ("controlplane_port,c", value<port_t>(), 
      "my controlplane port number")
+    ("heartbeat_time,t", value<msec_t>(), 
+     "liveness monitoring timer (in milliseconds)")
+    ("thread_pool_size,p", value<u_int16_t>(),
+     "thread pool size")
     ;
   
   // Build set of all allowable options
@@ -98,15 +100,21 @@ parse_config (program_options::variables_map *inputopts,
   };
 
   // Configuration variables
-  if (input_opts.count("controlplane_port"))
-    config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
-
   if (input_opts.count("dataplane_port"))
     config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
 
+  if (input_opts.count("controlplane_port"))
+    config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
+
+  if (input_opts.count("heartbeat_time"))
+    config.heartbeat_time = input_opts["heartbeat_time"].as<msec_t>();
+
+  if (input_opts.count("thread_pool_size"))
+    config.thread_pool_size = input_opts["thread_pool_size"].as<u_int16_t>();
+
   // Configuration variables
-  if (input_opts.count("controller_addrs")) {
-    vector<string> addrs = input_opts["controller_addrs"].as<vector<string> >();
+  if (input_opts.count("controller_addr")) {
+    vector<string> addrs = input_opts["controller_addr"].as<vector<string> >();
     if (!addrs.size()) {
       cerr << getprogname() << ": no controller addresses given" << endl;
       cout << opts << endl;
@@ -133,7 +141,7 @@ parse_config (program_options::variables_map *inputopts,
 	return 1;
       }
       
-      pair<string, string> p (a[0], a[1]);
+      pair<string, port_t> p (a[0], lexical_cast<port_t> (a[1]));
       config.controllers.push_back (p);
     }
   }
@@ -146,8 +154,7 @@ static void
 jsnode_start (NodeConfig &config)
 {
   Node t (config);
-  t.connect_to_master();
-  t.start_heartbeat_thread();
+  t.run();
 
   //create network interface here?
   // t.start_heartbeat_thread(iface);
