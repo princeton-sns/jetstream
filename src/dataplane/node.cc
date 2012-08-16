@@ -170,12 +170,20 @@ Node::handle_alter(AlterTopo topo)
   
     //add edges
   for (int i=0; i < topo.edges_size(); ++i) {
-    Edge e = topo.edges(i);
+    const Edge& e = topo.edges(i);
     operator_id_t src( e.computation(), e.src());
-    operator_id_t dest( e.computation(), e.dest());
     shared_ptr<DataPlaneOperator> src_op = get_operator(src);
-    shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
-    src_op->set_dest(dest_op.get());
+    
+    if (e.has_table_name()) {     //connect to local table
+      
+    } else if (e.has_dest_addr()) {   //remote network operator
+      
+    } else {
+      assert(e.has_dest());
+      operator_id_t dest( e.computation(), e.dest());
+      shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
+      src_op->set_dest(dest_op.get());      
+    }
   }
   
     //now start the operators

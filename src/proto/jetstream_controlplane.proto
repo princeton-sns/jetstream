@@ -5,26 +5,29 @@ import "jetstream_types.proto";
 
 
 /**
-* A connection between two operators on the same host.
+* A connection between two points in the computation graph.
 * Operators must be in the same computation.
+* Cubes are globally visible and are NOT tied to a computation.
 */
 message Edge {
   required int32 src = 1;
-  required int32 dest = 2;
-  
   required int32 computation = 4; //which computation these operators are in
+
+  optional int32 dest = 2;   //local dest
+  optional string cube_name = 3;  //cube, local or remote
+  optional NodeID dest_addr = 5;  //dest addr if remote
 }
 
 /**
 * An AlterTopo specifies a set of mutations to the operator graph.
-* It includes tasks and tables to start, tasks and tables to stop, 
+* It includes tasks and cubes to start, tasks and cubes to stop, 
 * and edges to add. 
 */
 message AlterTopo {
   repeated TaskMeta toStart = 1;
-  repeated TableMeta toCreate = 2;
+  repeated CubeMeta toCreate = 2;
   repeated TaskID taskToStop = 3; 
-  repeated string tableToStop = 4; 
+  repeated string cubesToStop = 4; 
   repeated Edge edges = 5;
 }
 

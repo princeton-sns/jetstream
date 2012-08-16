@@ -44,10 +44,3 @@ FileRead::operator()() {
 
 
 }
-
-
-extern "C" {
-  jetstream::DataPlaneOperator *maker(){
-    return new jetstream::FileRead();
-  }
-}

@@ -10,6 +10,8 @@
 #include "worker_conn_handler.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
+#include "client_conn.h"
+#include "cube_manager.h"
 #include "liveness_manager.h"
 
 namespace jetstream {
@@ -70,6 +72,7 @@ struct operator_id_t {
 class Node {
  private:
   NodeConfig config;
+  CubeManager cube_mgr;
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<ClientConnectionManager> conn_mgr; 
 

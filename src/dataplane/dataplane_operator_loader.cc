@@ -54,9 +54,11 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
 
 jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
-  //some special cases
+  //some special cases for internal operators
   if (name.compare("DummyReceiver") == 0) {
-    return new DummyReceiver(); //special case; not bundled properly.
+    return new DummyReceiver();
+  } else if (name.compare("FileRead") == 0) {
+    return new FileRead();
   }
   
   if(cache.count(name) < 1)
