@@ -36,6 +36,11 @@ class CubeManager {
     return c;
   }
   
+  void destroy_cube(std::string s) {
+      cubeDict[s]->mark_as_deleted();
+      cubeDict.erase(s);
+    }
+  
 };
 
 }

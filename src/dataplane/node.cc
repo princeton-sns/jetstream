@@ -19,6 +19,10 @@ Node::Node (const NodeConfig &conf)
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
+//Create logger first thing
+
+
+//Set up the network connection
   asio::io_service::work work(*iosrv);
 
   if (conf.heartbeat_time > 0) {
@@ -187,14 +191,14 @@ Node::handle_alter(AlterTopo topo)
     
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
-      src_op->set_dest(d.get());
+      src_op->set_dest(d);
     } else if (e.has_dest_addr()) {   //remote network operator
       //TODO handle network
     } else {
       assert(e.has_dest());
       operator_id_t dest( e.computation(), e.dest());
       shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
-      src_op->set_dest(dest_op.get());      
+      src_op->set_dest(dest_op);      
     }
   }
   

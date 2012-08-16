@@ -26,6 +26,7 @@ public:
   
   DataCube(std::string _schema):schema(_schema) {}
   virtual ~DataCube() {;}
+  void mark_as_deleted() {is_frozen = true; }
 
   //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
   
@@ -34,6 +35,7 @@ public:
   
 private:
   string schema;
+  bool is_frozen;
 //TODO should figure out how to implement this
   
 };
