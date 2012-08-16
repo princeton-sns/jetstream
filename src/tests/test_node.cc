@@ -64,7 +64,7 @@ TEST(Node, HandleAlter_2_Ops)
   boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_GT(rec->tuples.size(), 4);
+  ASSERT_GT(rec->tuples.size(),(unsigned int) 4);
   string s = rec->tuples[0].e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
   

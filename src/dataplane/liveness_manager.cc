@@ -34,7 +34,7 @@ LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
 
   connections[c->get_endpoint()] = notif;
 
-  system::error_code success; 
+  boost::system::error_code success; 
   notif->send_notification(success);
 }
 
@@ -61,7 +61,7 @@ LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_p
 
 
 void
-LivenessManager::ConnectionNotification::send_notification (const system::error_code &error)
+LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
   waiting = false;
 
@@ -100,7 +100,7 @@ LivenessManager::ConnectionNotification::wait_to_notify ()
 void
 LivenessManager::ConnectionNotification::stop_notify ()
 {
-  system::error_code e;
+  boost::system::error_code e;
   timer.cancel(e);
   assert(!waiting);
 }

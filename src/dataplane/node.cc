@@ -73,7 +73,7 @@ Node::stop ()
 
 void
 Node::controller_connected (shared_ptr<ClientConnection> dest, 
-			    system::error_code error)
+			    boost::system::error_code error)
 {
   if (error)
     cerr << "Node: Monitoring connection failed: " << error.message() << endl;

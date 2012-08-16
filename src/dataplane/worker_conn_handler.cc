@@ -5,7 +5,7 @@ using namespace jetstream;
 WorkerConnHandler::WriteQueueElement::WriteQueueElement (const ProtobufMsg *msg)
 {
   // XXX We should avoid such memcpy's whenever possible
-  int tmp = msg->ByteSize();
+  unsigned int tmp = msg->ByteSize();
   assert (tmp <= MAX_UINT32);
   sz = (u_int32_t) tmp;
 

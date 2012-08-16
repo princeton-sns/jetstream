@@ -27,7 +27,7 @@ ClientConnectionManager::create_connection (const string &domain, port_t port,
 {
   string portstr = lexical_cast<string> (port);
 
-  system::error_code error;
+  boost::system::error_code error;
   address addr = address::from_string(domain, error);
 
   if (!error) {
@@ -48,7 +48,7 @@ ClientConnectionManager::create_connection (const string &domain, port_t port,
 
 void
 ClientConnectionManager::domain_resolved (bfunc_clntconn cb,
-					  const system::error_code &error,
+					  const boost::system::error_code &error,
 					  tcp::resolver::iterator dests)
 {
   if (!error)
@@ -73,7 +73,7 @@ ClientConnectionManager::create_connection (tcp::resolver::iterator dests,
 
   tcp::endpoint dest = *dests++;
 
-  system::error_code error;
+  boost::system::error_code error;
   shared_ptr<ClientConnection> c 
     (new ClientConnection (iosrv, dest, error));
 
@@ -91,7 +91,7 @@ void
 ClientConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
 					       shared_ptr<ClientConnection> conn,
 					       bfunc_clntconn cb,
-					       const system::error_code &error)
+					       const boost::system::error_code &error)
 {
   if (!error)
     cb(conn, error);
@@ -102,7 +102,7 @@ ClientConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
 
 ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 				    const tcp::endpoint &d,
-				    system::error_code &error)
+				    boost::system::error_code &error)
   : connected (false), iosrv (srv), 
     dest (d), sock (*iosrv), timer (*iosrv)
 {
@@ -137,10 +137,10 @@ ClientConnection::connect (msec_t timeout, bfunc_err cb)
 
 void 
 ClientConnection::connect_cb (bfunc_err cb, 
-			      const system::error_code &error)
+			      const boost::system::error_code &error)
 {
   // Unregister timeout
-  system::error_code e;
+  boost::system::error_code e;
   timer.cancel(e);
 
   if (error)
@@ -154,12 +154,12 @@ ClientConnection::connect_cb (bfunc_err cb,
 
 void
 ClientConnection::timeout_cb(bfunc_err cb,
-			     const system::error_code &error)
+			     const boost::system::error_code &error)
 {
   if (error == asio::error::operation_aborted)
     return;
 
-  system::error_code e;
+  boost::system::error_code e;
   close(e);
 
   cb(asio::error::timed_out);
@@ -167,7 +167,7 @@ ClientConnection::timeout_cb(bfunc_err cb,
   
 
 void 
-ClientConnection::close (system::error_code &error)
+ClientConnection::close (boost::system::error_code &error)
 {
   connected = false;
 
