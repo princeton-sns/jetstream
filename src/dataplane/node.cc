@@ -168,7 +168,14 @@ Node::handle_alter(AlterTopo topo)
      //TODO: what if this returns a null pointer, indicating create failed?
   }
   
-  //TODO make cubes here
+  //make cubes here
+  for (int i=0; i < topo.tocreate_size(); ++i) {
+    CubeMeta task = topo.tocreate(i);
+    cube_mgr.create_cube(task.name(), task.schema());
+  }
+  
+  //TODO remove cubes and operators if specified.
+  
   
   
   
@@ -180,9 +187,9 @@ Node::handle_alter(AlterTopo topo)
     
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
-      
+      src_op->set_dest(d.get());
     } else if (e.has_dest_addr()) {   //remote network operator
-      
+      //TODO handle network
     } else {
       assert(e.has_dest());
       operator_id_t dest( e.computation(), e.dest());

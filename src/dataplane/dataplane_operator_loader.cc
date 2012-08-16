@@ -57,8 +57,8 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   //some special cases for internal operators
   if (name.compare("DummyReceiver") == 0) {
     return new DummyReceiver();
-//  } else if (name.compare("FileRead") == 0) {
-//    return new FileRead();
+  } else if (name.compare("FileRead") == 0) {
+    return new FileRead();
   }
   
   if(cache.count(name) < 1)
