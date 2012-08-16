@@ -13,10 +13,10 @@
 
 namespace jetstream {
 
-typedef boost::function<void (int32_t) > bfunc_void_int32;
-typedef boost::function<void (boost::system::error_code) > bfunc_void_err;
+typedef boost::function<void (int32_t) > bfunc_int32;
+typedef boost::function<void (boost::system::error_code) > bfunc_err;
 typedef boost::function<void (boost::asio::ip::tcp::endpoint,
-			      const boost::system::error_code &) > bfunc_void_endpoint;
+			      const boost::system::error_code &) > bfunc_endpoint;
 
 }
 
