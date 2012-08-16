@@ -36,13 +36,9 @@ message TaskMeta {
   // optional boolean isUnion
 }
 
-message TableName {
-  required string name = 1;
-  required int32 id = 2;
-}
 
-message TableMeta {
-  required TableName name = 1;
+message CubeMeta {
+  required string name = 1;
   required string schema = 2;
   optional NodeID site = 3;
 }
@@ -69,7 +65,7 @@ message Table {
 
   required Type type = 1;
 
-  optional TableMeta meta = 2;
+  optional CubeMeta meta = 2;
   repeated bytes bytesData = 3;
   repeated string stringData = 4;
   repeated int32 int32Data = 5 [packed=true];

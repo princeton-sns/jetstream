@@ -168,13 +168,18 @@ Node::handle_alter(AlterTopo topo)
      //TODO: what if this returns a null pointer, indicating create failed?
   }
   
+  //TODO make cubes here
+  
+  
+  
     //add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge& e = topo.edges(i);
     operator_id_t src( e.computation(), e.src());
     shared_ptr<DataPlaneOperator> src_op = get_operator(src);
     
-    if (e.has_table_name()) {     //connect to local table
+    if (e.has_cube_name()) {     //connect to local table
+      shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
       
     } else if (e.has_dest_addr()) {   //remote network operator
       

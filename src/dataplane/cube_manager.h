@@ -26,12 +26,13 @@ class CubeManager {
   shared_ptr<DataCube> get_cube (std::string s) { return cubeDict[s]; }
   
   void put_cube (std::string s, boost::shared_ptr<DataCube> c) {
+  //TODO need locking here.
     cubeDict.insert( std::pair<string, boost::shared_ptr<DataCube> >(s, c) ); 
   }
 
   boost::shared_ptr<DataCube> create_cube(std::string name, std::string schema) {
     boost::shared_ptr<DataCube> c(new DataCube(schema));
-    cubeDict.insert(name, c);
+    put_cube(name, c);
     return c;
   }
   

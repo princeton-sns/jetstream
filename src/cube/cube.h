@@ -22,15 +22,18 @@ using namespace boost;
 class DataCube : public Receiver {
   
 public:
-  void process(boost::shared_ptr<Tuple> t); //inserts a tuple
-  DataCube(std::string schema);
+  virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
   
+  DataCube(std::string _schema):schema(_schema) {}
+  virtual ~DataCube() {;}
+
   //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
   
 
 //TODO: should have an entry here for the aggregation/update function.
   
 private:
+  string schema;
 //TODO should figure out how to implement this
   
 };

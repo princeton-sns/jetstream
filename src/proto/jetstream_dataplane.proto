@@ -4,7 +4,7 @@ import "jetstream_types.proto";
 import "jetstream_controlplane.proto";
 
 message TableRequest {
-  repeated TableName names = 1;
+  repeated string names = 1;
 }
 
 message TableResponse {
