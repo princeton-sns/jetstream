@@ -77,8 +77,7 @@ class Controller(ControllerAPI, JSServer):
       nID.address,nID.portno =  node
       res.append(nID)
     return res
-    
-
+ 
     
   def handle_heartbeat(self, hbeat, handler):
     t = long(time.time())
@@ -97,7 +96,11 @@ class Controller(ControllerAPI, JSServer):
       #TODO: Return some error message here. Are we using ServerResponse.error for this?
       return
 
-    # TODO: The code below only handles starting tasks on workers.
+    #TODO: The code below only deals with starting tasks. We also assume the client topology looks
+    #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
+
+    # Find the first global union point, or the LCA of all sources.
+    taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
 
     # Assign pinned tasks to specified workers. For now, assign unpinned tasks to a default worker.
     workerToTasks = {}
@@ -121,6 +124,13 @@ class Controller(ControllerAPI, JSServer):
       h.send_pb(req)
 
     print "returning from handle_deploy"
+
+  #TODO: Move this to within operator graph abstraction.
+  def findSourcesLCA(self, tasks, edges):
+    #TODO: For now just assert that the sources point to the same parent and return this parent
+    #taskIdToTask = {}
+    #for task in tasks:
+    return -1
 
   def process_message(self, buf, handler):
   

@@ -42,5 +42,36 @@ FileRead::operator()() {
   }
 }
 
-
+/* TODO: Sid will remove later (compile issues)
+void
+StringGrep::start(map<string,string> config) {
+  string pattern = config["pattern"];
+  if (pattern.length() == 0) {
+    cout << "no regexp pattern specified, bailing"<<endl;
+    return;
+  }
+  re.assign(pattern);
 }
+
+void
+StringGrep::process (boost::shared_ptr<Tuple> t)
+{
+  assert(t);
+  if (t->e_size() == 0) {
+    cout << "received empty tuple, ignoring"<< endl;
+    return;
+  }
+  //TODO: Assuming its the first element for now
+  Element* e = t->e(0)
+  if (!e->has_s_val()) {
+    cout << "received tuple but no string set, ignoring"<< endl;
+    return;
+  }
+  boost::smatch what;
+  bool result = boost::regex_search(e->s_val(), what, re);
+  if (result) {
+    // The string element matches the pattern, so push it through
+    emit(t);
+  }
+}
+*/

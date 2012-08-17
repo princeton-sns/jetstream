@@ -24,6 +24,20 @@ class FileRead: public DataPlaneOperator {
   bool running;
 };
 
+/***
+ * Operator for filtering strings. Expects one parameter, a string named 'pattern'
+ * containing a regular expression. Assumes each received tuple has a first element
+ * that is a string, and re-emits the tuple if the string matches 'pattern'.
+ */
+/* TODO: Sid will remove later (compile issues)
+class StringGrep: public DataPlaneOperator {
+ public:
+  virtual void start(std::map<std::string,std::string> config);
+
+ protected:
+  boost::regex re; // regexp pattern to match tuples against
+};
+*/
   
 class DummyReceiver: public DataPlaneOperator {
 public:
