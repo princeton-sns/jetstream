@@ -5,7 +5,7 @@
 
 #include "dataplaneoperator.h"
 #include <string>
-
+#include <boost/regex.hpp>
 
 namespace jetstream {
   
@@ -29,15 +29,16 @@ class FileRead: public DataPlaneOperator {
  * containing a regular expression. Assumes each received tuple has a first element
  * that is a string, and re-emits the tuple if the string matches 'pattern'.
  */
-/* TODO: Sid will remove later (compile issues)
+
 class StringGrep: public DataPlaneOperator {
  public:
   virtual void start(std::map<std::string,std::string> config);
-
+  virtual void process(boost::shared_ptr<Tuple> t);
  protected:
   boost::regex re; // regexp pattern to match tuples against
+  int id = 0;//the field on which to filter
 };
-*/
+
   
 class DummyReceiver: public DataPlaneOperator {
 public:

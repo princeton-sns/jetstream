@@ -42,7 +42,7 @@ FileRead::operator()() {
   }
 }
 
-/* TODO: Sid will remove later (compile issues)
+/* TODO: Sid will remove later (compile issues) */
 void
 StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];
@@ -62,9 +62,9 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     return;
   }
   //TODO: Assuming its the first element for now
-  Element* e = t->e(0)
+  Element* e = t->mutable_e(id);
   if (!e->has_s_val()) {
-    cout << "received tuple but no string set, ignoring"<< endl;
+    cout << "received tuple but element" << id<< " is not string, ignoring"<< endl;
     return;
   }
   boost::smatch what;
@@ -74,4 +74,5 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     emit(t);
   }
 }
-*/
+
+}
