@@ -6,21 +6,6 @@ using namespace boost::asio::ip;
 using namespace jetstream;
 
 
-#if 0
-boost::shared_ptr<ClientConnection> get_connection (const boost::asio::ip::tcp::endpoint &dest);
-
-shared_ptr<ClientConnection>
-ClientConnectionManager::get_connection (const tcp::endpoint &dest)
-{
-  map<tcp::endpoint, shared_ptr<ClientConnection> >::iterator iter = conns.find (dest);
-  if (iter == conns.end())
-    return shared_ptr<ClientConnection> ();
-  else
-    return iter->second;
-}
-#endif
-
-
 void
 ClientConnectionManager::create_connection (const string &domain, port_t port,
 					    bfunc_clntconn cb)
@@ -33,7 +18,8 @@ ClientConnectionManager::create_connection (const string &domain, port_t port,
   if (!error) {
     // Domain supplied was a valid IP address
     tcp::resolver::iterator dests 
-      = tcp::resolver::iterator::create(tcp::endpoint(addr, port), domain, portstr);
+      = tcp::resolver::iterator::create(tcp::endpoint(addr, port), 
+					domain, portstr);
     create_connection (dests, cb);
   }
   else {
@@ -103,8 +89,8 @@ ClientConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
 ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 				    const tcp::endpoint &d,
 				    boost::system::error_code &error)
-  : connected (false), iosrv (srv), 
-    dest (d), sock (*iosrv), timer (*iosrv)
+  : connected (false), iosrv (srv), astrand (*srv),
+    dest (d), sock (*iosrv), timer (*iosrv), writing (false)
 {
   if (dest.address().is_v4())
     sock.open(tcp::v4(), error);
@@ -176,5 +162,126 @@ ClientConnection::close (boost::system::error_code &error)
   
   sock.close (error);
 }
+
+
+/******************** Writing messages ********************/
+
+ClientConnection::SerializedMessage::SerializedMessage (const google::protobuf::Message &m,
+							system::error_code &error)
+{
+  size_t len_check = m.ByteSize();
+  if (len_check > MAX_UINT32) {
+    error = boost::asio::error::message_size;
+    return;
+  }
+
+  u_int32_t len = lexical_cast<u_int32_t> (len_check);
+  u_int32_t len_nbo = htonl (len);
+
+  nbytes = len + sizeof(u_int32_t);
+  msg = new u_int8_t[nbytes];
+
+  memcpy(msg, &len_nbo, sizeof(u_int32_t));
+  m.SerializeToArray((msg + sizeof(u_int32_t)), len);
+}
+
+
+void
+ClientConnection::write_msg (const google::protobuf::Message &m,
+			     system::error_code &error)
+{
+  shared_ptr<SerializedMessage> msg (new SerializedMessage (m, error));
+  if (!error)
+    astrand.post(bind(&ClientConnection::perform_write, this, msg));
+}
+
+
+void
+ClientConnection::perform_write (shared_ptr<SerializedMessage> msg)
+{
+  // Must call function from a single strand to ensure single writer to
+  // write_queue at a time
+  if (writing) {
+    write_queue.push_back(msg);
+    astrand.post(bind(&ClientConnection::perform_queued_write, this));
+  }
+  else {
+    writing = true;
+    // Keep hold of message until callback so not cleaned up until sent
+    asio::async_write(sock, 
+		      asio::buffer(msg->msg, msg->nbytes),
+		      astrand.wrap(bind(&ClientConnection::wrote, 
+					this, msg, _1, _2)));
+  }
+}
+
+void
+ClientConnection::perform_queued_write ()
+{
+  if (writing || write_queue.empty())
+    return;
+
+  shared_ptr<SerializedMessage> msg = write_queue.front();
+  write_queue.pop_front();
+
+  writing = true;
+  // Keep hold of message until callback so not cleaned up until sent
+  asio::async_write(sock, 
+		    asio::buffer(msg->msg, msg->nbytes),
+		    astrand.wrap(bind(&ClientConnection::wrote, 
+				      this, msg, _1, _2)));
+}
+
+
+void
+ClientConnection::wrote (shared_ptr<SerializedMessage> msg,
+			 const system::error_code &error,
+			 size_t bytes_transferred)
+{
+  writing = false;
+  // XXX Check for specific errors?
+  if (error) {
+    system::error_code e;
+    close (e);
+    return;
+  }
+
+  if (!write_queue.empty())
+    perform_queued_write();
+}
+
+
+/******************** Reading messages ********************/
+
+
+void 
+ClientConnection::read_msg (google::protobuf::Message &msg,
+			    boost::system::error_code &error)
+{
+
+}
+
+
+
+
+
+
+
+
+
+#if 0
+boost::shared_ptr<ClientConnection> get_connection (const boost::asio::ip::tcp::endpoint &dest);
+
+shared_ptr<ClientConnection>
+ClientConnectionManager::get_connection (const tcp::endpoint &dest)
+{
+  map<tcp::endpoint, shared_ptr<ClientConnection> >::iterator iter = conns.find (dest);
+  if (iter == conns.end())
+    return shared_ptr<ClientConnection> ();
+  else
+    return iter->second;
+}
+#endif
+
 
 
