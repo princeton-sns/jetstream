@@ -6,8 +6,6 @@
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
-#include "jetstream_dataplane.pb.h"
-#include "worker_conn_handler.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include "client_conn.h"
@@ -33,7 +31,8 @@ class NodeConfig {
     {}
 };
 
-  
+
+#if 0  
 class ConnectionToController : public WorkerConnHandler {
  public:
   ConnectionToController (boost::asio::io_service& io_service,
@@ -46,7 +45,6 @@ class ConnectionToController : public WorkerConnHandler {
 };
   
 
-#if 0  
 class hb_loop {
  private:
   boost::shared_ptr<ConnectionToController> uplink;

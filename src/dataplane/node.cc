@@ -5,6 +5,7 @@
 #include "node.h"
 
 #include "jetstream_controlplane.pb.h"
+#include "jetstream_dataplane.pb.h"
 
 using namespace jetstream;
 using namespace std;
@@ -139,13 +140,14 @@ hb_loop::operator () ()
   }
 
 }
-#endif
 
 void
 ConnectionToController::process_message (char * buf, size_t sz)
 {
   cout << "got message from master" << endl;  
 }
+#endif
+
 
 operator_id_t unparse_id(TaskID id) {
   operator_id_t parsed;
