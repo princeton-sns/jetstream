@@ -11,6 +11,8 @@ using namespace jetstream;
 using namespace std;
 using namespace boost;
 
+mutex _node_mutex;
+
 Node::Node (const NodeConfig &conf)
   : config (conf),
     iosrv (new asio::io_service()),
@@ -19,9 +21,7 @@ Node::Node (const NodeConfig &conf)
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
-
   // Create logger first thing
-
 
   // Set up the network connection
   asio::io_service::work work(*iosrv);
@@ -47,12 +47,10 @@ Node::~Node ()
 void
 Node::run ()
 {
-
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
   }
-
 
   // Wait for all threads in pool to exit
   for (u_int i=0; i < threads.size(); i++)
@@ -69,26 +67,31 @@ Node::stop ()
 {
   liveness_mgr->stop_all_notifications();
   iosrv->stop();
+
+  // Optional:  Delete all global objects allocated by libprotobuf.
+  google::protobuf::ShutdownProtobufLibrary();
 }
 
 
 void
-Node::controller_connected (shared_ptr<Connection> dest, 
+Node::controller_connected (shared_ptr<ClientConnection> dest, 
 			    boost::system::error_code error)
 {
   if (error) {
-    mutex::scoped_lock sl;
+    _node_mutex.lock();
     cerr << "Node: Monitoring connection failed: " << error.message() << endl;
+    _node_mutex.unlock();
   }
   else if (!liveness_mgr) {
-    mutex::scoped_lock sl;
+    _node_mutex.lock();
     cerr << "Node: Liveness manager NULL" << endl;
+    _node_mutex.unlock();
   }
   else {
-    {
-      mutex::scoped_lock sl;
-      cout << "Node: Connected to controller: " << dest->get_endpoint() << endl;
-    }
+    _node_mutex.lock();
+    cout << "Node: Connected to controller: " 
+	 << dest->get_remote_endpoint() << endl;
+    _node_mutex.unlock();
     liveness_mgr->start_notifications(dest);
   }
 }
@@ -132,7 +135,9 @@ Node::connect_to_master ()
   //should do select loop up here, and also create an acceptor...
 
   if (!config.controllers.size()) {
+    _node_mutex.lock();
     cerr << "No controllers known." << endl;
+    _node_mutex.unlock();
     return;
   }
   pair<string, port_t> address = config.controllers[0];
@@ -174,7 +179,8 @@ ConnectionToController::process_message (char * buf, size_t sz)
 #endif
 
 
-operator_id_t unparse_id(TaskID id) {
+operator_id_t unparse_id (TaskID id) 
+{
   operator_id_t parsed;
   parsed.computation_id = id.computationid();
   parsed.task_id = id.task();
@@ -182,7 +188,7 @@ operator_id_t unparse_id(TaskID id) {
 }
 
 void
-Node::handle_alter(AlterTopo topo)
+Node::handle_alter (AlterTopo topo)
 {
   map<operator_id_t, map<string,string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
@@ -210,7 +216,7 @@ Node::handle_alter(AlterTopo topo)
   
   
   
-    //add edges
+  // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge& e = topo.edges(i);
     operator_id_t src( e.computation(), e.src());
@@ -219,9 +225,11 @@ Node::handle_alter(AlterTopo topo)
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
       src_op->set_dest(d);
-    } else if (e.has_dest_addr()) {   //remote network operator
+    } 
+    else if (e.has_dest_addr()) {   //remote network operator
       //TODO handle network
-    } else {
+    } 
+    else {
       assert(e.has_dest());
       operator_id_t dest( e.computation(), e.dest());
       shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
@@ -239,8 +247,9 @@ Node::handle_alter(AlterTopo topo)
 
 
 shared_ptr<DataPlaneOperator>
-Node::create_operator(string op_typename, operator_id_t name) {
-  shared_ptr<DataPlaneOperator> d( operator_loader.newOp(op_typename));
+Node::create_operator(string op_typename, operator_id_t name) 
+{
+  shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
 
    //TODO logging
 /*

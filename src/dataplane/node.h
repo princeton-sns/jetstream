@@ -60,7 +60,7 @@ class Node {
   DataPlaneOperatorLoader operator_loader;  
   std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
 
-  void controller_connected (boost::shared_ptr<Connection> conn,
+  void controller_connected (boost::shared_ptr<ClientConnection> conn,
 			     boost::system::error_code error);
   
  public:

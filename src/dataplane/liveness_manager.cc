@@ -12,7 +12,7 @@ using namespace boost;
 using namespace boost::asio::ip;
 using namespace jetstream;
 
-mutex _mutex;
+mutex _lm_mutex;
 
 LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
 				  msec_t heartbeat)
@@ -22,9 +22,11 @@ LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
 
 
 void
-LivenessManager::start_notifications (shared_ptr<Connection> c)
+LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
 {
-  connection_map::iterator iter = connections.find(c->get_endpoint());
+  connection_map::iterator iter 
+    = connections.find(c->get_remote_endpoint());
+
   if (iter != connections.end()) {
     // Stop existing notification
     iter->second->stop_notify();
@@ -34,7 +36,7 @@ LivenessManager::start_notifications (shared_ptr<Connection> c)
   shared_ptr<ConnectionNotification> notif 
     (new ConnectionNotification (iosrv, c, heartbeat_time));
 
-  connections[c->get_endpoint()] = notif;
+  connections[c->get_remote_endpoint()] = notif;
 
   boost::system::error_code success; 
   notif->send_notification(success);
@@ -53,7 +55,7 @@ LivenessManager::stop_all_notifications ()
 
 
 LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_ptr<boost::asio::io_service> srv,
-								 boost::shared_ptr<Connection> c,
+								 boost::shared_ptr<ClientConnection> c,
 								 msec_t heartbeat)
   : iosrv (srv), conn (c), heartbeat_time (heartbeat), 
     waiting (false), timer (*iosrv)
@@ -76,17 +78,20 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
 
-  system::error_code write_error;
-  conn->write_msg(req, write_error);
+  system::error_code send_error;
+  conn->send_msg(req, send_error);
 
-  if (write_error) {
-    mutex::scoped_lock sl;
-    cerr << "Liveness: error on " << conn->get_endpoint() 
-	 << ": " << write_error.message() << endl;
+  if (send_error) {
+    _lm_mutex.lock();
+    cerr << "Liveness: send error on " << conn->get_remote_endpoint() 
+	 << ": " << send_error.message() << endl;
+    _lm_mutex.unlock();
   }
   else {
-    mutex::scoped_lock sl;
-    cout << "Liveness: success on " << conn->get_endpoint() << endl;
+    _lm_mutex.lock();
+    cout << "Liveness: success on " 
+	 << conn->get_remote_endpoint() << endl;
+    _lm_mutex.unlock();
   }
 
   wait_to_notify();
