@@ -32,11 +32,13 @@ class FileRead: public DataPlaneOperator {
 
 class StringGrep: public DataPlaneOperator {
  public:
+  StringGrep () : id (0) {}
   virtual void start(std::map<std::string,std::string> config);
   virtual void process(boost::shared_ptr<Tuple> t);
+
  protected:
   boost::regex re; // regexp pattern to match tuples against
-  int id = 0;//the field on which to filter
+  int id; // the field on which to filter
 };
 
   
