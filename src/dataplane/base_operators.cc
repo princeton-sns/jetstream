@@ -2,6 +2,7 @@
 #include "operators.h"
 #include <iostream>
 #include <fstream>
+#include "stdlib.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
@@ -46,6 +47,7 @@ FileRead::operator()() {
 void
 StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];
+  istringstream ( config["id"] ) >> id;
   if (pattern.length() == 0) {
     cout << "no regexp pattern specified, bailing"<<endl;
     return;

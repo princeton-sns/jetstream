@@ -36,7 +36,7 @@ class StringGrep: public DataPlaneOperator {
   virtual void process(boost::shared_ptr<Tuple> t);
  protected:
   boost::regex re; // regexp pattern to match tuples against
-  int id = 0;//the field on which to filter
+  int id;//the field on which to filter
 };
 
   
