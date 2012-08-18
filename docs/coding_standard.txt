@@ -93,3 +93,16 @@
   - Never include any namespaces in .h files
   - May/always include ::std, boost, and jetstream in .cc files
   
+
+- Class inheritence:
+  - Include space between ":" for child and parent
+
+  GOOD:  class foo : public bar {
+  BAD:   class foo: public bar {
+
+
+- Naming for typedef'd callbacks:
+  - Name as cb_<vague description of arguments>_t 
+
+  GOOD:  typedef boost::function<void, int> cb_int_t
+  
