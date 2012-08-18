@@ -2,7 +2,9 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/date_time.hpp>
 
+#include "jetstream_types.pb.h"
 #include "jetstream_controlplane.pb.h"
+#include "jetstream_dataplane.pb.h"
 #include "liveness_manager.h"
 
 using namespace std;
@@ -68,18 +70,25 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   if (error || !is_connected())
     return;
 
-  ServerRequest r;
-  Heartbeat *h = r.mutable_heartbeat();
+  ServerRequest req;
+  req.set_type(ServerRequest::HEARTBEAT);
+  Heartbeat *h = req.mutable_heartbeat();
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
 
-  // conn->write(&r);
+  system::error_code write_error;
+  conn->write_msg(req, write_error);
 
-  {
-    //    lock_guard<mutex> lock(_mutex);
-    cout << "Conn Notification on " << conn->get_endpoint() << endl;
-    //    lock_guard<mutex> unlock(_mutex);
+  if (write_error) {
+    mutex::scoped_lock sl;
+    cerr << "Liveness: error on " << conn->get_endpoint() 
+	 << ": " << write_error.message() << endl;
   }
+  else {
+    mutex::scoped_lock sl;
+    cout << "Liveness: success on " << conn->get_endpoint() << endl;
+  }
+
   wait_to_notify();
 }
 

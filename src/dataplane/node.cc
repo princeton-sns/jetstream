@@ -16,14 +16,14 @@ Node::Node (const NodeConfig &conf)
     iosrv (new asio::io_service()),
     conn_mgr (new ClientConnectionManager(iosrv)),
     liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
-    // uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator()))
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
-//Create logger first thing
+
+  // Create logger first thing
 
 
-//Set up the network connection
+  // Set up the network connection
   asio::io_service::work work(*iosrv);
 
   if (conf.heartbeat_time > 0) {
@@ -76,10 +76,14 @@ void
 Node::controller_connected (shared_ptr<ClientConnection> dest, 
 			    boost::system::error_code error)
 {
-  if (error)
+  if (error) {
+    mutex::scoped_lock sl;
     cerr << "Node: Monitoring connection failed: " << error.message() << endl;
-  else if (!liveness_mgr)
+  }
+  else if (!liveness_mgr) {
+    mutex::scoped_lock sl;
     cerr << "Node: Liveness manager NULL" << endl;
+  }
   else {
     {
       mutex::scoped_lock sl;
@@ -131,7 +135,8 @@ hb_loop::operator () ()
   // Connect to server
   while (true) {
     ServerRequest r;
-    Heartbeat * h = r.mutable_heartbeat();
+    r.set_type(HEARTBEAT);
+    Heartbeat *h = r.mutable_heartbeat();
     h->set_cpuload_pct(0);
     h->set_freemem_mb(1000);
     uplink->write(&r);

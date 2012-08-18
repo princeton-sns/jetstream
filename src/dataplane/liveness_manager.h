@@ -2,8 +2,6 @@
 #define _liveness_manager_H_
 
 #include "js_utils.h"
-#include "jetstream_types.pb.h"
-#include "jetstream_dataplane.pb.h"
 #include "client_conn.h"
 
 namespace jetstream {
