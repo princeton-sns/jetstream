@@ -8,9 +8,10 @@ WorkerConnHandler::WriteQueueElement::WriteQueueElement (const ProtobufMsg *msg)
   unsigned int tmp = msg->ByteSize();
   assert (tmp <= MAX_UINT32);
   sz = (u_int32_t) tmp;
+  u_int32_t sz_nbo = htonl (sz);
 
   buf = (char *) malloc(sz + sizeof(u_int32_t));
-  memcpy(&sz, buf, sizeof(u_int32_t));
+  memcpy(buf, &sz_nbo, sizeof(u_int32_t));
   msg->SerializeToArray(((char *) buf) + sizeof (int32_t), sz);
 }
 
@@ -96,10 +97,10 @@ WorkerConnHandler::handle_read_body (const boost::system::error_code &error)
     do_close();
   else {
       process_message((char *)readBuf, readSize);
-       boost::asio::async_read(sock,
-          boost::asio::buffer(&readSize, sizeof(uint32_t)),
-          boost::bind(&WorkerConnHandler::handle_read_header, this,
-            boost::asio::placeholders::error));
+      boost::asio::async_read(sock,
+			      boost::asio::buffer(&readSize, sizeof(uint32_t)),
+			      boost::bind(&WorkerConnHandler::handle_read_header, this,
+					  boost::asio::placeholders::error));
   }
 }
 
