@@ -22,7 +22,7 @@ LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
 
 
 void
-LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
+LivenessManager::start_notifications (shared_ptr<Connection> c)
 {
   connection_map::iterator iter = connections.find(c->get_endpoint());
   if (iter != connections.end()) {
@@ -53,7 +53,7 @@ LivenessManager::stop_all_notifications ()
 
 
 LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_ptr<boost::asio::io_service> srv,
-								 boost::shared_ptr<ClientConnection> c,
+								 boost::shared_ptr<Connection> c,
 								 msec_t heartbeat)
   : iosrv (srv), conn (c), heartbeat_time (heartbeat), 
     waiting (false), timer (*iosrv)

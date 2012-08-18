@@ -1,4 +1,4 @@
-#include "client_conn.h"
+#include "connection.h"
 
 using namespace std;
 using namespace boost;
@@ -7,8 +7,8 @@ using namespace jetstream;
 
 
 void
-ClientConnectionManager::create_connection (const string &domain, port_t port,
-					    bfunc_clntconn cb)
+ConnectionManager::create_connection (const string &domain, port_t port,
+				      bfunc_clntconn cb)
 {
   string portstr = lexical_cast<string> (port);
 
@@ -26,21 +26,21 @@ ClientConnectionManager::create_connection (const string &domain, port_t port,
     // Need to perform DNS resolution
     tcp::resolver::query q(domain, portstr);
     resolv.async_resolve(q, 
-			 bind(&ClientConnectionManager::domain_resolved, 
+			 bind(&ConnectionManager::domain_resolved, 
 			      this, cb, _1, _2));
   }
 }
 
 
 void
-ClientConnectionManager::domain_resolved (bfunc_clntconn cb,
-					  const boost::system::error_code &error,
-					  tcp::resolver::iterator dests)
+ConnectionManager::domain_resolved (bfunc_clntconn cb,
+				    const boost::system::error_code &error,
+				    tcp::resolver::iterator dests)
 {
   if (!error)
     create_connection(dests, cb);
   else {
-    shared_ptr<ClientConnection> empty;
+    shared_ptr<Connection> empty;
     cb(empty, error);
   }
 }
@@ -48,11 +48,11 @@ ClientConnectionManager::domain_resolved (bfunc_clntconn cb,
 
 
 void
-ClientConnectionManager::create_connection (tcp::resolver::iterator dests,
-					    bfunc_clntconn cb)
+ConnectionManager::create_connection (tcp::resolver::iterator dests,
+				      bfunc_clntconn cb)
 {
   if (dests == tcp::resolver::iterator()) {
-    shared_ptr<ClientConnection> empty;
+    shared_ptr<Connection> empty;
     iosrv->post(bind(cb, empty, asio::error::host_unreachable));
     return;
   }
@@ -60,24 +60,24 @@ ClientConnectionManager::create_connection (tcp::resolver::iterator dests,
   tcp::endpoint dest = *dests++;
 
   boost::system::error_code error;
-  shared_ptr<ClientConnection> c 
-    (new ClientConnection (iosrv, dest, error));
+  shared_ptr<Connection> c 
+    (new Connection (iosrv, dest, error));
 
   if (!error)
     c->connect (conn_timeout,
-		bind(&ClientConnectionManager::create_connection_cb,
+		bind(&ConnectionManager::create_connection_cb,
 		     this, dests, c, cb, _1));
   else
-    iosrv->post(bind(&ClientConnectionManager::create_connection,
+    iosrv->post(bind(&ConnectionManager::create_connection,
 		     this, dests, cb));
 }
 
 
 void
-ClientConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
-					       shared_ptr<ClientConnection> conn,
-					       bfunc_clntconn cb,
-					       const boost::system::error_code &error)
+ConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
+					 shared_ptr<Connection> conn,
+					 bfunc_clntconn cb,
+					 const boost::system::error_code &error)
 {
   if (!error)
     cb(conn, error);
@@ -86,9 +86,9 @@ ClientConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
 }
 
 
-ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
-				    const tcp::endpoint &d,
-				    boost::system::error_code &error)
+Connection::Connection (shared_ptr<asio::io_service> srv,
+			const tcp::endpoint &d,
+			boost::system::error_code &error)
   : connected (false), iosrv (srv), astrand (*srv),
     dest (d), sock (*iosrv), timer (*iosrv), writing (false)
 {
@@ -103,7 +103,7 @@ ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 
 
 void
-ClientConnection::connect (msec_t timeout, bfunc_err cb)
+Connection::connect (msec_t timeout, bfunc_err cb)
 {
   if (!sock.is_open()) {
     iosrv->post(bind(cb, asio::error::address_family_not_supported));
@@ -115,15 +115,15 @@ ClientConnection::connect (msec_t timeout, bfunc_err cb)
 
   // Start the asynchronous connect operation.
   sock.async_connect(dest,
-		     bind(&ClientConnection::connect_cb, this, cb, _1));
+		     bind(&Connection::connect_cb, this, cb, _1));
 
-  timer.async_wait(bind(&ClientConnection::timeout_cb, this, cb, _1));
+  timer.async_wait(bind(&Connection::timeout_cb, this, cb, _1));
 }
 
 
 void 
-ClientConnection::connect_cb (bfunc_err cb, 
-			      const boost::system::error_code &error)
+Connection::connect_cb (bfunc_err cb, 
+			const boost::system::error_code &error)
 {
   // Unregister timeout
   boost::system::error_code e;
@@ -139,8 +139,8 @@ ClientConnection::connect_cb (bfunc_err cb,
 
 
 void
-ClientConnection::timeout_cb(bfunc_err cb,
-			     const boost::system::error_code &error)
+Connection::timeout_cb(bfunc_err cb,
+		       const boost::system::error_code &error)
 {
   if (error == asio::error::operation_aborted)
     return;
@@ -153,7 +153,7 @@ ClientConnection::timeout_cb(bfunc_err cb,
   
 
 void 
-ClientConnection::close (boost::system::error_code &error)
+Connection::close (boost::system::error_code &error)
 {
   connected = false;
 
@@ -166,8 +166,8 @@ ClientConnection::close (boost::system::error_code &error)
 
 /******************** Writing messages ********************/
 
-ClientConnection::SerializedMessage::SerializedMessage (const google::protobuf::Message &m,
-							system::error_code &error)
+Connection::SerializedMessage::SerializedMessage (const google::protobuf::Message &m,
+						  system::error_code &error)
 {
   size_t len_check = m.ByteSize();
   if (len_check > MAX_UINT32) {
@@ -187,36 +187,36 @@ ClientConnection::SerializedMessage::SerializedMessage (const google::protobuf::
 
 
 void
-ClientConnection::write_msg (const google::protobuf::Message &m,
-			     system::error_code &error)
+Connection::write_msg (const google::protobuf::Message &m,
+		       system::error_code &error)
 {
   shared_ptr<SerializedMessage> msg (new SerializedMessage (m, error));
   if (!error)
-    astrand.post(bind(&ClientConnection::perform_write, this, msg));
+    astrand.post(bind(&Connection::perform_write, this, msg));
 }
 
 
 void
-ClientConnection::perform_write (shared_ptr<SerializedMessage> msg)
+Connection::perform_write (shared_ptr<SerializedMessage> msg)
 {
   // Must call function from a single strand to ensure single writer to
   // write_queue at a time
   if (writing) {
     write_queue.push_back(msg);
-    astrand.post(bind(&ClientConnection::perform_queued_write, this));
+    astrand.post(bind(&Connection::perform_queued_write, this));
   }
   else {
     writing = true;
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
-		      astrand.wrap(bind(&ClientConnection::wrote, 
+		      astrand.wrap(bind(&Connection::wrote, 
 					this, msg, _1, _2)));
   }
 }
 
 void
-ClientConnection::perform_queued_write ()
+Connection::perform_queued_write ()
 {
   if (writing || write_queue.empty())
     return;
@@ -228,15 +228,15 @@ ClientConnection::perform_queued_write ()
   // Keep hold of message until callback so not cleaned up until sent
   asio::async_write(sock, 
 		    asio::buffer(msg->msg, msg->nbytes),
-		    astrand.wrap(bind(&ClientConnection::wrote, 
+		    astrand.wrap(bind(&Connection::wrote, 
 				      this, msg, _1, _2)));
 }
 
 
 void
-ClientConnection::wrote (shared_ptr<SerializedMessage> msg,
-			 const system::error_code &error,
-			 size_t bytes_transferred)
+Connection::wrote (shared_ptr<SerializedMessage> msg,
+		   const system::error_code &error,
+		   size_t bytes_transferred)
 {
   writing = false;
   // XXX Check for specific errors?
@@ -255,8 +255,8 @@ ClientConnection::wrote (shared_ptr<SerializedMessage> msg,
 
 
 void 
-ClientConnection::read_msg (google::protobuf::Message &msg,
-			    boost::system::error_code &error)
+Connection::read_msg (google::protobuf::Message &msg,
+		      boost::system::error_code &error)
 {
 
 }
@@ -270,14 +270,14 @@ ClientConnection::read_msg (google::protobuf::Message &msg,
 
 
 #if 0
-boost::shared_ptr<ClientConnection> get_connection (const boost::asio::ip::tcp::endpoint &dest);
+boost::shared_ptr<Connection> get_connection (const boost::asio::ip::tcp::endpoint &dest);
 
-shared_ptr<ClientConnection>
-ClientConnectionManager::get_connection (const tcp::endpoint &dest)
+shared_ptr<Connection>
+ConnectionManager::get_connection (const tcp::endpoint &dest)
 {
-  map<tcp::endpoint, shared_ptr<ClientConnection> >::iterator iter = conns.find (dest);
+  map<tcp::endpoint, shared_ptr<Connection> >::iterator iter = conns.find (dest);
   if (iter == conns.end())
-    return shared_ptr<ClientConnection> ();
+    return shared_ptr<Connection> ();
   else
     return iter->second;
 }

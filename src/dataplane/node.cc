@@ -14,7 +14,7 @@ using namespace boost;
 Node::Node (const NodeConfig &conf)
   : config (conf),
     iosrv (new asio::io_service()),
-    conn_mgr (new ClientConnectionManager(iosrv)),
+    conn_mgr (new ConnectionManager(iosrv)),
     liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
@@ -73,7 +73,7 @@ Node::stop ()
 
 
 void
-Node::controller_connected (shared_ptr<ClientConnection> dest, 
+Node::controller_connected (shared_ptr<Connection> dest, 
 			    boost::system::error_code error)
 {
   if (error) {
@@ -95,6 +95,28 @@ Node::controller_connected (shared_ptr<ClientConnection> dest,
 
 
 #if 0
+class ConnectionToController : public WorkerConnHandler {
+ public:
+  ConnectionToController (boost::asio::io_service& io_service,
+			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
+    : WorkerConnHandler (io_service, endpoint_iterator) {}
+
+  virtual ~ConnectionToController () {}
+  virtual void process_message (char *buf, size_t sz);
+  
+};
+  
+
+class hb_loop {
+ private:
+  boost::shared_ptr<ConnectionToController> uplink;
+ public:
+  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
+  //could potentially add a ctor here with some args
+  void operator () ();
+};
+
+
 void
 Node::start_heartbeat_thread ()
 {
@@ -124,8 +146,6 @@ Node::connect_to_master ()
   
   thread select_loop(bind(&asio::io_service::run, &io_service));
 }
-
-
 
 void
 hb_loop::operator () ()

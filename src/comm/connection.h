@@ -1,5 +1,5 @@
-#ifndef _client_conn_H_
-#define _client_conn_H_
+#ifndef _connection_H_
+#define _connection_H_
 
 #include <iostream>
 #include <map>
@@ -11,12 +11,12 @@
 
 namespace jetstream {
 
-class ClientConnection;
-typedef boost::function<void (boost::shared_ptr<ClientConnection>,
+class Connection;
+typedef boost::function<void (boost::shared_ptr<Connection>,
 			      const boost::system::error_code &) > bfunc_clntconn;
 
 
-class ClientConnection {
+class Connection {
  private:
   bool connected;
   boost::shared_ptr<boost::asio::io_service> iosrv;
@@ -55,9 +55,9 @@ class ClientConnection {
   };
 
  public:
-  ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
-		    const boost::asio::ip::tcp::endpoint &d,
-		    boost::system::error_code &error);
+  Connection (boost::shared_ptr<boost::asio::io_service> srv,
+	      const boost::asio::ip::tcp::endpoint &d,
+	      boost::system::error_code &error);
 
   void connect (msec_t timeout, bfunc_err cb);
   void close (boost::system::error_code &error);
@@ -74,7 +74,7 @@ class ClientConnection {
 };
 
 
-class ClientConnectionManager {
+class ConnectionManager {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::asio::ip::tcp::resolver resolv;
@@ -85,13 +85,13 @@ class ClientConnectionManager {
 			boost::asio::ip::tcp::resolver::iterator dests);
 
   void create_connection_cb (boost::asio::ip::tcp::resolver::iterator,
-			     boost::shared_ptr<ClientConnection> conn,
+			     boost::shared_ptr<Connection> conn,
 			     bfunc_clntconn cb,
 			     const boost::system::error_code &error);
   
  public:
-  ClientConnectionManager (boost::shared_ptr<boost::asio::io_service> srv,
-			   msec_t conn_tmo = 10000)
+  ConnectionManager (boost::shared_ptr<boost::asio::io_service> srv,
+		     msec_t conn_tmo = 10000)
     : iosrv (srv), resolv (*iosrv), conn_timeout (conn_tmo) {}
   
   void create_connection (const std::string &domain, port_t port,
@@ -102,6 +102,6 @@ class ClientConnectionManager {
 
 }
 
-#endif /* _client_conn_H_ */
+#endif /* _connection_H_ */
 
 

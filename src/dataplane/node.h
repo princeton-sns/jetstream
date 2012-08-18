@@ -8,7 +8,7 @@
 #include "jetstream_types.pb.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
-#include "client_conn.h"
+#include "connection.h"
 #include "cube_manager.h"
 #include "liveness_manager.h"
 
@@ -32,29 +32,6 @@ class NodeConfig {
 };
 
 
-#if 0  
-class ConnectionToController : public WorkerConnHandler {
- public:
-  ConnectionToController (boost::asio::io_service& io_service,
-			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
-    : WorkerConnHandler (io_service, endpoint_iterator) {}
-
-  virtual ~ConnectionToController () {}
-  virtual void process_message (char *buf, size_t sz);
-  
-};
-  
-
-class hb_loop {
- private:
-  boost::shared_ptr<ConnectionToController> uplink;
- public:
-  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
-  //could potentially add a ctor here with some args
-  void operator () ();
-};
-#endif
-
 struct operator_id_t {
   int32_t computation_id; // which computation
   int32_t task_id; // which operator in the computation
@@ -66,13 +43,14 @@ struct operator_id_t {
   operator_id_t (int32_t c, int32_t t) : computation_id (c), task_id (t) {}
   operator_id_t () : computation_id (0), task_id (0) {}
 };
+
   
 class Node {
  private:
   NodeConfig config;
   CubeManager cube_mgr;
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::shared_ptr<ClientConnectionManager> conn_mgr; 
+  boost::shared_ptr<ConnectionManager> conn_mgr; 
 
   boost::shared_ptr<LivenessManager> liveness_mgr;
   //boost::shared_ptr<ConnectionToController> uplink;
@@ -82,7 +60,7 @@ class Node {
   DataPlaneOperatorLoader operator_loader;  
   std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
 
-  void controller_connected (boost::shared_ptr<ClientConnection> conn,
+  void controller_connected (boost::shared_ptr<Connection> conn,
 			     boost::system::error_code error);
   
  public:
