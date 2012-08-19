@@ -1,0 +1,122 @@
+package future_jetstream;
+
+/**
+* Identifies a single node (host).
+* Bytes should be an IP4 or IP6 address
+*/
+message NodeID {
+  required bytes address = 1;
+  required int32 portno = 2;
+}
+
+/**
+* A running task (aka operator). The computationID is globally
+* unique within a particular JetStream cluster and identifies the computation or topology to which this task belongs. The task field is
+* unique within a computation.
+*/
+message TaskID {
+  required int32 computationID = 1;
+  required int32 task = 2;
+}
+
+message TaskMeta {
+  required string op_typename = 1; //type of operator. typically a classname. 
+                                //Note that 'typename' is a C++ keyword.
+  required TaskID id = 2;
+  optional NodeID site = 3;
+
+  message DictEntry {
+    required string opt_name = 1;
+    required string val = 2;
+  }
+  repeated DictEntry config= 4; //list of key-value pairs. 
+
+  //TODO: Determine minimal set of attributes client must specify for submitted operators.
+  // optional int32 partialAggRatio
+  // optional boolean isUnion
+}
+
+
+message CubeMeta {
+  required string name = 1;
+  required string schema = 2;
+  optional NodeID site = 3;
+}
+
+
+ //element in a tuple
+message Element {
+    optional int32 i_val = 5;
+    optional string s_val = 6;
+    optional double d_val = 7 ;
+}
+
+message Tuple {
+ repeated Element e = 1;
+}
+
+
+
+/**
+* A connection between two points in the computation graph.
+* Operators must be in the same computation.
+* Cubes are globally visible and are NOT tied to a computation.
+*/
+message Edge {
+  required int32 src = 1;
+  required int32 computation = 4; //which computation these operators are in
+
+  optional int32 dest = 2;   //local dest
+  optional string cube_name = 3;  //cube, local or remote
+  optional NodeID dest_addr = 5;  //dest addr if remote
+}
+
+/**
+* An AlterTopo specifies a set of mutations to the operator graph.
+* It includes tasks and cubes to start, tasks and cubes to stop, 
+* and edges to add. 
+*/
+message AlterTopo {
+  repeated TaskMeta toStart = 1;
+  repeated CubeMeta toCreate = 2;
+  repeated TaskID taskToStop = 3; 
+  repeated string cubesToStop = 4; 
+  repeated Edge edges = 5;
+}
+
+
+/***
+* A heartbeat is a message from the data plane to the server
+*/
+message Heartbeat {
+  //SS: Consider including an explicit nodeID, in case heartbeats are aggregated/forwarded.
+  //required NodeID nodeId = 16;
+  required int32 freemem_mb = 17; //MB of free mem on node
+  required int32 cpuload_pct = 18; //percentage of CPU resources that's free. 
+}
+
+/*** A request to a JetStream coordinator server.
+*
+*
+*/
+message JSMessage {
+//// TO COORDINATOR ////////
+
+ //other possible requests to server
+
+  optional Heartbeat heartbeat = 4;
+  
+  enum ServReq {GET_NODES = 2; COUNT_NODES = 4; }
+  optional ServReq other_req = 5;  //misc requests
+
+
+//// TO WORKER ////////
+
+//  optional TableRequest table_request = 6;  //request for data. Currently underspecified
+  optional Tuple tuples = 7;                //streaming data on the data plane
+
+//// TO EITHER ////////
+
+  optional AlterTopo alter = 22;  //create or delete cubes and operators
+  optional string response = 23; //all purpose response.
+}
