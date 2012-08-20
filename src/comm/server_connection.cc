@@ -9,13 +9,13 @@ using namespace jetstream;
 ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
 				    const tcp::endpoint &local_end,
 				    system::error_code &error)
-  : accepted (false), iosrv (srv), srv_sock (new tcp::socket (*iosrv)),
-    acceptor (*io_srv), local (local_end), astrand (*iosrv)
+  : accepting (false), iosrv (srv), srv_acceptor (*iosrv), 
+    local (local_end), astrand (*iosrv)
 {
   if (local.address().is_v4())
-    srv_acceptor->open(tcp::v4(), error);
+    srv_acceptor.open(tcp::v4(), error);
   else if (local.address().is_v6())
-    srv_acceptor->open(tcp::v6(), error);
+    srv_acceptor.open(tcp::v6(), error);
   else
     error = asio::error::address_family_not_supported;
 
@@ -24,7 +24,7 @@ ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
   if (error) return;
   srv_acceptor.bind(local, error);
   if (error) return;
-  srv_acceptor.listen(error);
+  srv_acceptor.listen(asio::socket_base::max_connections, error);
 }
 
 
@@ -41,7 +41,7 @@ ServerConnection::~ServerConnection ()
 void
 ServerConnection::accept (cb_connsock_t cb, system::error_code &error)
 {
-  if (!srv_acceptor->is_open()) {
+  if (!srv_acceptor.is_open()) {
     error = asio::error::address_family_not_supported;
     return;
   }
@@ -52,14 +52,14 @@ ServerConnection::accept (cb_connsock_t cb, system::error_code &error)
 
   accept_cb = cb;
 
-  astrand.post(bind(ServerConnection::do_accept, this));
+  astrand.post(bind(&ServerConnection::do_accept, this));
 }
 
 
 void
 ServerConnection::do_accept ()
 {
-  if (srv_acceptor->is_open() || accepting) {
+  if (srv_acceptor.is_open() || accepting) {
     return;
   }
 
@@ -93,11 +93,11 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
   }
   
   // Schedule next accept
-  astrand.post(bind(ServerConnection::do_accept, this));
+  astrand.post(bind(&ServerConnection::do_accept, this));
 
   // Process this new connection
   system::error_code ec;
-  tcp::endpoint remote = new_sock.remote_endpoint(ec);
+  tcp::endpoint remote = new_sock->remote_endpoint(ec);
 
   if (ec) {
     // XXX Temp or permanent erorr
@@ -119,7 +119,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
 
 
 void
-ServerConnection::close ();
+ServerConnection::close ()
 {
   accepting = false;
   accept_cb = NULL;
