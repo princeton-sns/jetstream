@@ -53,8 +53,7 @@ class Node {
   boost::shared_ptr<ConnectionManager> conn_mgr; 
 
   boost::shared_ptr<LivenessManager> liveness_mgr;
-  //boost::shared_ptr<ConnectionToController> uplink;
-
+  std::vector<boost::shared_ptr<ClientConnection> > controllers;
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
@@ -62,6 +61,10 @@ class Node {
 
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
 			     boost::system::error_code error);
+
+  void received_msg (const google::protobuf::Message &msg,
+		     const boost::system::error_code &error);
+
   
  public:
   Node (const NodeConfig &conf);
@@ -78,10 +81,10 @@ class Node {
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
-  
-  void handle_alter (AlterTopo t); //FIXME: this may be refactored away. For now
-  //it handles incoming alter messages, and starts/stops operators
 
+  // FIXME: this may be refactored away. For now it handles
+  // incoming alter messages, and starts/stops operators
+  void handle_alter (AlterTopo t); 
 };
 
 //const int HB_INTERVAL = 5; //seconds

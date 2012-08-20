@@ -74,15 +74,19 @@ Node::stop ()
 
 
 void
-Node::controller_connected (shared_ptr<ClientConnection> dest, 
+Node::controller_connected (shared_ptr<ClientConnection> conn, 
 			    boost::system::error_code error)
 {
   if (error) {
     _node_mutex.lock();
     cerr << "Node: Monitoring connection failed: " << error.message() << endl;
     _node_mutex.unlock();
+    return;
   }
-  else if (!liveness_mgr) {
+
+  controllers.push_back(conn);
+
+  if (!liveness_mgr) {
     _node_mutex.lock();
     cerr << "Node: Liveness manager NULL" << endl;
     _node_mutex.unlock();
@@ -90,11 +94,155 @@ Node::controller_connected (shared_ptr<ClientConnection> dest,
   else {
     _node_mutex.lock();
     cout << "Node: Connected to controller: " 
-	 << dest->get_remote_endpoint() << endl;
+	 << conn->get_remote_endpoint() << endl;
     _node_mutex.unlock();
-    liveness_mgr->start_notifications(dest);
+    liveness_mgr->start_notifications(conn);
+  }
+
+  // Start listening on messages from controller
+  system::error_code e;
+  conn->recv_msg(bind(&Node::received_msg, this, _1, _2), e);
+}
+
+
+void
+Node::received_msg (const google::protobuf::Message &msg,
+		    const system::error_code &error)
+{
+#if 0
+  switch (msg.getType ()) {
+  case CONTROLPLANE:
+    {
+      const ControlMsg &cntrl_msg = msg.get_ControlPlane();
+      if (!cntrl_msg)
+	error == X;
+      else 
+	received_controlplane_msg(cntrl_msg, error)
+      break;
+    }
+  case DATAPLANE:
+    {
+      const DataMsg &data_msg = msg.get_DataPlane();
+      if (!data_msg)
+	error == X;
+      else 
+	received_dataplane_msg(data_msg, error);
+      break;
+    }
+  default:
+  }
+#endif
+}
+
+
+#if 0
+void
+Node::received_controlplane_msg (const ControlPlane &msg,
+				 const system::error_code &error)
+{
+  switch (msg.getType ()) {
+  case ALTERTOPO:
+    {
+      handle_alter (msg.get_alter());
+      break;
+    }
+  default:
   }
 }
+#endif
+
+
+
+operator_id_t 
+unparse_id (TaskID id) 
+{
+  operator_id_t parsed;
+  parsed.computation_id = id.computationid();
+  parsed.task_id = id.task();
+  return parsed;
+}
+
+
+void
+Node::handle_alter (AlterTopo topo)
+{
+  map<operator_id_t, map<string, string> > operator_configs;
+  for (int i=0; i < topo.tostart_size(); ++i) {
+    TaskMeta task = topo.tostart(i);
+    operator_id_t id = unparse_id(task.id());
+    string cmd = task.op_typename();
+    map<string,string> config;
+    for (int j=0; j < task.config_size(); ++j) {
+      TaskMeta_DictEntry cfg_param = task.config(j);
+      config[cfg_param.opt_name()] = cfg_param.val();
+    }
+    operator_configs[id] = config;
+    create_operator(cmd, id);
+     //TODO: what if this returns a null pointer, indicating create failed?
+  }
+  
+  //make cubes here
+  for (int i=0; i < topo.tocreate_size(); ++i) {
+    CubeMeta task = topo.tocreate(i);
+    cube_mgr.create_cube(task.name(), task.schema());
+  }
+  
+  //TODO remove cubes and operators if specified.
+  
+  
+  
+  
+  // add edges
+  for (int i=0; i < topo.edges_size(); ++i) {
+    const Edge& e = topo.edges(i);
+    operator_id_t src( e.computation(), e.src());
+    shared_ptr<DataPlaneOperator> src_op = get_operator(src);
+    
+    if (e.has_cube_name()) {     //connect to local table
+      shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
+      src_op->set_dest(d);
+    } 
+    else if (e.has_dest_addr()) {   //remote network operator
+      //TODO handle network
+    } 
+    else {
+      assert(e.has_dest());
+      operator_id_t dest( e.computation(), e.dest());
+      shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
+      src_op->set_dest(dest_op);      
+    }
+  }
+  
+    //now start the operators
+  map<operator_id_t, map<string,string> >::iterator iter;
+  for (iter = operator_configs.begin(); iter != operator_configs.end(); iter++) {
+    shared_ptr<DataPlaneOperator> o = get_operator(iter->first);
+    o->start(iter->second);
+  }
+}
+
+
+shared_ptr<DataPlaneOperator>
+Node::create_operator(string op_typename, operator_id_t name) 
+{
+  shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
+
+   //TODO logging
+/*
+  if (d.get() != NULL) {
+    cout << "creating operator of type " << op_typename <<endl;
+  else 
+  {
+    cout <<" failed to create operator. Type was "<<op_typename <<endl;
+  } */
+//  d->operID = name.task_id;
+  operators[name] = d;
+  return d;
+}
+
+
+
+
 
 
 #if 0
@@ -177,90 +325,3 @@ ConnectionToController::process_message (char * buf, size_t sz)
   cout << "got message from master" << endl;  
 }
 #endif
-
-
-operator_id_t unparse_id (TaskID id) 
-{
-  operator_id_t parsed;
-  parsed.computation_id = id.computationid();
-  parsed.task_id = id.task();
-  return parsed;
-}
-
-void
-Node::handle_alter (AlterTopo topo)
-{
-  map<operator_id_t, map<string,string> > operator_configs;
-  for (int i=0; i < topo.tostart_size(); ++i) {
-    TaskMeta task = topo.tostart(i);
-    operator_id_t id = unparse_id(task.id());
-    string cmd = task.op_typename();
-    map<string,string> config;
-    for (int j=0; j < task.config_size(); ++j) {
-      TaskMeta_DictEntry cfg_param = task.config(j);
-      config[cfg_param.opt_name()] = cfg_param.val();
-    }
-    operator_configs[id] = config;
-    create_operator(cmd, id);
-     //TODO: what if this returns a null pointer, indicating create failed?
-  }
-  
-  //make cubes here
-  for (int i=0; i < topo.tocreate_size(); ++i) {
-    CubeMeta task = topo.tocreate(i);
-    cube_mgr.create_cube(task.name(), task.schema());
-  }
-  
-  //TODO remove cubes and operators if specified.
-  
-  
-  
-  
-  // add edges
-  for (int i=0; i < topo.edges_size(); ++i) {
-    const Edge& e = topo.edges(i);
-    operator_id_t src( e.computation(), e.src());
-    shared_ptr<DataPlaneOperator> src_op = get_operator(src);
-    
-    if (e.has_cube_name()) {     //connect to local table
-      shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
-      src_op->set_dest(d);
-    } 
-    else if (e.has_dest_addr()) {   //remote network operator
-      //TODO handle network
-    } 
-    else {
-      assert(e.has_dest());
-      operator_id_t dest( e.computation(), e.dest());
-      shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
-      src_op->set_dest(dest_op);      
-    }
-  }
-  
-    //now start the operators
-  map<operator_id_t, map<string,string> >::iterator iter;
-  for (iter = operator_configs.begin(); iter != operator_configs.end(); iter++) {
-    shared_ptr<DataPlaneOperator> o = get_operator(iter->first);
-    o->start(iter->second);
-  }
-}
-
-
-shared_ptr<DataPlaneOperator>
-Node::create_operator(string op_typename, operator_id_t name) 
-{
-  shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
-
-   //TODO logging
-/*
-  if (d.get() != NULL) {
-    cout << "creating operator of type " << op_typename <<endl;
-  else 
-  {
-    cout <<" failed to create operator. Type was "<<op_typename <<endl;
-  } */
-//  d->operID = name.task_id;
-  operators[name] = d;
-  return d;
-}
-
