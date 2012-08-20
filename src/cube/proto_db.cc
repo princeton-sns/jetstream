@@ -56,7 +56,7 @@ std::string time;
 std::string url;
 int rc;
 int size;
-std::ifstream myfile ("/Users/matveyarye/Downloads/access_log");
+std::ifstream myfile ("/tmp/access_log");
 if (myfile.is_open())
 {
   while ( myfile.good())
