@@ -52,10 +52,13 @@
   GOOD:  int foo (int *bar)
          int foo (int &bar)
          int *bar;
+         int &bar;
 
   BAD:   int foo (int* bar)
          int* bar;
          int * bar;
+         int& bar;
+         int & bar;
 
 - Close braces on separate lines:
 
