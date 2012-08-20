@@ -16,10 +16,10 @@ ConnectionManager::create_connection (const string &domain, port_t port,
 
   if (!error) {
     // Domain supplied was a valid IP address
-    tcp::resolver::iterator dests 
+    tcp::resolver::iterator resolved
       = tcp::resolver::iterator::create(tcp::endpoint(addr, port), 
 					domain, portstr);
-    create_connection (dests, cb);
+    create_connection (resolved, cb);
   }
   else {
     // Need to perform DNS resolution
@@ -34,10 +34,10 @@ ConnectionManager::create_connection (const string &domain, port_t port,
 void
 ConnectionManager::domain_resolved (cb_clntconn_t cb,
 				    const boost::system::error_code &error,
-				    tcp::resolver::iterator dests)
+				    tcp::resolver::iterator resolved)
 {
   if (!error)
-    create_connection(dests, cb);
+    create_connection(resolved, cb);
   else {
     shared_ptr<ClientConnection> empty;
     cb(empty, error);
@@ -47,33 +47,33 @@ ConnectionManager::domain_resolved (cb_clntconn_t cb,
 
 
 void
-ConnectionManager::create_connection (tcp::resolver::iterator dests,
+ConnectionManager::create_connection (tcp::resolver::iterator resolved,
 				      cb_clntconn_t cb)
 {
-  if (dests == tcp::resolver::iterator()) {
+  if (resolved == tcp::resolver::iterator()) {
     shared_ptr<ClientConnection> empty;
     iosrv->post(bind(cb, empty, asio::error::host_unreachable));
     return;
   }
 
-  tcp::endpoint dest = *dests++;
+  tcp::endpoint remote = *resolved++;
 
   boost::system::error_code error;
   shared_ptr<ClientConnection> c 
-    (new ClientConnection (iosrv, dest, error));
+    (new ClientConnection (iosrv, remote, error));
 
   if (!error)
     c->connect (conn_timeout,
 		bind(&ConnectionManager::create_connection_cb,
-		     this, dests, c, cb, _1));
+		     this, resolved, c, cb, _1));
   else
     iosrv->post(bind(&ConnectionManager::create_connection,
-		     this, dests, cb));
+		     this, resolved, cb));
 }
 
 
 void
-ConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
+ConnectionManager::create_connection_cb (tcp::resolver::iterator resolved,
 					 shared_ptr<ClientConnection> conn,
 					 cb_clntconn_t cb,
 					 const boost::system::error_code &error)
@@ -81,5 +81,5 @@ ConnectionManager::create_connection_cb (tcp::resolver::iterator dests,
   if (!error)
     cb(conn, error);
   else
-    create_connection(dests, cb);
+    create_connection(resolved, cb);
 }

@@ -19,7 +19,6 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
-  boost::asio::ip::tcp::endpoint dest;
 
   boost::asio::strand astrand;
   cb_protomsg_t recv_cb;
@@ -84,9 +83,8 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
-		   boost::shared_ptr<boost::asio::ip::tcp::socket> s,
-		   boost::asio::ip::tcp::endpoint remote)
-    : iosrv (srv), sock (s), dest (remote), astrand (*iosrv) {}
+		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
+    : iosrv (srv), sock (s), astrand (*iosrv) {}
 
   void close ();
 

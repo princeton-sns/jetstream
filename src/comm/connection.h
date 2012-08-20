@@ -11,22 +11,45 @@
 namespace jetstream {
 
 class ClientConnection;
+
 typedef boost::function<void (boost::shared_ptr<ClientConnection>,
 			      const boost::system::error_code &) > cb_clntconn_t;
 
+typedef boost::function<void (boost::shared_ptr<ConnectedSocket>,
+			      const boost::system::error_code &) > cb_connsock_t;
 
-#if 0
+
 class ServerConnection {
  private:
+  bool accepting;
+  boost::shared_ptr<boost::asio::io_service> iosrv;
+  boost::asio::ip::tcp::acceptor srv_acceptor;
+  boost::asio::ip::tcp::endpoint local;
+  boost::asio::strand astrand;
+
+  std::map<boost::asio::ip::tcp::endpoint, 
+    boost::shared_ptr<ConnectedSocket> > clients;
+
+  cb_connsock_t accept_cb;
+
+  // Wrap do_accept and accepted in same strand
+  void do_accept ();
+  void accepted (boost::shared_ptr<boost::asio::ip::tcp::socket> new_sock,
+		 const boost::system::error_code &error);
 
  public:
   ServerConnection (boost::shared_ptr<boost::asio::io_service> srv,
-		    const boost::asio::ip::tcp::endpoint &local,
+		    const boost::asio::ip::tcp::endpoint &local_end,
 		    boost::system::error_code &error);
+  ~ServerConnection ();
 
-  const boost::asio::ip::tcp::endpoint & get_local_endpoint () const;
+  const boost::asio::ip::tcp::endpoint & get_local_endpoint () const
+  { return local; }
+
+  void accept (cb_connsock_t cb, boost::system::error_code &error);
+  bool is_accepting () const { return accepting; }
+  void close ();
 };
-#endif
 
 
 class ClientConnection {
@@ -34,7 +57,7 @@ class ClientConnection {
   bool connected;
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
-  boost::asio::ip::tcp::endpoint dest;
+  boost::asio::ip::tcp::endpoint remote;
   boost::asio::deadline_timer timer;
 
   boost::shared_ptr<ConnectedSocket> conn_sock;
@@ -42,19 +65,17 @@ class ClientConnection {
   void connect_cb (cb_err_t cb, const boost::system::error_code &error);
   void timeout_cb (cb_err_t cb, const boost::system::error_code &error);
 
-  cb_protomsg_t recv_cb;
-
  public:
   ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
-		    const boost::asio::ip::tcp::endpoint &remote,
+		    const boost::asio::ip::tcp::endpoint &remote_end,
 		    boost::system::error_code &error);
   ~ClientConnection () { close(); }
 
+  const boost::asio::ip::tcp::endpoint & get_remote_endpoint () const 
+  { return remote; }
+
   void connect (msec_t timeout, cb_err_t cb);
   bool is_connected () const { return connected; }
-  const boost::asio::ip::tcp::endpoint & get_remote_endpoint () const 
-  { return dest; }
-
   void close ();
 
   // Underlying use of async writes are thread safe
@@ -74,9 +95,9 @@ class ConnectionManager {
 
   void domain_resolved (cb_clntconn_t cb,
 			const boost::system::error_code &error,
-			boost::asio::ip::tcp::resolver::iterator dests);
+			boost::asio::ip::tcp::resolver::iterator resolved);
 
-  void create_connection_cb (boost::asio::ip::tcp::resolver::iterator,
+  void create_connection_cb (boost::asio::ip::tcp::resolver::iterator resolved,
 			     boost::shared_ptr<ClientConnection> conn,
 			     cb_clntconn_t cb,
 			     const boost::system::error_code &error);
@@ -88,7 +109,7 @@ class ConnectionManager {
   
   void create_connection (const std::string &domain, port_t port,
 			  cb_clntconn_t cb);
-  void create_connection (boost::asio::ip::tcp::resolver::iterator dests,
+  void create_connection (boost::asio::ip::tcp::resolver::iterator resolved,
 			  cb_clntconn_t cb);
 };
 
