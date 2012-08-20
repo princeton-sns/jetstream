@@ -95,28 +95,36 @@ message Heartbeat {
   required int32 cpuload_pct = 18; //percentage of CPU resources that's free. 
 }
 
+message Error {
+ required string error_msg = 1;
+}
+
 /*** A request to a JetStream coordinator server.
 *
 *
 */
-message JSMessage {
-//// TO COORDINATOR ////////
-
- //other possible requests to server
-
-  optional Heartbeat heartbeat = 4;
+message ControlMessage {
+  enum ControlType {ERROR = 2; HEARTBEAT = 3; GET_NODES = 4; COUNT_NODES = 5; ALTER = 6; }
+  required ControlType type = 1; 
   
-  enum ServReq {GET_NODES = 2; COUNT_NODES = 4; }
-  optional ServReq other_req = 5;  //misc requests
+  
+  optional Error error_msg = 2;
 
+  optional Heartbeat heartbeat = 3;
+  optional AlterTopo alter = 6;  
+//responses?
+  
+}
 
-//// TO WORKER ////////
+/***
+* "dataplane" message
+*/ 
+message DataplaneMessage {
 
-//  optional TableRequest table_request = 6;  //request for data. Currently underspecified
-  optional Tuple tuples = 7;                //streaming data on the data plane
+  enum DataplaneMsgType { ERROR = 2; DATA = 3; }
+  required DataplaneMsgType type  = 1;
+  optional Error error_msg = 2;
 
-//// TO EITHER ////////
+  repeated Tuple data = 3;                //streaming data on the data plane
 
-  optional AlterTopo alter = 22;  //create or delete cubes and operators
-  optional string response = 23; //all purpose response.
 }

@@ -168,12 +168,12 @@ Node::handle_alter (AlterTopo topo)
 {
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
-    TaskMeta task = topo.tostart(i);
+    const TaskMeta &task = topo.tostart(i);
     operator_id_t id = unparse_id(task.id());
-    string cmd = task.op_typename();
+    const string &cmd = task.op_typename();
     map<string,string> config;
     for (int j=0; j < task.config_size(); ++j) {
-      TaskMeta_DictEntry cfg_param = task.config(j);
+      const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     operator_configs[id] = config;
@@ -183,7 +183,7 @@ Node::handle_alter (AlterTopo topo)
   
   //make cubes here
   for (int i=0; i < topo.tocreate_size(); ++i) {
-    CubeMeta task = topo.tocreate(i);
+    const CubeMeta &task = topo.tocreate(i);
     cube_mgr.create_cube(task.name(), task.schema());
   }
   
