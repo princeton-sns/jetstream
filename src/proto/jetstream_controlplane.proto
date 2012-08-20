@@ -51,7 +51,7 @@ message Heartbeat {
 * request/responses from a single client
 */
 message ServerRequest {
-  enum Type {GET_NODES = 1; DEPLOY = 3; COUNT_NODES = 4; HEARTBEAT = 5;}
+  enum Type {NOOP = 1; GET_NODES = 2; DEPLOY = 3; COUNT_NODES = 4; HEARTBEAT = 5;}
   required Type type = 1;
 
   optional AlterTopo alter = 3;

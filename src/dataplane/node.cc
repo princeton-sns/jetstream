@@ -5,24 +5,25 @@
 #include "node.h"
 
 #include "jetstream_controlplane.pb.h"
+#include "jetstream_dataplane.pb.h"
 
 using namespace jetstream;
 using namespace std;
 using namespace boost;
 
+mutex _node_mutex;
+
 Node::Node (const NodeConfig &conf)
   : config (conf),
     iosrv (new asio::io_service()),
-    conn_mgr (new ClientConnectionManager(iosrv)),
+    conn_mgr (new ConnectionManager(iosrv)),
     liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
-    // uplink (new ConnectionToController(*iosrv, tcp::resolver::iterator()))
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
-//Create logger first thing
+  // Create logger first thing
 
-
-//Set up the network connection
+  // Set up the network connection
   asio::io_service::work work(*iosrv);
 
   if (conf.heartbeat_time > 0) {
@@ -46,12 +47,10 @@ Node::~Node ()
 void
 Node::run ()
 {
-
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
   }
-
 
   // Wait for all threads in pool to exit
   for (u_int i=0; i < threads.size(); i++)
@@ -68,103 +67,113 @@ Node::stop ()
 {
   liveness_mgr->stop_all_notifications();
   iosrv->stop();
+
+  // Optional:  Delete all global objects allocated by libprotobuf.
+  google::protobuf::ShutdownProtobufLibrary();
 }
 
 
 void
-Node::controller_connected (shared_ptr<ClientConnection> dest, 
+Node::controller_connected (shared_ptr<ClientConnection> conn, 
 			    boost::system::error_code error)
 {
-  if (error)
+  if (error) {
+    _node_mutex.lock();
     cerr << "Node: Monitoring connection failed: " << error.message() << endl;
-  else if (!liveness_mgr)
-    cerr << "Node: Liveness manager NULL" << endl;
-  else {
-    {
-      mutex::scoped_lock sl;
-      cout << "Node: Connected to controller: " << dest->get_endpoint() << endl;
-    }
-    liveness_mgr->start_notifications(dest);
+    _node_mutex.unlock();
+    return;
   }
+
+  controllers.push_back(conn);
+
+  if (!liveness_mgr) {
+    _node_mutex.lock();
+    cerr << "Node: Liveness manager NULL" << endl;
+    _node_mutex.unlock();
+  }
+  else {
+    _node_mutex.lock();
+    cout << "Node: Connected to controller: " 
+	 << conn->get_remote_endpoint() << endl;
+    _node_mutex.unlock();
+    liveness_mgr->start_notifications(conn);
+  }
+
+  // Start listening on messages from controller
+  system::error_code e;
+  conn->recv_msg(bind(&Node::received_msg, this, _1, _2), e);
+}
+
+
+void
+Node::received_msg (const google::protobuf::Message &msg,
+		    const system::error_code &error)
+{
+#if 0
+  switch (msg.getType ()) {
+  case CONTROLPLANE:
+    {
+      const ControlMsg &cntrl_msg = msg.get_ControlPlane();
+      if (!cntrl_msg)
+	error == X;
+      else 
+	received_controlplane_msg(cntrl_msg, error)
+      break;
+    }
+  case DATAPLANE:
+    {
+      const DataMsg &data_msg = msg.get_DataPlane();
+      if (!data_msg)
+	error == X;
+      else 
+	received_dataplane_msg(data_msg, error);
+      break;
+    }
+  default:
+  }
+#endif
 }
 
 
 #if 0
 void
-Node::start_heartbeat_thread ()
+Node::received_controlplane_msg (const ControlPlane &msg,
+				 const system::error_code &error)
 {
-  hb_loop x = hb_loop(uplink);
-  thread hb_thread = thread(x);
-}
-
-
-void
-Node::connect_to_master ()
-{
-  asio::io_service io_service;
-  //should do select loop up here, and also create an acceptor...
-
-  if (!config.controllers.size()) {
-    cerr << "No controllers known." << endl;
-    return;
+  switch (msg.getType ()) {
+  case ALTERTOPO:
+    {
+      handle_alter (msg.get_alter());
+      break;
+    }
+  default:
   }
-  pair<string, port_t> address = config.controllers[0];
-
-  tcp::resolver resolver(io_service);
-  tcp::resolver::query query(address.first, lexical_cast<string> (address.second));
-  tcp::resolver::iterator server_side = resolver.resolve(query);
-  
-  shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
-  uplink = tmp;
-  
-  thread select_loop(bind(&asio::io_service::run, &io_service));
-}
-
-
-
-void
-hb_loop::operator () ()
-{
-  
-  cout << "HB thread started" << endl;
-  // Connect to server
-  while (true) {
-    ServerRequest r;
-    Heartbeat * h = r.mutable_heartbeat();
-    h->set_cpuload_pct(0);
-    h->set_freemem_mb(1000);
-    uplink->write(&r);
-    cout << "HB looping" << endl;
-    this_thread::sleep(posix_time::seconds(HB_INTERVAL));
-  }
-
 }
 #endif
 
-void
-ConnectionToController::process_message (char * buf, size_t sz)
-{
-  cout << "got message from master" << endl;  
-}
 
-operator_id_t unparse_id(TaskID id) {
+
+operator_id_t 
+unparse_id (TaskID id) 
+{
   operator_id_t parsed;
   parsed.computation_id = id.computationid();
   parsed.task_id = id.task();
   return parsed;
 }
 
+
 void
-Node::handle_alter(AlterTopo topo)
+Node::handle_alter (AlterTopo topo)
 {
-  map<operator_id_t, map<string,string> > operator_configs;
+  map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
-    TaskMeta task = topo.tostart(i);
+    const TaskMeta &task = topo.tostart(i);
     operator_id_t id = unparse_id(task.id());
-    string cmd = task.op_typename();
+    const string &cmd = task.op_typename();
     map<string,string> config;
     for (int j=0; j < task.config_size(); ++j) {
-      TaskMeta_DictEntry cfg_param = task.config(j);
+      const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     operator_configs[id] = config;
@@ -174,7 +183,7 @@ Node::handle_alter(AlterTopo topo)
   
   //make cubes here
   for (int i=0; i < topo.tocreate_size(); ++i) {
-    CubeMeta task = topo.tocreate(i);
+    const CubeMeta &task = topo.tocreate(i);
     cube_mgr.create_cube(task.name(), task.schema());
   }
   
@@ -183,7 +192,7 @@ Node::handle_alter(AlterTopo topo)
   
   
   
-    //add edges
+  // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge& e = topo.edges(i);
     operator_id_t src( e.computation(), e.src());
@@ -192,9 +201,11 @@ Node::handle_alter(AlterTopo topo)
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
       src_op->set_dest(d);
-    } else if (e.has_dest_addr()) {   //remote network operator
+    } 
+    else if (e.has_dest_addr()) {   //remote network operator
       //TODO handle network
-    } else {
+    } 
+    else {
       assert(e.has_dest());
       operator_id_t dest( e.computation(), e.dest());
       shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
@@ -212,8 +223,9 @@ Node::handle_alter(AlterTopo topo)
 
 
 shared_ptr<DataPlaneOperator>
-Node::create_operator(string op_typename, operator_id_t name) {
-  shared_ptr<DataPlaneOperator> d( operator_loader.newOp(op_typename));
+Node::create_operator(string op_typename, operator_id_t name) 
+{
+  shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
 
    //TODO logging
 /*
@@ -228,3 +240,88 @@ Node::create_operator(string op_typename, operator_id_t name) {
   return d;
 }
 
+
+
+
+
+
+#if 0
+class ConnectionToController : public WorkerConnHandler {
+ public:
+  ConnectionToController (boost::asio::io_service& io_service,
+			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
+    : WorkerConnHandler (io_service, endpoint_iterator) {}
+
+  virtual ~ConnectionToController () {}
+  virtual void process_message (char *buf, size_t sz);
+  
+};
+  
+
+class hb_loop {
+ private:
+  boost::shared_ptr<ConnectionToController> uplink;
+ public:
+  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
+  //could potentially add a ctor here with some args
+  void operator () ();
+};
+
+
+void
+Node::start_heartbeat_thread ()
+{
+  hb_loop x = hb_loop(uplink);
+  thread hb_thread = thread(x);
+}
+
+
+void
+Node::connect_to_master ()
+{
+  asio::io_service io_service;
+  //should do select loop up here, and also create an acceptor...
+
+  if (!config.controllers.size()) {
+    _node_mutex.lock();
+    cerr << "No controllers known." << endl;
+    _node_mutex.unlock();
+    return;
+  }
+  pair<string, port_t> address = config.controllers[0];
+
+  tcp::resolver resolver(io_service);
+  tcp::resolver::query query(address.first, lexical_cast<string> (address.second));
+  tcp::resolver::iterator server_side = resolver.resolve(query);
+  
+  shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
+  uplink = tmp;
+  
+  thread select_loop(bind(&asio::io_service::run, &io_service));
+}
+
+void
+hb_loop::operator () ()
+{
+  
+  cout << "HB thread started" << endl;
+  // Connect to server
+  while (true) {
+    ServerRequest r;
+    r.set_type(HEARTBEAT);
+    Heartbeat *h = r.mutable_heartbeat();
+    h->set_cpuload_pct(0);
+    h->set_freemem_mb(1000);
+    uplink->write(&r);
+    cout << "HB looping" << endl;
+    this_thread::sleep(posix_time::seconds(HB_INTERVAL));
+  }
+
+}
+
+void
+ConnectionToController::process_message (char * buf, size_t sz)
+{
+  cout << "got message from master" << endl;  
+}
+#endif

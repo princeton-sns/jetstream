@@ -5,7 +5,7 @@
 
 #include "dataplaneoperator.h"
 #include <string>
-
+#include <boost/regex.hpp>
 
 namespace jetstream {
   
@@ -22,6 +22,23 @@ class FileRead: public DataPlaneOperator {
  protected:
   std::string f_name; //name of file to read
   bool running;
+};
+
+/***
+ * Operator for filtering strings. Expects one parameter, a string named 'pattern'
+ * containing a regular expression. Assumes each received tuple has a first element
+ * that is a string, and re-emits the tuple if the string matches 'pattern'.
+ */
+
+class StringGrep: public DataPlaneOperator {
+ public:
+  StringGrep () : id (0) {}
+  virtual void start(std::map<std::string,std::string> config);
+  virtual void process(boost::shared_ptr<Tuple> t);
+
+ protected:
+  boost::regex re; // regexp pattern to match tuples against
+  int id; // the field on which to filter
 };
 
   

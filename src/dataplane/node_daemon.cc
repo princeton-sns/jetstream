@@ -153,14 +153,16 @@ parse_config (program_options::variables_map *inputopts,
 static void
 jsnode_start (NodeConfig &config)
 {
+  // Verify that the version of the library that we linked against is
+  // compatible with the version of the headers we compiled against.
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
   Node t (config);
   t.run();
 
-  //create network interface here?
-  // t.start_heartbeat_thread(iface);
-  // hb_loop loop = hb_loop(controller_conn);
-  //loop();
-  //end of app; fall off and exit
+  // Optional:  Delete all global objects allocated by libprotobuf.
+  google::protobuf::ShutdownProtobufLibrary();
+
   cout << "exiting cleanly" << endl;
 }
 

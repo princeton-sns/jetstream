@@ -6,11 +6,9 @@
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
-#include "jetstream_dataplane.pb.h"
-#include "worker_conn_handler.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
-#include "client_conn.h"
+#include "connection.h"
 #include "cube_manager.h"
 #include "liveness_manager.h"
 
@@ -33,29 +31,6 @@ class NodeConfig {
     {}
 };
 
-  
-class ConnectionToController : public WorkerConnHandler {
- public:
-  ConnectionToController (boost::asio::io_service& io_service,
-			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
-    : WorkerConnHandler (io_service, endpoint_iterator) {}
-
-  virtual ~ConnectionToController () {}
-  virtual void process_message (char *buf, size_t sz);
-  
-};
-  
-
-#if 0  
-class hb_loop {
- private:
-  boost::shared_ptr<ConnectionToController> uplink;
- public:
-  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
-  //could potentially add a ctor here with some args
-  void operator () ();
-};
-#endif
 
 struct operator_id_t {
   int32_t computation_id; // which computation
@@ -68,17 +43,17 @@ struct operator_id_t {
   operator_id_t (int32_t c, int32_t t) : computation_id (c), task_id (t) {}
   operator_id_t () : computation_id (0), task_id (0) {}
 };
+
   
 class Node {
  private:
   NodeConfig config;
   CubeManager cube_mgr;
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::shared_ptr<ClientConnectionManager> conn_mgr; 
+  boost::shared_ptr<ConnectionManager> conn_mgr; 
 
   boost::shared_ptr<LivenessManager> liveness_mgr;
-  //boost::shared_ptr<ConnectionToController> uplink;
-
+  std::vector<boost::shared_ptr<ClientConnection> > controllers;
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
@@ -86,6 +61,10 @@ class Node {
 
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
 			     boost::system::error_code error);
+
+  void received_msg (const google::protobuf::Message &msg,
+		     const boost::system::error_code &error);
+
   
  public:
   Node (const NodeConfig &conf);
@@ -102,10 +81,10 @@ class Node {
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
-  
-  void handle_alter (AlterTopo t); //FIXME: this may be refactored away. For now
-  //it handles incoming alter messages, and starts/stops operators
 
+  // FIXME: this may be refactored away. For now it handles
+  // incoming alter messages, and starts/stops operators
+  void handle_alter (AlterTopo t); 
 };
 
 //const int HB_INTERVAL = 5; //seconds
