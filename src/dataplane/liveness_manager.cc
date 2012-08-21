@@ -2,9 +2,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/date_time.hpp>
 
-#include "jetstream_types.pb.h"
-#include "jetstream_controlplane.pb.h"
-#include "jetstream_dataplane.pb.h"
+#include "future_js.pb.h"
 #include "liveness_manager.h"
 
 using namespace std;
@@ -72,8 +70,8 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   if (error || !is_connected())
     return;
 
-  ServerRequest req;
-  req.set_type(ServerRequest::HEARTBEAT);
+  ControlMessage req;
+  req.set_type(ControlMessage::HEARTBEAT);
   Heartbeat *h = req.mutable_heartbeat();
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);

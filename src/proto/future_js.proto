@@ -1,4 +1,4 @@
-package future_jetstream;
+package jetstream;
 
 /**
 * Identifies a single node (host).
@@ -104,12 +104,15 @@ message Error {
 *
 */
 message ControlMessage {
-  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; }
+  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; NODES_RESPONSE = 7;}
   required ControlType type = 1; 
   
   optional Error error_msg = 2;
   optional Heartbeat heartbeat = 3;
-  optional AlterTopo alter = 6;  
+  optional int32 node_count = 5;
+  optional AlterTopo alter = 6; 
+  repeated NodeID nodes = 7;
+   
 }
 
 /***
