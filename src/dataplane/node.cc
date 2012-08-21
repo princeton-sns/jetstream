@@ -103,14 +103,14 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
   }
 
   // Start listening on messages from controller
-  system::error_code e;
+  boost::system::error_code e;
   conn->recv_msg(bind(&Node::received_msg, this, _1, _2), e);
 }
 
 
 void
 Node::received_msg (const google::protobuf::Message &msg,
-		    const system::error_code &error)
+		    const boost::system::error_code &error)
 {
 #if 0
   switch (msg.getType ()) {

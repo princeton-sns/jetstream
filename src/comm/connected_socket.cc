@@ -8,7 +8,7 @@ using namespace jetstream;
 
 
 void
-ConnectedSocket::fail (const system::error_code &error)
+ConnectedSocket::fail (const boost::system::error_code &error)
 {
   send_queue.clear();
   close();
@@ -26,7 +26,7 @@ void
 ConnectedSocket::close ()
 {
   if (sock->is_open()) {
-    system::error_code error;
+    boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
     sock->close(error);
@@ -37,7 +37,7 @@ ConnectedSocket::close ()
 /******************** Sending messages ********************/
 
 ConnectedSocket::SerializedMessageOut::SerializedMessageOut
-  (const google::protobuf::Message &m, system::error_code &error)
+  (const google::protobuf::Message &m, boost::system::error_code &error)
 {
   size_t len_check = m.ByteSize();
   if (len_check > MAX_UINT32) {
@@ -58,7 +58,7 @@ ConnectedSocket::SerializedMessageOut::SerializedMessageOut
 
 void
 ConnectedSocket::send_msg (const google::protobuf::Message &m,
-			   system::error_code &error)
+			   boost::system::error_code &error)
 {
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
@@ -106,7 +106,7 @@ ConnectedSocket::perform_queued_send ()
 
 void
 ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
-		       const system::error_code &error,
+		       const boost::system::error_code &error,
 		       size_t bytes_transferred)
 {
   sending = false;
@@ -158,7 +158,7 @@ ConnectedSocket::perform_recv ()
 
 void
 ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
-				  const system::error_code &error,
+				  const boost::system::error_code &error,
 				  size_t bytes_transferred)
 {
   size_t msglen = 0;
@@ -170,7 +170,7 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
     return;
   }
 
-  system::error_code e;
+  boost::system::error_code e;
   if (!hdrbuf 
       || !(hdrbuf->size())
       || bytes_transferred != SerializedMessageOut::hdrlen)
@@ -202,7 +202,7 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
 
 void
 ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
-				const system::error_code &error,
+				const boost::system::error_code &error,
 				size_t bytes_transferred)
 
 {
@@ -222,7 +222,7 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
     astrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
 
   if (recv_cb) {
-    system::error_code success;
+    boost::system::error_code success;
     ServerRequest req;
     req.set_type (ServerRequest::NOOP);
     req.ParseFromArray(recv_msg->msg, recv_msg->len);
