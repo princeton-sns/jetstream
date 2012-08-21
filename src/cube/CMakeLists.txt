@@ -1,6 +1,5 @@
-file (GLOB LIB_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
-
-add_library (jscube ${LIB_SRCS})
+#file (GLOB LIB_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
+#add_library (jscube ${LIB_SRCS})
 
 ###### The MYSQL prototype cubes
 add_executable (protodb ${SRC_DIR}/cube/proto_db.cc)

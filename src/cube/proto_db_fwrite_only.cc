@@ -81,7 +81,7 @@ if (myfile.is_open())
     //cout<< url << " " << time << " " << rc << " "<< size<<endl; 
     wfile << url << " " << time << " " << rc << " "<< size<<endl;
     wfile.flush();
-    fsync(wfile.rdbuf()->fd());
+    //fsync(wfile.rdbuf()->fd());
   }
   wfile.close();
   myfile.close();
