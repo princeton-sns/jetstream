@@ -11,7 +11,7 @@ int main(int argc, char * argv[])
 {
   // Create logger first thing
   google::LogToStderr();
-  google::InitGoogleLogging(getprogname());
+  google::InitGoogleLogging(argv[0]);
   LOG(INFO) << "Starting unit tests!\n";
 
     
