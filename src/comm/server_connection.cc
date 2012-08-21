@@ -8,7 +8,7 @@ using namespace jetstream;
 
 ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
 				    const tcp::endpoint &local_end,
-				    system::error_code &error)
+				    boost::system::error_code &error)
   : accepting (false), iosrv (srv), srv_acceptor (*iosrv), 
     local (local_end), astrand (*iosrv)
 {
@@ -39,7 +39,7 @@ ServerConnection::~ServerConnection ()
 
 
 void
-ServerConnection::accept (cb_connsock_t cb, system::error_code &error)
+ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
 {
   if (!srv_acceptor.is_open()) {
     error = asio::error::address_family_not_supported;
@@ -75,7 +75,7 @@ ServerConnection::do_accept ()
 
 void
 ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
-			    const system::error_code &error)
+			    const boost::system::error_code &error)
 {
   accepting = false;
 
@@ -96,7 +96,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
   astrand.post(bind(&ServerConnection::do_accept, this));
 
   // Process this new connection
-  system::error_code ec;
+  boost::system::error_code ec;
   tcp::endpoint remote = new_sock->remote_endpoint(ec);
 
   if (ec) {
@@ -113,7 +113,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
 
   shared_ptr<ConnectedSocket> conn_sock (new ConnectedSocket(iosrv, new_sock));
   clients[remote] = conn_sock;
-  system::error_code success;
+  boost::system::error_code success;
   accept_cb(conn_sock, success);
 }
 
@@ -125,7 +125,7 @@ ServerConnection::close ()
   accept_cb = NULL;
 
   if (srv_acceptor.is_open()) {
-    system::error_code error;
+    boost::system::error_code error;
     srv_acceptor.cancel(error);
     srv_acceptor.close(error);
   }

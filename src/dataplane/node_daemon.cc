@@ -154,7 +154,7 @@ parse_config (program_options::variables_map *inputopts,
 
 
 static void
-jsnode_start (NodeConfig &config)
+jsnode_start (NodeConfig &config, char **argv)
 {
   // Verify that the version of the library that we linked against is
   // compatible with the version of the headers we compiled against.
@@ -162,7 +162,7 @@ jsnode_start (NodeConfig &config)
 
   // Create logger first thing
   google::LogToStderr();
-  google::InitGoogleLogging(getprogname());
+  google::InitGoogleLogging(argv[0]);
 
   Node t (config);
   t.run();
@@ -195,12 +195,12 @@ main (int argc, char **argv)
 
   if (input_opts.count("restart")) {
     jsnode_stop();
-    jsnode_start(config);
+    jsnode_start(config, argv);
   }
   else if (input_opts.count("stop"))
     jsnode_stop();
   else if (input_opts.count("start"))
-    jsnode_start(config);
+    jsnode_start(config, argv);
   else {
     cout << argv[0] 
 	 << "Missing appropriate start command" << endl;

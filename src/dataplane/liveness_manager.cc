@@ -76,7 +76,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
 
-  system::error_code send_error;
+  boost::system::error_code send_error;
   conn->send_msg(req, send_error);
 
   if (send_error) {

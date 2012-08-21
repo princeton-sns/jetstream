@@ -8,7 +8,7 @@ using namespace jetstream;
 
 ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 				    const tcp::endpoint &remote_end,
-				    system::error_code &error)
+				    boost::system::error_code &error)
   : connected (false), iosrv (srv), sock (new tcp::socket(*iosrv)),
     remote (remote_end), timer (*iosrv)
 {
@@ -42,13 +42,13 @@ ClientConnection::connect (msec_t timeout, cb_err_t cb)
 
 void 
 ClientConnection::connect_cb (cb_err_t cb, 
-			      const system::error_code &error)
+			      const boost::system::error_code &error)
 {
   if (error == asio::error::operation_aborted)
     return;
 
   // Unregister timeout
-  system::error_code ec;
+  boost::system::error_code ec;
   timer.cancel(ec);
 
   if (error)
@@ -65,7 +65,7 @@ ClientConnection::connect_cb (cb_err_t cb,
 
 void
 ClientConnection::timeout_cb (cb_err_t cb,
-			      const system::error_code &error)
+			      const boost::system::error_code &error)
 {
   if (error == asio::error::operation_aborted)
     return;
@@ -84,7 +84,7 @@ ClientConnection::close ()
   if (conn_sock)
     conn_sock->close();
   else if (sock->is_open()) {
-    system::error_code error;
+    boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
     sock->close(error);
