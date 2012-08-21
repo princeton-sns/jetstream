@@ -104,27 +104,21 @@ message Error {
 *
 */
 message ControlMessage {
-  enum ControlType {ERROR = 2; HEARTBEAT = 3; GET_NODES = 4; COUNT_NODES = 5; ALTER = 6; }
+  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; }
   required ControlType type = 1; 
   
-  
   optional Error error_msg = 2;
-
   optional Heartbeat heartbeat = 3;
   optional AlterTopo alter = 6;  
-//responses?
-  
 }
 
 /***
 * "dataplane" message
 */ 
 message DataplaneMessage {
+  enum DataplaneType { ERROR = 2; DATA = 3; }
+  required DataplaneType type  = 1;
 
-  enum DataplaneMsgType { ERROR = 2; DATA = 3; }
-  required DataplaneMsgType type  = 1;
   optional Error error_msg = 2;
-
-  repeated Tuple data = 3;                //streaming data on the data plane
-
+  repeated Tuple data = 3;                // Streaming data on the data plane
 }
