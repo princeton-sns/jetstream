@@ -20,7 +20,7 @@ TEST(Operator, BaseOp)
 TEST(OperatorLoader, LoadAndUnloadWithPath)
 {
   DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
-  bool succ = opl->load("test", "src/dataplane/libtest_operator.dylib");
+  bool succ = opl->load("test", "src/dataplane/" + DataPlaneOperatorLoader::get_default_filename("test"));
   ASSERT_TRUE(succ);
   DataPlaneOperator *op = opl->newOp("test");
   boost::shared_ptr<Tuple> t(new Tuple);

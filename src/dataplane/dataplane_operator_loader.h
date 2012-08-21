@@ -78,7 +78,7 @@ class DataPlaneOperatorLoader {
    *
    * @return the filename
    */
-  std::string get_default_filename(std::string name);
+  static std::string get_default_filename(std::string name);
 
 
   /**
