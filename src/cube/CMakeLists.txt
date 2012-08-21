@@ -16,3 +16,4 @@ endif()
 
 
 add_executable (protodbfwriteonly ${SRC_DIR}/cube/proto_db_fwrite_only.cc)
+add_executable (protodbfwriteonlynp ${SRC_DIR}/cube/proto_db_fwrite_only_no_parse.cc)
