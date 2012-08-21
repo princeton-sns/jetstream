@@ -12,8 +12,7 @@ from generic_netinterface import JSClient
 
 
 from operator_graph import OperatorGraph,Operators
-from jetstream_types_pb2 import *
-from jetstream_controlplane_pb2 import *
+from future_js_pb2 import *
 
 
 class TestWorker(unittest.TestCase):
@@ -39,14 +38,14 @@ class TestWorker(unittest.TestCase):
     print "connecting to %s:%d" % server.address
     
     client = JSClient(server.address)
-    req = ServerRequest()
-    req.type = ServerRequest.GET_NODES
+    req = ControlMessage()
+    req.type = ControlMessage.GET_NODE_LIST_REQ
 
     buf = client.do_rpc(req, True)
-    resp = ServerResponse()
+    resp = ControlMessage()
     resp.ParseFromString(buf)
     
-    self.assertEquals(resp.count_nodes, 1)
+    self.assertEquals(resp.node_count, 1)
     print resp
 
     worker.stop()

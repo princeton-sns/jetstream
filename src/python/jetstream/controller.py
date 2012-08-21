@@ -10,9 +10,7 @@ import threading
 import time
 from collections import namedtuple
 
-from jetstream_types_pb2 import *
-from jetstream_controlplane_pb2 import *
-from jetstream_dataplane_pb2 import *
+from future_js_pb2 import *
 from controller_api import ControllerAPI
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
@@ -117,8 +115,8 @@ class Controller(ControllerAPI, JSServer):
 
     # Deploy the tasks assigned to each worker
     for workerAddr in workerToTasks.keys():
-      req = WorkerRequest()
-      req.type = WorkerRequest.ALTER
+      req = ControlMessage()
+      req.type = ControlMessage.ALTER
       req.alter.toStart.extend(workerToTasks[workerAddr])
       h = self.connect_to(workerAddr)
       h.send_pb(req)
@@ -134,22 +132,29 @@ class Controller(ControllerAPI, JSServer):
 
   def process_message(self, buf, handler):
   
-    req = ServerRequest()
+    req = ControlMessage()
     req.ParseFromString(buf)
 #    print ("server got %d bytes," % len(buf)), req
-    response = ServerResponse()
+    response = ControlMessage()
     
       #always send node count so length is never zero
     node_list = self.get_nodes()
-    response.count_nodes = len(node_list) 
-    if req.type == ServerRequest.GET_NODES:
+    response.node_count = len(node_list) 
+    
+    if req.type == ControlMessage.GET_NODE_LIST_REQ:
       response.nodes.extend( self.serialize_nodelist( node_list))
+      response.type = ControlMessage.NODES_RESPONSE
       print "server responding to get_nodes with list of length %d" % len(node_list)
-    elif req.type == ServerRequest.DEPLOY:
+    elif req.type == ControlMessage.ALTER:
       self.handle_deploy(req.alter)
-    elif req.type == ServerRequest.HEARTBEAT:
+      response.type = ControlMessage.NODES_RESPONSE  #FIXME should have something else here      
+    elif req.type == ControlMessage.HEARTBEAT:
       self.handle_heartbeat(req, handler)
       return #without sending response to heartbeat
+    else:
+      response.type = ControlMessage.ERROR
+      response.error_msg = "unknown error"
+
     handler.send_pb(response)
 
 if __name__ == '__main__':

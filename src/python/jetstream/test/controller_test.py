@@ -11,8 +11,7 @@ from worker import *
 from generic_netinterface import JSClient
 
 from operator_graph import OperatorGraph,Operators
-from jetstream_types_pb2 import *
-from jetstream_controlplane_pb2 import *
+from future_js_pb2 import *
 
 class TestController(unittest.TestCase):
 
@@ -28,18 +27,18 @@ class TestController(unittest.TestCase):
     
   def test_connect(self):
     # Test the connection by a simple GET_NODES call
-    req = ServerRequest()
-    req.type = ServerRequest.GET_NODES
+    req = ControlMessage()
+    req.type = ControlMessage.GET_NODE_LIST_REQ
 
     buf = self.client.do_rpc(req, True)
-    resp = ServerResponse()
+    resp = ControlMessage()
     resp.ParseFromString(buf)
     
-    self.assertEquals(resp.count_nodes, 0)
+    self.assertEquals(resp.node_count, 0)
 
   def test_heartbeat(self):
-    req = ServerRequest()
-    req.type = ServerRequest.HEARTBEAT
+    req = ControlMessage()
+    req.type = ControlMessage.HEARTBEAT
     req.heartbeat.freemem_mb = 3900
     req.heartbeat.cpuload_pct = 90
     buf = self.client.do_rpc(req, False)
@@ -54,10 +53,10 @@ class TestController(unittest.TestCase):
     worker.start_heartbeat_thread()
     time.sleep(2)
     # Tell the controller to deploy a topology (it will then deploy it on the worker)
-    req = ServerRequest()
-    req.type = ServerRequest.DEPLOY
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER
     newTask = TaskMeta()
-    newTask.cmd = "cat /etc/shells"
+    newTask.op_typename = "cat /etc/shells"
     newTask.id.computationID = 1
     newTask.id.task = 1
     # Get a worker address in the right format (note getaddrinfo returns a list of addresses)

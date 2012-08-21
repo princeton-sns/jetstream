@@ -8,9 +8,7 @@ import subprocess
 import threading
 import time
 
-from jetstream_types_pb2 import *
-from jetstream_controlplane_pb2 import *
-from jetstream_dataplane_pb2 import *
+from future_js_pb2 import *
 from local_controller import LocalUnix
 
 from generic_netinterface import JSServer
@@ -54,10 +52,10 @@ class Worker(JSServer):
   def handle_deploy(self, altertopo):
     #TODO: Assumes operators are all command line execs
     for task in altertopo.toStart:
-      if task.cmd != "":
+      if task.op_typename != "":
         #TODO: Why is TaskID unhashable?
         print "STARTING NEW TASK"
-        self.tasks[task.id.task] = LocalUnix(task.id.task, task.cmd)
+        self.tasks[task.id.task] = LocalUnix(task.id.task, task.op_typename)
         self.tasks[task.id.task].start()
     for taskId in altertopo.taskToStop:
       if taskId.task in self.tasks:
@@ -67,12 +65,10 @@ class Worker(JSServer):
 
   def process_message(self, buf, handler):
   
-    req = WorkerRequest()
+    req = ControlMessage()
     req.ParseFromString(buf)
-    response = WorkerResponse()
-    # Always send some message so length is not 0
-    response.error = "No error"
-    if req.type == WorkerRequest.ALTER:
+#    response = ControlMessage()
+    if req.type == ControlMessage.ALTER:
       self.handle_deploy(req.alter)
 #    handler.send_pb(response)
     
@@ -87,10 +83,10 @@ class Worker(JSServer):
       self.hbThread.join()
 
   def heartbeat_thread(self):
-    req = ServerRequest()
+    req = ControlMessage()
     while self.looping:
       print "sending HB"
-      req.type = ServerRequest.HEARTBEAT
+      req.type = ControlMessage.HEARTBEAT
       req.heartbeat.freemem_mb = 100
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
       self.connection_to_server.send_pb(req)
