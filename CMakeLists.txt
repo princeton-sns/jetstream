@@ -134,9 +134,16 @@ add_dependencies (${JSNODED} jsproto) #A js-specific entry to add our protobuf g
 target_link_libraries (${JSNODED} ${LIBRARIES})
 
 add_executable (protodb ${SRC_DIR}/cube/proto_db.cc)
-target_link_libraries (protodb /opt/local/lib/libmysqlcppconn-static.a)
-target_link_libraries (protodb /opt/local/lib/mysql5/mysql/libmysqlclient.dylib)
-target_link_libraries (protodb ${LIBRARIES})
+if(APPLE)
+find_library(MYSQLCLIENT NAMES mysqlclient HINTS /usr/lib/ /opt/local/lib/mysql5/mysql/)
+find_library(MYSQLCONN NAMES mysqlcppconn-static HINTS /usr/lib/ /opt/local/lib/)
+target_link_libraries (protodb ${MYSQLCLIENT})
+target_link_libraries (protodb ${MYSQLCONN})
+else()
+find_library(MYSQLCONN NAMES mysqlcppconn HINTS /usr/lib/ /opt/local/lib/)
+target_link_libraries (protodb ${MYSQLCONN})
+endif()
+#target_link_libraries (protodb ${LIBRARIES})
 
 
 ###################################################

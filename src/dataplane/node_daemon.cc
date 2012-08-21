@@ -2,6 +2,7 @@
 //#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include <stdlib.h>
 
 #include "js_defs.h"
 #include "js_version.h"
@@ -65,7 +66,7 @@ parse_config (program_options::variables_map *inputopts,
   }
   
   if (input_opts.count("version")) {
-    cout << getprogname() << ": vers " << JETSTREAM_VERSION << endl;
+    cout << argv[0] << ": vers " << JETSTREAM_VERSION << endl;
     return 1;
   }
   
@@ -73,7 +74,7 @@ parse_config (program_options::variables_map *inputopts,
   if (!input_opts.count("restart") 
       && !input_opts.count("start")
       && !input_opts.count("stop")) {
-    cout << getprogname() << ": option (start|stop|restart) missing" 
+    cout << argv[0] << ": option (start|stop|restart) missing" 
 	 << endl;
     cout << opts << endl;
     return 1;
@@ -83,7 +84,7 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count ("config"))
     config.config_file = input_opts["config"].as<string>();
   else {
-    cout << getprogname() << ": configuration file missing"
+    cout << argv[0] << ": configuration file missing"
 	 << endl;
     return 1;
   }
@@ -116,7 +117,7 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("controller_addr")) {
     vector<string> addrs = input_opts["controller_addr"].as<vector<string> >();
     if (!addrs.size()) {
-      cerr << getprogname() << ": no controller addresses given" << endl;
+      cerr << argv[0] << ": no controller addresses given" << endl;
       cout << opts << endl;
       return 1;
     }
@@ -127,7 +128,7 @@ parse_config (program_options::variables_map *inputopts,
       split(a, addr, is_any_of(":"));
     
       if (a.size() != 2) {
-	cerr << getprogname() << ": incorrect format for controller address:"
+	cerr << argv[0] << ": incorrect format for controller address:"
 	     << addr << endl;
 	cout << opts << endl;
 	return 1;
@@ -135,7 +136,7 @@ parse_config (program_options::variables_map *inputopts,
 
       long tmpport = lexical_cast<long> (a[1]);
       if (tmpport > MAX_UINT16) {
-	cerr << getprogname() << ": invalid port for controller address"
+	cerr << argv[0] << ": invalid port for controller address"
 	     << addr << endl;
 	cout << opts << endl;
 	return 1;
@@ -178,7 +179,6 @@ jsnode_stop ()
 int
 main (int argc, char **argv)
 {
-  setprogname(argv[0]);
 
   NodeConfig config;
   variables_map input_opts;
@@ -196,7 +196,7 @@ main (int argc, char **argv)
   else if (input_opts.count("start"))
     jsnode_start(config);
   else {
-    cout << getprogname() 
+    cout << argv[0] 
 	 << "Missing appropriate start command" << endl;
     exit(1);
   }

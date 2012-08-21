@@ -19,8 +19,6 @@ TEST(Operator, BaseOp)
 
 TEST(OperatorLoader, LoadAndUnloadWithPath)
 {
-  setprogname("test loader");
-  
   DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
   bool succ = opl->load("test", "src/dataplane/libtest_operator.dylib");
   ASSERT_TRUE(succ);
