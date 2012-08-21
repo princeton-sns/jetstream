@@ -8,6 +8,8 @@
 #include "js_version.h"
 #include "node.h"
 
+#include <glog/logging.h>
+
 using namespace jetstream;
 using namespace std;
 using namespace boost;
@@ -158,13 +160,17 @@ jsnode_start (NodeConfig &config)
   // compatible with the version of the headers we compiled against.
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+  // Create logger first thing
+  google::LogToStderr();
+  google::InitGoogleLogging(getprogname());
+
   Node t (config);
   t.run();
 
   // Optional:  Delete all global objects allocated by libprotobuf.
   google::protobuf::ShutdownProtobufLibrary();
 
-  cout << "exiting cleanly" << endl;
+  LOG(INFO) << "exiting cleanly" << endl;
 }
 
 

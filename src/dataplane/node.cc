@@ -7,6 +7,10 @@
 #include "jetstream_controlplane.pb.h"
 #include "jetstream_dataplane.pb.h"
 
+#include <stdlib.h>
+#include <glog/logging.h>
+
+
 using namespace jetstream;
 using namespace std;
 using namespace boost;
@@ -21,8 +25,7 @@ Node::Node (const NodeConfig &conf)
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
-  // Create logger first thing
-
+  LOG(INFO) << "creating node" << endl;
   // Set up the network connection
   asio::io_service::work work(*iosrv);
 
@@ -58,7 +61,7 @@ Node::run ()
 
   iosrv->run ();
 
-  cout << "Finished node::run" << endl;
+  LOG(INFO) << "Finished node::run" << endl;
 }
 
 

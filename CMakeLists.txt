@@ -54,6 +54,8 @@ set (JETSTREAM_VERSION "${JETSTREAM_VERSION_MAJOR}.${JETSTREAM_VERSION_MINOR}.${
 configure_file (${SRC_DIR}/utils/js_version.h.in ${SRC_DIR}/utils/js_version.h)
 
 #######################################################
+#   Finding libraries
+
 
 # Requires Boost
 find_package (Boost COMPONENTS system thread chrono regex program_options REQUIRED) 
@@ -72,6 +74,9 @@ include_directories (${PROTOBUF_INCLUDE_DIR})
 include (FindGTest)
 find_package (GTest REQUIRED)
 include_directories (${GTEST_INCLUDE_DIR})
+
+#  Google's glog logger
+find_library(GLOG_LIB glog) #glog has no dependencies and so this is safe. --ASR
 
 #######################################################
 # Set library locations and sources
@@ -121,30 +126,31 @@ set (LIBRARIES ${LIBRARIES}
     ${Boost_LIBRARIES}
     ${PROTOBUF_LIBRARY}
     ${GTEST_LIBRARY}
+    ${GLOG_LIB}
 )
 
-message ("GTest library: ${GTEST_LIBRARY}.  Include: ${GTEST_INCLUDE_DIR}")
 message (STATUS "Linking libraries ${LIBRARIES}")
 
-#set (JSNODED ${BUILD_DIR}/dataplane/jsnoded)
+#####  The worker process, jsnoded
 set (JSNODED jsnoded)
 
 add_executable (${JSNODED} ${SRC_DIR}/dataplane/node_daemon.cc)
 add_dependencies (${JSNODED} jsproto) #A js-specific entry to add our protobuf generated code
 target_link_libraries (${JSNODED} ${LIBRARIES})
 
+
+###### The MYSQL prototype cubes
 add_executable (protodb ${SRC_DIR}/cube/proto_db.cc)
 if(APPLE)
-find_library(MYSQLCLIENT NAMES mysqlclient HINTS /usr/lib/ /opt/local/lib/mysql5/mysql/)
-find_library(MYSQLCONN NAMES mysqlcppconn-static HINTS /usr/lib/ /opt/local/lib/)
-target_link_libraries (protodb ${MYSQLCLIENT})
-target_link_libraries (protodb ${MYSQLCONN})
+find_library(MYSQL_CONN mysqlcppconn-static)
+find_library(MYSQL_CLI mysql5/mysql/libmysqlclient.dylib)
+target_link_libraries (protodb ${MYSQL_CONN})
+target_link_libraries (protodb ${MYSQL_CLI}) 
 else()
-find_library(MYSQLCONN NAMES mysqlcppconn HINTS /usr/lib/ /opt/local/lib/)
-target_link_libraries (protodb ${MYSQLCONN})
+find_library(MYSQL_CONN NAMES mysqlcppconn HINTS /usr/lib/ /opt/local/lib/)
+target_link_libraries (protodb ${MYSQL_CONN})
 endif()
 #target_link_libraries (protodb ${LIBRARIES})
-
 
 ###################################################
 # Build the unit tests
@@ -161,9 +167,5 @@ target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
 file (GLOB_RECURSE OPS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*_operator.cc")
 foreach(OP ${OPS})
   get_filename_component(OP_NAME ${OP} NAME_WE)
-#  add_library (${OP_NAME} ${OP})
   target_link_libraries (js_unit_tests  ${OP_NAME})
 endforeach(OP)
-
-
-# install (TARGETS jetstream DESTINATION bin)
