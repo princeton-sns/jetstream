@@ -4,7 +4,6 @@ import asynchat
 import logging
 import socket
 import struct
-import subprocess
 import threading
 import time
 
