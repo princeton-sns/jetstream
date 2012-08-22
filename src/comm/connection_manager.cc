@@ -1,5 +1,7 @@
 #include "connection.h"
 
+#include <glog/logging.h>
+
 using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
@@ -15,6 +17,8 @@ ConnectionManager::create_connection (const string &domain, port_t port,
   address addr = address::from_string(domain, error);
 
   if (!error) {
+    VLOG(2) <<"creating connection to " <<domain  << endl;
+  
     // Domain supplied was a valid IP address
     tcp::resolver::iterator resolved
       = tcp::resolver::iterator::create(tcp::endpoint(addr, port), 
@@ -22,6 +26,8 @@ ConnectionManager::create_connection (const string &domain, port_t port,
     create_connection (resolved, cb);
   }
   else {
+    VLOG(2) <<"starting resolve for domain " <<domain  << endl;
+
     // Need to perform DNS resolution
     tcp::resolver::query q(domain, portstr);
     resolv.async_resolve(q, 
@@ -36,6 +42,7 @@ ConnectionManager::domain_resolved (cb_clntconn_t cb,
 				    const boost::system::error_code &error,
 				    tcp::resolver::iterator resolved)
 {
+  VLOG(2) <<"resolved domain" << endl;
   if (!error)
     create_connection(resolved, cb);
   else {
@@ -66,9 +73,10 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
     c->connect (conn_timeout,
 		bind(&ConnectionManager::create_connection_cb,
 		     this, resolved, c, cb, _1));
-  else
+  else {
     iosrv->post(bind(&ConnectionManager::create_connection,
 		     this, resolved, cb));
+  }
 }
 
 

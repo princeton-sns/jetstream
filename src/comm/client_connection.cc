@@ -1,5 +1,7 @@
 #include "connection.h"
 
+#include <glog/logging.h>
+
 using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
@@ -28,6 +30,7 @@ ClientConnection::connect (msec_t timeout, cb_err_t cb)
     iosrv->post(bind(cb, asio::error::address_family_not_supported));
     return;
   }
+  VLOG(2) << "client_connection connect starting async connect" <<endl;
 
   // Set a deadline for the connect operation.
   timer.expires_from_now(posix_time::milliseconds(timeout));
@@ -44,6 +47,8 @@ void
 ClientConnection::connect_cb (cb_err_t cb, 
 			      const boost::system::error_code &error)
 {
+  VLOG(2) << "client_connection connect_cb" <<endl;
+
   if (error == asio::error::operation_aborted)
     return;
 

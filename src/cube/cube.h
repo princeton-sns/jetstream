@@ -7,7 +7,7 @@
 #include "dataplaneoperator.h"  //needed only for Receiver
 
 
-#include "jetstream_types.pb.h"
+#include "future_js.pb.h"
 
 
 namespace jetstream {
