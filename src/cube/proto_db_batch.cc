@@ -76,9 +76,13 @@ int main(int argc, const char **argv)
   try {
     sql::Driver * driver = get_driver_instance();
     std::auto_ptr<sql::Connection > con(driver->connect(url, user, pass));
+    sql::Statement *stmt;
     con->setSchema(database);
 
     std::auto_ptr<sql::PreparedStatement >  pstmt;
+
+    stmt = con->createStatement();
+    stmt->execute("DELETE FROM logs;");
   
     query = "INSERT INTO `test_cube`.`logs` \
   (`time`, `time_agg_level`, `url`, \

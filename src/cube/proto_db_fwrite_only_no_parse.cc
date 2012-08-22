@@ -25,17 +25,23 @@ using namespace std;
 int main(int argc, const char **argv)
 {	
 
+if(argc < 3)
+{
+  cout<< "need 2 arguments"<< endl;
+  exit(1);
+}
+
 std::string line;
-std::ifstream myfile ("/tmp/access_log");
-int fdw = open("/tmp/access_log_write_wfsync", O_WRONLY|O_TRUNC|O_CREAT);
+std::ifstream myfile (argv[1]);
+int fdw = open(argv[2], O_WRONLY|O_TRUNC|O_CREAT);
 if (myfile.is_open())
 {
   while ( myfile.good())
   {
     getline (myfile,line);
     write(fdw, line.c_str(), line.size()); 
-    write(fdw, "\n", 1); 
-    fsync(fdw);
+    //write(fdw, "\n", 1); 
+    //fsync(fdw);
   }
   close(fdw);
   myfile.close();

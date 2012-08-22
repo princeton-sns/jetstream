@@ -75,8 +75,13 @@ int main(int argc, const char **argv)
 
   try {
     sql::Driver * driver = get_driver_instance();
+    sql::Statement *stmt;
     std::auto_ptr<sql::Connection > con(driver->connect(url, user, pass));
     con->setSchema(database);
+
+    stmt = con->createStatement();
+    stmt->execute("DELETE FROM logs;");
+
 
     std::auto_ptr<sql::PreparedStatement >  pstmt;
 

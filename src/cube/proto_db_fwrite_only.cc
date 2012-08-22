@@ -62,14 +62,20 @@ void parse (const std::string &line, std::string & time, std::string & url, int 
 int main(int argc, const char **argv)
 {	
 
+if(argc < 3)
+{
+  cout<< "need 2 arguments"<< endl;
+  exit(1);
+}
+
 std::string line;
 std::string time;
 std::string url;
 int rc;
 int size;
-std::ifstream myfile ("/tmp/access_log");
+std::ifstream myfile (argv[1]);
 std::ofstream wfile;
-wfile.open("/tmp/access_log_write_wfsync");
+wfile.open(argv[2]);
 if (myfile.is_open())
 {
   while ( myfile.good())
