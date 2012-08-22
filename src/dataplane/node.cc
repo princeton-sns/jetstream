@@ -4,8 +4,7 @@
 
 #include "node.h"
 
-#include "jetstream_controlplane.pb.h"
-#include "jetstream_dataplane.pb.h"
+#include "future_js.pb.h"
 
 #include <stdlib.h>
 #include <glog/logging.h>
@@ -70,9 +69,11 @@ Node::stop ()
 {
   liveness_mgr->stop_all_notifications();
   iosrv->stop();
+  LOG(INFO) << "io service stopped" << endl;
 
   // Optional:  Delete all global objects allocated by libprotobuf.
   google::protobuf::ShutdownProtobufLibrary();
+  LOG(INFO) << "Finished node::stop" << endl;
 }
 
 
@@ -82,7 +83,7 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 {
   if (error) {
     _node_mutex.lock();
-    cerr << "Node: Monitoring connection failed: " << error.message() << endl;
+    LOG(WARNING) << "Node: Monitoring connection failed: " << error.message() << endl;
     _node_mutex.unlock();
     return;
   }
@@ -91,13 +92,13 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 
   if (!liveness_mgr) {
     _node_mutex.lock();
-    cerr << "Node: Liveness manager NULL" << endl;
+    LOG(WARNING) << "Node: Liveness manager NULL" << endl;
     _node_mutex.unlock();
   }
   else {
     _node_mutex.lock();
-    cout << "Node: Connected to controller: " 
-	 << conn->get_remote_endpoint() << endl;
+    LOG(INFO) << "Node: Connected to controller: "
+<< conn->get_remote_endpoint() << endl;
     _node_mutex.unlock();
     liveness_mgr->start_notifications(conn);
   }

@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 
 #include "js_utils.h"
-#include "jetstream_types.pb.h"
+#include "future_js.pb.h"
 #include "connected_socket.h"
 
 namespace jetstream {

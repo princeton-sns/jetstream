@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 
 #include "js_utils.h"
-#include "jetstream_types.pb.h"
+#include "future_js.pb.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include "connection.h"
@@ -23,7 +23,7 @@ class NodeConfig {
   std::vector<std::pair<std::string, port_t> > controllers; // Domain, port
   port_t controlplane_myport;  // Host byte order
   port_t dataplane_myport;     // Host byte order
-  msec_t heartbeat_time;
+  msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
   NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0), 

@@ -7,8 +7,7 @@
 #include <deque>
 
 #include "js_utils.h"
-#include "jetstream_types.pb.h"
-#include "jetstream_dataplane.pb.h"
+#include "future_js.pb.h"
 
 using namespace ::google;
 using namespace boost::asio::ip;
