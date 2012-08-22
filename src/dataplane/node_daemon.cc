@@ -47,6 +47,7 @@ parse_config (program_options::variables_map *inputopts,
      "thread pool size")
     ;
   
+  
   // Build set of all allowable options
   options_description opts("Allowed options");
   opts.add(cmd_opts).add(conf_opts);
@@ -54,7 +55,7 @@ parse_config (program_options::variables_map *inputopts,
   variables_map &input_opts = *inputopts;
 
   try {
-    store(parse_command_line(argc, argv, cmd_opts), input_opts);
+    store(parse_command_line(argc, argv, opts), input_opts);
   }
   catch (const std::exception &e) {
     cerr << e.what() << endl;

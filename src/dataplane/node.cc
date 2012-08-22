@@ -31,6 +31,8 @@ Node::Node (const NodeConfig &conf)
   if (conf.heartbeat_time > 0) {
     // XXX Can't dynamically modify heartbeat_time. Pass pointer to config?
     for (u_int i=0; i < config.controllers.size(); i++) {
+      LOG(INFO) << "possible controller: " << config.controllers[i].first <<
+          ":"<<config.controllers[i].second <<endl;
       pair<string, port_t> cntrl = config.controllers[i];
       conn_mgr->create_connection (cntrl.first, cntrl.second,
 				   bind(&Node::controller_connected, 
