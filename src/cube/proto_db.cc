@@ -61,10 +61,13 @@ void parse (const std::string &line, std::string & time, std::string & url, int 
 int main(int argc, const char **argv)
 {	
   bool use_sp = true;
+  bool convert_time = true;
   string url(argc >= 2 ? argv[1] : EXAMPLE_HOST);
   const string user(argc >= 3 ? argv[2] : EXAMPLE_USER);
   const string pass(argc >= 4 ? argv[3] : EXAMPLE_PASS);
   const string database(argc >= 5 ? argv[4] : EXAMPLE_DB);
+  char timestring[30];
+  string time_input_sql;
 
   cout << "Connector/C++ tutorial framework..." << endl;
   cout << endl;
@@ -72,17 +75,27 @@ int main(int argc, const char **argv)
 
   try {
     sql::Driver * driver = get_driver_instance();
+    sql::Statement *stmt;
     std::auto_ptr<sql::Connection > con(driver->connect(url, user, pass));
     con->setSchema(database);
 
+    stmt = con->createStatement();
+    stmt->execute("DELETE FROM logs;");
+
+
     std::auto_ptr<sql::PreparedStatement >  pstmt;
-    
+
+    if(convert_time)
+      time_input_sql = "?";
+    else
+      time_input_sql = "STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s')";
+
     if(use_sp)
-      pstmt.reset(con->prepareStatement("call add_element(STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), ?, ?, ?);"));
+      pstmt.reset(con->prepareStatement("call add_element("+time_input_sql+", ?, ?, ?);"));
     else
       pstmt.reset(con->prepareStatement("INSERT INTO `test_cube`.`logs` \
   (`time`, `time_agg_level`, `url`, `response_code`, `val_count`, `val_sum_avg_rt`, `val_count_avg_rt`) \
-  VALUES (STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), '0', ?, ?, 1, ?, 1) \
+  VALUES ("+time_input_sql+", '0', ?, ?, 1, ?, 1) \
 ON DUPLICATE KEY UPDATE\
 `val_count` = `val_count` + 1,`val_sum_avg_rt` = `val_sum_avg_rt`  + VALUES(`val_sum_avg_rt`),\
 `val_count_avg_rt` = `val_count_avg_rt` + 1;"));
@@ -103,7 +116,14 @@ ON DUPLICATE KEY UPDATE\
         parse (line, time, url, rc, size); 
 
         //cout<< url << " " << time << " " << rc << " "<< size<<endl; 
-        pstmt->setString(1, time);
+        if(convert_time) {
+          struct tm temptm;
+          strptime(time.c_str(),"%d/%b/%Y:%H:%M:%S", &temptm);
+          strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
+          pstmt->setString(1, timestring);
+        }
+        else
+          pstmt->setString(1, time);
         pstmt->setString(2, url);
         pstmt->setInt(3, rc);
         pstmt->setInt(4, size);

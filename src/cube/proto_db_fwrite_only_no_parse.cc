@@ -24,20 +24,46 @@ using namespace std;
 	
 int main(int argc, const char **argv)
 {	
+bool use_low_level = true;
+
+if(argc < 3)
+{
+  cout<< "need 2 arguments"<< endl;
+  exit(1);
+}
 
 std::string line;
-std::ifstream myfile ("/tmp/access_log");
-int fdw = open("/tmp/access_log_write_wfsync", O_WRONLY|O_TRUNC|O_CREAT);
+std::ifstream myfile (argv[1]);
+int fdw;
+std::ofstream wfile;
+if(use_low_level)
+	fdw = open(argv[2], O_WRONLY|O_TRUNC|O_CREAT);
+else
+{
+  wfile.open(argv[2]); 
+}
+
 if (myfile.is_open())
 {
   while ( myfile.good())
   {
     getline (myfile,line);
-    write(fdw, line.c_str(), line.size()); 
-    write(fdw, "\n", 1); 
-    fsync(fdw);
+    if(use_low_level)
+    {
+      write(fdw, line.c_str(), line.size()); 
+      //write(fdw, "\n", 1); 
+      //fsync(fdw);
+      //
+    }
+    else
+    {
+      wfile << line <<endl;
+    }
   }
-  close(fdw);
+  if(use_low_level)
+    close(fdw);
+  else
+    wfile.close();
   myfile.close();
 }
     cout << "Done." << endl;

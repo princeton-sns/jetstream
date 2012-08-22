@@ -26,7 +26,7 @@ TEST(Operator, ReadOperator) {
   reader.start(config);
   boost::this_thread::sleep(boost::posix_time::seconds(1));
 
-  ASSERT_GT(rec->tuples.size(), 4);
+  ASSERT_GT(rec->tuples.size(), (size_t)4);
   string s = rec->tuples[0].e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
   ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
@@ -53,7 +53,7 @@ TEST(Operator, GrepOperator)
     grepper->process(t1);
   }
 
-  ASSERT_EQ(1, rec->tuples.size());
+  ASSERT_EQ((size_t)1, rec->tuples.size());
   
   {
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -62,7 +62,7 @@ TEST(Operator, GrepOperator)
     t->add_e()->set_s_val("/var/bar"); //should NOT match
     grepper->process(t);
   }
-  ASSERT_EQ(1, rec->tuples.size());
+  ASSERT_EQ((size_t)1, rec->tuples.size());
 
   {
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -72,7 +72,7 @@ TEST(Operator, GrepOperator)
     grepper->process(t);
   }
 
-  ASSERT_EQ(2, rec->tuples.size());
+  ASSERT_EQ((size_t)2, rec->tuples.size());
   
 
 }
