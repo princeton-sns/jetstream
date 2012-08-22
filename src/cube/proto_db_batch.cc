@@ -60,11 +60,14 @@ void parse (const std::string &line, std::string & time, std::string & url, int 
 	
 int main(int argc, const char **argv)
 {	
-  bool use_sp = true;
+
   string url(argc >= 2 ? argv[1] : EXAMPLE_HOST);
   const string user(argc >= 3 ? argv[2] : EXAMPLE_USER);
   const string pass(argc >= 4 ? argv[3] : EXAMPLE_PASS);
   const string database(argc >= 5 ? argv[4] : EXAMPLE_DB);
+  string query;
+  int batch = 10;
+
 
   cout << "Connector/C++ tutorial framework..." << endl;
   cout << endl;
@@ -76,16 +79,24 @@ int main(int argc, const char **argv)
     con->setSchema(database);
 
     std::auto_ptr<sql::PreparedStatement >  pstmt;
+  
+    query = "INSERT INTO `test_cube`.`logs` \
+  (`time`, `time_agg_level`, `url`, \
+  `response_code`, `val_count`, `val_sum_avg_rt`, \
+  `val_count_avg_rt`) VALUES ";
     
-    if(use_sp)
-      pstmt.reset(con->prepareStatement("call add_element(STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), ?, ?, ?);"));
-    else
-      pstmt.reset(con->prepareStatement("INSERT INTO `test_cube`.`logs` \
-  (`time`, `time_agg_level`, `url`, `response_code`, `val_count`, `val_sum_avg_rt`, `val_count_avg_rt`) \
-  VALUES (STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), '0', ?, ?, 1, ?, 1) \
-ON DUPLICATE KEY UPDATE\
-`val_count` = `val_count` + 1,`val_sum_avg_rt` = `val_sum_avg_rt`  + VALUES(`val_sum_avg_rt`),\
-`val_count_avg_rt` = `val_count_avg_rt` + 1;"));
+    for(int j = 0; j< (batch - 1); ++j)
+    {
+      query += " (STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), '0', ?, ?, 1, ?, 1), ";
+    }
+    query += " (STR_TO_DATE(?, '%d/%M/%Y:%H:%i:%s'), '0', ?, ?, 1, ?, 1) \
+ ON DUPLICATE KEY UPDATE\
+`val_count` = `val_count` + 1,\
+`val_sum_avg_rt` = `val_sum_avg_rt`  + VALUES(`val_sum_avg_rt`),\
+`val_count_avg_rt` = `val_count_avg_rt` + 1;";
+
+
+    pstmt.reset(con->prepareStatement(query));
 
     std::string line;
     std::string time;
@@ -95,6 +106,7 @@ ON DUPLICATE KEY UPDATE\
     std::ifstream myfile ("/tmp/access_log");
     if (myfile.is_open())
     {
+      int i = 0;
       while ( myfile.good())
       {
         getline (myfile,line);
@@ -103,11 +115,16 @@ ON DUPLICATE KEY UPDATE\
         parse (line, time, url, rc, size); 
 
         //cout<< url << " " << time << " " << rc << " "<< size<<endl; 
-        pstmt->setString(1, time);
-        pstmt->setString(2, url);
-        pstmt->setInt(3, rc);
-        pstmt->setInt(4, size);
-        pstmt->execute();            
+        pstmt->setString((i*4)+1, time);
+        pstmt->setString((i*4)+2, url);
+        pstmt->setInt((i*4)+3, rc);
+        pstmt->setInt((i*4)+4, size);
+        ++i;
+        if (i >= batch)
+        {
+          i=0;
+          pstmt->execute();            
+        }
       }
       myfile.close();
     }
