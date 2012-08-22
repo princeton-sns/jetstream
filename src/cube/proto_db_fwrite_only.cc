@@ -20,28 +20,11 @@
 #define EXAMPLE_DB "test_cube"
 	
 using namespace std;
-	
-int main(int argc, const char **argv)
-{	
 
-std::string line;
-std::string time;
-std::string url;
-int rc;
-int size;
-std::ifstream myfile ("/tmp/access_log");
-std::ofstream wfile;
-size_t found;
-wfile.open("/tmp/access_log_write_wfsync");
-if (myfile.is_open())
+
+void parse (const std::string &line, std::string & time, std::string & url, int & rc, int & size)
 {
-  while ( myfile.good())
-  {
-    getline (myfile,line);
-    if (line.size()<10)
-	continue;
-    found = 0;
-    
+    size_t found = 0;
     int i = 0;
     while(i<11)
     {
@@ -70,13 +53,34 @@ if (myfile.is_open())
           size = atoi(line.substr(found+1, line.find_first_of(" ", found+1)-(found+1)).c_str());
         }
       }
-      //if(i==4 || i==7 || i==9 || i==10)
-      //std::cout << i << "<" << *tok_iter << "> " << endl;
     }
+
+}
+
+
+	
+int main(int argc, const char **argv)
+{	
+
+std::string line;
+std::string time;
+std::string url;
+int rc;
+int size;
+std::ifstream myfile ("/tmp/access_log");
+std::ofstream wfile;
+wfile.open("/tmp/access_log_write_wfsync");
+if (myfile.is_open())
+{
+  while ( myfile.good())
+  {
+    getline (myfile,line);
+    if (line.size()<10)
+	    continue;
+    parse (line, time, url, rc, size);
     //cout<< url << " " << time << " " << rc << " "<< size<<endl; 
     wfile << url << " " << time << " " << rc << " "<< size<<endl;
-    wfile.flush();
-    //fsync(wfile.rdbuf()->fd());
+    //wfile.flush();
   }
   wfile.close();
   myfile.close();
