@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <vector>
 #include <fstream>
+#include <fcntl.h>
 #include <boost/tokenizer.hpp>
 	
 #include "mysql_connection.h"
@@ -26,18 +27,17 @@ int main(int argc, const char **argv)
 
 std::string line;
 std::ifstream myfile ("/tmp/access_log");
-std::ofstream wfile;
-wfile.open("/tmp/access_log_write_wfsync");
+int fdw = open("/tmp/access_log_write_wfsync", O_WRONLY|O_TRUNC|O_CREAT);
 if (myfile.is_open())
 {
   while ( myfile.good())
   {
     getline (myfile,line);
-    wfile << line;
-    wfile.flush();
-    //fsync(wfile.rdbuf()->fd());
+    write(fdw, line.c_str(), line.size()); 
+    write(fdw, "\n", 1); 
+    fsync(fdw);
   }
-  wfile.close();
+  close(fdw);
   myfile.close();
 }
     cout << "Done." << endl;

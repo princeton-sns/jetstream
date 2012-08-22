@@ -31,48 +31,43 @@ int rc;
 int size;
 std::ifstream myfile ("/tmp/access_log");
 std::ofstream wfile;
+size_t found;
 wfile.open("/tmp/access_log_write_wfsync");
 if (myfile.is_open())
 {
   while ( myfile.good())
   {
     getline (myfile,line);
+    if (line.size()<10)
+	continue;
+    found = 0;
     
-    typedef boost::tokenizer<boost::char_separator<char> >  tokenizer;
-    boost::char_separator<char> sep(" ");
-   tokenizer tokens(line, sep);
-    
-   // the following is slower;
-    //typedef boost::tokenizer<> tokenizer;
-    //tokenizer tokens(line);
-
     int i = 0;
-    for (tokenizer::iterator tok_iter = tokens.begin();
-        tok_iter != tokens.end(); ++tok_iter)
+    while(i<11)
     {
       i += 1;
-      if(i==4)
+      found = line.find_first_of(" ", found+1);
+      if(i==3)
       {
-        time = *tok_iter;
-        time.erase(0,1);
+        time = line.substr(found+2, line.find_first_of(" ", found+1)-(found+2)); 
       }
-      if (i==7)
+      if (i==6)
       {
-        url = *tok_iter;
+        url = line.substr(found+1, line.find_first_of(" ", found+1)-(found+1)); 
       }
-      if(i==9)
+      if(i==8)
       {
-        rc = atoi((*tok_iter).c_str());
+        rc = atoi(line.substr(found+1, line.find_first_of(" ", found+1)-(found+1)).c_str());
       }
-      if (i==10)
+      if (i==9)
       {
-        if((*tok_iter).compare("-") ==0)
+        if(line[found+1] == '-')
         {
           size = 0;
         }
         else
         {
-          size = atoi((*tok_iter).c_str());
+          size = atoi(line.substr(found+1, line.find_first_of(" ", found+1)-(found+1)).c_str());
         }
       }
       //if(i==4 || i==7 || i==9 || i==10)
