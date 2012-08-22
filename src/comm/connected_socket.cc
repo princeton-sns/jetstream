@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "jetstream_controlplane.pb.h"
+#include "future_js.pb.h"
 
 using namespace std;
 using namespace boost;
@@ -15,8 +15,8 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 
   if (recv_cb) {
     // XXX Bad -- should be generic Request type
-    ServerRequest req;
-    req.set_type (ServerRequest::NOOP);
+    DataplaneMessage req;
+    req.set_type (DataplaneMessage::ERROR);
     recv_cb (req, error);
   }
 }
@@ -223,8 +223,8 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
 
   if (recv_cb) {
     boost::system::error_code success;
-    ServerRequest req;
-    req.set_type (ServerRequest::NOOP);
+    DataplaneMessage req;
+    req.set_type (DataplaneMessage::ERROR); //FIXME what is this for?
     req.ParseFromArray(recv_msg->msg, recv_msg->len);
     recv_cb(req, success);
   }
