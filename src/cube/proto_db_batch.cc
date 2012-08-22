@@ -14,10 +14,10 @@
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 	
-#define EXAMPLE_HOST "localhost"
-#define EXAMPLE_USER "root"
-#define EXAMPLE_PASS ""
-#define EXAMPLE_DB "test_cube"
+#define HOST "localhost"
+#define USER "root"
+#define PASS ""
+#define DB "test_cube"
 	
 using namespace std;
 
@@ -61,12 +61,14 @@ void parse (const std::string &line, std::string & time, std::string & url, int 
 int main(int argc, const char **argv)
 {	
 
-  string url(argc >= 2 ? argv[1] : EXAMPLE_HOST);
-  const string user(argc >= 3 ? argv[2] : EXAMPLE_USER);
-  const string pass(argc >= 4 ? argv[3] : EXAMPLE_PASS);
-  const string database(argc >= 5 ? argv[4] : EXAMPLE_DB);
+if(argc < 3)
+{
+  cout<< "need 2 arguments"<< endl;
+  exit(1);
+}
+
   string query;
-  int batch = 10;
+  int batch = atoi(argv[2]);
 
 
   cout << "Connector/C++ tutorial framework..." << endl;
@@ -75,9 +77,9 @@ int main(int argc, const char **argv)
 
   try {
     sql::Driver * driver = get_driver_instance();
-    std::auto_ptr<sql::Connection > con(driver->connect(url, user, pass));
+    std::auto_ptr<sql::Connection > con(driver->connect(HOST, USER, PASS));
     sql::Statement *stmt;
-    con->setSchema(database);
+    con->setSchema(DB);
 
     std::auto_ptr<sql::PreparedStatement >  pstmt;
 
@@ -107,7 +109,7 @@ int main(int argc, const char **argv)
     std::string url;
     int rc;
     int size;
-    std::ifstream myfile ("/tmp/access_log");
+    std::ifstream myfile (argv[1]);
     if (myfile.is_open())
     {
       int i = 0;
