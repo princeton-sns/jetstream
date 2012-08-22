@@ -24,7 +24,7 @@ using namespace std;
 	
 int main(int argc, const char **argv)
 {	
-bool use_low_level = false;
+bool use_low_level = true;
 
 if(argc < 3)
 {
@@ -33,15 +33,16 @@ if(argc < 3)
 }
 
 std::string line;
+std::ifstream myfile (argv[1]);
+int fdw;
+std::ofstream wfile;
 if(use_low_level)
-  std::ifstream myfile (argv[1]);
+	fdw = open(argv[2], O_WRONLY|O_TRUNC|O_CREAT);
 else
 {
-  std::ofstream wfile;
   wfile.open(argv[2]); 
 }
 
-int fdw = open(argv[2], O_WRONLY|O_TRUNC|O_CREAT);
 if (myfile.is_open())
 {
   while ( myfile.good())
@@ -62,7 +63,7 @@ if (myfile.is_open())
   if(use_low_level)
     close(fdw);
   else
-    wfile.close;
+    wfile.close();
   myfile.close();
 }
     cout << "Done." << endl;
