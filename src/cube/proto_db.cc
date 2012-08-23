@@ -21,6 +21,51 @@
 	
 using namespace std;
 
+void parse_old (const std::string &line, std::string & time, std::string & url, int & rc, int & size)
+{
+  typedef boost::tokenizer<boost::char_separator<char> >  tokenizer;
+  boost::char_separator<char> sep(" ");
+  tokenizer tokens(line, sep);
+
+  // the following is slower;
+  //typedef boost::tokenizer<> tokenizer;
+  //tokenizer tokens(line);
+
+  int i = 0;
+  for (tokenizer::iterator tok_iter = tokens.begin();
+      tok_iter != tokens.end(); ++tok_iter)
+  {
+    i += 1;
+    if(i==4)
+    {
+      time = *tok_iter;
+      time.erase(0,1);
+    }
+    if (i==7)
+    {
+      url = *tok_iter;
+    }
+    if(i==9)
+    {
+      rc = atoi((*tok_iter).c_str());
+    }
+    if (i==10)
+    {
+      if((*tok_iter).compare("-") ==0)
+      {
+        size = 0;
+      }
+      else
+      {
+        size = atoi((*tok_iter).c_str());
+      }
+    }
+    //if(i==4 || i==7 || i==9 || i==10)
+    //std::cout << i << "<" << *tok_iter << "> " << endl;
+  }
+
+}
+
 
 void parse (const std::string &line, std::string & time, std::string & url, int & rc, int & size)
 {
@@ -60,8 +105,11 @@ void parse (const std::string &line, std::string & time, std::string & url, int 
 	
 int main(int argc, const char **argv)
 {	
-  bool use_sp = true;
-  bool convert_time = true;
+  //keep these options to fastest combo in svn
+  bool use_sp = false;
+  bool convert_time = false;
+  bool parse_new = true;
+
   string url(argc >= 2 ? argv[1] : EXAMPLE_HOST);
   const string user(argc >= 3 ? argv[2] : EXAMPLE_USER);
   const string pass(argc >= 4 ? argv[3] : EXAMPLE_PASS);
@@ -113,7 +161,10 @@ ON DUPLICATE KEY UPDATE\
         getline (myfile,line);
         if (line.size()<10)
           continue;
-        parse (line, time, url, rc, size); 
+        if (parse_new)
+          parse (line, time, url, rc, size); 
+        else
+          parse_old (line, time, url, rc, size); 
 
         //cout<< url << " " << time << " " << rc << " "<< size<<endl; 
         if(convert_time) {
