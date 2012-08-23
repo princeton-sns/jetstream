@@ -1,6 +1,8 @@
 #include "connection.h"
 #include "future_js.pb.h"
 
+#include <glog/logging.h>
+
 using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
@@ -15,9 +17,8 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 
   if (recv_cb) {
     // XXX Bad -- should be generic Request type
-    DataplaneMessage req;
-    req.set_type (DataplaneMessage::ERROR);
-    recv_cb (req, error);
+    SerializedMessageIn bad_msg(0);
+    recv_cb (bad_msg, error);
   }
 }
 
@@ -37,7 +38,7 @@ ConnectedSocket::close ()
 /******************** Sending messages ********************/
 
 ConnectedSocket::SerializedMessageOut::SerializedMessageOut
-  (const google::protobuf::Message &m, boost::system::error_code &error)
+  (const ProtobufMessage &m, boost::system::error_code &error)
 {
   size_t len_check = m.ByteSize();
   if (len_check > MAX_UINT32) {
@@ -57,7 +58,7 @@ ConnectedSocket::SerializedMessageOut::SerializedMessageOut
 
 
 void
-ConnectedSocket::send_msg (const google::protobuf::Message &m,
+ConnectedSocket::send_msg (const ProtobufMessage &m,
 			   boost::system::error_code &error)
 {
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
@@ -78,6 +79,7 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
   }
   else {
     sending = true;
+   LOG(INFO) << "async send in perform_send" <<endl;
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
@@ -91,7 +93,7 @@ ConnectedSocket::perform_queued_send ()
 {
   if (sending || send_queue.empty() || !sock->is_open())
     return;
-
+  LOG(INFO) << "queued send" <<endl;
   shared_ptr<SerializedMessageOut> msg = send_queue.front();
   send_queue.pop_front();
 
@@ -126,7 +128,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
 
 
 void
-ConnectedSocket::recv_msg (cb_protomsg_t recvcb) 
+ConnectedSocket::recv_msg (cb_raw_msg_t recvcb)
 {
   recv_cb = recvcb;
   astrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
@@ -220,13 +222,9 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
     
   if (sock->is_open())
     astrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
-
   if (recv_cb) {
-    boost::system::error_code success;
-    DataplaneMessage req;
-    req.set_type (DataplaneMessage::ERROR); //FIXME what is this for?
-    req.ParseFromArray(recv_msg->msg, recv_msg->len);
-    recv_cb(req, success);
+    boost::system::error_code success;  //FIXME: where do we set this?
+    recv_cb(*recv_msg, success);
   }
 }
 

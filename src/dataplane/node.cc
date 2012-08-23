@@ -80,7 +80,7 @@ Node::stop ()
 
 
 void
-Node::controller_connected (shared_ptr<ClientConnection> conn, 
+Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
@@ -107,28 +107,33 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 
   // Start listening on messages from controller
   boost::system::error_code e;
-  conn->recv_msg(bind(&Node::received_msg, this, _1, _2), e);
+
+
+  conn->recv_ctrl_msg(bind(&Node::received_ctrl_msg, this, conn,  _1, _2), e);
 }
 
 
 void
-Node::received_msg (const google::protobuf::Message &msg,
+Node::received_ctrl_msg (shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
 		    const boost::system::error_code &error)
 {
-  LOG(INFO) << "got message: " << msg.Utf8DebugString() <<endl;
+//  VLOG(1) << "got message: " << msg.Utf8DebugString() <<endl;
   
-#if 0
-  switch (msg.getType ()) {
-  case CONTROLPLANE:
+  boost::system::error_code send_error;
+  switch (msg.type ()) {
+  case ControlMessage::ALTER:
     {
-      const ControlMsg &cntrl_msg = msg.get_ControlPlane();
-      if (!cntrl_msg)
-	error == X;
-      else 
-	received_controlplane_msg(cntrl_msg, error)
+      const AlterTopo &alter = msg.alter();
+      ControlMessage response = handle_alter(alter);
+      c->send_msg(response, send_error);
+
+      if (send_error != boost::system::errc::success) {
+        LOG(WARNING) << "failure sending response: "<<send_error <<endl;
+      }
+        
       break;
     }
-  case DATAPLANE:
+/*  case DATAPLANE:
     {
       const DataMsg &data_msg = msg.get_DataPlane();
       if (!data_msg)
@@ -136,20 +141,21 @@ Node::received_msg (const google::protobuf::Message &msg,
       else 
 	received_dataplane_msg(data_msg, error);
       break;
-    }
-  default:
+    }*/
+   default:
+     break;
   }
-#endif
+  
 }
 
 
 #if 0
 void
-Node::received_controlplane_msg (const ControlPlane &msg,
+Node::received_data_msg (const DataplaneMessage &msg,
 				 const system::error_code &error)
 {
   switch (msg.getType ()) {
-  case ALTERTOPO:
+  case DATA:
     {
       handle_alter (msg.get_alter());
       break;
@@ -162,7 +168,7 @@ Node::received_controlplane_msg (const ControlPlane &msg,
 
 
 operator_id_t 
-unparse_id (TaskID id) 
+unparse_id (const TaskID& id)
 {
   operator_id_t parsed;
   parsed.computation_id = id.computationid();
@@ -171,8 +177,8 @@ unparse_id (TaskID id)
 }
 
 
-void
-Node::handle_alter (AlterTopo topo)
+ControlMessage
+Node::handle_alter (const AlterTopo& topo)
 {
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
@@ -227,6 +233,10 @@ Node::handle_alter (AlterTopo topo)
     shared_ptr<DataPlaneOperator> o = get_operator(iter->first);
     o->start(iter->second);
   }
+  
+  ControlMessage m;
+  m.set_type(ControlMessage::OK);
+  return m;
 }
 
 

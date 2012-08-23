@@ -19,6 +19,14 @@ typedef boost::function<void (boost::shared_ptr<ConnectedSocket>,
 			      const boost::system::error_code &) > cb_connsock_t;
 
 
+typedef boost::function<void (jetstream::DataplaneMessage &msg,
+			      const boost::system::error_code &) > cb_data_protomsg_t;
+
+typedef boost::function<void (jetstream::ControlMessage &msg,
+			      const boost::system::error_code &) > cb_control_protomsg_t;
+
+
+
 class ServerConnection {
  private:
   bool accepting;
@@ -79,10 +87,14 @@ class ClientConnection {
   void close ();
 
   // Underlying use of async writes are thread safe
-  void send_msg (const google::protobuf::Message &msg, 
+  void send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
   
-  void recv_msg (cb_protomsg_t cb, boost::system::error_code &error);
+//  void recv_msg (cb_protomsg_t cb, boost::system::error_code &error);
+
+  void recv_data_msg (cb_data_protomsg_t cb, boost::system::error_code &error);
+  void recv_ctrl_msg (cb_control_protomsg_t cb, boost::system::error_code &error);
+        
 };
 
 
@@ -111,7 +123,10 @@ class ConnectionManager {
 			  cb_clntconn_t cb);
   void create_connection (boost::asio::ip::tcp::resolver::iterator resolved,
 			  cb_clntconn_t cb);
+  
+        
 };
+
 
 }
 

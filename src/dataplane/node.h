@@ -62,7 +62,10 @@ class Node {
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
 			     boost::system::error_code error);
 
-  void received_msg (const google::protobuf::Message &msg,
+  void received_ctrl_msg (shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
+		     const boost::system::error_code &error);
+
+  void received_data_msg (shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
 		     const boost::system::error_code &error);
 
   
@@ -73,18 +76,17 @@ class Node {
   void run ();
   void stop ();
 
-  //void connect_to_master ();
-  //void start_heartbeat_thread();
-
   boost::shared_ptr<DataPlaneOperator>
     get_operator (operator_id_t name) { return operators[name]; }
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
 
-  // FIXME: this may be refactored away. For now it handles
-  // incoming alter messages, and starts/stops operators
-  void handle_alter (AlterTopo t); 
+/**
+*   returns by value; typically the response is very short and so the dynamic alloc
+*  overhead isn't worth it.
+*/
+  ControlMessage handle_alter (const AlterTopo& t);
 };
 
 //const int HB_INTERVAL = 5; //seconds

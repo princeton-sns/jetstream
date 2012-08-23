@@ -96,9 +96,8 @@ ClientConnection::close ()
   }
 }
 
-
 void 
-ClientConnection::send_msg (const google::protobuf::Message &msg, 
+ClientConnection::send_msg (const ProtobufMessage &msg,
 			    boost::system::error_code &error)
 {
   if (!connected || !conn_sock) {
@@ -110,16 +109,56 @@ ClientConnection::send_msg (const google::protobuf::Message &msg,
 }
 
 
-void 
-ClientConnection::recv_msg (cb_protomsg_t cb,
+//NOTE: this method is an implementation detail and not defined in any header.
+void
+parse_data(cb_data_protomsg_t cb, jetstream::SerializedMessageIn &msg,
+			      const boost::system::error_code &)
+{
+  boost::system::error_code success;
+  DataplaneMessage req;
+  req.ParseFromArray(msg.msg, msg.len);
+  cb(req, success);
+}
+
+
+void
+ClientConnection::recv_data_msg (cb_data_protomsg_t cb,
 			    boost::system::error_code &error)
 {
   if (!connected || !conn_sock) {
     error = asio::error::not_connected;
     return;
   }
+  conn_sock->recv_msg(boost::bind(&parse_data, cb, _1, _2));
+}
 
-  conn_sock->recv_msg(cb);
+//NOTE: this method is an implementation detail and not defined in any header.
+void
+parse_control(cb_control_protomsg_t cb, jetstream::SerializedMessageIn &msg,
+			      const boost::system::error_code & e)
+{
+  boost::system::error_code success;
+  ControlMessage req;
+  if (msg.len > 0) {
+    req.ParseFromArray(msg.msg, msg.len);
+    cb(req, success);
+  }
+  else {
+    //TODO: what if we're closing the connection and the rror should be just ignored?
+    LOG(INFO)<< "unexpected error in client_connection::parse_control; error code was " << e <<endl;
+  }
+}
+
+
+void
+ClientConnection::recv_ctrl_msg (cb_control_protomsg_t cb,
+			    boost::system::error_code &error)
+{
+  if (!connected || !conn_sock) {
+    error = asio::error::not_connected;
+    return;
+  }
+  conn_sock->recv_msg(boost::bind(&parse_control, cb, _1, _2));
 }
 
 

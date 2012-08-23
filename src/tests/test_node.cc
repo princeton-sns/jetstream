@@ -59,8 +59,8 @@ TEST(Node, HandleAlter_2_Ops)
 
   add_pair_to_topo(topo);
   
-  node.handle_alter(topo);
-  
+  ControlMessage m = node.handle_alter(topo);
+  ASSERT_EQ(m.type(), ControlMessage::OK);
   
   operator_id_t id2(17,2);
   shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
@@ -86,12 +86,11 @@ TEST(Node, HandleAlter_2_Ops)
 class bind_test_thread {
   public:
     NodeConfig& cfg;
-    Node * n;
-    bind_test_thread(NodeConfig& c): cfg(c),n(NULL) {}
+    shared_ptr<Node> n;
+    bind_test_thread(NodeConfig& c): cfg(c) {}
     ~bind_test_thread() {
         if (n != NULL) {
-          n->stop();
-          delete n;
+//          n->stop();
         }
     }
     void operator()();    
@@ -101,14 +100,14 @@ class bind_test_thread {
 void
 bind_test_thread::operator()()
 {
-  n = new Node(cfg);
+  n = shared_ptr<Node>(new Node(cfg));
   n->run();
 }
 
 class NodeNetTest : public ::testing::Test {
 
-public:
-  Node * n;
+ public:
+  shared_ptr<Node> n;
   io_service io_service;
   ip::tcp::socket cli_socket;
 
@@ -125,7 +124,7 @@ public:
     pair<string, port_t> p("127.0.0.1", concrete_end.port());
     
     NodeConfig cfg;
-    cfg.heartbeat_time = 1000;
+    cfg.heartbeat_time = 4000;
     cfg.controllers.push_back(p);
 
     bind_test_thread test_thread_body(cfg);
@@ -135,6 +134,11 @@ public:
     boost::system::error_code ec;
     
     acceptor.accept(cli_socket, ec);
+  }
+  
+    
+  virtual void ShutDown() {
+    
   }
   
   //returns a smart_ptr to a control message
@@ -160,7 +164,7 @@ public:
   }
   
     ///test is local, so there's no need for error handling here
-  void send_ctrl_msg(google::protobuf::Message& m)
+  void send_ctrl_msg(google::protobuf::MessageLite& m)
   {
     int sz = m.ByteSize();
     u_int32_t len_nbo = htonl (sz);
@@ -183,7 +187,6 @@ TEST_F(NodeNetTest, NetBind)
 
   boost::shared_ptr<ControlMessage> h = get_ctrl_msg();
   ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
-  
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
   
   cout << "test ending" <<endl;
@@ -195,24 +198,34 @@ TEST_F(NodeNetTest, NetStart)
   ASSERT_TRUE( cli_socket.is_open());
 
 //create a request
+
   ControlMessage msg;
   AlterTopo* topo = msg.mutable_alter();
   add_pair_to_topo(*topo);
   msg.set_type(ControlMessage::ALTER);
-  
-  
   //send it
   send_ctrl_msg(msg);
   
   bool found_response = false;
-  for (int i =0; i < 3; ++i) {
+  for (int i =0; i < 3 && !found_response; ++i) {
+    
     boost::shared_ptr<ControlMessage> h = get_ctrl_msg();
-    if (h->type() == ControlMessage::ERROR) {
-      cout << h->Utf8DebugString();
-      found_response = true;
-      break;
+    
+    switch( h->type() ) {
+      case ControlMessage::OK:
+        cout << "got response back ok from AlterTopo" <<endl;
+        found_response = true;
+        break;
+      case ControlMessage::HEARTBEAT:
+        break;
+      default:
+        cout << "Unexpected message type: " << h->type() <<endl;
+        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+        break;
     }
   }
+
   ASSERT_TRUE(found_response);
+  cout << "test ending" <<endl;  
 
 }

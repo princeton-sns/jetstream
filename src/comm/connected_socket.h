@@ -9,11 +9,41 @@
 #include "js_utils.h"
 #include "future_js.pb.h"
 
+
+#include <glog/logging.h>
+
 namespace jetstream {
 
-typedef boost::function<void (google::protobuf::Message &msg,
-			      const boost::system::error_code &) > cb_protomsg_t;
 
+/***
+*  A ConnectedSocket represents the underlying socket for a connection.
+* Does not speak protobufs.
+*
+*/
+
+typedef google::protobuf::Message ProtobufMessage; //can be either Message or MessageLite
+
+/**
+*
+*/
+class SerializedMessageIn {
+ public:
+  // Parse into serialized protobuf message.
+  // Message buf does NOT include leading length
+  u_int8_t *msg;
+  u_int32_t len;
+  SerializedMessageIn (u_int32_t msglen) 
+    : msg ( msglen > 0? new u_int8_t[msglen]: NULL), len (msglen) {}
+  ~SerializedMessageIn () { if (msg) delete[] msg; }
+  private:
+    void operator=(const SerializedMessageIn& ) { LOG(FATAL) << "cannot copy a SerializedMessageIn";}
+    SerializedMessageIn(const SerializedMessageIn& ) { LOG(FATAL) << "cannot copy a SerializedMessageIn";}
+
+};
+
+
+typedef boost::function<void (jetstream::SerializedMessageIn &msg,
+			      const boost::system::error_code &) > cb_raw_msg_t;
 
 class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  private:
@@ -21,8 +51,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
 
   boost::asio::strand astrand;
-  cb_protomsg_t recv_cb;
-
+  cb_raw_msg_t recv_cb;
 
   /********* SENDING *********/
 
@@ -31,9 +60,15 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
     static const std::size_t hdrlen = sizeof(u_int32_t);
     u_int8_t *msg;    // Format:  uint32 msg len || serialized protobuf msg
     u_int32_t nbytes; // nbytes = msg_len + serialized protobuf msg
-    SerializedMessageOut (const google::protobuf::Message &m,
+    
+    SerializedMessageOut (const ProtobufMessage &m,
 			  boost::system::error_code &error);
     ~SerializedMessageOut () { delete[] msg; }
+    
+   private:
+    void operator=(const SerializedMessageOut& ) { LOG(FATAL) << "cannot copy a SerializedMessageOut";}
+    SerializedMessageOut(const SerializedMessageOut& ) { LOG(FATAL) << "cannot copy a SerializedMessageOut";}
+   
   };
 
   // Only one outstanding async_write at a time
@@ -53,17 +88,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   /********* RECEIVING *********/
 
-  class SerializedMessageIn {
-   public:
-    // Parse into serialized protobuf message.
-    // Message buf does NOT include leading length
-    u_int8_t *msg;
-    u_int32_t len;
-    SerializedMessageIn (u_int32_t msglen) 
-      : msg (new u_int8_t[len]), len (msglen) {}
-    ~SerializedMessageIn () { if (msg) delete[] msg; }
-  };
-
+ private:
   // Only one outstanding async_read at a time
   bool receiving;
 
@@ -89,11 +114,13 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   void close ();
 
   // Underlying use of async writes are thread safe
-  void send_msg (const google::protobuf::Message &msg, 
+  void send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
 
+  // Clients of this class use this method to register the receive callback
   // Underlying use of async reads are thread safe
-  void recv_msg (cb_protomsg_t recvcb);
+  void recv_msg (cb_raw_msg_t recvcb);
+
 };
 
 
