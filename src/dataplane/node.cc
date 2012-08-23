@@ -4,7 +4,7 @@
 
 #include "node.h"
 
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 #include <stdlib.h>
 #include <glog/logging.h>

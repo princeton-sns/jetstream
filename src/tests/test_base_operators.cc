@@ -105,7 +105,7 @@ TEST(Operator, OperatorChain)
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
 
-  ASSERT_GT(rec->tuples.size(), 4);
+  ASSERT_GT(rec->tuples.size(), (size_t)4);
   // Each string should match both grep patterns, since they are in series
   boost::smatch matchResults;
   bool match;

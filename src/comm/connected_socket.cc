@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 #include <glog/logging.h>
 

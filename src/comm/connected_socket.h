@@ -7,7 +7,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "js_utils.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 
 #include <glog/logging.h>
