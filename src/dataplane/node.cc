@@ -115,6 +115,8 @@ void
 Node::received_msg (const google::protobuf::Message &msg,
 		    const boost::system::error_code &error)
 {
+  LOG(INFO) << "got message: " << msg.Utf8DebugString() <<endl;
+  
 #if 0
   switch (msg.getType ()) {
   case CONTROLPLANE:
@@ -247,87 +249,3 @@ Node::create_operator(string op_typename, operator_id_t name)
 }
 
 
-
-
-
-
-#if 0
-class ConnectionToController : public WorkerConnHandler {
- public:
-  ConnectionToController (boost::asio::io_service& io_service,
-			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
-    : WorkerConnHandler (io_service, endpoint_iterator) {}
-
-  virtual ~ConnectionToController () {}
-  virtual void process_message (char *buf, size_t sz);
-  
-};
-  
-
-class hb_loop {
- private:
-  boost::shared_ptr<ConnectionToController> uplink;
- public:
-  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
-  //could potentially add a ctor here with some args
-  void operator () ();
-};
-
-
-void
-Node::start_heartbeat_thread ()
-{
-  hb_loop x = hb_loop(uplink);
-  thread hb_thread = thread(x);
-}
-
-
-void
-Node::connect_to_master ()
-{
-  asio::io_service io_service;
-  //should do select loop up here, and also create an acceptor...
-
-  if (!config.controllers.size()) {
-    _node_mutex.lock();
-    cerr << "No controllers known." << endl;
-    _node_mutex.unlock();
-    return;
-  }
-  pair<string, port_t> address = config.controllers[0];
-
-  tcp::resolver resolver(io_service);
-  tcp::resolver::query query(address.first, lexical_cast<string> (address.second));
-  tcp::resolver::iterator server_side = resolver.resolve(query);
-  
-  shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
-  uplink = tmp;
-  
-  thread select_loop(bind(&asio::io_service::run, &io_service));
-}
-
-void
-hb_loop::operator () ()
-{
-  
-  cout << "HB thread started" << endl;
-  // Connect to server
-  while (true) {
-    ServerRequest r;
-    r.set_type(HEARTBEAT);
-    Heartbeat *h = r.mutable_heartbeat();
-    h->set_cpuload_pct(0);
-    h->set_freemem_mb(1000);
-    uplink->write(&r);
-    cout << "HB looping" << endl;
-    this_thread::sleep(posix_time::seconds(HB_INTERVAL));
-  }
-
-}
-
-void
-ConnectionToController::process_message (char * buf, size_t sz)
-{
-  cout << "got message from master" << endl;  
-}
-#endif
