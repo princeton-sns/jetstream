@@ -19,6 +19,21 @@ message TaskID {
   required int32 task = 2;
 }
 
+message Element {
+  // Keep this type consistent with the optional fields below
+  enum ElementType {STRING = 1; INT32 = 2; DOUBLE = 3;}
+
+  optional string s_val = 1;
+  optional int32 i_val = 2;
+  optional double d_val = 3;
+}
+
+message Dimension {
+  required string name = 1;
+  required Element.ElementType type = 2;
+  optional Element default_val = 3;
+}
+
 message TaskMeta {
   required string op_typename = 1; //type of operator. typically a classname. 
                                 //Note that 'typename' is a C++ keyword.
@@ -36,19 +51,10 @@ message TaskMeta {
   // optional boolean isUnion
 }
 
-
 message CubeMeta {
   required string name = 1;
   required string schema = 2;
   optional NodeID site = 3;
-}
-
-
- //element in a tuple
-message Element {
-    optional int32 i_val = 5;
-    optional string s_val = 6;
-    optional double d_val = 7 ;
 }
 
 message Tuple {
