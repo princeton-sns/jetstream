@@ -108,7 +108,7 @@ class NodeNetTest : public ::testing::Test {
 
  public:
   shared_ptr<Node> n;
-  io_service io_service;
+  asio::io_service io_service;
   ip::tcp::socket cli_socket;
 
   NodeNetTest():cli_socket(io_service) {
