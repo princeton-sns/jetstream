@@ -16,99 +16,9 @@ using namespace boost::asio;
 using namespace jetstream;
 
 
-class bind_test_thread {
-  public:
-    NodeConfig& cfg;
-    Node * n;
-    bind_test_thread(NodeConfig& c): cfg(c),n(NULL) {}
-    ~bind_test_thread() {
-        if (n != NULL) {
-          n->stop();
-          delete n;
-        }
-    }
-    void operator()();    
-};
-
-
-void
-bind_test_thread::operator()()
+//helper method to fill in an AlterTopo with a pair of operators
+void add_pair_to_topo(AlterTopo& topo)
 {
-  n = new Node(cfg);
-  n->run();
-}
-
-TEST(Node, NetBind)
-{
-  
-  io_service io_service;
-  ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
-  ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
-//  cout << "endpoint was " << concrete_end.address()<<":" << concrete_end.port() <<endl;
-  
-  acceptor.listen();
-  pair<string, port_t> p("127.0.0.1", concrete_end.port());
-
-  
-  NodeConfig cfg;
-  cfg.heartbeat_time = 1000;
-  cfg.controllers.push_back(p);
-
-  bind_test_thread test_thread_body(cfg);
-  thread test_thread(test_thread_body);
-  
-//  Node node(cfg);
-  
-  ip::tcp::socket cli_socket(io_service);
-  boost::system::error_code ec;
-  
-  acceptor.accept(cli_socket, ec);
-  
-  ASSERT_TRUE( cli_socket.is_open());
-
-  boost::array<char, 4> buf;
-  boost::system::error_code error;
-  boost::this_thread::sleep(boost::posix_time::seconds(0));
-  int len_len = cli_socket.read_some(boost::asio::buffer(buf));
-
-  ASSERT_EQ(len_len, 4);
-  int32_t len = ntohl( *(reinterpret_cast<int32_t*> (buf.data())));
-  
-  std::vector<char> buf2(len);
-  int hb_len = cli_socket.read_some(boost::asio::buffer(buf2));
-  ASSERT_EQ(len, hb_len); //read completed.
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
-
-
-  ControlMessage h;
-  h.ParseFromArray(buf2.data(), hb_len);
-  ASSERT_EQ(h.type(), ControlMessage::HEARTBEAT);
-  
-  ASSERT_EQ(h.heartbeat().cpuload_pct(), 0);
-  
-  cout << "test ending" <<endl;
-}
-
-
-
-TEST(Node, OperatorCreate)
-{
-  NodeConfig cfg;
-  Node node(cfg);
-  operator_id_t id(1,2);
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
-  ASSERT_TRUE(op != NULL);
-  ASSERT_EQ(node.get_operator( id ), op);
-}
-
-
-
-TEST(Node, HandleAlter_2_Ops)
-{
-  NodeConfig cfg;
-  Node node(cfg);
-  AlterTopo topo;
-
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
   id->set_computationid(17);
@@ -128,9 +38,29 @@ TEST(Node, HandleAlter_2_Ops)
   e->set_src(2);
   e->set_dest(3);
   e->set_computation(17);
+}
+
+TEST(Node, OperatorCreate)
+{
+  NodeConfig cfg;
+  Node node(cfg);
+  operator_id_t id(1,2);
+  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
+  ASSERT_TRUE(op != NULL);
+  ASSERT_EQ(node.get_operator( id ), op);
+}
+
+
+TEST(Node, HandleAlter_2_Ops)
+{
+  NodeConfig cfg;
+  Node node(cfg);
+  AlterTopo topo;
+
+  add_pair_to_topo(topo);
   
-  node.handle_alter(topo);
-  
+  ControlMessage m = node.handle_alter(topo);
+  ASSERT_EQ(m.type(), ControlMessage::OK);
   
   operator_id_t id2(17,2);
   shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
@@ -147,6 +77,155 @@ TEST(Node, HandleAlter_2_Ops)
   ASSERT_GT(rec->tuples.size(),(unsigned int) 4);
   string s = rec->tuples[0].e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+}
+
+
+
+
+
+class bind_test_thread {
+  public:
+    NodeConfig& cfg;
+    shared_ptr<Node> n;
+    bind_test_thread(NodeConfig& c): cfg(c) {}
+    ~bind_test_thread() {
+        if (n != NULL) {
+//          n->stop();
+        }
+    }
+    void operator()();    
+};
+
+
+void
+bind_test_thread::operator()()
+{
+  n = shared_ptr<Node>(new Node(cfg));
+  n->run();
+}
+
+class NodeNetTest : public ::testing::Test {
+
+ public:
+  shared_ptr<Node> n;
+  io_service io_service;
+  ip::tcp::socket cli_socket;
+
+  NodeNetTest():cli_socket(io_service) {
+  
+  }
   
   
+  virtual void SetUp() {
+    ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
+    ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
+    
+    acceptor.listen();
+    pair<string, port_t> p("127.0.0.1", concrete_end.port());
+    
+    NodeConfig cfg;
+    cfg.heartbeat_time = 4000;
+    cfg.controllers.push_back(p);
+
+    bind_test_thread test_thread_body(cfg);
+    thread test_thread(test_thread_body);
+    this->n = test_thread_body.n;
+    
+    boost::system::error_code ec;
+    
+    acceptor.accept(cli_socket, ec);
+  }
+  
+    
+  virtual void ShutDown() {
+    
+  }
+  
+  //returns a smart_ptr to a control message
+  boost::shared_ptr<ControlMessage> get_ctrl_msg()
+  {
+    boost::array<char, 4> buf;
+    boost::system::error_code error;
+    boost::this_thread::sleep(boost::posix_time::seconds(0));
+    int len_len = cli_socket.read_some(boost::asio::buffer(buf));
+
+    EXPECT_EQ(len_len, 4);
+    int32_t len = ntohl( *(reinterpret_cast<int32_t*> (buf.data())));
+    
+    std::vector<char> buf2(len);
+    int hb_len = cli_socket.read_some(boost::asio::buffer(buf2));
+    EXPECT_EQ(len, hb_len); //read completed.
+    boost::this_thread::sleep(boost::posix_time::seconds(2));
+
+
+    boost::shared_ptr<ControlMessage>  h(new ControlMessage);
+    h->ParseFromArray(buf2.data(), hb_len);
+    return h;
+  }
+  
+    ///test is local, so there's no need for error handling here
+  void send_ctrl_msg(google::protobuf::MessageLite& m)
+  {
+    int sz = m.ByteSize();
+    u_int32_t len_nbo = htonl (sz);
+    int nbytes = sz + sizeof(int32_t);
+
+    u_int8_t * msg = new u_int8_t[nbytes];
+
+    memcpy(msg, &len_nbo, sizeof(int32_t));
+    m.SerializeToArray((msg + sizeof(int32_t)), sz);
+    cli_socket.send(asio::buffer(msg, nbytes));
+    delete msg;
+  }
+
+};
+
+//This test verifies that heartbeats are being sent correctly.
+TEST_F(NodeNetTest, NetBind)
+{
+  ASSERT_TRUE( cli_socket.is_open());
+
+  boost::shared_ptr<ControlMessage> h = get_ctrl_msg();
+  ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+  ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
+  
+  cout << "test ending" <<endl;
+}
+
+//This test verifies that the Node handles requests properly
+TEST_F(NodeNetTest, NetStart)
+{
+  ASSERT_TRUE( cli_socket.is_open());
+
+//create a request
+
+  ControlMessage msg;
+  AlterTopo* topo = msg.mutable_alter();
+  add_pair_to_topo(*topo);
+  msg.set_type(ControlMessage::ALTER);
+  //send it
+  send_ctrl_msg(msg);
+  
+  bool found_response = false;
+  for (int i =0; i < 3 && !found_response; ++i) {
+    
+    boost::shared_ptr<ControlMessage> h = get_ctrl_msg();
+    
+    switch( h->type() ) {
+      case ControlMessage::OK:
+        cout << "got response back ok from AlterTopo" <<endl;
+        found_response = true;
+        break;
+      case ControlMessage::HEARTBEAT:
+        break;
+      default:
+        cout << "Unexpected message type: " << h->type() <<endl;
+        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+        break;
+    }
+  }
+
+  ASSERT_TRUE(found_response);
+  cout << "test ending" <<endl;  
+
 }

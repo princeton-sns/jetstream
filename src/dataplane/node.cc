@@ -31,6 +31,8 @@ Node::Node (const NodeConfig &conf)
   if (conf.heartbeat_time > 0) {
     // XXX Can't dynamically modify heartbeat_time. Pass pointer to config?
     for (u_int i=0; i < config.controllers.size(); i++) {
+      LOG(INFO) << "possible controller: " << config.controllers[i].first <<
+          ":"<<config.controllers[i].second <<endl;
       pair<string, port_t> cntrl = config.controllers[i];
       conn_mgr->create_connection (cntrl.first, cntrl.second,
 				   bind(&Node::controller_connected, 
@@ -78,7 +80,7 @@ Node::stop ()
 
 
 void
-Node::controller_connected (shared_ptr<ClientConnection> conn, 
+Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
@@ -105,26 +107,33 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 
   // Start listening on messages from controller
   boost::system::error_code e;
-  conn->recv_msg(bind(&Node::received_msg, this, _1, _2), e);
+
+
+  conn->recv_ctrl_msg(bind(&Node::received_ctrl_msg, this, conn,  _1, _2), e);
 }
 
 
 void
-Node::received_msg (const google::protobuf::Message &msg,
+Node::received_ctrl_msg (shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
 		    const boost::system::error_code &error)
 {
-#if 0
-  switch (msg.getType ()) {
-  case CONTROLPLANE:
+//  VLOG(1) << "got message: " << msg.Utf8DebugString() <<endl;
+  
+  boost::system::error_code send_error;
+  switch (msg.type ()) {
+  case ControlMessage::ALTER:
     {
-      const ControlMsg &cntrl_msg = msg.get_ControlPlane();
-      if (!cntrl_msg)
-	error == X;
-      else 
-	received_controlplane_msg(cntrl_msg, error)
+      const AlterTopo &alter = msg.alter();
+      ControlMessage response = handle_alter(alter);
+      c->send_msg(response, send_error);
+
+      if (send_error != boost::system::errc::success) {
+        LOG(WARNING) << "failure sending response: "<<send_error <<endl;
+      }
+        
       break;
     }
-  case DATAPLANE:
+/*  case DATAPLANE:
     {
       const DataMsg &data_msg = msg.get_DataPlane();
       if (!data_msg)
@@ -132,20 +141,21 @@ Node::received_msg (const google::protobuf::Message &msg,
       else 
 	received_dataplane_msg(data_msg, error);
       break;
-    }
-  default:
+    }*/
+   default:
+     break;
   }
-#endif
+  
 }
 
 
 #if 0
 void
-Node::received_controlplane_msg (const ControlPlane &msg,
+Node::received_data_msg (const DataplaneMessage &msg,
 				 const system::error_code &error)
 {
   switch (msg.getType ()) {
-  case ALTERTOPO:
+  case DATA:
     {
       handle_alter (msg.get_alter());
       break;
@@ -158,7 +168,7 @@ Node::received_controlplane_msg (const ControlPlane &msg,
 
 
 operator_id_t 
-unparse_id (TaskID id) 
+unparse_id (const TaskID& id)
 {
   operator_id_t parsed;
   parsed.computation_id = id.computationid();
@@ -167,8 +177,8 @@ unparse_id (TaskID id)
 }
 
 
-void
-Node::handle_alter (AlterTopo topo)
+ControlMessage
+Node::handle_alter (const AlterTopo& topo)
 {
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
@@ -223,6 +233,10 @@ Node::handle_alter (AlterTopo topo)
     shared_ptr<DataPlaneOperator> o = get_operator(iter->first);
     o->start(iter->second);
   }
+  
+  ControlMessage m;
+  m.set_type(ControlMessage::OK);
+  return m;
 }
 
 
@@ -245,87 +259,3 @@ Node::create_operator(string op_typename, operator_id_t name)
 }
 
 
-
-
-
-
-#if 0
-class ConnectionToController : public WorkerConnHandler {
- public:
-  ConnectionToController (boost::asio::io_service& io_service,
-			  boost::asio::ip::tcp::resolver::iterator endpoint_iterator)
-    : WorkerConnHandler (io_service, endpoint_iterator) {}
-
-  virtual ~ConnectionToController () {}
-  virtual void process_message (char *buf, size_t sz);
-  
-};
-  
-
-class hb_loop {
- private:
-  boost::shared_ptr<ConnectionToController> uplink;
- public:
-  hb_loop (boost::shared_ptr<ConnectionToController> t) : uplink (t) {}
-  //could potentially add a ctor here with some args
-  void operator () ();
-};
-
-
-void
-Node::start_heartbeat_thread ()
-{
-  hb_loop x = hb_loop(uplink);
-  thread hb_thread = thread(x);
-}
-
-
-void
-Node::connect_to_master ()
-{
-  asio::io_service io_service;
-  //should do select loop up here, and also create an acceptor...
-
-  if (!config.controllers.size()) {
-    _node_mutex.lock();
-    cerr << "No controllers known." << endl;
-    _node_mutex.unlock();
-    return;
-  }
-  pair<string, port_t> address = config.controllers[0];
-
-  tcp::resolver resolver(io_service);
-  tcp::resolver::query query(address.first, lexical_cast<string> (address.second));
-  tcp::resolver::iterator server_side = resolver.resolve(query);
-  
-  shared_ptr<ConnectionToController> tmp (new ConnectionToController(io_service, server_side));
-  uplink = tmp;
-  
-  thread select_loop(bind(&asio::io_service::run, &io_service));
-}
-
-void
-hb_loop::operator () ()
-{
-  
-  cout << "HB thread started" << endl;
-  // Connect to server
-  while (true) {
-    ServerRequest r;
-    r.set_type(HEARTBEAT);
-    Heartbeat *h = r.mutable_heartbeat();
-    h->set_cpuload_pct(0);
-    h->set_freemem_mb(1000);
-    uplink->write(&r);
-    cout << "HB looping" << endl;
-    this_thread::sleep(posix_time::seconds(HB_INTERVAL));
-  }
-
-}
-
-void
-ConnectionToController::process_message (char * buf, size_t sz)
-{
-  cout << "got message from master" << endl;  
-}
-#endif

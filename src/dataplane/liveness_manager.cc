@@ -2,8 +2,11 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/date_time.hpp>
 
+#include <glog/logging.h>
+
 #include "future_js.pb.h"
 #include "liveness_manager.h"
+
 
 using namespace std;
 using namespace boost;
@@ -80,13 +83,13 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 
   if (send_error) {
     _lm_mutex.lock();
-    cerr << "Liveness: send error on " << conn->get_remote_endpoint() 
+    LOG(WARNING) << "Liveness: send error on " << conn->get_remote_endpoint()
 	 << ": " << send_error.message() << endl;
     _lm_mutex.unlock();
   }
   else {
     _lm_mutex.lock();
-    cout << "Liveness: success on " 
+    LOG(INFO) << "Liveness: success on "
 	 << conn->get_remote_endpoint() << endl;
     _lm_mutex.unlock();
   }

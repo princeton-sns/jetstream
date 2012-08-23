@@ -1,5 +1,8 @@
 package jetstream;
 
+//option optimize_for = LITE_RUNTIME; //Messages become MessageLite-s
+
+
 /**
 * Identifies a single node (host).
 * Bytes should be an IP4 or IP6 address
@@ -126,7 +129,7 @@ message Error {
 *
 */
 message ControlMessage {
-  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; NODES_RESPONSE = 7;}
+  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; NODES_RESPONSE = 7; OK = 8; }
   required ControlType type = 1; 
   
   optional Error error_msg = 2;
