@@ -116,7 +116,7 @@ TEST(Node, HandleAlter_2_Ops)
   task->set_op_typename("FileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
   op_cfg->set_opt_name("file");
-  op_cfg->set_val("/etc/shells");
+  op_cfg->set_val("src/tests/data/base_operators_data.txt");
 
   task = topo.add_tostart();
   id = task->mutable_id();

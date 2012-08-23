@@ -4,9 +4,6 @@
 #include <fstream>
 #include "stdlib.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/thread.hpp>
-
 
 using namespace std;
 using namespace boost;
@@ -21,25 +18,41 @@ FileRead::start(map<string,string> config) {
     cout << "no file to read, bailing" << endl;
     return;
   }
-  
   running = true;
-  boost::thread loop_thread = boost::thread(*this);
+  // Pass a reference to this object, otherwise boost makes its own copy (with its 
+  // own member variables). Must ensure (*this) doesn't die before the thread exits!
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
 
-  
+void
+FileRead::stop() {
+  running = false;
+  loopThread->join();
+}
+
+bool
+FileRead::isRunning() {
+  return running;
+}
+
 void
 FileRead::operator()() {
-  
   ifstream in_file (f_name.c_str());
+  if (in_file.fail()) {
+    cout << "could not open file " << f_name.c_str() << endl;
+    running = false;
+    return;
+  }
   string line;
-  while (running && !in_file.eof()) {
+  // ios::good checks for failures in addition to eof
+  while (running && in_file.good()) {
     getline(in_file, line);
     shared_ptr<Tuple> t( new Tuple);
     Element * e = t->add_e();
     e->set_s_val(line);
-    
     emit(t);
   }
+  running = false;
 }
 
 void
@@ -62,7 +75,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     return;
   }
   if (t->e_size() == 0) {
-    cout << "received empty tuple, ignoring"<< endl;
+    cout << "received empty tuple, ignoring" << endl;
     return;
   }
   //TODO: Assuming its the first element for now

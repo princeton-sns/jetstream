@@ -6,6 +6,9 @@
 #include "dataplaneoperator.h"
 #include <string>
 #include <boost/regex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/shared_ptr.hpp>
+
 
 namespace jetstream {
   
@@ -17,11 +20,15 @@ namespace jetstream {
 class FileRead: public DataPlaneOperator {
  public:
   virtual void start(std::map<std::string,std::string> config);
+  virtual void stop();
   void operator()(); //a thread that will loop while reading the file
+  //TODO: Make this (or something similar) a part of DataPlaneOperator API?
+  bool isRunning();
 
  protected:
   std::string f_name; //name of file to read
-  bool running;
+  boost::shared_ptr<boost::thread> loopThread;
+  volatile bool running;
 };
 
 /***

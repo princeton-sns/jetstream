@@ -3,12 +3,24 @@
 - Indent by two spaces. Use spaces, not tabs.
 
 - Classes and Types use capitalized camelCase
-- variables use lower-case camelCase
+- Variables use lower-case camelCase
 - Function names use underscore
 
   class ServerMessage {
     ServerMsg get_message (int thisMsg);
   };
+
+- Protobuf messages follow the Google-recommended style (see 
+https://developers.google.com/protocol-buffers/docs/style).
+
+  GOOD:  message SongServerRequest {
+           required string song_name = 1;
+         }
+         enum Foo {
+           FIRST_VALUE = 1;
+           SECOND_VALUE = 2;
+         }
+ 
 
 - Open brace should be on the same line as the statements.  
 - Space between if/else/while/do and open pare or open brace

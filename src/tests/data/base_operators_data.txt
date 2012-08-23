@@ -1,0 +1,19 @@
+#
+# Some test data for base operators. Use # for commented lines.
+# Always rerun unit tests after modifying this file!!
+#
+
+# /etc/shells: valid login shells /usr/bin/rc
+/bin/csh
+/bin/sh
+/usr/bin/es
+/usr/bin/ksh
+/bin/ksh
+/usr/bin/rc
+/usr/bin/tcsh
+/bin/tcsh
+/usr/bin/esh
+/bin/dash
+/bin/bash
+/bin/rbash
+/usr/bin/screen
