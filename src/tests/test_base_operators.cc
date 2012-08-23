@@ -110,7 +110,6 @@ TEST(Operator, OperatorChain)
   boost::smatch matchResults;
   bool match;
   for (vector<Tuple>::iterator it = rec->tuples.begin(); it != rec->tuples.end(); it++) {
-    cout << it->e(0).s_val() << endl;
     match = boost::regex_search(it->e(0).s_val(), matchResults, re1);
     match = (match && boost::regex_search(it->e(0).s_val(), matchResults, re2));
     ASSERT_TRUE(match);
