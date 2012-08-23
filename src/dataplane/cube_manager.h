@@ -30,7 +30,7 @@ class CubeManager {
     cubeDict.insert( std::pair<string, boost::shared_ptr<DataCube> >(s, c) ); 
   }
 
-  boost::shared_ptr<DataCube> create_cube(std::string name, std::string schema) {
+  boost::shared_ptr<DataCube> create_cube(std::string name, jetstream::CubeSchema schema) {
     boost::shared_ptr<DataCube> c(new DataCube(schema));
     put_cube(name, c);
     return c;

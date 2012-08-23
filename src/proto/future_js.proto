@@ -21,11 +21,11 @@ message TaskID {
 
 message Element {
   // Keep this type consistent with the optional fields below
-  enum ElementType {STRING = 1; INT32 = 2; DOUBLE = 3;}
-
+  enum ElementType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4;}
   optional string s_val = 1;
   optional int32 i_val = 2;
   optional double d_val = 3;
+  optional int32 t_val = 4;
 }
 
 message Dimension {
@@ -51,9 +51,25 @@ message TaskMeta {
   // optional boolean isUnion
 }
 
+
+message CubeSchema{
+  message Dimension {
+    required string name = 1;
+    required Element.ElementType type = 2;
+  }
+  repeated Dimension dimensions = 1;
+
+  message Aggregate {
+    required string name = 1;
+    required string type = 2; //class name of aggregate type;
+  }
+  repeated Aggregate aggregates = 2;
+}
+
+
 message CubeMeta {
   required string name = 1;
-  required string schema = 2;
+  required CubeSchema schema = 2;
   optional NodeID site = 3;
 }
 
