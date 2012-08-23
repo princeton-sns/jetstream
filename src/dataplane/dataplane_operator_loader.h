@@ -8,7 +8,7 @@
 
 #include "js_utils.h"
 #include "dataplaneoperator.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 namespace jetstream {
 

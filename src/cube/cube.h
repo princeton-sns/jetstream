@@ -7,7 +7,7 @@
 #include "dataplaneoperator.h"  //needed only for Receiver
 
 
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 
 namespace jetstream {
@@ -24,7 +24,7 @@ class DataCube : public Receiver {
 public:
   virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
   
-  DataCube(std::string _schema):schema(_schema) {}
+  DataCube(jetstream::CubeSchema _schema):schema(_schema) {}
   virtual ~DataCube() {;}
   
   /**
@@ -44,7 +44,7 @@ public:
 //TODO: should have an entry here for the aggregation/update function.
   
 private:
-  string schema;
+  jetstream::CubeSchema schema;
   bool is_frozen;
 //TODO should figure out how to implement this
   
