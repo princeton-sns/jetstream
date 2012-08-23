@@ -12,12 +12,13 @@ using namespace jetstream;
 void
 ConnectedSocket::fail (const boost::system::error_code &error)
 {
+  LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
+
   send_queue.clear();
   close();
 
   if (recv_cb) {
-    // XXX Bad -- should be generic Request type
-    SerializedMessageIn bad_msg(0);
+    SerializedMessageIn bad_msg (0);
     recv_cb (bad_msg, error);
   }
 }
@@ -190,7 +191,6 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
     fail(e);
     return;
   }
-
 
   shared_ptr<SerializedMessageIn> recv_msg (new SerializedMessageIn (msglen));
 
