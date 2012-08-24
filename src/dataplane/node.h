@@ -12,9 +12,15 @@
 #include "cube_manager.h"
 #include "liveness_manager.h"
 
+
+#include "mongoose.h"
+
+
 namespace jetstream {
   
 class net_interface;
+class Node;
+
 
 
 class NodeConfig {
@@ -44,6 +50,23 @@ struct operator_id_t {
   operator_id_t () : computation_id (0), task_id (0) {}
 };
 
+class NodeWebInterface {
+ private:
+  mg_context * mongoose_ctxt;
+  Node& node;
+  
+  void make_base_page(ostream& buf);
+  
+ public:
+  NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
+  ~NodeWebInterface() { stop(); }
+  
+  void start(); //Dangerous to call many times, because doesn't clean up.
+  void stop();  //idempotent, but may block to join with worker threads.
+  
+  static void * process_req(enum mg_event event, struct mg_connection *conn);
+  
+};
   
 class Node {
  private:
@@ -68,6 +91,7 @@ class Node {
   void received_data_msg (boost::shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
 		     const boost::system::error_code &error);
 
+  NodeWebInterface  web_interface;
   
  public:
   Node (const NodeConfig &conf);
@@ -92,6 +116,7 @@ class Node {
 //const int HB_INTERVAL = 5; //seconds
   
 }
+
 
 
 #endif /* _node_H_ */

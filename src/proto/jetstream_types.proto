@@ -113,7 +113,7 @@ message AlterTopo {
 
 
 /***
-* A heartbeat is a message from the data plane to the server
+* A heartbeat is a kind of message from the data plane to the coordinator server.
 */
 message Heartbeat {
   //SS: Consider including an explicit nodeID, in case heartbeats are aggregated/forwarded.
@@ -126,9 +126,10 @@ message Error {
  required string error_msg = 1;
 }
 
-/*** A request to a JetStream coordinator server.
-*
-*
+/*** 
+* A message between controller and workers, or from client to controller.
+* The fields of the message should line up with the type field. This is a human
+* notational convenience, and not enforced or used in the code.
 */
 message ControlMessage {
   enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; NODES_RESPONSE = 7; OK = 8; }
@@ -143,7 +144,9 @@ message ControlMessage {
 }
 
 /***
-* "dataplane" message
+* "dataplane" message, from worker to worker.
+* The fields of the message should line up with the type field. This is a human
+* notational convenience, and not enforced or used in the code.
 */ 
 message DataplaneMessage {
   enum DataplaneType { ERROR = 2; DATA = 3; }

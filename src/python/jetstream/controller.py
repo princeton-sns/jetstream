@@ -10,7 +10,7 @@ import threading
 import time
 from collections import namedtuple
 
-from future_js_pb2 import *
+from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface

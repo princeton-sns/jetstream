@@ -7,7 +7,7 @@ import struct
 import threading
 import time
 
-from future_js_pb2 import *
+from jetstream_types_pb2 import *
 from local_controller import LocalUnix
 
 from generic_netinterface import JSServer
