@@ -62,10 +62,10 @@ class Node {
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
 			     boost::system::error_code error);
 
-  void received_ctrl_msg (shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
+  void received_ctrl_msg (boost::shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
 		     const boost::system::error_code &error);
 
-  void received_data_msg (shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
+  void received_data_msg (boost::shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
 		     const boost::system::error_code &error);
 
   

@@ -18,16 +18,16 @@ namespace jetstream {
 */
 class CubeManager {
  private:
-  std::map<string, shared_ptr<DataCube> > cubeDict;
+  std::map<std::string, boost::shared_ptr<DataCube> > cubeDict;
 
  public:
   CubeManager ();
 
-  shared_ptr<DataCube> get_cube (std::string s) { return cubeDict[s]; }
+  boost::shared_ptr<DataCube> get_cube (std::string s) { return cubeDict[s]; }
   
   void put_cube (std::string s, boost::shared_ptr<DataCube> c) {
   //TODO need locking here.
-    cubeDict.insert( std::pair<string, boost::shared_ptr<DataCube> >(s, c) ); 
+    cubeDict.insert( std::pair<std::string, boost::shared_ptr<DataCube> >(s, c) ); 
   }
 
   boost::shared_ptr<DataCube> create_cube(std::string name, jetstream::CubeSchema schema) {

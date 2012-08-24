@@ -56,17 +56,19 @@ message TaskMeta {
 
 
 message CubeSchema{
+  required string name = 1;
+
   message Dimension {
     required string name = 1;
     required Element.ElementType type = 2;
   }
-  repeated Dimension dimensions = 1;
+  repeated Dimension dimensions = 2;
 
   message Aggregate {
     required string name = 1;
     required string type = 2; //class name of aggregate type;
   }
-  repeated Aggregate aggregates = 2;
+  repeated Aggregate aggregates = 3;
 }
 
 
