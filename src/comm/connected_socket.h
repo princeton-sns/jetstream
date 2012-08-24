@@ -66,9 +66,10 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
     ~SerializedMessageOut () { delete[] msg; }
     
    private:
-    void operator=(const SerializedMessageOut& ) { LOG(FATAL) << "cannot copy a SerializedMessageOut";}
-    SerializedMessageOut(const SerializedMessageOut& ) { LOG(FATAL) << "cannot copy a SerializedMessageOut";}
-   
+    void operator= (const SerializedMessageOut &) 
+      { LOG(FATAL) << "cannot copy a SerializedMessageOut"; }
+    SerializedMessageOut (const SerializedMessageOut &) 
+      { LOG(FATAL) << "cannot copy a SerializedMessageOut"; }
   };
 
   // Only one outstanding async_write at a time
