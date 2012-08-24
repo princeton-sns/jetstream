@@ -54,6 +54,9 @@ class NodeWebInterface {
  private:
   mg_context * mongoose_ctxt;
   Node& node;
+  
+  void make_base_page(ostream& buf);
+  
  public:
   NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
   ~NodeWebInterface() { stop(); }
@@ -62,6 +65,7 @@ class NodeWebInterface {
   void stop();  //idempotent, but may block to join with worker threads.
   
   static void * process_req(enum mg_event event, struct mg_connection *conn);
+  
 };
   
 class Node {
