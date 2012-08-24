@@ -119,7 +119,7 @@ class NodeNetTest : public ::testing::Test {
 
     BindTestThread testThreadBody(cfg);
     thread testThread(testThreadBody);
-    // This assignment only works if 'n' is assigned when the constructor returns
+    // This assignment only works if 'n' is assigned before the constructor returns
     this->n = testThreadBody.n;
     
     boost::system::error_code ec;
