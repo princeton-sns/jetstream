@@ -47,7 +47,10 @@ Node::~Node ()
 }
 
 
-
+/***
+*  Run the node. This method starts several threads and does not return until
+* the node process is terminated.
+*/
 void
 Node::run ()
 {
