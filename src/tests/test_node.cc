@@ -80,29 +80,19 @@ TEST(Node, HandleAlter_2_Ops)
 }
 
 
-
-
-
-class bind_test_thread {
+class BindTestThread {
   public:
     NodeConfig& cfg;
     shared_ptr<Node> n;
-    bind_test_thread(NodeConfig& c): cfg(c) {}
-    ~bind_test_thread() {
-        if (n != NULL) {
-//          n->stop();
-        }
+    BindTestThread(NodeConfig& c): cfg(c) {
+      n = shared_ptr<Node>(new Node(cfg));
     }
-    void operator()();    
+    void operator()() {
+      assert(n);
+      n->run();
+    }
 };
 
-
-void
-bind_test_thread::operator()()
-{
-  n = shared_ptr<Node>(new Node(cfg));
-  n->run();
-}
 
 class NodeNetTest : public ::testing::Test {
 
@@ -127,18 +117,20 @@ class NodeNetTest : public ::testing::Test {
     cfg.heartbeat_time = 4000;
     cfg.controllers.push_back(p);
 
-    bind_test_thread test_thread_body(cfg);
-    thread test_thread(test_thread_body);
-    this->n = test_thread_body.n;
+    BindTestThread testThreadBody(cfg);
+    thread testThread(testThreadBody);
+    // This assignment only works if 'n' is assigned when the constructor returns
+    this->n = testThreadBody.n;
     
     boost::system::error_code ec;
-    
     acceptor.accept(cli_socket, ec);
   }
   
     
   virtual void ShutDown() {
-    
+    if (n) {
+      n->stop();
+    }
   }
   
   //returns a smart_ptr to a control message
@@ -146,7 +138,7 @@ class NodeNetTest : public ::testing::Test {
   {
     boost::array<char, 4> buf;
     boost::system::error_code error;
-    boost::this_thread::sleep(boost::posix_time::seconds(0));
+    boost::this_thread::sleep(boost::posix_time::seconds(2));
     int len_len = cli_socket.read_some(boost::asio::buffer(buf));
 
     EXPECT_EQ(len_len, 4);
