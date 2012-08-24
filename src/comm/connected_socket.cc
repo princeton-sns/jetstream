@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 #include <glog/logging.h>
 
@@ -12,12 +12,13 @@ using namespace jetstream;
 void
 ConnectedSocket::fail (const boost::system::error_code &error)
 {
+  LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
+
   send_queue.clear();
   close();
 
   if (recv_cb) {
-    // XXX Bad -- should be generic Request type
-    SerializedMessageIn bad_msg(0);
+    SerializedMessageIn bad_msg (0);
     recv_cb (bad_msg, error);
   }
 }
@@ -73,13 +74,14 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
   if (!sock->is_open())
     return;
   else if (sending) {
+    LOG(INFO) << "send is busy in perform_send, queueing" <<endl;
     send_queue.push_back(msg);
     astrand.post(bind(&ConnectedSocket::perform_queued_send, 
 		      shared_from_this()));
   }
   else {
     sending = true;
-   LOG(INFO) << "async send in perform_send" <<endl;
+    LOG(INFO) << "async send in perform_send" <<endl;
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
@@ -119,6 +121,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
     return;
   }
 
+  LOG(INFO) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
   if (!send_queue.empty())
     perform_queued_send();
 }
@@ -190,7 +193,6 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
     fail(e);
     return;
   }
-
 
   shared_ptr<SerializedMessageIn> recv_msg (new SerializedMessageIn (msglen));
 

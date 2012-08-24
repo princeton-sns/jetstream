@@ -4,7 +4,7 @@
 
 #include "node.h"
 
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 
 #include <stdlib.h>
 #include <glog/logging.h>
@@ -107,15 +107,14 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 
   // Start listening on messages from controller
   boost::system::error_code e;
-
-
-  conn->recv_ctrl_msg(bind(&Node::received_ctrl_msg, this, conn,  _1, _2), e);
+  conn->recv_control_msg(bind(&Node::received_ctrl_msg, this, conn,  _1, _2), e);
 }
 
 
 void
-Node::received_ctrl_msg (shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
-		    const boost::system::error_code &error)
+Node::received_ctrl_msg (shared_ptr<ClientConnection> c, 
+			 const jetstream::ControlMessage &msg,
+			 const boost::system::error_code &error)
 {
 //  VLOG(1) << "got message: " << msg.Utf8DebugString() <<endl;
   

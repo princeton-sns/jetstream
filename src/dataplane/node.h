@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 
 #include "js_utils.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 #include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include "connection.h"

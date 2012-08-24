@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 
 #include "js_utils.h"
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 #include "connected_socket.h"
 
 namespace jetstream {
@@ -18,11 +18,10 @@ typedef boost::function<void (boost::shared_ptr<ClientConnection>,
 typedef boost::function<void (boost::shared_ptr<ConnectedSocket>,
 			      const boost::system::error_code &) > cb_connsock_t;
 
-
-typedef boost::function<void (jetstream::DataplaneMessage &msg,
+typedef boost::function<void (const jetstream::DataplaneMessage &msg,
 			      const boost::system::error_code &) > cb_data_protomsg_t;
 
-typedef boost::function<void (jetstream::ControlMessage &msg,
+typedef boost::function<void (const jetstream::ControlMessage &msg,
 			      const boost::system::error_code &) > cb_control_protomsg_t;
 
 
@@ -73,6 +72,14 @@ class ClientConnection {
   void connect_cb (cb_err_t cb, const boost::system::error_code &error);
   void timeout_cb (cb_err_t cb, const boost::system::error_code &error);
 
+
+  static void recv_data_msg_cb (cb_data_protomsg_t cb, 
+				const jetstream::SerializedMessageIn &msg,
+				const boost::system::error_code &error);
+  static void recv_control_msg_cb (cb_control_protomsg_t cb, 
+				   const jetstream::SerializedMessageIn &msg,
+				   const boost::system::error_code &error);
+
  public:
   ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
 		    const boost::asio::ip::tcp::endpoint &remote_end,
@@ -90,10 +97,9 @@ class ClientConnection {
   void send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
   
-//  void recv_msg (cb_protomsg_t cb, boost::system::error_code &error);
-
+  // void recv_msg (cb_protomsg_t cb, boost::system::error_code &error);
   void recv_data_msg (cb_data_protomsg_t cb, boost::system::error_code &error);
-  void recv_ctrl_msg (cb_control_protomsg_t cb, boost::system::error_code &error);
+  void recv_control_msg (cb_control_protomsg_t cb, boost::system::error_code &error);
         
 };
 

@@ -4,7 +4,7 @@
 
 #include <glog/logging.h>
 
-#include "future_js.pb.h"
+#include "jetstream_types.pb.h"
 #include "liveness_manager.h"
 
 
@@ -89,7 +89,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   }
   else {
     _lm_mutex.lock();
-    LOG(INFO) << "Liveness: success on "
+    LOG(INFO) << "Liveness: successfully scheduled message send to "
 	 << conn->get_remote_endpoint() << endl;
     _lm_mutex.unlock();
   }
