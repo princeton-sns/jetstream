@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 
 using namespace ::jetstream;
+using namespace ::std;
 
 void
 NodeWebInterface::start()
@@ -44,10 +45,10 @@ NodeWebInterface::process_req(enum mg_event event, struct mg_connection *conn)
     NodeWebInterface * web_iface_obj =
              reinterpret_cast<NodeWebInterface*> (request -> user_data);
              
-    ostringstream response;    
+    std::ostringstream response;    
     web_iface_obj->make_base_page(response);
 
-    string s = response.str();
+    std::string s = response.str();
     mg_printf(conn, hdr, s.length());
     mg_write(conn, s.c_str(), s.length());
     

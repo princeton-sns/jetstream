@@ -55,7 +55,7 @@ class NodeWebInterface {
   mg_context * mongoose_ctxt;
   Node& node;
   
-  void make_base_page(ostream& buf);
+  void make_base_page(std::ostream& buf);
   
  public:
   NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
