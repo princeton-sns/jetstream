@@ -13,7 +13,7 @@ import unittest
 
 from controller import *
 
-from future_js_pb2 import *
+from jetstream_types_pb2 import *
 
 
 class TestController(unittest.TestCase):

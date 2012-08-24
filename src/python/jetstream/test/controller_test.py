@@ -11,7 +11,7 @@ from worker import *
 from generic_netinterface import JSClient
 
 from operator_graph import OperatorGraph,Operators
-from future_js_pb2 import *
+from jetstream_types_pb2 import *
 
 class TestController(unittest.TestCase):
 

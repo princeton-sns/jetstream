@@ -16,6 +16,7 @@ target_link_libraries (${LIBRARY_NAME} ${GLOG_LIB})
 target_link_libraries (${LIBRARY_NAME} jsutils)
 target_link_libraries (${LIBRARY_NAME} jsproto)
 target_link_libraries (${LIBRARY_NAME} jscomm)
+target_link_libraries (${LIBRARY_NAME} mongoose)
 
 
 foreach(OP ${OPS})
