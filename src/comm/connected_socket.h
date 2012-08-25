@@ -57,7 +57,8 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
 
-  boost::asio::strand astrand;
+  boost::asio::strand send_strand;
+  boost::asio::strand recv_strand;
   cb_raw_msg_t recv_cb;
 
   /********* SENDING *********/
@@ -116,7 +117,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
-    : iosrv (srv), sock (s), astrand (*iosrv), 
+    : iosrv (srv), sock (s), send_strand (*iosrv), recv_strand(*iosrv), 
     sending (false), receiving (false) {}
 
   void close ();
