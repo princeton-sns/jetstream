@@ -27,7 +27,7 @@ class SerializedMessageIn {
   u_int8_t *msg;
   u_int32_t len;
   SerializedMessageIn (u_int32_t msglen) 
-    : msg ( msglen > 0? new u_int8_t[msglen]: NULL), len (msglen) {}
+    : msg ((msglen > 0) ? new u_int8_t[msglen] : NULL), len (msglen) {}
   ~SerializedMessageIn () { if (msg) { delete[] msg; } }
   private:
     void operator= (const SerializedMessageIn &) 
@@ -116,7 +116,8 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
-    : iosrv (srv), sock (s), astrand (*iosrv), sending(false), receiving(false) {}
+    : iosrv (srv), sock (s), astrand (*iosrv), 
+    sending (false), receiving (false) {}
 
   void close ();
 
