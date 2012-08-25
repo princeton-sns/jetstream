@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <glog/logging.h>
 
-
 using namespace jetstream;
 using namespace std;
 using namespace boost;
@@ -22,7 +21,8 @@ Node::Node (const NodeConfig &conf)
     conn_mgr (new ConnectionManager(iosrv)),
     liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
     // XXX This should get set through config files
-    operator_loader ("src/dataplane/") //NOTE: path must end in a slash
+    operator_loader ("src/dataplane/"), //NOTE: path must end in a slash
+    web_interface(*this)
 {
   LOG(INFO) << "creating node" << endl;
   // Set up the network connection
@@ -39,6 +39,7 @@ Node::Node (const NodeConfig &conf)
 					this, _1, _2));
     }
   }
+  
 }
 
 
@@ -47,7 +48,10 @@ Node::~Node ()
 }
 
 
-
+/***
+*  Run the node. This method starts several threads and does not return until
+* the node process is terminated.
+*/
 void
 Node::run ()
 {
@@ -55,6 +59,8 @@ Node::run ()
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
   }
+  
+  web_interface.start();
 
   // Wait for all threads in pool to exit
   for (u_int i=0; i < threads.size(); i++)

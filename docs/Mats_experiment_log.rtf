@@ -1,0 +1,126 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf360
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Tahoma;}
+{\colortbl;\red255\green255\blue255;\red255\green255\blue255;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 For processing a 765M file (apache log from adam)\
+\
+cp takes ~0.7s disk-to-disk, it probably lies\
+dd takes 3-6s (130-230 MB/s) ram-to-disk, disk-to-same-disk, disk-to-other-disk, 1.6s (480 MB/s) ram-to-ram\
+\
+\
+No-parsing: \
+	-Line-by-line output\
+		- ostream\
+			12s w/newlines\
+		- low level fd (open, write , close) no fsync\
+			12s(w/o newlines, disk-to-disk)\
+			10.9s(w/o newlines, ram-to-disk)\
+			20s (w newlines\
+			4.5s (w/o newlines, ram-to-ram)\
+			4.5s (w/o newlines, disk-to-ram)\
+		- low level fd (open, write , close) with fsync\
+			did about 19Megabytes in 2 Hours\
+with parsing\
+		-to file\
+			85s (disk-to-disk, old parsing using boost tokenizer)\
+			38s (disk-to-disk, ram-to-disk)\
+			29s disk-to-ram\
+\
+to db\
+    myisam\
+          --spin--\
+	-17:46 m - with procedure call, old parse\
+            -16:51 m - with procedure call, new parse\
+	-14 m - no procedure call\
+	-16 m with procedure call\
+	-3.34 min with batching at b=100\
+	-3.25 min with b=1000\
+            ---ssd---\
+	3.35 min win b=100\
+     memory (set max_heap_table_size=1024*1024*2000;)\
+	1.29 with b=100 source =ram\
+	1.27 with b=100 source = disk\
+     Innodb \
+	--spin--\
+	very slow\
+	--ssd--\
+	2:49 min with b=100\
+\
+	\
+\
+\
+For processing 50Mb file\
+to db (488,090 rows):\
+--spin disk--\
+	new parse:\
+	with procedure call, no batch, time conversion in db - 59s, \
+	without procedure call, no batch, time conversion in db - 47.5, \
+	with procedure call, no batch, time conversion in c - 63 s\
+	without procedure call, no batch, time conversion in c - 47.5s\
+\
+	with pc, no batch, time in db, old parse 60 s\
+\
+	conclusion: calling a stored procedure is expensive, strtotime isn't; hard to get consistent numbers for cost of strtotime;	\
+\
+	with batching (b is batch parameter) batching done with update on duplicate key clause, no procedure call:\
+	b=10 - 21s\
+	b=100 - 12s (same for from disk and from ram)\
+	b=1000 - 11s \
+\
+\
+engine=memory, b=100, no procedure call, time conversion in db, new parse - 5.6s\
+\
+---ssd---\
+12s, engine = myisam, b=100, \
+\
+\
+\
+\
+\
+----spin disk----\
+engine=innodb, b=100, no procedure call, time conversion in db, new parse - \
+# w delete, which takes time in innodb\
+(3.25m -global innodb_flush_log_at_trx_commit = 1)\
+(42s -global innodb_flush_log_at_trx_commit = 0)\
+(47s -global innodb_flush_log_at_trx_commit = 2)\
+---ssd----\
+engine=innodb, b=100, no procedure call, time conversion in db, new parse, from ram - \
+# w/o delete, which takes time in innodb\
+(10s -global innodb_flush_log_at_trx_commit = 1)\
+(9.2s -global innodb_flush_log_at_trx_commit = 0)\
+(9.3s -global innodb_flush_log_at_trx_commit = 2)\
+\
+\
+My version of db events (full file)\
+33 min w old parsing, procedure call, one at a time, myIsam <- not true looks like\
+> 33min innodb engine\
+16 min w new parsing, procedure call, one at a time, myIsam\
+14 min w new parsing, no procedure call, one at a time, myIsam\
+3.25 min w new parsing, no procedure call, batch, myIsam\
+1.29min w new parsing, no procedure call, batch, memory\
+\
+--------------\
+ssd setup\
+sudo mount -o noatime,nobarrier /dev/sdc1 /disk/ssd\
+echo noop > /sys/block/sdc/queue/scheduler\
+sudo stop mysql\
+sudo cp -R -p /var/lib/mysql /disk/ssd/mysql\
+edit /etc/mysql/my.cnf     change matador\
+edit 
+\f1 \cb2 /etc/apparmor.d/usr.sbin.mysqld Copy the lines beginning with "/var/lib/mysql", comment out the originals with hash marks ("#"), and paste the lines below the originals.\
+\
+ sudo /etc/init.d/apparmor reload\
+
+\f0 \cb1 --------------------\
+ram mount\
+sudo mount -t tmpfs -o size=2g tmpfs /disk/ram/\
+\
+-----------------------------------------------------------------------------------\
+conclusions:\
+\
+ssd vs spin:\
+makes a big difference for innodb, not for myisam\
+\
+}

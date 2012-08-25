@@ -74,13 +74,14 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
   if (!sock->is_open())
     return;
   else if (sending) {
+    LOG(INFO) << "send is busy in perform_send, queueing" <<endl;
     send_queue.push_back(msg);
     astrand.post(bind(&ConnectedSocket::perform_queued_send, 
 		      shared_from_this()));
   }
   else {
     sending = true;
-   LOG(INFO) << "async send in perform_send" <<endl;
+    LOG(INFO) << "async send in perform_send" <<endl;
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
@@ -120,6 +121,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
     return;
   }
 
+  LOG(INFO) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
   if (!send_queue.empty())
     perform_queued_send();
 }

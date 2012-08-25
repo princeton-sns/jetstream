@@ -89,7 +89,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   }
   else {
     _lm_mutex.lock();
-    LOG(INFO) << "Liveness: success on "
+    LOG(INFO) << "Liveness: successfully scheduled message send to "
 	 << conn->get_remote_endpoint() << endl;
     _lm_mutex.unlock();
   }
@@ -115,6 +115,8 @@ void
 LivenessManager::ConnectionNotification::stop_notify ()
 {
   boost::system::error_code e;
+  // This immediately schedules our handler with an error code, but not synchronously.
+  // Since the handler will just bail anyway, don't wait and reset 'waiting' here.
   timer.cancel(e);
-  assert(!waiting);
+  waiting = false;
 }
