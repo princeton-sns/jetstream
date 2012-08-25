@@ -115,6 +115,8 @@ void
 LivenessManager::ConnectionNotification::stop_notify ()
 {
   boost::system::error_code e;
+  // This immediately schedules our handler with an error code, but not synchronously.
+  // Since the handler will just bail anyway, don't wait and reset 'waiting' here.
   timer.cancel(e);
-  assert(!waiting);
+  waiting = false;
 }

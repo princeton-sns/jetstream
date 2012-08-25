@@ -127,7 +127,7 @@ class NodeNetTest : public ::testing::Test {
   }
   
     
-  virtual void ShutDown() {
+  virtual void TearDown() {
     if (n) {
       n->stop();
     }
