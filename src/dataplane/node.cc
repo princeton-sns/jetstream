@@ -99,8 +99,8 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
   }
   else {
     _node_mutex.lock();
-    LOG(INFO) << "Node: Connected to controller: "
-<< conn->get_remote_endpoint() << endl;
+    LOG(INFO) << "Node: Connected to controller: " 
+	      << conn->get_remote_endpoint() << endl;
     _node_mutex.unlock();
     liveness_mgr->start_notifications(conn);
   }
@@ -127,7 +127,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
       c->send_msg(response, send_error);
 
       if (send_error != boost::system::errc::success) {
-        LOG(WARNING) << "failure sending response: "<<send_error <<endl;
+        LOG(WARNING) << "Node: failure sending response: " << send_error.message() << endl;
       }
         
       break;
@@ -208,7 +208,7 @@ Node::handle_alter (const AlterTopo& topo)
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge& e = topo.edges(i);
-    operator_id_t src( e.computation(), e.src());
+    operator_id_t src (e.computation(), e.src());
     shared_ptr<DataPlaneOperator> src_op = get_operator(src);
     
     if (e.has_cube_name()) {     //connect to local table
@@ -220,7 +220,7 @@ Node::handle_alter (const AlterTopo& topo)
     } 
     else {
       assert(e.has_dest());
-      operator_id_t dest( e.computation(), e.dest());
+      operator_id_t dest (e.computation(), e.dest());
       shared_ptr<DataPlaneOperator> dest_op = get_operator(dest);
       src_op->set_dest(dest_op);      
     }

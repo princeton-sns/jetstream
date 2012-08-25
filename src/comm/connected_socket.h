@@ -14,18 +14,12 @@
 
 namespace jetstream {
 
-
-/***
-*  A ConnectedSocket represents the underlying socket for a connection.
-* Does not speak protobufs.
-*
-*/
-
 typedef google::protobuf::Message ProtobufMessage; //can be either Message or MessageLite
 
 /**
-*
-*/
+ * Wrapper around C-style char* buf that Protobuf's serialize into / out of,
+ * as they cannot take STL vectors or strings.
+ */
 class SerializedMessageIn {
  public:
   // Parse into serialized protobuf message.
@@ -34,17 +28,30 @@ class SerializedMessageIn {
   u_int32_t len;
   SerializedMessageIn (u_int32_t msglen) 
     : msg ( msglen > 0? new u_int8_t[msglen]: NULL), len (msglen) {}
-  ~SerializedMessageIn () { if (msg) delete[] msg; }
+  ~SerializedMessageIn () { if (msg) { delete[] msg; } }
   private:
-    void operator=(const SerializedMessageIn& ) { LOG(FATAL) << "cannot copy a SerializedMessageIn";}
-    SerializedMessageIn(const SerializedMessageIn& ) { LOG(FATAL) << "cannot copy a SerializedMessageIn";}
-
+    void operator= (const SerializedMessageIn &) 
+      { LOG(FATAL) << "cannot copy a SerializedMessageIn"; }
+    SerializedMessageIn (const SerializedMessageIn &) 
+      { LOG(FATAL) << "cannot copy a SerializedMessageIn"; }
 };
 
 
 typedef boost::function<void (jetstream::SerializedMessageIn &msg,
 			      const boost::system::error_code &) > cb_raw_msg_t;
 
+/**
+ * A ConnectedSocket represents the underlying socket for a connection,
+ * and is created after the socket is in its connected state (after connect()
+ * returns for clients or accept() returns for servers).
+ *
+ * Connected sockets primarily serve to read and write data (send and receive
+ * messages) in an asynchronous fashion.
+ *
+ * Sending and receiving maintain separate boost strands, to make sure that
+ * only one send- or receive-related function is executing at any one time,
+ * even in multi-threaded applications.
+ */
 class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
@@ -89,7 +96,6 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   /********* RECEIVING *********/
 
- private:
   // Only one outstanding async_read at a time
   bool receiving;
 
