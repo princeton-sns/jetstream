@@ -23,6 +23,10 @@ ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
   srv_acceptor.set_option(tcp::acceptor::reuse_address(true), error);
   if (error) return;
   srv_acceptor.bind(local, error);
+  
+  local = srv_acceptor.local_endpoint();  //user might have passed port 0;
+                                          //here we convert to real portno
+  
   if (error) return;
   srv_acceptor.listen(asio::socket_base::max_connections, error);
 }

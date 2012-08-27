@@ -151,7 +151,7 @@ class NodeNetTest : public ::testing::Test {
 
 
     boost::shared_ptr<ControlMessage>  h(new ControlMessage);
-    h->ParseFromArray(buf2.data(), hb_len);
+    h->ParseFromArray(&buf2[0], hb_len);
     return h;
   }
   
