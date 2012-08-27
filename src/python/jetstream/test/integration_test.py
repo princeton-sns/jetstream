@@ -1,7 +1,8 @@
-# Tests that heartbeats from the C++ jetstream client get handled correctly at the 
-# controller. This test creates a mock controller, starts the js process, and verifies
-# that the heartbeats arrive.
-
+# Integration tests spanning the python client/controller and C++ dataplane. These 
+# tests create a python controller, start one or more C++ and/or python workers,
+# and verify that requests (heartbeats, queries) are handled properly. By placing a
+# python worker last in the operator chain, we can verify the final results locally
+# (instead of having to communicate with the C++ worker processes).
 
 import random
 import socket
@@ -25,15 +26,17 @@ class TestController(unittest.TestCase):
 
   def tearDown(self):
     self.server.stop()
-    self.cli_proc.terminate()
 
-  def test(self):
+  def test_heartbeat(self):
     jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.server.address[1])
     print "starting",jsnode_cmd
-    self.cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
+    cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
     time.sleep(2)
     self.assertEquals( len(self.server.get_nodes()), 1)
-    
+    cli_proc.terminate()
+
+  def test_operator(self):
+    pass
 
 
 def run_cmd(self):
@@ -42,7 +45,6 @@ def run_cmd(self):
     for ln in p.stdout.readlines():
       print ln
     p.poll()
-
 
 
 if __name__ == '__main__':

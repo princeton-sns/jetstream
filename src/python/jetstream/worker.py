@@ -53,14 +53,12 @@ class Worker(JSServer):
     for task in altertopo.toStart:
       if task.op_typename != "":
         #TODO: Why is TaskID unhashable?
-        print "STARTING NEW TASK"
         self.tasks[task.id.task] = LocalUnix(task.id.task, task.op_typename)
         self.tasks[task.id.task].start()
     for taskId in altertopo.taskToStop:
       if taskId.task in self.tasks:
         #TODO Add stop() method to operator interface and stop tasks here
         del self.tasks[taskId.task]
-    print "LEAVING WORKER DEPLOY!!"
 
   def process_message(self, buf, handler):
   
