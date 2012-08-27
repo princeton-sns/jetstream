@@ -137,12 +137,12 @@ class Controller(ControllerAPI, JSServer):
 #    print ("server got %d bytes," % len(buf)), req
     response = ControlMessage()
     
-      #always send node count so length is never zero
+    # Always send node count so length is never zero
     node_list = self.get_nodes()
     response.node_count = len(node_list) 
     
     if req.type == ControlMessage.GET_NODE_LIST_REQ:
-      response.nodes.extend( self.serialize_nodelist( node_list))
+      response.nodes.extend(self.serialize_nodelist(node_list))
       response.type = ControlMessage.NODES_RESPONSE
       print "server responding to get_nodes with list of length %d" % len(node_list)
     elif req.type == ControlMessage.ALTER:
@@ -150,10 +150,13 @@ class Controller(ControllerAPI, JSServer):
       response.type = ControlMessage.NODES_RESPONSE  #FIXME should have something else here      
     elif req.type == ControlMessage.HEARTBEAT:
       self.handle_heartbeat(req, handler)
-      return #without sending response to heartbeat
+      return # no response
+    elif req.type == ControlMessage.OK:
+      print "Received OK response from " + str(handler.cli_addr)
+      return # no response
     else:
       response.type = ControlMessage.ERROR
-      response.error_msg = "unknown error"
+      response.error_msg.msg = "unknown error"
 
     handler.send_pb(response)
 

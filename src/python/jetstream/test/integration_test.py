@@ -13,29 +13,59 @@ import time
 import unittest
 
 from controller import *
-
+from generic_netinterface import JSClient
 from jetstream_types_pb2 import *
 
 
 class TestController(unittest.TestCase):
 
   def setUp(self):
-    self.server = Controller(('localhost', 0))
-    self.server.start_as_thread()
-    print "server bound to %s:%d" % self.server.address
+    self.controller = Controller(('localhost', 0))
+    self.controller.start_as_thread()
+    print "controller bound to %s:%d" % self.controller.address
+    self.client = JSClient(self.controller.address)
 
   def tearDown(self):
-    self.server.stop()
+    self.client.close()
+    self.controller.stop()
 
   def test_heartbeat(self):
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.server.address[1])
+    # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
+    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
     time.sleep(2)
-    self.assertEquals( len(self.server.get_nodes()), 1)
+    self.assertEquals( len(self.controller.get_nodes()), 1)
     cli_proc.terminate()
 
   def test_operator(self):
+    # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
+    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
+    print "starting",jsnode_cmd
+    cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
+    time.sleep(2)
+
+    # Tell the controller to deploy a topology (it will deploy it on the only worker)
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER
+    newTask = req.alter.toStart.add()
+    newTask.op_typename = "FileRead"
+    newTask.id.computationID = 17
+    newTask.id.task = 2
+    configEntry = TaskMeta.DictEntry()
+    configEntry = newTask.config.add()
+    configEntry.opt_name = "file"
+    #TODO: Need a better way to construct relative paths
+    configEntry.val = "../../src/tests/data/base_operators_data.txt";
+    
+    buf = self.client.do_rpc(req, True)
+    print "deploy finished..."
+    # Wait for the topology to start running on the worker
+    time.sleep(2)
+    #TODO: Create state in controller and assert that its there
+    cli_proc.terminate()
+ 
+  def test_operator_chain(self):
     pass
 
 

@@ -16,14 +16,14 @@ from jetstream_types_pb2 import *
 class TestController(unittest.TestCase):
 
   def setUp(self):
-    self.server = Controller(('localhost', 0))
-    self.server.start_as_thread()
-    print "connecting to %s:%d" % self.server.address
-    self.client = JSClient(self.server.address)
+    self.controller = Controller(('localhost', 0))
+    self.controller.start_as_thread()
+    print "controller bound to %s:%d" % self.controller.address
+    self.client = JSClient(self.controller.address)
 
   def tearDown(self):
     self.client.close()
-    self.server.stop()
+    self.controller.stop()
     
   def test_connect(self):
     # Test the connection by a simple GET_NODES call
@@ -42,14 +42,14 @@ class TestController(unittest.TestCase):
     req.heartbeat.freemem_mb = 3900
     req.heartbeat.cpuload_pct = 90
     buf = self.client.do_rpc(req, False)
-    # Since no response is expected, sleep a little to give the server time to process message
+    # Since no response is expected, sleep a little to give the controller time to process message
     time.sleep(1)
-    self.assertEquals(len(self.server.get_nodes()), 1)
+    self.assertEquals(len(self.controller.get_nodes()), 1)
 
   def test_deploy(self):
     
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    worker = create_worker(self.server.address)
+    worker = create_worker(self.controller.address)
     worker.start_heartbeat_thread()
     time.sleep(2)
     # Tell the controller to deploy a topology (it will then deploy it on the worker)

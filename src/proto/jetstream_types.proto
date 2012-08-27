@@ -123,7 +123,7 @@ message Heartbeat {
 }
 
 message Error {
- required string error_msg = 1;
+ required string msg = 1;
 }
 
 /*** 

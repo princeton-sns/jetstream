@@ -70,7 +70,7 @@ TEST(Node, HandleAlter_2_Ops)
   shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
   ASSERT_TRUE(dest != NULL);
   
-    //TODO better way to wait here?
+  //TODO better way to wait here?
   boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
