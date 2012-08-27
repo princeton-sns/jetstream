@@ -63,7 +63,7 @@ ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
 void
 ServerConnection::do_accept ()
 {
-  if (srv_acceptor.is_open() || accepting) {
+  if (!srv_acceptor.is_open() || accepting) {
     return;
   }
 
@@ -73,6 +73,7 @@ ServerConnection::do_accept ()
   srv_acceptor.async_accept(*new_sock,
 			    astrand.wrap(boost::bind(&ServerConnection::accepted, 
 						     this, new_sock, _1)));
+      
 }
 
 

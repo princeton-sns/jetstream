@@ -16,10 +16,9 @@ using namespace boost::asio::ip;
 
 bool accept_cb_fired = false;
 
-void my_cb(boost::shared_ptr<ConnectedSocket>, const boost::system::error_code &) 
+void my_cb(boost::shared_ptr<ConnectedSocket> sock, const boost::system::error_code &)
 {
   accept_cb_fired = true;
-  cout <<"callback fired"<<endl;
 }
 
 TEST(Comm, ServerConnection)
@@ -32,16 +31,18 @@ TEST(Comm, ServerConnection)
   
   ASSERT_FALSE(accept_cb_fired);
   serv_conn.accept(my_cb, error);
+  iosrv->run_one(); //should fire the do_accept callback
+  
   tcp::endpoint concrete_local = serv_conn.get_local_endpoint();
 
+  ASSERT_TRUE(serv_conn.is_accepting());
   asio::io_service iosrv2;
   tcp::socket socket(iosrv2);
   boost::system::error_code cli_error;
   socket.connect(concrete_local, cli_error);
-  cout << "connect returned ok" <<endl;
-  boost::this_thread::sleep(boost::posix_time::seconds(0));
   
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
-//  ASSERT_TRUE(accept_cb_fired);
-  cout << "leaving test" << endl;
+  iosrv->run_one(); //should fire the accepted callback
+  
+  //boost::this_thread::sleep(boost::posix_time::seconds(1));
+  ASSERT_TRUE(accept_cb_fired);
 }
