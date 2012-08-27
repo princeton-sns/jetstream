@@ -114,7 +114,7 @@ class NodeNetTest : public ::testing::Test {
     pair<string, port_t> p("127.0.0.1", concrete_end.port());
     
     NodeConfig cfg;
-    cfg.heartbeat_time = 4000;
+    cfg.heartbeat_time = 2000;
     cfg.controllers.push_back(p);
 
     BindTestThread testThreadBody(cfg);

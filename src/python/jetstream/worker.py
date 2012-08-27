@@ -32,7 +32,7 @@ def create_worker(server_address):
   return cli_loop
 
 
-HB_INTERVAL = 3 #seconds
+HB_INTERVAL = 2 #seconds
 class Worker(JSServer):
   
   def __init__(self, addr):
