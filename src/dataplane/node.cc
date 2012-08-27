@@ -40,6 +40,17 @@ Node::Node (const NodeConfig &conf)
     }
   }
   
+  //Setup incoming connection listener
+   
+  asio::ip::tcp::endpoint listen_port(asio::ip::tcp::v4(), conf.dataplane_myport);
+  boost::system::error_code error;
+  listening_sock = boost::shared_ptr<ServerConnection>(
+      new ServerConnection(iosrv, listen_port, error));
+  //TODO should check for error
+  
+  boost::system::error_code bind_error;
+  
+  listening_sock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), bind_error);
 }
 
 
@@ -151,6 +162,12 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
      break;
   }
   
+}
+
+void
+Node::incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock, const boost::system::error_code &)
+{
+
 }
 
 
