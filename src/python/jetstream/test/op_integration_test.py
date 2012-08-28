@@ -27,18 +27,11 @@ class TestController(unittest.TestCase):
     print "controller bound to %s:%d" % self.controller.address
     self.client = JSClient(self.controller.address)
 
+
   def tearDown(self):
     self.client.close()
     self.controller.stop()
 
-  def test_heartbeat(self):
-    # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
-    print "starting",jsnode_cmd
-    cli_proc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
-    time.sleep(2)
-    self.assertEquals( len(self.controller.get_nodes()), 1)
-    os.killpg(cli_proc.pid, signal.SIGTERM)
 
   def test_operator(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
