@@ -165,29 +165,64 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
 }
 
 void
-Node::incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock, const boost::system::error_code &)
+Node::incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock, 
+                            const boost::system::error_code &error)
 {
+  if (error) {
+    LOG(WARNING) << "error receiving income connection: " << error.message() << endl;
+    return;
+  }
+  boost::system::error_code e;
+  
+  //need to convert the connected socket to a client_connection
+  boost::shared_ptr<ClientConnection> conn( new ClientConnection(sock) );
+  conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
 
 }
 
 
-#if 0
+/**
+ * This is only invoked for a "new" connection. We change the signal handler
+  here to the appropriate handler object.
+ */
 void
-Node::received_data_msg (const DataplaneMessage &msg,
-				 const system::error_code &error)
+Node::received_data_msg (shared_ptr<ClientConnection> c,
+                              const DataplaneMessage &msg,
+                              const boost::system::error_code &error)
 {
-  switch (msg.getType ()) {
-  case DATA:
+  boost::system::error_code send_error;
+
+  switch (msg.type ()) {
+  case DataplaneMessage::CHAIN_CONNECT:
     {
-      handle_alter (msg.get_alter());
-      break;
+      const Edge& e = msg.chain_link();
+      //TODO can sanity-check that e is for us here.
+      if (e.has_dest()) {
+        operator_id_t dest_operator_id(e.computation(), e.dest());
+        shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
+        if (dest) {        // Operator exists so we can report "ready"
+          DataplaneMessage response;
+          response.set_type(DataplaneMessage::CHAIN_READY);
+          
+          c->send_msg(response, send_error);
+          //TODO do we log the error or ignore it?
+        } else 
+        {
+      //     ChainCoordinator(c, )
+      // Should spawn a new receiver object here and adjust callback on connection
+       
+        }
+      }
     }
+    break;
   default:
+     // Everything else is an error
+     LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
+        " from " << c->get_remote_endpoint();
+        
+     break;
   }
 }
-#endif
-
-
 
 operator_id_t 
 unparse_id (const TaskID& id)

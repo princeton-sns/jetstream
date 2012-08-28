@@ -78,6 +78,11 @@ class Node {
   
   boost::shared_ptr<LivenessManager> liveness_mgr;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
+  
+   //I don't think we need this
+//  std::vector<boost::shared_ptr<ClientConnection> > peers;  
+    // perhaps we should keep a map from dest to socket instead?
+                                                    
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
