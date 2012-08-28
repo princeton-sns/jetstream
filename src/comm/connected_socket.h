@@ -130,6 +130,10 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   // Underlying use of async reads are thread safe
   void recv_msg (cb_raw_msg_t recvcb);
 
+   //these are here so we can wrap an existing ConnectedSocket in a ClientConnection
+  boost::shared_ptr<boost::asio::io_service> get_iosrv() { return iosrv;}
+  boost::shared_ptr<boost::asio::ip::tcp::socket> get_raw_sock() {return sock;}
+
 };
 
 

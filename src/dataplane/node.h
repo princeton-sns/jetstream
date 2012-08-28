@@ -73,10 +73,16 @@ class Node {
   NodeConfig config;
   CubeManager cube_mgr;
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::shared_ptr<ConnectionManager> conn_mgr; 
-
+  boost::shared_ptr<ConnectionManager> conn_mgr;
+  boost::shared_ptr<ServerConnection> listening_sock;
+  
   boost::shared_ptr<LivenessManager> liveness_mgr;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
+  
+   //I don't think we need this
+//  std::vector<boost::shared_ptr<ClientConnection> > peers;  
+    // perhaps we should keep a map from dest to socket instead?
+                                                    
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
@@ -90,6 +96,9 @@ class Node {
 
   void received_data_msg (boost::shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
 		     const boost::system::error_code &error);
+         
+  void incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock,
+                             const boost::system::error_code &);
 
   NodeWebInterface  web_interface;
   
