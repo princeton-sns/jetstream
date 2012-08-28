@@ -33,66 +33,72 @@ def get_server_on_this_node():
 
 
 class Controller(ControllerAPI, JSServer):
+  """A JetStream controller, currently runs as a single-threaded event loop"""
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)
-    self.nodelist = {}
+    self.workerList = {}
     self.internals_lock = threading.RLock()
-    
-    #SS: How do we feel about namedtuples?
-    # Values in nodelist will be of type NodeInfo
+    # Define a type to store node information
     self.NodeInfo = namedtuple('NodeInfo', 'lastHeard')
 
 
-######## The methods below are part of the 'internal' interface. 
-#  They should acquire locks before accessing data structures
-
-
+  ###TODO: Decide whether we need locks for internal datastructure access in methods below.
+    
   def get_nodes(self):
     """Returns a list of NodeInfos"""
     self.internals_lock.acquire()
     res = []
-    res.extend(self.nodelist.items())
+    res.extend(self.workerList.items())
     self.internals_lock.release()
     return res
     
   def get_one_node(self):
     self.internals_lock.acquire()
-    res = self.nodelist.keys()[0]
+    res = self.workerList.keys()[0]
     self.internals_lock.release()
     return res
 
-    
-#########  The methods below are part of the external interface.  
-#  They should go through the 'internal' interface OR acquire locks
-    
-    
-  def serialize_nodelist(self, nodes):
+  ###TODO: See above
+
+
+  def serialize_nodeList(self, nodes):
     """Serialize node list as list of protobuf NodeIDs"""
     res = []
     for node,_ in nodes:
       nID = NodeID()
-      nID.address,nID.portno =  node
+      nID.address,nID.portno = node
       res.append(nID)
     return res
- 
+
+
+  def handle_get_nodes(self, response):
+    nodeList = self.get_nodes()
+    response.type = ControlMessage.NODES_RESPONSE
+    response.nodes.extend(self.serialize_nodeList(nodeList))
+    response.node_count = len(nodeList)
+    print "server responding to get_nodes with list of length %d" % len(nodeList)
+
     
-  def handle_heartbeat(self, hbeat, handler):
+  def handle_heartbeat(self, hbeat, clientAddr):
     t = long(time.time())
     print "got heartbeat at %s." % time.ctime(t)
-    print "sender was " + str(handler.cli_addr)
+    print "sender was " + str(clientAddr)
     print hbeat
     print ""
     self.internals_lock.acquire()
-    self.nodelist[handler.cli_addr] = self.NodeInfo(t)  #TODO more meta here
+    #TODO: Either remove locking above or add add() API
+    self.workerList[clientAddr] = self.NodeInfo(t)  #TODO more meta here
     self.internals_lock.release()
 
     
-  def handle_deploy(self, altertopo):
-    if len(self.nodelist) == 0:
+  def handle_deploy(self, response, altertopo):
+    response.type = ControlMessage.OK
+    
+    if len(self.workerList) == 0:
       print "WARNING: Worker node list on controller is empty!!"
-      #TODO: Return some error message here. Are we using ServerResponse.error for this?
-      return
+      response.type = ControlMessage
+      response.error_msg.msg = "No workers available to deploy topology"
 
     #TODO: The code below only deals with starting tasks. We also assume the client topology looks
     #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
@@ -123,6 +129,7 @@ class Controller(ControllerAPI, JSServer):
 
     print "returning from handle_deploy"
 
+
   #TODO: Move this to within operator graph abstraction.
   def findSourcesLCA(self, tasks, edges):
     #TODO: For now just assert that the sources point to the same parent and return this parent
@@ -130,26 +137,22 @@ class Controller(ControllerAPI, JSServer):
     #for task in tasks:
     return -1
 
+
   def process_message(self, buf, handler):
   
     req = ControlMessage()
     req.ParseFromString(buf)
 #    print ("server got %d bytes," % len(buf)), req
     response = ControlMessage()
-    
-    # Always send node count so length is never zero
-    node_list = self.get_nodes()
-    response.node_count = len(node_list) 
+    # Assign a default response type, should be overwritten below
+    response.type = ControlMessage.ERROR
     
     if req.type == ControlMessage.GET_NODE_LIST_REQ:
-      response.nodes.extend(self.serialize_nodelist(node_list))
-      response.type = ControlMessage.NODES_RESPONSE
-      print "server responding to get_nodes with list of length %d" % len(node_list)
+      self.handle_get_nodes(response)
     elif req.type == ControlMessage.ALTER:
-      self.handle_deploy(req.alter)
-      response.type = ControlMessage.NODES_RESPONSE  #FIXME should have something else here      
+      self.handle_deploy(response, req.alter)
     elif req.type == ControlMessage.HEARTBEAT:
-      self.handle_heartbeat(req, handler)
+      self.handle_heartbeat(req, handler.cli_addr)
       return # no response
     elif req.type == ControlMessage.OK:
       print "Received OK response from " + str(handler.cli_addr)
@@ -159,6 +162,7 @@ class Controller(ControllerAPI, JSServer):
       response.error_msg.msg = "unknown error"
 
     handler.send_pb(response)
+
 
 if __name__ == '__main__':
   main()
