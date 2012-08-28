@@ -68,10 +68,11 @@ LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_p
 void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
-  waiting = false;
 
   if (error || !is_connected())
     return;
+    
+  waiting = false;
 
   ControlMessage req;
   req.set_type(ControlMessage::HEARTBEAT);
@@ -119,4 +120,9 @@ LivenessManager::ConnectionNotification::stop_notify ()
   // Since the handler will just bail anyway, don't wait and reset 'waiting' here.
   timer.cancel(e);
   waiting = false;
+}
+
+LivenessManager::ConnectionNotification::~ConnectionNotification()
+{
+  stop_notify();
 }

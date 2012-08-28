@@ -30,7 +30,7 @@ TEST(Operator, ReadOperator) {
   }
 
   ASSERT_GT(rec->tuples.size(), (size_t)4);
-  string s = rec->tuples[0].e(0).s_val();
+  string s = rec->tuples[0]->e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
   ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
 }
@@ -109,9 +109,9 @@ TEST(Operator, OperatorChain)
   // Each string should match both grep patterns, since they are in series
   boost::smatch matchResults;
   bool match;
-  for (vector<Tuple>::iterator it = rec->tuples.begin(); it != rec->tuples.end(); it++) {
-    match = boost::regex_search(it->e(0).s_val(), matchResults, re1);
-    match = (match && boost::regex_search(it->e(0).s_val(), matchResults, re2));
+  for (vector< shared_ptr<Tuple> >::iterator it = rec->tuples.begin(); it != rec->tuples.end(); it++) {
+    match = boost::regex_search( (*it)->e(0).s_val(), matchResults, re1);
+    match = (match && boost::regex_search((*it)->e(0).s_val(), matchResults, re2));
     ASSERT_TRUE(match);
   }
 }

@@ -46,3 +46,11 @@ TEST(Comm, ServerConnection)
   //boost::this_thread::sleep(boost::posix_time::seconds(1));
   ASSERT_TRUE(accept_cb_fired);
 }
+
+TEST(Comm,PrintPB)
+{
+  DataplaneMessage data_msg;
+  ostringstream s;
+  s <<"raw message is:" << data_msg.Utf8DebugString() <<endl;
+}
+

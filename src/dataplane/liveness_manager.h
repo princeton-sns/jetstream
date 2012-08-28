@@ -26,6 +26,8 @@ class LivenessManager {
 			    boost::shared_ptr<ClientConnection> c,
 			    msec_t heartbeat);
 
+    ~ConnectionNotification();
+
     void send_notification (const boost::system::error_code &error);
     void stop_notify ();
     bool is_connected () const { return (conn && conn->is_connected()); }

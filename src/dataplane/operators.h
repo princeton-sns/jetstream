@@ -51,9 +51,9 @@ class StringGrep: public DataPlaneOperator {
   
 class DummyReceiver: public DataPlaneOperator {
 public:
-  std::vector<Tuple> tuples;
+  std::vector< boost::shared_ptr<Tuple> > tuples;
   virtual void process(boost::shared_ptr<Tuple> t) {
-    tuples.push_back(*t);
+    tuples.push_back(t);
   }
 };
   

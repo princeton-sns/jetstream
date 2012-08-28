@@ -102,7 +102,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   // Serialize access to following functions via same strand
   void perform_recv ();
-  void received_header (boost::shared_ptr<std::vector<u_int32_t> > hdrbuf,
+  void received_header (boost::shared_ptr< u_int32_t > hdrbuf,
 			const boost::system::error_code &error,
 			size_t bytes_transferred);
   void received_body (boost::shared_ptr<SerializedMessageIn> recv_msg,
