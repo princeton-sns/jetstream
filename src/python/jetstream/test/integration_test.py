@@ -7,6 +7,8 @@
 import random
 import socket
 import struct
+import os
+import signal
 import subprocess
 import thread
 import time
@@ -33,16 +35,16 @@ class TestController(unittest.TestCase):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
-    cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
+    cli_proc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
     time.sleep(2)
     self.assertEquals( len(self.controller.get_nodes()), 1)
-    cli_proc.terminate()
+    os.killpg(cli_proc.pid, signal.SIGTERM)
 
   def test_operator(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
-    cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
+    cli_proc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
     time.sleep(2)
 
     # Tell the controller to deploy a topology (it will deploy it on the only worker)
@@ -63,7 +65,7 @@ class TestController(unittest.TestCase):
     # Wait for the topology to start running on the worker
     time.sleep(2)
     #TODO: Create state in controller and assert that its there
-    cli_proc.terminate()
+    os.killpg(cli_proc.pid, signal.SIGTERM)
  
   def test_operator_chain(self):
     pass
