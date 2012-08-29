@@ -13,10 +13,10 @@ NodeWebInterface::start()
   if (mongoose_ctxt != NULL) {
     LOG(FATAL) << "Trying to re-initialize initialized web server";
   }
-  const char* mongoose_cfg[] = {"listening_ports", "8081", NULL};
-  
-  
-  mongoose_ctxt = mg_start(process_req, this, mongoose_cfg);
+  else {
+    const char* mongoose_cfg[] = {"listening_ports", "8081", NULL};
+    mongoose_ctxt = mg_start(process_req, this, mongoose_cfg);
+  }
 }
 
 

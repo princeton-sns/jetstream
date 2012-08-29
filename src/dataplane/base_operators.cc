@@ -4,6 +4,7 @@
 #include <fstream>
 #include "stdlib.h"
 
+#include <glog/logging.h>
 
 using namespace std;
 using namespace boost;
@@ -27,7 +28,13 @@ FileRead::start(map<string,string> config) {
 void
 FileRead::stop() {
   running = false;
+  LOG(INFO) << "stopping file read operator";
   loopThread->join();
+}
+
+void
+FileRead::process(boost::shared_ptr<Tuple> t) {
+  LOG(WARNING) << "Should never be sending data to a FileRead";
 }
 
 bool
@@ -54,6 +61,10 @@ FileRead::operator()() {
   }
   running = false;
 }
+
+
+
+
 
 void
 StringGrep::start(map<string,string> config) {
@@ -91,5 +102,11 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     emit(t);
   }
 }
+
+
+DummyReceiver::~DummyReceiver() {
+  LOG(WARNING) << "destructing dummy receiver";
+}
+
 
 }

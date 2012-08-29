@@ -58,11 +58,6 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
     return;
   }
   
-  LOG(INFO) << "dataplane got data from remote host";
-  
-  cout << msg.Utf8DebugString();
-
-  
   if (!dest)
     LOG(FATAL) << "got data but no operator to receive it";
   

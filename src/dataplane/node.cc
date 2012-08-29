@@ -58,6 +58,9 @@ Node::Node (const NodeConfig &conf)
 
 Node::~Node () 
 {
+  if (!iosrv->stopped()) {
+    stop();
+  }
 }
 
 
@@ -81,7 +84,7 @@ Node::run ()
 
   iosrv->run ();
 
-  LOG(INFO) << "Finished node::run" << endl;
+  VLOG(1) << "Finished node::run" << endl;
 }
 
 
@@ -90,9 +93,18 @@ Node::stop ()
 {
   liveness_mgr->stop_all_notifications();
   iosrv->stop();
-  LOG(INFO) << "io service stopped" << endl;
+  
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+
+    //need to stop operators before deconstructing because otherwise they may
+    //keep pointers around after destruction.
+  for (iter = operators.begin(); iter != operators.end(); iter++) {
+    iter->second->stop();
+  }
+//  LOG(INFO) << "io service stopped" << endl;
 
   // Optional:  Delete all global objects allocated by libprotobuf.
+  //Probably unwise here since we may have multiple Nodes in a unit test.
 //  google::protobuf::ShutdownProtobufLibrary();
   LOG(INFO) << "Finished node::stop" << endl;
 }
@@ -151,15 +163,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
         
       break;
     }
-/*  case DATAPLANE:
-    {
-      const DataMsg &data_msg = msg.get_DataPlane();
-      if (!data_msg)
-	error == X;
-      else 
-	received_dataplane_msg(data_msg, error);
-      break;
-    }*/
+
    default:
      break;
   }
@@ -200,7 +204,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   boost::system::error_code send_error;
 
 
-  LOG(INFO) << "node received data message of type " << msg.type();
+  VLOG(1) << "node received data message of type " << msg.type();
 
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:

@@ -45,15 +45,23 @@ class NodeWebInterface {
   Node& node;
   
   void make_base_page(std::ostream& buf);
+
   
  public:
   NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
   ~NodeWebInterface() { stop(); }
   
-  void start(); //Dangerous to call many times, because doesn't clean up.
+  void start(); //An error to call multiple times on the same object
   void stop();  //idempotent, but may block to join with worker threads.
   
   static void * process_req(enum mg_event event, struct mg_connection *conn);
+  
+  
+ private:
+  void operator= (const NodeWebInterface &) 
+    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
+  NodeWebInterface (const NodeWebInterface & n):node(n.node)
+    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
   
 };
   

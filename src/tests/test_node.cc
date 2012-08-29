@@ -82,6 +82,21 @@ TEST(Node, HandleAlter_2_Ops)
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
 }
 
+//verify that web interface starts and stops are properly idempotent/repeatable.
+TEST(Node,WebIfaceStartStop)
+{
+  NodeConfig cfg;
+  Node node(cfg);
+  NodeWebInterface iface(node);
+  
+  for(int i=0; i < 10; ++i) {
+    iface.start();
+    iface.stop();
+    iface.stop();
+  }
+
+}
+
 
 class BindTestThread {
   public:
@@ -255,7 +270,6 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   Tuple * t = data_msg.add_data();
   Element * e = t->add_e();
   e->set_s_val("some mock data");
-  cout <<"data to be sent is:" << data_msg.Utf8DebugString() <<endl;
 
   data_conn.send_msg(data_msg);
   
