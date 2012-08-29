@@ -11,47 +11,43 @@ using namespace boost;
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          operator_id_t dest_op_id,
-                                         shared_ptr<DataPlaneOperator> dest)
-{
+                                         shared_ptr<DataPlaneOperator> dest) {
   boost::system::error_code error;
   
   live_conns[dest_op_id] = c;
 
+  
   c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
                                   this, dest_op_id, dest,  _1, _2), error);
   //TODO: what if there's an error? Can there be?
    LOG(INFO) << "dataplane connection enabled for data";
+   
+  DataplaneMessage response;
+  response.set_type(DataplaneMessage::CHAIN_READY);
+  c->send_msg(response, error);
 }
                      
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
-                                          operator_id_t future_op)
-{
+                                          operator_id_t future_op) {
   pending_conns[future_op] = c;
 }
 
 
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
-                                        shared_ptr<DataPlaneOperator> dest)
-{
+                                        shared_ptr<DataPlaneOperator> dest) {
   shared_ptr<ClientConnection> c = pending_conns[op_id];
   pending_conns.erase(op_id);
 
   enable_connection(c, op_id, dest);
-
-  boost::system::error_code error;  
-  DataplaneMessage response;
-  response.set_type(DataplaneMessage::CHAIN_READY);
-  c->send_msg(response, error);
   
 }
 
 void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
                                         shared_ptr<DataPlaneOperator> dest,
                                         const DataplaneMessage &msg,
-                                        const boost::system::error_code &error)
-{
+                                        const boost::system::error_code &error) {
 
   if (error) {
     LOG(WARNING) << "error trying to read data: " << error.message();
@@ -77,7 +73,20 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
      assert(c);
      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
         " from " << c->get_remote_endpoint() << " for existing dataplane connection";
-        
   }
+}
+  
+  
+  
+  
+void
+OutgoingConnAdaptor::process (boost::shared_ptr<Tuple> t) {
+ DataplaneMessage d;
+ d.set_type(DataplaneMessage::DATA);
+ d.add_data()->MergeFrom(*t);
+ //TODO: could we merge multiple tuples here?
+
+ boost::system::error_code err;
+ conn->send_msg(d, err);
 }
   

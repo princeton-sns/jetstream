@@ -64,13 +64,16 @@ class OutgoingConnAdaptor : public Receiver {
   boost::shared_ptr<ClientConnection> conn;
   
  public:
-  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c,
-                       boost::shared_ptr<DataPlaneOperator> d);
+  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c):conn(c) {}
 
+  virtual void process (boost::shared_ptr<Tuple> t);
+
+
+/*
   void received_data_msg (boost::shared_ptr<ClientConnection> c,
                           const jetstream::DataplaneMessage &msg,
                           const boost::system::error_code &error);
-
+*/
 
 };
 

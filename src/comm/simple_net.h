@@ -13,11 +13,13 @@ namespace jetstream {
 
 class SimpleNet
 {
+// boost::asio::io_service iosrv;
  boost::asio::ip::tcp::socket &sock;
 
  public:
    SimpleNet(boost::asio::ip::tcp::socket &s): sock(s) {}
-   
+//   SimpleNet(boost::asio::ip::tcp::endpoint &e);
+ 
    boost::shared_ptr<DataplaneMessage> get_data_msg();
    boost::shared_ptr<ControlMessage> get_ctrl_msg();
    
