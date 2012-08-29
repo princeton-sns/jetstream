@@ -4,6 +4,18 @@
 
 using namespace jetstream;
 
+
+
+/*
+Awkward -- no good way to manage storage for the io service
+SimpleNet::SimpleNet(boost::asio::ip::tcp::endpoint &e) :
+  iosrv(), sock(new socket(iosrv)
+{
+  boost::system::error_code cli_error;
+  socket.connect(e, cli_error);
+}
+*/
+
 boost::shared_ptr<ControlMessage>
 SimpleNet::get_ctrl_msg()
 {

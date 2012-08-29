@@ -223,9 +223,6 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
          
           data_conn_mgr.enable_connection(c, dest_operator_id, dest);
 
-          DataplaneMessage response;
-          response.set_type(DataplaneMessage::CHAIN_READY);
-          c->send_msg(response, send_error);
           //TODO do we log the error or ignore it?
         }
         else {

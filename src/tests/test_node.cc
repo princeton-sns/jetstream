@@ -212,8 +212,26 @@ TEST_F(NodeNetTest, Print)
   s <<"raw message is:" << data_msg.Utf8DebugString() <<endl;
 }
 
+shared_ptr<DataPlaneOperator> 
+add_dummy_receiver(Node& n)
+{
+  AlterTopo topo;
+  TaskMeta* task = topo.add_tostart();
+  TaskID* id = task->mutable_id();
+  id->set_computationid(17);
+  id->set_task(3);
+  task->set_op_typename("DummyReceiver");
+  n.handle_alter(topo);
+  
 
-//This test verifies that the dataplane can receive data if the operator is ready.
+  operator_id_t id2(17,3);
+  shared_ptr<DataPlaneOperator> dest = n.get_operator( id2 );
+  EXPECT_TRUE( dest != 0 );
+  return dest;
+}
+
+
+// This test verifies that the dataplane can receive data if the operator is ready.
 TEST_F(NodeNetTest, ReceiveDataReady)
 {
   ASSERT_TRUE( cli_socket.is_open());
@@ -222,31 +240,17 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
 
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n);
 
-  AlterTopo topo;
-  TaskMeta* task = topo.add_tostart();
-  TaskID* id = task->mutable_id();
-  id->set_computationid(17);
-  id->set_task(3);
-  task->set_op_typename("DummyReceiver");
-  n->handle_alter(topo);
-
-  operator_id_t id2(17,3);
-  shared_ptr<DataPlaneOperator> dest = n->get_operator( id2 );
-  ASSERT_TRUE(dest != NULL);
-  
   //At this point we have a receiver ready to go. Next: connect to it
   
-  asio::io_service iosrv;
+  boost::asio::io_service iosrv;
   tcp::socket socket(iosrv);
   boost::system::error_code cli_error;
   socket.connect(n->get_listening_endpoint(), cli_error);
-  
   SimpleNet data_conn(socket);
   
-  
   cout <<"connected to data port: " << n->get_listening_endpoint().port() << endl;
-  
   
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
@@ -258,6 +262,66 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   data_conn.send_msg(data_msg);
   
   cout <<"sent chain connect; data length = " << data_msg.ByteSize() << endl;
+
+  
+  shared_ptr<DataplaneMessage> resp = data_conn.get_data_msg();
+  ASSERT_EQ(DataplaneMessage::CHAIN_READY, resp->type());
+  
+  cout <<"got chain ready" << endl;
+
+  data_msg.Clear();
+  data_msg.set_type(DataplaneMessage::DATA);
+  Tuple * t = data_msg.add_data();
+  Element * e = t->add_e();
+  e->set_s_val("some mock data");
+
+  data_conn.send_msg(data_msg);
+  
+  cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
+
+  //TODO better way to wait here?
+  boost::this_thread::sleep(boost::posix_time::seconds(2));
+  
+  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+  
+  
+  cout << "test ending" <<endl;
+}
+
+
+
+// This test verifies that the dataplane can receive data if the operator
+// is not yet ready.
+TEST_F(NodeNetTest, ReceiveDataNotYetReady)
+{
+  ASSERT_TRUE( cli_socket.is_open());
+
+  boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
+  ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+  ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
+
+  boost::asio::io_service iosrv;
+  tcp::socket socket(iosrv);
+  boost::system::error_code cli_error;
+  socket.connect(n->get_listening_endpoint(), cli_error);
+  SimpleNet data_conn(socket);
+  
+  cout <<"connected to data port: " << n->get_listening_endpoint().port() << endl;
+  
+  DataplaneMessage data_msg;
+  data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
+  
+  Edge * edge = data_msg.mutable_chain_link();
+  edge->set_computation(17);
+  edge->set_dest(3);
+  edge->set_src(5);
+  data_conn.send_msg(data_msg);
+  
+  cout <<"sent chain connect; data length = " << data_msg.ByteSize() << endl;
+
+//add receiver
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n);
 
   
   shared_ptr<DataplaneMessage> resp = data_conn.get_data_msg();
