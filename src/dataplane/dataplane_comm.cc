@@ -77,10 +77,38 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
 }
   
   
-  
+
+OutgoingConnAdaptor::OutgoingConnAdaptor (ConnectionManager& cm,
+                                          const string& addr,
+                                          int32_t portno) {
+  cm.create_connection(addr, portno, boost::bind(
+                 &OutgoingConnAdaptor::conn_created_cb, this, _1, _2));
+
+}
+
+void
+OutgoingConnAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
+                                     boost::system::error_code error) {
+  conn = c;
+  conn_ready.notify_all();
+}
   
 void
 OutgoingConnAdaptor::process (boost::shared_ptr<Tuple> t) {
+
+  boost::unique_lock<boost::mutex> lock(mutex);//wraps mutex in an RIAA pattern
+  while (!conn) {
+   //SHOULD BLOCK HERE
+   LOG(WARNING) << "trying to send data through closed conn. Should block";
+   
+   system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
+   bool conn_established = conn_ready.timed_wait(lock, wait_until);
+   
+   if (!conn_established) {
+    LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
+   }
+ }
+
  DataplaneMessage d;
  d.set_type(DataplaneMessage::DATA);
  d.add_data()->MergeFrom(*t);

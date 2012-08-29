@@ -12,6 +12,8 @@
 #include <map>
 #include <set>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
+
 #include "connection.h"
 #include "dataplaneoperator.h"
 #include <glog/logging.h>
@@ -62,9 +64,16 @@ class OutgoingConnAdaptor : public Receiver {
 
  private:
   boost::shared_ptr<ClientConnection> conn;
+  boost::condition_variable conn_ready;
+  boost::mutex mutex;
+  
+  void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
+                        boost::system::error_code error);
+  const int wait_for_conn = 2000; //ms
   
  public:
   OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c):conn(c) {}
+  OutgoingConnAdaptor (ConnectionManager& cm, const std::string& addr, int32_t portno);
 
   virtual void process (boost::shared_ptr<Tuple> t);
 
