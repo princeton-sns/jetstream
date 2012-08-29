@@ -10,8 +10,6 @@ from controller import *
 from worker import *
 from generic_netinterface import JSClient
 
-
-from operator_graph import OperatorGraph,Operators
 from jetstream_types_pb2 import *
 
 

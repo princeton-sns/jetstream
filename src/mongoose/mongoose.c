@@ -4287,7 +4287,7 @@ static void free_context(struct mg_context *ctx) {
     SSL_CTX_free(ctx->client_ssl_ctx);
   }
 #ifndef NO_SSL
-Note: we're not using SSL for JetStream so this should never happen. --ASR.
+  // Note: we're not using SSL for JetStream so this should never happen. --ASR.
   [trying to verify that an option is being set]
   if (ssl_mutexes != NULL) {
     free(ssl_mutexes);
