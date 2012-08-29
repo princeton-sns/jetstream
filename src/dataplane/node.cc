@@ -294,12 +294,19 @@ Node::handle_alter (const AlterTopo& topo)
     operator_id_t src (e.computation(), e.src());
     shared_ptr<DataPlaneOperator> src_op = get_operator(src);
     
+    assert(src_op);
+    //TODO check if src doesn't exist
+    
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
       src_op->set_dest(d);
     } 
     else if (e.has_dest_addr()) {   //remote network operator
-      //TODO handle network
+      const jetstream::NodeID& n_id = e.dest_addr();
+      
+      shared_ptr<Receiver> xceiver(
+          new OutgoingConnAdaptor(*conn_mgr, n_id.address(), n_id.portno()) );
+      src_op->set_dest(xceiver);
     } 
     else {
       assert(e.has_dest());
