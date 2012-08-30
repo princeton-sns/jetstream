@@ -12,6 +12,7 @@ from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
+from computation_state import *
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
 
@@ -33,14 +34,29 @@ def get_server_on_this_node():
 
 
 class Controller(ControllerAPI, JSServer):
-  """A JetStream controller, currently runs as a single-threaded event loop"""
+  """A JetStream controller"""
   
   def __init__(self, addr):
     JSServer.__init__(self, addr)
     self.workerList = {}
+    self.livenessThread = None
     self.internals_lock = threading.RLock()
-    # Define a type to store node information
-    self.NodeInfo = namedtuple('NodeInfo', 'lastHeard')
+
+
+  def start_liveness_thread(self):
+    assert(self.livenessThread == None)
+    self.livenessThread = threading.Thread(group=None, target=self.liveness_thread, args = ())
+    self.livenessThread.daemon = True
+    self.livenessThread.start()
+
+
+  def liveness_thread(self):
+    while len(self.workerList) > 0:
+      for w,s in self.workerList.items():
+        if s.update_state() == WorkerState.DEAD:
+          del self.workerList[w]
+      #TODO: Do all workers have the same hb interval?
+      time.sleep(WorkerState.DEFAULT_HB_INTERVAL_SECS)
 
 
   ###TODO: Decide whether we need locks for internal datastructure access in methods below.
@@ -80,15 +96,27 @@ class Controller(ControllerAPI, JSServer):
     print "server responding to get_nodes with list of length %d" % len(nodeList)
 
     
-  def handle_heartbeat(self, hbeat, clientAddr):
+  def handle_heartbeat(self, hb, clientAddr):
     t = long(time.time())
     print "got heartbeat at %s." % time.ctime(t)
     print "sender was " + str(clientAddr)
-    print hbeat
+    print hb
     print ""
     self.internals_lock.acquire()
     #TODO: Either remove locking above or add add() API
-    self.workerList[clientAddr] = self.NodeInfo(t)  #TODO more meta here
+    if clientAddr not in self.workerList:
+      print "Added " + str(clientAddr)
+      self.workerList[clientAddr] = WorkerState(clientAddr)
+      self.workerList[clientAddr].receive_hb(hb)
+      # If this is the first worker, start the liveness thread
+      if len(self.workerList) == 1:
+        # Make sure a previous instantiation of the thread has stopped
+        if (self.livenessThread != None) and (self.livenessThread.is_alive()):
+          self.livenessThread.join()
+        self.livenessThread = None
+        self.start_liveness_thread()
+    else:
+      self.workerList[clientAddr].receive_hb(hb)
     self.internals_lock.release()
 
     
@@ -139,7 +167,7 @@ class Controller(ControllerAPI, JSServer):
 
 
   def process_message(self, buf, handler):
-  
+    """Processes control messages; only supports single-threaded access"""
     req = ControlMessage()
     req.ParseFromString(buf)
 #    print ("server got %d bytes," % len(buf)), req
