@@ -12,9 +12,10 @@ from local_controller import LocalUnix
 
 from generic_netinterface import JSServer
 from controller import DEFAULT_BIND_PORT
+from computation_state import WorkerState
 
 logger = logging.getLogger('JetStream')
-DEFAULT_WORKER_BIND_PORT = 3457
+DEFAULT_WORKER_BIND_PORT = 0
 
 def main():
 #  Could read config here
@@ -24,20 +25,20 @@ def main():
   print "connected, starting heartbeat thread" 
   worker_thread.heartbeat_thread()
  
-def create_worker(server_address):
+def create_worker(server_address, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SECS):
   my_address = ('localhost', DEFAULT_WORKER_BIND_PORT) 
-  cli_loop = Worker(my_address)
+  cli_loop = Worker(my_address, hbInterval)
   cli_loop.connect_to_server(server_address)
   cli_loop.start_as_thread()
   return cli_loop
 
 
-HB_INTERVAL = 2 #seconds
 class Worker(JSServer):
   
-  def __init__(self, addr):
+  def __init__(self, addr, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.tasks = {}
+    self.hbInterval = hbInterval
     self.looping = True
     self.hbThread = None
 
@@ -70,7 +71,7 @@ class Worker(JSServer):
 #    handler.send_pb(response)
     
   def start_heartbeat_thread(self):
-    self.hbThread = threading.Thread(group = None, target =self.heartbeat_thread, args = ())
+    self.hbThread = threading.Thread(group=None, target=self.heartbeat_thread, args=())
     self.hbThread.daemon = True
     self.hbThread.start()
 
@@ -87,8 +88,7 @@ class Worker(JSServer):
       req.heartbeat.freemem_mb = 100
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
       self.connection_to_server.send_pb(req)
-  
-      time.sleep(HB_INTERVAL)
+      time.sleep(self.hbInterval)
 
 if __name__ == '__main__':
   main()

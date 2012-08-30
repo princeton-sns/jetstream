@@ -28,18 +28,19 @@ def main():
   
 def get_server_on_this_node():  
   bind_port = DEFAULT_BIND_PORT
-  address = ('localhost', bind_port) 
-  server = Controller(address)
+  endpoint = ('localhost', bind_port) 
+  server = Controller(endpoint)
   return server
 
 
 class Controller(ControllerAPI, JSServer):
   """A JetStream controller"""
   
-  def __init__(self, addr):
+  def __init__(self, addr, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.workerList = {}
     self.livenessThread = None
+    self.hbInterval = hbInterval
     self.internals_lock = threading.RLock()
 
 
@@ -56,18 +57,19 @@ class Controller(ControllerAPI, JSServer):
         if s.update_state() == WorkerState.DEAD:
           del self.workerList[w]
       #TODO: Do all workers have the same hb interval?
-      time.sleep(WorkerState.DEFAULT_HB_INTERVAL_SECS)
+      time.sleep(self.hbInterval)
 
 
   ###TODO: Decide whether we need locks for internal datastructure access in methods below.
     
   def get_nodes(self):
-    """Returns a list of NodeInfos"""
+    """Returns a list of WorkerStates"""
     self.internals_lock.acquire()
     res = []
-    res.extend(self.workerList.items())
+    res.extend(self.workerList.values())
     self.internals_lock.release()
     return res
+
     
   def get_one_node(self):
     self.internals_lock.acquire()
@@ -81,9 +83,9 @@ class Controller(ControllerAPI, JSServer):
   def serialize_nodeList(self, nodes):
     """Serialize node list as list of protobuf NodeIDs"""
     res = []
-    for node,_ in nodes:
+    for node in nodes:
       nID = NodeID()
-      nID.address,nID.portno = node
+      nID.address,nID.portno = node.endpoint
       res.append(nID)
     return res
 
@@ -98,15 +100,14 @@ class Controller(ControllerAPI, JSServer):
     
   def handle_heartbeat(self, hb, clientAddr):
     t = long(time.time())
-    print "got heartbeat at %s." % time.ctime(t)
-    print "sender was " + str(clientAddr)
-    print hb
-    print ""
+    print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientAddr))
+    #print hb
+    #print ""
     self.internals_lock.acquire()
     #TODO: Either remove locking above or add add() API
     if clientAddr not in self.workerList:
       print "Added " + str(clientAddr)
-      self.workerList[clientAddr] = WorkerState(clientAddr)
+      self.workerList[clientAddr] = WorkerState(clientAddr, self.hbInterval)
       self.workerList[clientAddr].receive_hb(hb)
       # If this is the first worker, start the liveness thread
       if len(self.workerList) == 1:
