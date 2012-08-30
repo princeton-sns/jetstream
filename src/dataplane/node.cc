@@ -302,10 +302,8 @@ Node::handle_alter (const AlterTopo& topo)
       src_op->set_dest(d);
     } 
     else if (e.has_dest_addr()) {   //remote network operator
-      const jetstream::NodeID& n_id = e.dest_addr();
-      
       shared_ptr<Receiver> xceiver(
-          new OutgoingConnAdaptor(*conn_mgr, n_id.address(), n_id.portno()) );
+          new OutgoingConnAdaptor(*conn_mgr, e) );
       src_op->set_dest(xceiver);
     } 
     else {

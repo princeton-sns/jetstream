@@ -59,9 +59,9 @@ class NodeWebInterface {
   
  private:
   void operator= (const NodeWebInterface &) 
-    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
+    { LOG(FATAL) << "cannot copy a NodeWebInterface"; }
   NodeWebInterface (const NodeWebInterface & n):node(n.node)
-    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
+    { LOG(FATAL) << "cannot copy a NodeWebInterface"; }
   
 };
   
@@ -125,6 +125,16 @@ class Node {
 *  overhead isn't worth it.
 */
   ControlMessage handle_alter (const AlterTopo& t);
+
+
+
+ private:
+  void operator= (const Node &) 
+    { LOG(FATAL) << "cannot copy a Node"; }
+  Node (const Node & n):web_interface(*this) 
+    { LOG(FATAL) << "cannot copy a Node"; }
+  
+
 };
 
 //const int HB_INTERVAL = 5; //seconds

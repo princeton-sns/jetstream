@@ -61,7 +61,17 @@ public:
   
   ~DummyReceiver();
 };
+
   
+class SendOne: public DataPlaneOperator {
+public:
+  virtual void start(std::map<std::string,std::string> config);
+/*  virtual void process(boost::shared_ptr<Tuple> t) {
+     LOG(ERROR) << "Should not send data to a SendOne";
+    } */
+  
+  ~SendOne() {}
+};  
   
 }
 

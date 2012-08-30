@@ -11,8 +11,7 @@
 namespace jetstream {
 
 
-class SimpleNet
-{
+class SimpleNet {
 // boost::asio::io_service iosrv;
  boost::asio::ip::tcp::socket &sock;
 
@@ -33,5 +32,6 @@ class SimpleNet
 };
 
 }
+
 
 #endif

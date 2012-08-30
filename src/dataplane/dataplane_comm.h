@@ -59,6 +59,8 @@ class DataplaneConnManager {
 };
 
 
+const int timeout_for_conn = 2000; //ms
+
 class OutgoingConnAdaptor : public Receiver {
 
 
@@ -66,14 +68,17 @@ class OutgoingConnAdaptor : public Receiver {
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable conn_ready;
   boost::mutex mutex;
+  operator_id_t dest_op_id;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
-  const int wait_for_conn = 2000; //ms
+
+void conn_ready_cb (const DataplaneMessage &msg,
+                    const boost::system::error_code &error);
   
  public:
   OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c):conn(c) {}
-  OutgoingConnAdaptor (ConnectionManager& cm, const std::string& addr, int32_t portno);
+  OutgoingConnAdaptor (ConnectionManager& cm, const Edge& e);
 
   virtual void process (boost::shared_ptr<Tuple> t);
 

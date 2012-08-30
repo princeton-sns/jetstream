@@ -79,19 +79,53 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
   
 
 OutgoingConnAdaptor::OutgoingConnAdaptor (ConnectionManager& cm,
-                                          const string& addr,
-                                          int32_t portno) {
+                                          const Edge & e) {
+                                          
+  const std::string& addr = e.dest_addr().address();
+  int32_t portno = e.dest_addr().portno();      
+  dest_op_id.computation_id = e.computation();
+  dest_op_id.task_id = e.dest();
+                                          
   cm.create_connection(addr, portno, boost::bind(
                  &OutgoingConnAdaptor::conn_created_cb, this, _1, _2));
-
 }
 
 void
 OutgoingConnAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
   conn = c;
-  conn_ready.notify_all();
+  
+  DataplaneMessage data_msg;
+  data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
+  
+  Edge * edge = data_msg.mutable_chain_link();
+  edge->set_computation(dest_op_id.computation_id);
+  edge->set_dest(dest_op_id.task_id);
+  edge->set_src(0);
+  
+  boost::system::error_code err;
+  conn->recv_data_msg(boost::bind( &OutgoingConnAdaptor::conn_ready_cb, 
+           this, _1, _2), err);
+  conn->send_msg(data_msg, err);
+
+  //send chain ready, setup cb for ready
 }
+
+void
+OutgoingConnAdaptor::conn_ready_cb(const DataplaneMessage &msg,
+                                        const boost::system::error_code &error) {
+
+  if (msg.type() == DataplaneMessage::CHAIN_READY) {
+    LOG(INFO) << "got ready back";
+    conn_ready.notify_all();  
+  } 
+  else {
+    LOG(WARNING) << "unexpected response to Chain connect: " << msg.type() << 
+       " error code is " << error;  
+  }
+  
+}
+
   
 void
 OutgoingConnAdaptor::process (boost::shared_ptr<Tuple> t) {
@@ -101,7 +135,7 @@ OutgoingConnAdaptor::process (boost::shared_ptr<Tuple> t) {
    //SHOULD BLOCK HERE
    LOG(WARNING) << "trying to send data through closed conn. Should block";
    
-   system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
+   system_time wait_until = get_system_time()+ posix_time::milliseconds(timeout_for_conn);
    bool conn_established = conn_ready.timed_wait(lock, wait_until);
    
    if (!conn_established) {
