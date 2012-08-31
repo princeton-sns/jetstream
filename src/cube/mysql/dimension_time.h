@@ -12,17 +12,17 @@ class MysqlDimensionTime: public MysqlDimension{
   public:
     MysqlDimensionTime(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema){};
 
-    vector<string> getColumnNames()
+    vector<string> get_column_names()
     {
       //this should be the leaf. No need for agg_level column
       //that goes in rollup table. to be done later;
       vector<string> decl;
-      decl.push_back(getBaseColumnName()+"");
-      //decl.push_back(getBaseColumnName()+"_agg_level");
+      decl.push_back(get_base_column_name()+"");
+      //decl.push_back(get_base_column_name()+"_agg_level");
       return decl;
     }
 
-    vector<string> getColumnTypes()
+    vector<string> get_column_types()
     {
       vector<string> decl;
       decl.push_back("DATETIME");
@@ -30,7 +30,7 @@ class MysqlDimensionTime: public MysqlDimension{
       return decl;
     }
     
-    void setValueForInsertEntry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_t_val())

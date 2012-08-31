@@ -14,22 +14,22 @@ class MysqlDimension: public Dimension{
     MysqlDimension(jetstream::CubeSchema_Dimension _schema) : Dimension(_schema){};
 
 
-    virtual void setValueForInsertEntry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
+    virtual void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
       
 
-    string getBaseColumnName()
+    string get_base_column_name()
     {
       return name;
     }
 
-    virtual vector<string> getColumnNames()
+    virtual vector<string> get_column_names()
     {
       vector<string> decl;
-      decl.push_back(getBaseColumnName());
+      decl.push_back(get_base_column_name());
       return decl;
     }
 
-    virtual vector<string> getColumnTypes() = 0;
+    virtual vector<string> get_column_types() = 0;
 };
 
 

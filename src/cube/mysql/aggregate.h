@@ -12,21 +12,22 @@ class MysqlAggregate : public Aggregate {
   public:
     MysqlAggregate(jetstream::CubeSchema_Aggregate _schema) : Aggregate(_schema){};
 
-    virtual void setValueForInsertEntry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
-    string getBaseColumnName() {
+    virtual void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
+
+    string get_base_column_name() {
       return name;
     }
 
-    virtual vector<string> getColumnTypes() = 0;
+    virtual vector<string> get_column_types() = 0;
 
-    virtual vector<string> getColumnNames()
+    virtual vector<string> get_column_names()
     {
       vector<string> decl;
-      decl.push_back(getBaseColumnName());
+      decl.push_back(get_base_column_name());
       return decl;
     }
 
-    virtual string  getUpdateWithNewEntrySql() = 0;
+    virtual string  get_update_with_new_entry_sql() = 0;
 
 };
   

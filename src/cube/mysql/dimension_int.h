@@ -10,14 +10,14 @@ class MysqlDimensionInt: public MysqlDimension{
   public:
     MysqlDimensionInt(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema){};
 
-    vector<string> getColumnTypes()
+    vector<string> get_column_types()
     {
       vector<string> decl;
       decl.push_back("INT");
       return decl;
     }
      
-    void setValueForInsertEntry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())

@@ -23,7 +23,7 @@ public:
   DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
   virtual ~DataCube() {}
 
-  virtual bool insertEntry(jetstream::Tuple t) = 0;
+  virtual bool insert_entry(jetstream::Tuple t) = 0;
   //virtual bool insertPartialAggregate(jetstream::Tuple t) = 0;
   //virtual bool insertFullAggregate(jetstream::Tuple t) = 0;
   /**

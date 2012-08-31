@@ -2,6 +2,7 @@
 #define AGGREGATE_AVG_Q8TYGR7Q
 
 #include "aggregate.h"
+#include <glog/logging.h>
 
 namespace jetstream {
 namespace cube {
@@ -10,7 +11,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
   public:
     MysqlAggregateAvg(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema){};
 
-    vector<string> getColumnTypes()
+    vector<string> get_column_types()
     {
       vector<string> decl;
       decl.push_back("INT");
@@ -18,23 +19,23 @@ class MysqlAggregateAvg: public MysqlAggregate{
       return decl;
     }
     
-    vector<string> getColumnNames()
+    vector<string> get_column_names()
     {
       vector<string> decl;
-      decl.push_back(getBaseColumnName()+"_sum");
-      decl.push_back(getBaseColumnName()+"_count");
+      decl.push_back(get_base_column_name()+"_sum");
+      decl.push_back(get_base_column_name()+"_count");
       return decl;
     }
 
-    string getUpdateWithNewEntrySql()
+    string get_update_with_new_entry_sql()
     {
       //VALUES() allow you to incorporate the value of the new entry as it would be if the entry was inserted as a new row;  
-      string sql = "`"+getBaseColumnName()+"_sum` = `"+getBaseColumnName()+"_sum` + VALUES(`"+getBaseColumnName()+"`), ";
-      sql = "`"+getBaseColumnName()+"_count` = `"+getBaseColumnName()+"_count` + 1";
+      string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"`), ";
+      sql = "`"+get_base_column_name()+"_count` = `"+get_base_column_name()+"_count` + 1";
       return sql;
     }
 
-    void setValueForInsertEntry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())

@@ -37,14 +37,14 @@ TEST(Cube, MysqlTest) {
 
 
   MysqlCube * cube = new MysqlCube(*sc);
-  vector<std::string> test_strings = cube->getDimensionColumnTypes();
+  vector<std::string> test_strings = cube->get_dimension_column_types();
  
   ASSERT_STREQ("DATETIME",test_strings[0].c_str());
   ASSERT_STREQ("VARCHAR(255)",test_strings[1].c_str());
   ASSERT_STREQ("INT",test_strings[2].c_str());
 
 
-  test_strings = cube->getAggregateColumnTypes();
+  test_strings = cube->get_aggregate_column_types();
   ASSERT_STREQ("INT",test_strings[0].c_str());
   ASSERT_STREQ("INT",test_strings[1].c_str());
   ASSERT_STREQ("INT",test_strings[2].c_str());
@@ -52,7 +52,7 @@ TEST(Cube, MysqlTest) {
     cout << test_strings[i] <<endl;
   }*/
 
-  ASSERT_STREQ("CREATE TABLE `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->createSql().c_str());
+  ASSERT_STREQ("CREATE TABLE `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
 
   cube->destroy();
   cube->create();
@@ -68,7 +68,7 @@ TEST(Cube, MysqlTest) {
   e=t.add_e();
   e->set_i_val(50);
 
-  cube->insertEntry(t);
+  cube->insert_entry(t);
 
   cout<<"created"<<endl;
 }

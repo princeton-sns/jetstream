@@ -22,26 +22,26 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
     MysqlCube(jetstream::CubeSchema _schema, string db_host, string db_user, string db_pass, string db_name);
 
 
-    virtual bool insertEntry(jetstream::Tuple t);
+    virtual bool insert_entry(jetstream::Tuple t);
 
 
-    string createSql();
+    string create_sql();
     void create();
     void destroy();
 
-    string getTableName();
-    vector<string> getDimensionColumnTypes();
-    vector<string> getAggregateColumnTypes();
+    string get_table_name();
+    vector<string> get_dimension_column_types();
+    vector<string> get_aggregate_column_types();
   
   protected:
-    boost::shared_ptr<sql::Connection> getConnection();
-    void executeSql(string sql);
-    string getInsertEntryPreparedSql();
-    boost::shared_ptr<sql::PreparedStatement> getInsertEntryPreparedStatement();
+    boost::shared_ptr<sql::Connection> get_connection();
+    void execute_sql(string sql);
+    string get_insert_entry_prepared_sql();
+    boost::shared_ptr<sql::PreparedStatement> get_insert_entry_prepared_statement();
     
 
   private:
-    void initConnection();
+    void init_connection();
     string db_host;
     string db_user;
     string db_pass;
