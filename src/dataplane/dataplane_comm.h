@@ -69,7 +69,7 @@ class OutgoingConnAdaptor : public Receiver {
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
-  const int wait_for_conn = 2000; //ms
+  static const int wait_for_conn = 2000; //ms
   
  public:
   OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c):conn(c) {}

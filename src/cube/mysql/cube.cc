@@ -146,7 +146,6 @@ string jetstream::cube::MysqlCube::getInsertEntryPreparedSql()
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
   sql += "VALUES ("+boost::algorithm::join(column_values, ", ")+") ";
   sql += "ON DUPLICATE KEY UPDATE "+boost::algorithm::join(updates, ", ");
-  cout << sql << endl;
   return sql;
 }
 
