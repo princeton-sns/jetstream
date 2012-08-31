@@ -17,9 +17,9 @@ public:
     name = schema_dimension.name();
     type = schema_dimension.type();
   };
-  virtual ~Aggregate ();
+  virtual ~Aggregate (){};
 
-private:
+protected:
   string name;
   string type;
 };

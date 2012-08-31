@@ -7,6 +7,7 @@
 #define JetStream_cube_manager_h
 
 #include "cube.h"
+#include "mysql/cube.h"
 #include <boost/shared_ptr.hpp>
 #include <map>
 
@@ -31,7 +32,7 @@ class CubeManager {
   }
 
   boost::shared_ptr<DataCube> create_cube(std::string name, jetstream::CubeSchema schema) {
-    boost::shared_ptr<DataCube> c(new DataCube(schema));
+    boost::shared_ptr<DataCube> c(new cube::MysqlCube(schema));
     put_cube(name, c);
     return c;
   }
