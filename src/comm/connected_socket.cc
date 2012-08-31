@@ -74,14 +74,14 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
   if (!sock->is_open())
     return;
   else if (sending) {
-    LOG(INFO) << "send is busy in perform_send, queueing" <<endl;
+    VLOG(2) << "send is busy in perform_send, queueing" <<endl;
     send_queue.push_back(msg);
     send_strand.post(bind(&ConnectedSocket::perform_queued_send, 
 			  shared_from_this()));
   }
   else {
     sending = true;
-    LOG(INFO) << "async send in perform_send" <<endl;
+    VLOG(2) << "async send in perform_send" <<endl;
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
@@ -95,7 +95,7 @@ ConnectedSocket::perform_queued_send ()
 {
   if (sending || send_queue.empty() || !sock->is_open())
     return;
-  LOG(INFO) << "queued send" <<endl;
+  VLOG(2) << "queued send" <<endl;
   shared_ptr<SerializedMessageOut> msg = send_queue.front();
   send_queue.pop_front();
 
@@ -121,7 +121,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
     return;
   }
 
-  LOG(INFO) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
+  VLOG(2) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
   if (!send_queue.empty())
     perform_queued_send();
 }
@@ -129,7 +129,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
 
 /******************** Receiving messages ********************/
 
-
+// Note: This method has to be thread safe.
 void
 ConnectedSocket::recv_msg (cb_raw_msg_t recvcb)
 {
@@ -141,8 +141,12 @@ ConnectedSocket::recv_msg (cb_raw_msg_t recvcb)
 void
 ConnectedSocket::perform_recv ()
 {
-  if (!sock->is_open())
+
+  VLOG(2) << "In ConnectedSocket::perform_recv; port " << sock->local_endpoint().port();
+  
+  if (!sock->is_open() || receiving)
     return;
+
 
   receiving = true;
 
@@ -151,10 +155,10 @@ ConnectedSocket::perform_recv ()
   // that hdrlen is u_int32_t
   // // shared_ptr<vector<u_int32_t> > hdrbuf (new vector<u_int8_t> (hdrlen));
   assert(SerializedMessageOut::hdrlen == sizeof (u_int32_t));
-  shared_ptr<vector<u_int32_t> > hdrbuf (new vector<u_int32_t> (1));
+  shared_ptr<u_int32_t > hdrbuf (new u_int32_t);
 
   asio::async_read(*sock,
-		   asio::buffer(*hdrbuf),
+		   asio::buffer( (void*) hdrbuf.get(), 4),
 		   asio::transfer_at_least(SerializedMessageOut::hdrlen),
 		   recv_strand.wrap(bind(&ConnectedSocket::received_header,
 					 shared_from_this(), hdrbuf, _1, _2)));
@@ -162,7 +166,7 @@ ConnectedSocket::perform_recv ()
 
 
 void
-ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
+ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
 				  const boost::system::error_code &error,
 				  size_t bytes_transferred)
 {
@@ -177,13 +181,12 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
 
   boost::system::error_code e;
   if (!hdrbuf 
-      || !(hdrbuf->size())
       || bytes_transferred != SerializedMessageOut::hdrlen)
     e = asio::error::invalid_argument;
   else if (!sock->is_open())
     e = asio::error::not_connected;
   else {
-    msglen = ntohl((*hdrbuf)[0]);
+    msglen = ntohl (*hdrbuf);
     if (!msglen)
       e = asio::error::invalid_argument;
   }
@@ -193,6 +196,8 @@ ConnectedSocket::received_header (shared_ptr<vector<u_int32_t> > hdrbuf,
     fail(e);
     return;
   }
+  VLOG(2) << "In ConnectedSocket::received_header; expecting " << msglen <<
+      " data bytes on port " << sock->local_endpoint().port();
 
   shared_ptr<SerializedMessageIn> recv_msg (new SerializedMessageIn (msglen));
 
@@ -222,8 +227,14 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
     return;
   }
     
-  if (sock->is_open())
+    //re-enable callback
+  if (sock->is_open()) {
     recv_strand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
+
+  }
+  VLOG(2) << "In ConnectedSocket::received_body; passing along buffer of length "
+     << recv_msg->len << " data bytes on port " << sock->local_endpoint().port();
+
 
   if (recv_cb) {
     boost::system::error_code success;  //FIXME: where do we set this?

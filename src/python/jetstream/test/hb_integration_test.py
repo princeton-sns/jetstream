@@ -1,48 +1,44 @@
-# Tests that heartbeats from the C++ jetstream client get handled correctly at the 
-# controller. This test creates a mock controller, starts the js process, and verifies
-# that the heartbeats arrive.
-
+#
+# Integration tests spanning the python client/controller and C++ dataplane. These 
+# tests create a python controller, start one or more C++ and/or python workers,
+# and verify that requests (heartbeats, queries) are handled properly.
+#
 
 import random
 import socket
 import struct
+import os
+import signal
 import subprocess
 import thread
 import time
 import unittest
 
 from controller import *
-
+from generic_netinterface import JSClient
 from jetstream_types_pb2 import *
 
 
 class TestController(unittest.TestCase):
 
   def setUp(self):
-    self.server = Controller(('localhost', 0))
-    self.server.start_as_thread()
-    print "server bound to %s:%d" % self.server.address
+    self.controller = Controller(('localhost', 0))
+    self.controller.start_as_thread()
+    print "controller bound to %s:%d" % self.controller.address
+
 
   def tearDown(self):
-    self.server.stop()
-    self.cli_proc.terminate()
+    self.controller.stop()
 
-  def test(self):
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.server.address[1])
+
+  def test_heartbeat(self):
+    # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
+    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
-    self.cli_proc = subprocess.Popen(jsnode_cmd, shell=True) #stdout= subprocess.PIPE, 
+    cli_proc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
     time.sleep(2)
-    self.assertEquals( len(self.server.get_nodes()), 1)
-    
-
-
-def run_cmd(self):
-  # TODO create stderr slurper
-  while p.returncode is None:
-    for ln in p.stdout.readlines():
-      print ln
-    p.poll()
-
+    self.assertEquals(len(self.controller.get_nodes()), 1)
+    os.killpg(cli_proc.pid, signal.SIGTERM)
 
 
 if __name__ == '__main__':

@@ -84,6 +84,7 @@ class ClientConnection {
   ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
 		    const boost::asio::ip::tcp::endpoint &remote_end,
 		    boost::system::error_code &error);
+  ClientConnection(boost::shared_ptr<ConnectedSocket> conn_sock);
   ~ClientConnection () { close(); }
 
   const boost::asio::ip::tcp::endpoint & get_remote_endpoint () const 

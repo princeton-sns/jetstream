@@ -102,7 +102,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   // Serialize access to following functions via same strand
   void perform_recv ();
-  void received_header (boost::shared_ptr<std::vector<u_int32_t> > hdrbuf,
+  void received_header (boost::shared_ptr< u_int32_t > hdrbuf,
 			const boost::system::error_code &error,
 			size_t bytes_transferred);
   void received_body (boost::shared_ptr<SerializedMessageIn> recv_msg,
@@ -129,6 +129,10 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   // Clients of this class use this method to register the receive callback
   // Underlying use of async reads are thread safe
   void recv_msg (cb_raw_msg_t recvcb);
+
+   //these are here so we can wrap an existing ConnectedSocket in a ClientConnection
+  boost::shared_ptr<boost::asio::io_service> get_iosrv() { return iosrv;}
+  boost::shared_ptr<boost::asio::ip::tcp::socket> get_raw_sock() {return sock;}
 
 };
 

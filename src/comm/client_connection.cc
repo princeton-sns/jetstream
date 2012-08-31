@@ -23,6 +23,16 @@ ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 }
 
 
+ClientConnection::ClientConnection(boost::shared_ptr<ConnectedSocket> s)
+  : connected(true), iosrv(s->get_iosrv()),
+      //sock(....)
+    remote(), timer(*iosrv),
+    conn_sock(s)
+{
+
+}
+
+
 void
 ClientConnection::connect (msec_t timeout, cb_err_t cb)
 {

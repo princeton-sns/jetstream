@@ -11,6 +11,7 @@
 #include "connection.h"
 #include "cube_manager.h"
 #include "liveness_manager.h"
+#include "dataplane_comm.h"
 
 
 #include "mongoose.h"
@@ -38,33 +39,29 @@ class NodeConfig {
 };
 
 
-struct operator_id_t {
-  int32_t computation_id; // which computation
-  int32_t task_id; // which operator in the computation
-  bool operator< (const operator_id_t& rhs) const {
-    return computation_id < rhs.computation_id 
-      || task_id < rhs.task_id;
-  }
-    
-  operator_id_t (int32_t c, int32_t t) : computation_id (c), task_id (t) {}
-  operator_id_t () : computation_id (0), task_id (0) {}
-};
-
 class NodeWebInterface {
  private:
   mg_context * mongoose_ctxt;
   Node& node;
   
   void make_base_page(std::ostream& buf);
+
   
  public:
   NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
   ~NodeWebInterface() { stop(); }
   
-  void start(); //Dangerous to call many times, because doesn't clean up.
+  void start(); //An error to call multiple times on the same object
   void stop();  //idempotent, but may block to join with worker threads.
   
   static void * process_req(enum mg_event event, struct mg_connection *conn);
+  
+  
+ private:
+  void operator= (const NodeWebInterface &) 
+    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
+  NodeWebInterface (const NodeWebInterface & n):node(n.node)
+    { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
   
 };
   
@@ -72,26 +69,40 @@ class Node {
  private:
   NodeConfig config;
   CubeManager cube_mgr;
-  boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::shared_ptr<ConnectionManager> conn_mgr; 
+  DataplaneConnManager data_conn_mgr;
+  NodeWebInterface  web_interface;
 
+  
+  boost::shared_ptr<boost::asio::io_service> iosrv;
+  boost::shared_ptr<ConnectionManager> conn_mgr;
+  boost::shared_ptr<ServerConnection> listening_sock;
+  
   boost::shared_ptr<LivenessManager> liveness_mgr;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
+  
+   //I don't think we need this
+//  std::vector<boost::shared_ptr<ClientConnection> > peers;  
+    // perhaps we should keep a map from dest to socket instead?
+                                                    
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
   std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
 
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
-			     boost::system::error_code error);
+                             boost::system::error_code error);
 
-  void received_ctrl_msg (boost::shared_ptr<ClientConnection> c, const jetstream::ControlMessage &msg,
-		     const boost::system::error_code &error);
+  void received_ctrl_msg (boost::shared_ptr<ClientConnection> c,
+                          const jetstream::ControlMessage &msg,
+                          const boost::system::error_code &error);
 
-  void received_data_msg (boost::shared_ptr<ClientConnection> c, const jetstream::DataplaneMessage &msg,
-		     const boost::system::error_code &error);
+  void received_data_msg (boost::shared_ptr<ClientConnection> c,
+                          const jetstream::DataplaneMessage &msg,
+                          const boost::system::error_code &error);
+         
+  void incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock,
+                             const boost::system::error_code &);
 
-  NodeWebInterface  web_interface;
   
  public:
   Node (const NodeConfig &conf);
@@ -105,6 +116,9 @@ class Node {
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
+
+  const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
+  { return listening_sock->get_local_endpoint(); }
 
 /**
 *   returns by value; typically the response is very short and so the dynamic alloc

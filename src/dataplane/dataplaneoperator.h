@@ -10,10 +10,31 @@
 
 namespace jetstream {
 
+
+struct operator_id_t {
+  int32_t computation_id; // which computation
+  int32_t task_id; // which operator in the computation
+  bool operator< (const operator_id_t& rhs) const {
+    return computation_id < rhs.computation_id 
+      || task_id < rhs.task_id;
+  }
+  
+  std::string to_string() {
+    std::ostringstream buf;
+    buf << "("<<computation_id <<","<<task_id<<")";
+    return buf.str();
+  }
+    
+  operator_id_t (int32_t c, int32_t t) : computation_id (c), task_id (t) {}
+  operator_id_t () : computation_id (0), task_id (0) {}
+};
+
+
 class Receiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
 };
+
 
 class DataPlaneOperator : public Receiver {
  private:

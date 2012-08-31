@@ -48,7 +48,7 @@ class JSServer(asyncore.dispatcher):
     logger.debug("accepted connection from %s:%d" % client_info[1])
  #     logger.warn("Didn't expect None return from accept in handler running on %s -- what's broken?" % str(self.address))
 #      return
-    h = ConnHandler(sock=client_info[0], server=self, cli_addr = client_info[1],map=self.my_sockets)
+    h = ConnHandler(sock=client_info[0], server=self, cli_addr=client_info[1], map=self.my_sockets)
     self.addr_to_handler[client_info[1]] = h
     return
   
@@ -59,7 +59,7 @@ class JSServer(asyncore.dispatcher):
       return self.addr_to_handler[dest_addr]
     s = socket.create_connection(dest_addr)
     s.setblocking(0)
-    h = ConnHandler(sock=s, server=self, cli_addr = dest_addr, map=self.my_sockets)
+    h = ConnHandler(sock=s, server=self, cli_addr=dest_addr, map=self.my_sockets)
 #    print "client connected to %s:%d" % dest_addr
     self.addr_to_handler[dest_addr] = h
     return h
@@ -78,7 +78,7 @@ class JSServer(asyncore.dispatcher):
       self.thread.join()
 
   def start_as_thread(self):
-    self.thread = threading.Thread(group = None, target =self.evtloop, args = ())
+    self.thread = threading.Thread(group=None, target=self.evtloop, args=())
     self.thread.daemon = True
     self.thread.start()
 
@@ -110,7 +110,7 @@ class ConnHandler(asynchat.async_chat):
     self.next_frame_len = -1
     self.set_terminator(4)
 #        self.logger = logging.getLogger('EchoHandler%s' % str(sock.getsockname()))
-    asynchat.async_chat.__init__(self, sock,map) #,map
+    asynchat.async_chat.__init__(self, sock, map)
     return
 
   def collect_incoming_data(self, data):

@@ -23,6 +23,10 @@ ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
   srv_acceptor.set_option(tcp::acceptor::reuse_address(true), error);
   if (error) return;
   srv_acceptor.bind(local, error);
+  
+  local = srv_acceptor.local_endpoint();  //user might have passed port 0;
+                                          //here we convert to real portno
+  
   if (error) return;
   srv_acceptor.listen(asio::socket_base::max_connections, error);
 }
@@ -59,7 +63,7 @@ ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
 void
 ServerConnection::do_accept ()
 {
-  if (srv_acceptor.is_open() || accepting) {
+  if (!srv_acceptor.is_open() || accepting) {
     return;
   }
 
@@ -69,6 +73,7 @@ ServerConnection::do_accept ()
   srv_acceptor.async_accept(*new_sock,
 			    astrand.wrap(boost::bind(&ServerConnection::accepted, 
 						     this, new_sock, _1)));
+      
 }
 
 

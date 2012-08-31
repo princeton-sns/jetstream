@@ -1,6 +1,9 @@
 #include <iostream>
 #include "dataplaneoperator.h"
 
+#include <glog/logging.h>
+
+using namespace std;
 using namespace jetstream;
 
 DataPlaneOperator::~DataPlaneOperator() 
@@ -12,7 +15,7 @@ DataPlaneOperator::~DataPlaneOperator()
 void
 DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
 {
-  std::cout << "Base Operator process" << std::endl;
+  LOG(INFO) << "Operator: base operator process" << endl;
 }
 
 
@@ -22,7 +25,8 @@ DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
   if (dest)
     dest->process(t);
   else
-    std::cerr <<"WARN: no dest for operator " << operID << std::endl;
+    LOG(WARNING) << "Operator: no destination for operator " << operID << endl;
+
   //  cout << "Base Operator emit" << endl;
 }
 

@@ -24,6 +24,9 @@ class FileRead: public DataPlaneOperator {
   void operator()(); //a thread that will loop while reading the file
   //TODO: Make this (or something similar) a part of DataPlaneOperator API?
   bool isRunning();
+  virtual void process(boost::shared_ptr<Tuple> t);
+  
+  
 
  protected:
   std::string f_name; //name of file to read
@@ -51,10 +54,12 @@ class StringGrep: public DataPlaneOperator {
   
 class DummyReceiver: public DataPlaneOperator {
 public:
-  std::vector<Tuple> tuples;
+  std::vector< boost::shared_ptr<Tuple> > tuples;
   virtual void process(boost::shared_ptr<Tuple> t) {
-    tuples.push_back(*t);
+    tuples.push_back(t);
   }
+  
+  ~DummyReceiver();
 };
   
   

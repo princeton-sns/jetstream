@@ -1,7 +1,7 @@
 from jetstream_types_pb2 import *
 
 
-#Enumeration of already-defined operators
+# Enumeration of already-defined operators
 class Operators(object):
 
   UNIX = "Unix"
@@ -25,18 +25,21 @@ class OperatorGraph(object):
     
     
   def cube(self, name, desc):
-    """Add an operator to the graph"""
+    """Add a cube to the graph"""
     o = Cube(self, name, desc, self.opID)
     self.opID += 1
     self.cubes.append(o)
     return o
+
     
   def serialize(self):
     raise "Unimplemented"
+
     
   def connect(self, oper1, oper2):
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
     oper2.add_pred(oper1)
+
     
   def clone_back_from(self, head, numcopies):
     to_copy = {}  #maps id to object
@@ -64,6 +67,7 @@ class OperatorGraph(object):
       newheads.append(new_head)
     return newheads
 
+
   def copy_dest(self, dest):
     if isinstance(dest,Operator):
       return self.operator(dest.type, dest.desc)
@@ -71,6 +75,7 @@ class OperatorGraph(object):
       return self.operator(dest.name, dest.desc)
     else:
       raise "unexpected param to copy_dest"
+
       
 ## These represent the abstract concept of an operator or cube, for building
 # the operator graphs. The concrete executable implementations are elsewhere.
@@ -107,6 +112,7 @@ class Destination(object):
       for site,copy in zip(n[1:], headcopies):
         copy.instantiate_on(site)
       self.instantiate_on(n[0])
+
 
 class Operator(Destination):
   

@@ -3,6 +3,7 @@
 #include <boost/date_time.hpp>
 
 #include "node.h"
+#include "dataplane_comm.h"
 
 #include "jetstream_types.pb.h"
 
@@ -17,12 +18,13 @@ mutex _node_mutex;
 
 Node::Node (const NodeConfig &conf)
   : config (conf),
+    web_interface(*this),
     iosrv (new asio::io_service()),
     conn_mgr (new ConnectionManager(iosrv)),
     liveness_mgr (new LivenessManager (iosrv, conf.heartbeat_time)),
+
     // XXX This should get set through config files
-    operator_loader ("src/dataplane/"), //NOTE: path must end in a slash
-    web_interface(*this)
+    operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
   LOG(INFO) << "creating node" << endl;
   // Set up the network connection
@@ -40,11 +42,25 @@ Node::Node (const NodeConfig &conf)
     }
   }
   
+  //Setup incoming connection listener
+   
+  asio::ip::tcp::endpoint listen_port(asio::ip::tcp::v4(), conf.dataplane_myport);
+  boost::system::error_code error;
+  listening_sock = boost::shared_ptr<ServerConnection>(
+      new ServerConnection(iosrv, listen_port, error));
+  //TODO should check for error
+  
+  boost::system::error_code bind_error;
+  
+  listening_sock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), bind_error);
 }
 
 
 Node::~Node () 
 {
+  if (!iosrv->stopped()) {
+    stop();
+  }
 }
 
 
@@ -68,7 +84,7 @@ Node::run ()
 
   iosrv->run ();
 
-  LOG(INFO) << "Finished node::run" << endl;
+  VLOG(1) << "Finished node::run" << endl;
 }
 
 
@@ -77,10 +93,19 @@ Node::stop ()
 {
   liveness_mgr->stop_all_notifications();
   iosrv->stop();
-  LOG(INFO) << "io service stopped" << endl;
+  
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+
+    //need to stop operators before deconstructing because otherwise they may
+    //keep pointers around after destruction.
+  for (iter = operators.begin(); iter != operators.end(); iter++) {
+    iter->second->stop();
+  }
+//  LOG(INFO) << "io service stopped" << endl;
 
   // Optional:  Delete all global objects allocated by libprotobuf.
-  google::protobuf::ShutdownProtobufLibrary();
+  //Probably unwise here since we may have multiple Nodes in a unit test.
+//  google::protobuf::ShutdownProtobufLibrary();
   LOG(INFO) << "Finished node::stop" << endl;
 }
 
@@ -138,39 +163,91 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
         
       break;
     }
-/*  case DATAPLANE:
-    {
-      const DataMsg &data_msg = msg.get_DataPlane();
-      if (!data_msg)
-	error == X;
-      else 
-	received_dataplane_msg(data_msg, error);
-      break;
-    }*/
+
    default:
      break;
   }
   
 }
 
-
-#if 0
 void
-Node::received_data_msg (const DataplaneMessage &msg,
-				 const system::error_code &error)
+Node::incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock, 
+                            const boost::system::error_code &error)
 {
-  switch (msg.getType ()) {
-  case DATA:
+  if (error) {
+    if(! iosrv->stopped())
+      LOG(WARNING) << "error receiving incoming connection: " << error.value()
+        <<"(" << error.message()<<")" << endl;
+    return;
+  }
+  boost::system::error_code e;
+  
+  //need to convert the connected socket to a client_connection
+  
+  LOG(INFO) << "incoming dataplane connection received ok";
+  
+  boost::shared_ptr<ClientConnection> conn( new ClientConnection(sock) );
+  conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
+
+}
+
+
+/**
+ * This is only invoked for a "new" connection. We change the signal handler
+  here to the appropriate handler object.
+ */
+void
+Node::received_data_msg (shared_ptr<ClientConnection> c,
+                              const DataplaneMessage &msg,
+                              const boost::system::error_code &error)
+{
+  boost::system::error_code send_error;
+
+
+  VLOG(1) << "node received data message of type " << msg.type();
+
+  switch (msg.type ()) {
+  case DataplaneMessage::CHAIN_CONNECT:
     {
-      handle_alter (msg.get_alter());
-      break;
+      const Edge& e = msg.chain_link();
+      //TODO can sanity-check that e is for us here.
+      if (e.has_dest()) {
+      
+        operator_id_t dest_operator_id(e.computation(), e.dest());
+        shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
+        
+        LOG(INFO) << "Chain request for operator " << dest_operator_id.to_string();
+        if (dest) {        // Operator exists so we can report "ready"
+          // Note that it's important to put the connection into receive mode
+          // before sending the READY.
+         
+          data_conn_mgr.enable_connection(c, dest_operator_id, dest);
+
+          //TODO do we log the error or ignore it?
+        }
+        else {
+          LOG(INFO) << "Chain request for operator that isn't ready yet";
+          data_conn_mgr.pending_connection(c, dest_operator_id);
+        }
+      }
+      else {
+        LOG(WARNING) << "Got remote chain connect without a dest";
+        DataplaneMessage response;
+        response.set_type(DataplaneMessage::ERROR);
+        response.mutable_error_msg()->set_msg("got connect with no dest");
+        c->send_msg(response, send_error);
+
+      }
     }
+    break;
   default:
+     // Everything else is an error
+     LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
+        " from " << c->get_remote_endpoint();
+        
+     break;
   }
 }
-#endif
-
-
 
 operator_id_t 
 unparse_id (const TaskID& id)
@@ -217,12 +294,19 @@ Node::handle_alter (const AlterTopo& topo)
     operator_id_t src (e.computation(), e.src());
     shared_ptr<DataPlaneOperator> src_op = get_operator(src);
     
+    assert(src_op);
+    //TODO check if src doesn't exist
+    
     if (e.has_cube_name()) {     //connect to local table
       shared_ptr<DataCube> d = cube_mgr.get_cube(e.cube_name());
       src_op->set_dest(d);
     } 
     else if (e.has_dest_addr()) {   //remote network operator
-      //TODO handle network
+      const jetstream::NodeID& n_id = e.dest_addr();
+      
+      shared_ptr<Receiver> xceiver(
+          new OutgoingConnAdaptor(*conn_mgr, n_id.address(), n_id.portno()) );
+      src_op->set_dest(xceiver);
     } 
     else {
       assert(e.has_dest());

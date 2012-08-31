@@ -27,7 +27,7 @@ static const u_long  msec_in_sec             = 1000;
 static const u_long  usec_in_sec             = 1000000;
 static const u_long  nsec_in_sec             = (usec_in_sec * 1000);
 
-static const u_int32_t MAX_UINT32            = 4294967295;
+static const u_int32_t MAX_UINT32            = 4294967295u;
 static const u_int16_t MAX_UINT16            = 65535;
 
 // Global variables defined here
