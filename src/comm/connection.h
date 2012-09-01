@@ -30,23 +30,23 @@ class ServerConnection {
  private:
   bool accepting;
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::asio::ip::tcp::acceptor srv_acceptor;
+  boost::asio::ip::tcp::acceptor srvAcceptor;
   boost::asio::ip::tcp::endpoint local;
   boost::asio::strand astrand;
 
   std::map<boost::asio::ip::tcp::endpoint, 
     boost::shared_ptr<ConnectedSocket> > clients;
 
-  cb_connsock_t accept_cb;
+  cb_connsock_t acceptcb;
 
   // Wrap do_accept and accepted in same strand
   void do_accept ();
-  void accepted (boost::shared_ptr<boost::asio::ip::tcp::socket> new_sock,
+  void accepted (boost::shared_ptr<boost::asio::ip::tcp::socket> newSock,
 		 const boost::system::error_code &error);
 
  public:
   ServerConnection (boost::shared_ptr<boost::asio::io_service> srv,
-		    const boost::asio::ip::tcp::endpoint &local_end,
+		    const boost::asio::ip::tcp::endpoint &localEndpoing,
 		    boost::system::error_code &error);
   ~ServerConnection ();
 
@@ -67,7 +67,7 @@ class ClientConnection {
   boost::asio::ip::tcp::endpoint remote;
   boost::asio::deadline_timer timer;
 
-  boost::shared_ptr<ConnectedSocket> conn_sock;
+  boost::shared_ptr<ConnectedSocket> connSock;
 
   void connect_cb (cb_err_t cb, const boost::system::error_code &error);
   void timeout_cb (cb_err_t cb, const boost::system::error_code &error);
@@ -82,9 +82,9 @@ class ClientConnection {
 
  public:
   ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
-		    const boost::asio::ip::tcp::endpoint &remote_end,
+		    const boost::asio::ip::tcp::endpoint &remoteEndpoint,
 		    boost::system::error_code &error);
-  ClientConnection(boost::shared_ptr<ConnectedSocket> conn_sock);
+  ClientConnection (boost::shared_ptr<ConnectedSocket> connSock);
   ~ClientConnection () { close(); }
 
   const boost::asio::ip::tcp::endpoint & get_remote_endpoint () const 
@@ -110,7 +110,7 @@ class ConnectionManager {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::asio::ip::tcp::resolver resolv;
-  msec_t conn_timeout; 
+  msec_t connTimeout; 
 
   void domain_resolved (cb_clntconn_t cb,
 			const boost::system::error_code &error,
@@ -123,8 +123,8 @@ class ConnectionManager {
   
  public:
   ConnectionManager (boost::shared_ptr<boost::asio::io_service> srv,
-		     msec_t conn_tmo = 10000)
-    : iosrv (srv), resolv (*iosrv), conn_timeout (conn_tmo) {}
+		     msec_t connTmo = 10000)
+    : iosrv (srv), resolv (*iosrv), connTimeout (connTmo) {}
   
   void create_connection (const std::string &domain, port_t port,
 			  cb_clntconn_t cb);

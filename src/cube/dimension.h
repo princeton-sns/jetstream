@@ -14,12 +14,13 @@ using namespace boost;
 class Dimension {
 public:
   Dimension (jetstream::CubeSchema_Dimension schema_dimension){
+    //TODO: verify name is lowercase and _ with no spaces 
     name = schema_dimension.name();
     type = schema_dimension.type();
   };
-  virtual ~Dimension ();
+  virtual ~Dimension (){};
 
-private:
+protected:
   string name;
   Element_ElementType type;
 };

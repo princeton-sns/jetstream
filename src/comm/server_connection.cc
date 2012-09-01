@@ -7,36 +7,36 @@ using namespace jetstream;
 
 
 ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
-				    const tcp::endpoint &local_end,
+				    const tcp::endpoint &localEndpoint,
 				    boost::system::error_code &error)
-  : accepting (false), iosrv (srv), srv_acceptor (*iosrv), 
-    local (local_end), astrand (*iosrv)
+  : accepting (false), iosrv (srv), srvAcceptor (*iosrv), 
+    local (localEndpoint), astrand (*iosrv)
 {
   if (local.address().is_v4())
-    srv_acceptor.open(tcp::v4(), error);
+    srvAcceptor.open(tcp::v4(), error);
   else if (local.address().is_v6())
-    srv_acceptor.open(tcp::v6(), error);
+    srvAcceptor.open(tcp::v6(), error);
   else
     error = asio::error::address_family_not_supported;
 
   if (error) return;
-  srv_acceptor.set_option(tcp::acceptor::reuse_address(true), error);
+  srvAcceptor.set_option(tcp::acceptor::reuse_address(true), error);
   if (error) return;
-  srv_acceptor.bind(local, error);
-  
-  local = srv_acceptor.local_endpoint();  //user might have passed port 0;
-                                          //here we convert to real portno
-  
+  srvAcceptor.bind(local, error);
+
+  // User might have passed port 0, so make sure endpoint has real port info
+  local = srvAcceptor.local_endpoint();  
+
   if (error) return;
-  srv_acceptor.listen(asio::socket_base::max_connections, error);
+  srvAcceptor.listen(asio::socket_base::max_connections, error);
 }
 
 
 ServerConnection::~ServerConnection ()
 {
-  if (accept_cb) {
+  if (acceptcb) {
     shared_ptr<ConnectedSocket> empty;
-    accept_cb(empty, asio::error::eof);
+    acceptcb(empty, asio::error::eof);
   }
   close();
 }
@@ -45,7 +45,7 @@ ServerConnection::~ServerConnection ()
 void
 ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
 {
-  if (!srv_acceptor.is_open()) {
+  if (!srvAcceptor.is_open()) {
     error = asio::error::address_family_not_supported;
     return;
   }
@@ -54,7 +54,7 @@ ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
     return;
   }
 
-  accept_cb = cb;
+  acceptcb = cb;
 
   astrand.post(bind(&ServerConnection::do_accept, this));
 }
@@ -63,28 +63,28 @@ ServerConnection::accept (cb_connsock_t cb, boost::system::error_code &error)
 void
 ServerConnection::do_accept ()
 {
-  if (!srv_acceptor.is_open() || accepting) {
+  if (!srvAcceptor.is_open() || accepting) {
     return;
   }
 
   accepting = true;
 
-  shared_ptr<tcp::socket> new_sock (new tcp::socket(*iosrv));
-  srv_acceptor.async_accept(*new_sock,
+  shared_ptr<tcp::socket> newSock (new tcp::socket(*iosrv));
+  srvAcceptor.async_accept(*newSock,
 			    astrand.wrap(boost::bind(&ServerConnection::accepted, 
-						     this, new_sock, _1)));
+						     this, newSock, _1)));
       
 }
 
 
 
 void
-ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
+ServerConnection::accepted (shared_ptr<tcp::socket> newSock,
 			    const boost::system::error_code &error)
 {
   accepting = false;
 
-  if (!accept_cb) {
+  if (!acceptcb) {
     close();
     return;
   }
@@ -93,7 +93,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
     // XXX Temp or permanent error?
     close();
     shared_ptr<ConnectedSocket> empty;
-    accept_cb (empty, error);
+    acceptcb (empty, error);
     return;
   }
   
@@ -102,24 +102,24 @@ ServerConnection::accepted (shared_ptr<tcp::socket> new_sock,
 
   // Process this new connection
   boost::system::error_code ec;
-  tcp::endpoint remote = new_sock->remote_endpoint(ec);
+  tcp::endpoint remote = newSock->remote_endpoint(ec);
 
   if (ec) {
     // XXX Temp or permanent erorr
     shared_ptr<ConnectedSocket> empty;
-    accept_cb (empty, ec);
+    acceptcb (empty, ec);
     return;
   }
   else if (clients.find(remote) != clients.end()) {
     // Map shouldn't already have an entry.  Error.
-    // return error through accept_cb()?
+    // return error through acceptcb()?
     return;
   }
 
-  shared_ptr<ConnectedSocket> conn_sock (new ConnectedSocket(iosrv, new_sock));
-  clients[remote] = conn_sock;
+  shared_ptr<ConnectedSocket> connSock (new ConnectedSocket(iosrv, newSock));
+  clients[remote] = connSock;
   boost::system::error_code success;
-  accept_cb(conn_sock, success);
+  acceptcb(connSock, success);
 }
 
 
@@ -127,11 +127,11 @@ void
 ServerConnection::close ()
 {
   accepting = false;
-  accept_cb = NULL;
+  acceptcb = NULL;
 
-  if (srv_acceptor.is_open()) {
+  if (srvAcceptor.is_open()) {
     boost::system::error_code error;
-    srv_acceptor.cancel(error);
-    srv_acceptor.close(error);
+    srvAcceptor.cancel(error);
+    srvAcceptor.close(error);
   }
 }
