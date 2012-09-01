@@ -4,21 +4,13 @@
 
 using namespace ::std;
 
-
-jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema _schema) : 
-      DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema), 
-      db_host("localhost"),
-      db_user("root"),
-      db_pass(""),
-      db_name("test_cube")
-      { init_connection(); }
-
-      jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema _schema, string db_host, string db_user, string db_pass, string db_name) : 
+jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema _schema, string db_host, string db_user, string db_pass, string db_name, size_t batch) : 
       DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema), 
       db_host(db_host),
       db_user(db_user),
       db_pass(db_pass),
-      db_name(db_name)
+      db_name(db_name),
+      batch(batch)
       { init_connection(); }
 
 void jetstream::cube::MysqlCube::init_connection()
@@ -30,11 +22,21 @@ void jetstream::cube::MysqlCube::init_connection()
 
   shared_ptr<sql::Statement> stmnt(connection->createStatement());
   statement = stmnt;
+
+  for (size_t i = 0; i < dimensions.size(); i++) {
+    dimensions[i]->set_connection(connection);
+  }
 }
 
 void jetstream::cube::MysqlCube::execute_sql(string sql)
 {
   statement->execute(sql);
+}
+
+boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string sql)
+{
+  boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
+  return res;
 }
 
 
@@ -144,7 +146,13 @@ string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql()
 
   string sql = "INSERT INTO `"+get_table_name()+"`";
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
-  sql += "VALUES ("+boost::algorithm::join(column_values, ", ")+") ";
+  sql += "VALUES ";
+  string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
+  numFieldsPerBatch = column_values.size();
+  for(size_t i=0; i < (batch-1); i++) {
+    sql += vals+", ";
+  }
+  sql += vals+" ";
   sql += "ON DUPLICATE KEY UPDATE "+boost::algorithm::join(updates, ", ");
   return sql;
 }
@@ -155,6 +163,7 @@ boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert
   {
     shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(get_insert_entry_prepared_sql()));
     insertEntryStatement = stmnt;
+    insertEntryCurrentBatch = 0;
   }
   return insertEntryStatement;
 }
@@ -164,7 +173,7 @@ bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple t)
 {
   boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_entry_prepared_statement();
   int tuple_index = 0;
-  int field_index = 1;
+  int field_index = (insertEntryCurrentBatch*numFieldsPerBatch)+1;
   for(size_t i=0; i<dimensions.size(); i++)
   {
     dimensions[i]->set_value_for_insert_entry(pstmt, t, tuple_index, field_index);
@@ -175,7 +184,94 @@ bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple t)
     aggregates[i]->set_value_for_insert_entry(pstmt, t, tuple_index, field_index);
   }
   
+  ++insertEntryCurrentBatch;
   //TODO error handling
-  pstmt->execute();
+  if (insertEntryCurrentBatch >= batch)
+  {
+    pstmt->execute();
+    insertEntryCurrentBatch = 0;
+  }
   return true;
+}
+
+
+boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::get_cell_value_resultset(jetstream::Tuple t)
+{
+  int tuple_index = 0;
+  vector<string> where_clauses;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    string where = dimensions[i]->get_where_clause_exact(t, tuple_index);
+    where_clauses.push_back(where);
+  }
+  string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
+
+  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  return res;
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple t)
+{
+  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
+  if(res->rowsCount() > 1)
+  {
+    LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
+  }
+  if(!res->first())
+  {
+    boost::shared_ptr<jetstream::Tuple> res;
+    return res;
+  }
+
+  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
+
+  int column_index = 1;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    dimensions[i]->populate_tuple(result, res, column_index);
+  }
+  for(size_t i=0; i<aggregates.size(); i++)
+  {
+    aggregates[i]->populate_tuple_final(result, res, column_index);
+  }
+
+
+  return result;
+
+}
+
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple t)
+{
+  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
+  if(res->rowsCount() > 1)
+  {
+    LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
+  }
+  if(!res->first())
+  {
+    boost::shared_ptr<jetstream::Tuple> res;
+    return res;
+  }
+
+  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
+
+  int column_index = 1;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    dimensions[i]->populate_tuple(result, res, column_index);
+  }
+  for(size_t i=0; i<aggregates.size(); i++)
+  {
+    aggregates[i]->populate_tuple_partial(result, res, column_index);
+  }
+
+
+  return result;
+
+}
+
+
+void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
+  batch = numBatch;
 }

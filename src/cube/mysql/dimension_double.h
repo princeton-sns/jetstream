@@ -2,6 +2,7 @@
 #define DIMENSION_DOUBLE_Q8TYGR7Q
 
 #include "dimension.h"
+#include <boost/lexical_cast.hpp>
 
 namespace jetstream {
 namespace cube {
@@ -28,6 +29,26 @@ class MysqlDimensionDouble: public MysqlDimension{
         return;
       }
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+    }
+
+    
+    string get_where_clause(jetstream::Tuple t, int &tuple_index, string op, bool is_optional=true) {
+      jetstream::Element e = t.e(tuple_index);
+      if(e.has_d_val())
+      {
+        tuple_index += 1;
+        return "`"+get_base_column_name() + "` "+ op +" "+boost::lexical_cast<std::string>(e.d_val());
+      }
+      if(!is_optional)
+        LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+      return "";
+    }
+    
+    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index)
+    {
+      jetstream::Element *elem = t->add_e();
+      elem->set_d_val(resultset->getDouble(column_index));
+      ++column_index;
     }
       
 };

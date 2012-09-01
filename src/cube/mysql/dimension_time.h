@@ -36,7 +36,7 @@ class MysqlDimensionTime: public MysqlDimension{
       if(e.has_t_val())
       {
         struct tm temptm;
-        char timestring[20];
+        char timestring[30];
         time_t clock = e.t_val();
         localtime_r(&clock, &temptm);
         strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
@@ -46,6 +46,39 @@ class MysqlDimensionTime: public MysqlDimension{
         return;
       }
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+    }
+
+    string get_where_clause(jetstream::Tuple t, int &tuple_index, string op, bool is_optional=true) {
+      jetstream::Element e = t.e(tuple_index);
+      if(e.has_t_val())
+      {
+        struct tm temptm;
+        char timestring[30];
+        time_t clock = e.t_val();
+        localtime_r(&clock, &temptm);
+        strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
+        tuple_index += 1;
+        return "`"+get_base_column_name() + "` "+ op +" \""+timestring+"\"";
+      }
+      if(!is_optional)
+        LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+      return "";
+    }
+    
+    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index)
+    {
+      jetstream::Element *elem = t->add_e();
+      string timestring = resultset->getString(column_index);
+      struct tm temptm;
+      if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL)
+      {
+        elem->set_t_val(mktime(&temptm));
+      }
+      else
+      {
+        LOG(FATAL)<<"Error in time conversion";
+      }
+      ++column_index;
     }
       
 };
