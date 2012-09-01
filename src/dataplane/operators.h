@@ -1,5 +1,3 @@
-
-
 #ifndef JetStream_operators_h
 #define JetStream_operators_h
 
@@ -25,7 +23,6 @@ class FileRead: public DataPlaneOperator {
   //TODO: Make this (or something similar) a part of DataPlaneOperator API?
   bool isRunning();
   virtual void process(boost::shared_ptr<Tuple> t);
-  
   
 
  protected:

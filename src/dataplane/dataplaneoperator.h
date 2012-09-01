@@ -10,18 +10,18 @@
 
 namespace jetstream {
 
-
 struct operator_id_t {
   int32_t computation_id; // which computation
-  int32_t task_id; // which operator in the computation
+  int32_t task_id;        // which operator in the computation
+
   bool operator< (const operator_id_t& rhs) const {
     return computation_id < rhs.computation_id 
       || task_id < rhs.task_id;
   }
   
-  std::string to_string() {
+  std::string to_string () {
     std::ostringstream buf;
-    buf << "("<<computation_id <<","<<task_id<<")";
+    buf << "(" << computation_id << "," << task_id << ")";
     return buf.str();
   }
     
@@ -30,26 +30,26 @@ struct operator_id_t {
 };
 
 
-class Receiver {
+class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
 };
 
 
-class DataPlaneOperator : public Receiver {
+class DataPlaneOperator : public TupleReceiver {
  private:
-  int operID; //TODO: when is this set???  -Ari
-  boost::shared_ptr<Receiver> dest;
+  int operID; // TODO: when is this set???  -Ari
+  boost::shared_ptr<TupleReceiver> dest;
 
  protected:
-  void emit(boost::shared_ptr<Tuple> t); //passes the tuple along the chain
+  void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
     
  public:
   DataPlaneOperator ()  {}
   virtual ~DataPlaneOperator ();
 
-  virtual void process (boost::shared_ptr<Tuple> t); //NOT abstract here
-  void set_dest (boost::shared_ptr<Receiver> d) {dest = d;}
+  virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
+  void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
 
   /**
    * An operator must not start emitting tuples until start() has been called.

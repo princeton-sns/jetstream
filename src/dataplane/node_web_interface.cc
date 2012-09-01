@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include "node.h"
+#include "node_web_interface.h"
 
 using namespace jetstream;
 using namespace std;
@@ -20,7 +21,7 @@ NodeWebInterface::start ()
     LOG(ERROR) << "Web server already initialized" << endl;
   }
   else {
-    const char *mg_config = {"listening_ports", lexical_cast<char *> (portno), NULL};
+    const char *mg_config[] = {"listening_ports", boost::lexical_cast<char *> (portno), NULL};
     mongoose_ctxt = mg_start(process_req, this, mg_config);
   }
 }
