@@ -46,7 +46,10 @@ void add_pair_to_topo(AlterTopo& topo)
 TEST(Node, OperatorCreate)
 {
   NodeConfig cfg;
-  Node node(cfg);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
   operator_id_t id(1,2);
   shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
   ASSERT_TRUE(op != NULL);
@@ -57,7 +60,10 @@ TEST(Node, OperatorCreate)
 TEST(Node, HandleAlter_2_Ops)
 {
   NodeConfig cfg;
-  Node node(cfg);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
   AlterTopo topo;
 
   add_pair_to_topo(topo);
@@ -86,8 +92,11 @@ TEST(Node, HandleAlter_2_Ops)
 TEST(Node,WebIfaceStartStop)
 {
   NodeConfig cfg;
-  Node node(cfg);
-  NodeWebInterface iface(node);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
+  NodeWebInterface iface((port_t) 8081, node);
   
   for(int i=0; i < 10; ++i) {
     iface.start();
@@ -103,7 +112,9 @@ class BindTestThread {
     NodeConfig& cfg;
     shared_ptr<Node> n;
     BindTestThread(NodeConfig& c): cfg(c) {
-      n = shared_ptr<Node>(new Node(cfg));
+      boost::system::error_code error;
+      n = shared_ptr<Node>(new Node(cfg, error));
+      ASSERT_TRUE(error == 0);
     }
     void operator()() {
       assert(n);
