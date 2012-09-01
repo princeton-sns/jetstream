@@ -57,9 +57,9 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
 
-  boost::asio::strand send_strand;
-  boost::asio::strand recv_strand;
-  cb_raw_msg_t recv_cb;
+  boost::asio::strand sendStrand;
+  boost::asio::strand recvStrand;
+  cb_raw_msg_t recvcb;
 
   /********* SENDING *********/
 
@@ -85,7 +85,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   // Queue of scatter/gather IO pointers, each comprising a single 
   // serialized ProtoBuf message
-  std::deque<boost::shared_ptr<SerializedMessageOut> > send_queue;
+  std::deque<boost::shared_ptr<SerializedMessageOut> > sendQueue;
 
   // Serialize access to following functions via same strand
   void perform_send (boost::shared_ptr<SerializedMessageOut> msg);
@@ -105,7 +105,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   void received_header (boost::shared_ptr< u_int32_t > hdrbuf,
 			const boost::system::error_code &error,
 			size_t bytes_transferred);
-  void received_body (boost::shared_ptr<SerializedMessageIn> recv_msg,
+  void received_body (boost::shared_ptr<SerializedMessageIn> recvMsg,
 		      const boost::system::error_code &error,
 		      size_t bytes_transferred);
 
@@ -117,7 +117,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
-    : iosrv (srv), sock (s), send_strand (*iosrv), recv_strand(*iosrv), 
+    : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
     sending (false), receiving (false) {}
 
   void close ();
@@ -128,7 +128,7 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
   // Clients of this class use this method to register the receive callback
   // Underlying use of async reads are thread safe
-  void recv_msg (cb_raw_msg_t recvcb);
+  void recv_msg (cb_raw_msg_t receivecb);
 
    //these are here so we can wrap an existing ConnectedSocket in a ClientConnection
   boost::shared_ptr<boost::asio::io_service> get_iosrv() { return iosrv;}

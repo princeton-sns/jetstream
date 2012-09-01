@@ -17,7 +17,7 @@ ConnectionManager::create_connection (const string &domain, port_t port,
   address addr = address::from_string(domain, error);
 
   if (!error) {
-    VLOG(2) <<"creating connection to " <<domain  << endl;
+    VLOG(2) << "creating connection to " << domain << endl;
   
     // Domain supplied was a valid IP address
     tcp::resolver::iterator resolved
@@ -26,7 +26,7 @@ ConnectionManager::create_connection (const string &domain, port_t port,
     create_connection (resolved, cb);
   }
   else {
-    VLOG(2) <<"starting resolve for domain " <<domain  << endl;
+    VLOG(2) << "starting resolve for domain " << domain << endl;
 
     // Need to perform DNS resolution
     tcp::resolver::query q(domain, portstr);
@@ -42,7 +42,7 @@ ConnectionManager::domain_resolved (cb_clntconn_t cb,
 				    const boost::system::error_code &error,
 				    tcp::resolver::iterator resolved)
 {
-  VLOG(2) <<"resolved domain" << endl;
+  VLOG(2) << "resolved domain" << endl;
   if (!error)
     create_connection(resolved, cb);
   else {
@@ -70,9 +70,9 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
     (new ClientConnection (iosrv, remote, error));
 
   if (!error)
-    c->connect (conn_timeout,
-		bind(&ConnectionManager::create_connection_cb,
-		     this, resolved, c, cb, _1));
+    c->connect(connTimeout,
+	       bind(&ConnectionManager::create_connection_cb,
+		    this, resolved, c, cb, _1));
   else {
     iosrv->post(bind(&ConnectionManager::create_connection,
 		     this, resolved, cb));

@@ -14,12 +14,12 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 {
   LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
 
-  send_queue.clear();
+  sendQueue.clear();
   close();
 
-  if (recv_cb) {
+  if (recvcb) {
     SerializedMessageIn bad_msg (0);
-    recv_cb (bad_msg, error);
+    recvcb (bad_msg, error);
   }
 }
 
@@ -64,7 +64,7 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
 {
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
-    send_strand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
+    sendStrand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
 }
 
 
@@ -75,8 +75,8 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
     return;
   else if (sending) {
     VLOG(2) << "send is busy in perform_send, queueing" <<endl;
-    send_queue.push_back(msg);
-    send_strand.post(bind(&ConnectedSocket::perform_queued_send, 
+    sendQueue.push_back(msg);
+    sendStrand.post(bind(&ConnectedSocket::perform_queued_send, 
 			  shared_from_this()));
   }
   else {
@@ -85,7 +85,7 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
-		      send_strand.wrap(bind(&ConnectedSocket::sent, 
+		      sendStrand.wrap(bind(&ConnectedSocket::sent, 
 					    shared_from_this(), msg, _1, _2)));
   }
 }
@@ -93,18 +93,18 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
 void
 ConnectedSocket::perform_queued_send ()
 {
-  if (sending || send_queue.empty() || !sock->is_open())
+  if (sending || sendQueue.empty() || !sock->is_open())
     return;
   VLOG(2) << "queued send" <<endl;
-  shared_ptr<SerializedMessageOut> msg = send_queue.front();
-  send_queue.pop_front();
+  shared_ptr<SerializedMessageOut> msg = sendQueue.front();
+  sendQueue.pop_front();
 
   sending = true;
   // Keep hold of message until callback so not cleaned up until sent
   asio::async_write(*sock, 
 		    asio::buffer(msg->msg, msg->nbytes),
-		    send_strand.wrap(bind(&ConnectedSocket::sent, 
-					  shared_from_this(), msg, _1, _2)));
+		    sendStrand.wrap(bind(&ConnectedSocket::sent, 
+					 shared_from_this(), msg, _1, _2)));
 }
 
 
@@ -122,7 +122,7 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
   }
 
   VLOG(2) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
-  if (!send_queue.empty())
+  if (!sendQueue.empty())
     perform_queued_send();
 }
 
@@ -131,10 +131,10 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
 
 // Note: This method has to be thread safe.
 void
-ConnectedSocket::recv_msg (cb_raw_msg_t recvcb)
+ConnectedSocket::recv_msg (cb_raw_msg_t receivecb)
 {
-  recv_cb = recvcb;
-  recv_strand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
+  recvcb = receivecb;
+  recvStrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
 }
 
 
@@ -160,7 +160,7 @@ ConnectedSocket::perform_recv ()
   asio::async_read(*sock,
 		   asio::buffer( (void*) hdrbuf.get(), 4),
 		   asio::transfer_at_least(SerializedMessageOut::hdrlen),
-		   recv_strand.wrap(bind(&ConnectedSocket::received_header,
+		   recvStrand.wrap(bind(&ConnectedSocket::received_header,
 					 shared_from_this(), hdrbuf, _1, _2)));
 }
 
@@ -199,18 +199,18 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
   VLOG(2) << "In ConnectedSocket::received_header; expecting " << msglen <<
       " data bytes on port " << sock->local_endpoint().port();
 
-  shared_ptr<SerializedMessageIn> recv_msg (new SerializedMessageIn (msglen));
+  shared_ptr<SerializedMessageIn> recvMsg (new SerializedMessageIn (msglen));
 
   boost::asio::async_read(*sock,
-			  asio::buffer(recv_msg->msg, recv_msg->len),
-			  asio::transfer_at_least(recv_msg->len),
-			  recv_strand.wrap(bind(&ConnectedSocket::received_body,
-						shared_from_this(), recv_msg, _1, _2)));
+			  asio::buffer(recvMsg->msg, recvMsg->len),
+			  asio::transfer_at_least(recvMsg->len),
+			  recvStrand.wrap(bind(&ConnectedSocket::received_body,
+						shared_from_this(), recvMsg, _1, _2)));
 }
 
 
 void
-ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
+ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recvMsg,
 				const boost::system::error_code &error,
 				size_t bytes_transferred)
 
@@ -222,23 +222,23 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recv_msg,
     fail(error);
     return;
   }
-  else if (!recv_msg || bytes_transferred != recv_msg->len) {
+  else if (!recvMsg || bytes_transferred != recvMsg->len) {
     fail(asio::error::invalid_argument);
     return;
   }
     
     //re-enable callback
   if (sock->is_open()) {
-    recv_strand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
+    recvStrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
 
   }
   VLOG(2) << "In ConnectedSocket::received_body; passing along buffer of length "
-     << recv_msg->len << " data bytes on port " << sock->local_endpoint().port();
+     << recvMsg->len << " data bytes on port " << sock->local_endpoint().port();
 
 
-  if (recv_cb) {
+  if (recvcb) {
     boost::system::error_code success;  //FIXME: where do we set this?
-    recv_cb(*recv_msg, success);
+    recvcb(*recvMsg, success);
   }
 }
 
