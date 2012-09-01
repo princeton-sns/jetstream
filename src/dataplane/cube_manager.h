@@ -6,42 +6,31 @@
 #ifndef JetStream_cube_manager_h
 #define JetStream_cube_manager_h
 
-#include "cube.h"
-#include "mysql/cube.h"
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
 #include <map>
+#include "mysql/cube.h"
+#include "cube.h"
 
 namespace jetstream {
 
 /**
 * Responsible for local allocation and management of data cubes. Cubes are stored
-* in a table, listed by name.
+* in a table, listed by name.  Access functions (get/put/destory) block on
+* lock acquisition for thread safety.
 */
 class CubeManager {
  private:
-  std::map<std::string, boost::shared_ptr<DataCube> > cubeDict;
+  std::map<std::string, boost::shared_ptr<DataCube> > cubeMap;
+  boost::mutex mapMutex;
 
  public:
-  CubeManager ();
+  CubeManager () {}
 
-  boost::shared_ptr<DataCube> get_cube (std::string s) { return cubeDict[s]; }
-  
-  void put_cube (std::string s, boost::shared_ptr<DataCube> c) {
-  //TODO need locking here.
-    cubeDict.insert( std::pair<std::string, boost::shared_ptr<DataCube> >(s, c) ); 
-  }
-
-  boost::shared_ptr<DataCube> create_cube(std::string name, jetstream::CubeSchema schema) {
-    boost::shared_ptr<DataCube> c(new cube::MysqlCube(schema));
-    put_cube(name, c);
-    return c;
-  }
-  
-  void destroy_cube(std::string s) {
-      cubeDict[s]->mark_as_deleted();
-      cubeDict.erase(s);
-    }
-  
+  boost::shared_ptr<DataCube> create_cube (const std::string &name, const CubeSchema &schema);
+  boost::shared_ptr<DataCube> get_cube (const std::string &name);
+  void put_cube (const std::string &name, boost::shared_ptr<DataCube> c);
+  void destroy_cube (const std::string &name);
 };
 
 }

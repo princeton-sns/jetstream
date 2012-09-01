@@ -15,7 +15,7 @@ namespace jetstream {
 *  A class to represent a cube in memory. 
 */
 
-class DataCube : public Receiver {
+class DataCube : public TupleReceiver {
   
 public:
   virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
