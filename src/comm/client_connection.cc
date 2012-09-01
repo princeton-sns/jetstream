@@ -9,10 +9,10 @@ using namespace jetstream;
 
 
 ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
-				    const tcp::endpoint &remote_end,
+				    const tcp::endpoint &remoteEndpoint,
 				    boost::system::error_code &error)
   : connected (false), iosrv (srv), sock (new tcp::socket(*iosrv)),
-    remote (remote_end), timer (*iosrv)
+    remote (remoteEndpoint), timer (*iosrv)
 {
   if (remote.address().is_v4())
     sock->open(tcp::v4(), error);
@@ -24,12 +24,10 @@ ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 
 
 ClientConnection::ClientConnection(boost::shared_ptr<ConnectedSocket> s)
-  : connected(true), iosrv(s->get_iosrv()),
-      //sock(....)
-    remote(), timer(*iosrv),
-    conn_sock(s)
+  : connected (true), iosrv (s->get_iosrv()),
+    remote (), timer (*iosrv),
+    connSock (s)
 {
-
 }
 
 
@@ -72,7 +70,7 @@ ClientConnection::connect_cb (cb_err_t cb,
     connected = true;
 
   shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
-  conn_sock = cs;
+  connSock = cs;
 
   cb(error);
 }
@@ -96,8 +94,8 @@ ClientConnection::close ()
 {
   connected = false;
 
-  if (conn_sock)
-    conn_sock->close();
+  if (connSock)
+    connSock->close();
   else if (sock->is_open()) {
     boost::system::error_code error;
     sock->cancel(error);
@@ -110,12 +108,12 @@ void
 ClientConnection::send_msg (const ProtobufMessage &msg,
 			    boost::system::error_code &error)
 {
-  if (!connected || !conn_sock) {
+  if (!connected || !connSock) {
     error = asio::error::not_connected;
     return;
   }
 
-  conn_sock->send_msg(msg, error);
+  connSock->send_msg(msg, error);
 }
 
 
@@ -139,11 +137,11 @@ void
 ClientConnection::recv_data_msg (cb_data_protomsg_t cb,
 				 boost::system::error_code &error)
 {
-  if (!connected || !conn_sock) {
+  if (!connected || !connSock) {
     error = asio::error::not_connected;
     return;
   }
-  conn_sock->recv_msg(boost::bind(&ClientConnection::recv_data_msg_cb, cb, _1, _2));
+  connSock->recv_msg(boost::bind(&ClientConnection::recv_data_msg_cb, cb, _1, _2));
 }
 
 
@@ -167,11 +165,11 @@ void
 ClientConnection::recv_control_msg (cb_control_protomsg_t cb,
 				    boost::system::error_code &error)
 {
-  if (!connected || !conn_sock) {
+  if (!connected || !connSock) {
     error = asio::error::not_connected;
     return;
   }
-  conn_sock->recv_msg(boost::bind(&ClientConnection::recv_control_msg_cb, cb, _1, _2));
+  connSock->recv_msg(boost::bind(&ClientConnection::recv_control_msg_cb, cb, _1, _2));
 }
 
 
