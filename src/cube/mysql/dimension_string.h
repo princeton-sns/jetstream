@@ -2,6 +2,7 @@
 #define DIMENSION_STRING_Q8TYGR7Q
 
 #include "dimension.h"
+#include "mysql_connection.h"
 
 namespace jetstream {
 namespace cube {
@@ -29,6 +30,31 @@ class MysqlDimensionString: public MysqlDimension{
         return;
       }
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+    }
+
+    string get_where_clause_exact(jetstream::Tuple t, int &tuple_index, bool is_optional=true) {
+      jetstream::Element e = t.e(tuple_index);
+      if(e.has_s_val())
+      {
+        tuple_index += 1;
+        sql::mysql::MySQL_Connection* mysql_conn = dynamic_cast<sql::mysql::MySQL_Connection*>(get_connection().get());
+        string str = mysql_conn->escapeString(e.s_val());
+        return "`"+get_base_column_name() + "` = \""+str+"\"";
+      }
+      if(!is_optional)
+        LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+      return "";
+    }
+    
+    string get_where_clause(jetstream::Tuple t, int &tuple_index, string op, bool is_optional=true) {
+        LOG(FATAL) << "function not implementend in dimension_string. Field name: "<< name;
+    }
+
+    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index)
+    {
+      jetstream::Element *elem = t->add_e();
+      elem->set_s_val(resultset->getString(column_index));
+      ++column_index;
     }
 };
 

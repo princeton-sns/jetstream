@@ -24,8 +24,13 @@ public:
   virtual ~DataCube() {}
 
   virtual bool insert_entry(jetstream::Tuple t) = 0;
-  //virtual bool insertPartialAggregate(jetstream::Tuple t) = 0;
-  //virtual bool insertFullAggregate(jetstream::Tuple t) = 0;
+  //virtual bool insert_partial_aggregate(jetstream::Tuple t) = 0;
+  //virtual bool insert_full_aggregate(jetstream::Tuple t) = 0;
+  
+
+  virtual void create() = 0;
+  virtual void destroy() = 0;
+
   /**
   * It's possible to mark a cube as locked. The intended use of this is to allow
   * graceful deletion. The deleter marks the cube as frozen. As updates to the cube fail,

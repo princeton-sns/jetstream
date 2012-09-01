@@ -60,15 +60,82 @@ TEST(Cube, MysqlTest) {
 
   jetstream::Tuple t;
   jetstream::Element *e = t.add_e();
-  e->set_t_val(time(NULL));
+  time_t time_entered = time(NULL);
+  e->set_t_val(time_entered);
   e=t.add_e();
   e->set_s_val("http:\\\\www.example.com");
   e=t.add_e();
   e->set_i_val(200);
   e=t.add_e();
   e->set_i_val(50);
-
+ 
   cube->insert_entry(t);
 
-  cout<<"created"<<endl;
+  jetstream::Tuple query;
+  e = query.add_e();
+  e->set_t_val(time_entered);
+  e=query.add_e();
+  e->set_s_val("http:\\\\www.example.com");
+  e=query.add_e();
+  e->set_i_val(200);
+
+  boost::shared_ptr<jetstream::Tuple> answer = cube->get_cell_value_final(query);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(1, answer->e(3).i_val());
+  ASSERT_EQ(50, answer->e(4).i_val());
+  ASSERT_EQ(50, answer->e(4).d_val());
+  
+  answer = cube->get_cell_value_partial(query);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(1, answer->e(3).i_val());
+  ASSERT_EQ(50, answer->e(4).i_val());
+  ASSERT_EQ(1, answer->e(5).i_val());
+
+
+
+  e = t.mutable_e(3);
+  e->set_i_val(100);
+  cube->insert_entry(t);
+
+  answer = cube->get_cell_value_final(query);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(2, answer->e(3).i_val());
+  ASSERT_EQ(75, answer->e(4).i_val());
+  ASSERT_EQ(75, answer->e(4).d_val());
+
+  answer = cube->get_cell_value_partial(query);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(2, answer->e(3).i_val());
+  ASSERT_EQ(150, answer->e(4).i_val());
+  ASSERT_EQ(2, answer->e(5).i_val());
+  
+  MysqlCube * cube_batch = new MysqlCube(*sc);
+  cube_batch->set_batch(2);
+
+  cube_batch->destroy();
+  cube_batch->create();
+
+
+  cube_batch->insert_entry(t);
+  answer = cube_batch->get_cell_value_final(query);
+  ASSERT_FALSE(answer);
+  cube_batch->insert_entry(t);
+  answer = cube_batch->get_cell_value_final(query);
+  ASSERT_TRUE(answer);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(2, answer->e(3).i_val());
+  ASSERT_EQ(100, answer->e(4).i_val());
+  ASSERT_EQ(100, answer->e(4).d_val());
+
+
 }

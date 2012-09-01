@@ -29,6 +29,18 @@ class MysqlAggregateCount: public MysqlAggregate{
       pstmt->setInt(field_index, 1);
       field_index += 1;
     }
+
+  void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+    int count = resultset->getInt(column_index);
+    ++column_index;
+    jetstream::Element * elem = t->add_e();
+    elem->set_i_val(count);
+  }
+  
+  void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+    populate_tuple_final(t, resultset, column_index);
+  }
+
 };
 
 

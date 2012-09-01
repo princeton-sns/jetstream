@@ -29,6 +29,9 @@ class MysqlAggregate : public Aggregate {
 
     virtual string  get_update_with_new_entry_sql() = 0;
 
+    virtual void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) =0;
+    virtual void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) =0;
+
 };
   
 

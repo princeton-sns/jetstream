@@ -30,8 +30,8 @@ class MysqlAggregateAvg: public MysqlAggregate{
     string get_update_with_new_entry_sql()
     {
       //VALUES() allow you to incorporate the value of the new entry as it would be if the entry was inserted as a new row;  
-      string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"`), ";
-      sql = "`"+get_base_column_name()+"_count` = `"+get_base_column_name()+"_count` + 1";
+      string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"_sum`), ";
+      sql += "`"+get_base_column_name()+"_count` = `"+get_base_column_name()+"_count` + 1";
       return sql;
     }
 
@@ -57,8 +57,27 @@ class MysqlAggregateAvg: public MysqlAggregate{
 
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
-};
 
+  void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+    int sum = resultset->getInt(column_index);
+    int count = resultset->getInt(column_index+1);
+    column_index += 2;
+    jetstream::Element * elem = t->add_e();
+    elem->set_i_val(sum/count);
+    elem->set_d_val((float)sum/(float)count);
+  }
+
+   void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+    int sum = resultset->getInt(column_index);
+    int count = resultset->getInt(column_index+1);
+    column_index += 2;
+    jetstream::Element * elem = t->add_e();
+    elem->set_i_val(sum);
+    elem = t->add_e();
+    elem->set_i_val(count);
+  }
+
+};
 
 } /* cube */
 } /* jetstream */
