@@ -14,7 +14,7 @@ CubeManager::get_cube (const std::string &name)
 shared_ptr<DataCube> 
 CubeManager::create_cube (const std::string &name, const CubeSchema &schema) 
 {
-  shared_ptr<DataCube> c(new cube::MysqlCube(schema));
+  shared_ptr<DataCube> c (new cube::MysqlCube(schema));
   put_cube(name, c);
   return c;
 }
