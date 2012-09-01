@@ -41,6 +41,8 @@ parse_config (program_options::variables_map *inputopts,
      "my dataplane port number")
     ("controlplane_port,c", value<port_t>(), 
      "my controlplane port number")
+    ("webinterface_port,w", value<port_t>(), 
+     "my web interface port number")
     ("heartbeat_time,t", value<msec_t>(), 
      "liveness monitoring timer (in milliseconds)")
     ("thread_pool_size,p", value<u_int16_t>(),
@@ -110,6 +112,9 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("controlplane_port"))
     config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
 
+  if (input_opts.count("WebInterfacePort"))
+    config.webInterfacePort = input_opts["WebInterfacePort"].as<port_t>();
+
   if (input_opts.count("heartbeat_time"))
     config.heartbeat_time = input_opts["heartbeat_time"].as<msec_t>();
 
@@ -165,13 +170,19 @@ jsnode_start (NodeConfig &config, char **argv)
   google::LogToStderr();
   google::InitGoogleLogging(argv[0]);
 
-  Node t (config);
-  t.run();
+  boost::system::error_code error;
+  Node n (config, error);
+
+  if (error) {
+    LOG(FATAL) << "Error starting node" << endl;
+    return;
+  }
+
+  n.run();
 
   // Optional:  Delete all global objects allocated by libprotobuf.
   google::protobuf::ShutdownProtobufLibrary();
-
-  LOG(INFO) << "exiting cleanly" << endl;
+  LOG(INFO) << "Exiting cleanly" << endl;
 }
 
 

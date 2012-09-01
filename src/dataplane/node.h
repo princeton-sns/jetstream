@@ -12,17 +12,11 @@
 #include "cube_manager.h"
 #include "liveness_manager.h"
 #include "dataplane_comm.h"
-
-
-#include "mongoose.h"
-
+#include "node_web_interface.h"
 
 namespace jetstream {
   
 class net_interface;
-class Node;
-
-
 
 class NodeConfig {
  public:
@@ -30,59 +24,31 @@ class NodeConfig {
   std::vector<std::pair<std::string, port_t> > controllers; // Domain, port
   port_t controlplane_myport;  // Host byte order
   port_t dataplane_myport;     // Host byte order
+  port_t webInterfacePort;     // Host byte order
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
   NodeConfig () 
-    : controlplane_myport (0), dataplane_myport (0), 
+    : controlplane_myport (0), dataplane_myport (0), webInterfacePort (0),
     heartbeat_time (0), thread_pool_size (0)
     {}
 };
 
 
-class NodeWebInterface {
- private:
-  mg_context * mongoose_ctxt;
-  Node& node;
-  
-  void make_base_page(std::ostream& buf);
-
-  
- public:
-  NodeWebInterface(Node& n):mongoose_ctxt(NULL),node(n) {}
-  ~NodeWebInterface() { stop(); }
-  
-  void start(); //An error to call multiple times on the same object
-  void stop();  //idempotent, but may block to join with worker threads.
-  
-  static void * process_req(enum mg_event event, struct mg_connection *conn);
-  
-  
- private:
-  void operator= (const NodeWebInterface &) 
-    { LOG(FATAL) << "cannot copy a NodeWebInterface"; }
-  NodeWebInterface (const NodeWebInterface & n):node(n.node)
-    { LOG(FATAL) << "cannot copy a NodeWebInterface"; }
-  
-};
-  
 class Node {
  private:
   NodeConfig config;
-  CubeManager cube_mgr;
-  DataplaneConnManager data_conn_mgr;
-  NodeWebInterface  web_interface;
-
-  
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  boost::shared_ptr<ConnectionManager> conn_mgr;
-  boost::shared_ptr<ServerConnection> listening_sock;
-  
-  boost::shared_ptr<LivenessManager> liveness_mgr;
+  boost::shared_ptr<ConnectionManager> connMgr;
+  LivenessManager livenessMgr;
+  NodeWebInterface  webInterface;
+  CubeManager cubeMgr;
+  DataplaneConnManager dataConnMgr;
+  boost::shared_ptr<ServerConnection> listeningSock;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
   
-   //I don't think we need this
-//  std::vector<boost::shared_ptr<ClientConnection> > peers;  
-    // perhaps we should keep a map from dest to socket instead?
+  // I don't think we need this
+  //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
+  // perhaps we should keep a map from dest to socket instead?
                                                     
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
@@ -105,7 +71,7 @@ class Node {
 
   
  public:
-  Node (const NodeConfig &conf);
+  Node (const NodeConfig &conf, boost::system::error_code &error);
   ~Node ();
 
   void run ();
@@ -118,7 +84,7 @@ class Node {
     create_operator (std::string op_typename, operator_id_t name);
 
   const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
-  { return listening_sock->get_local_endpoint(); }
+  { return listeningSock->get_local_endpoint(); }
 
 /**
 *   returns by value; typically the response is very short and so the dynamic alloc
@@ -126,14 +92,7 @@ class Node {
 */
   ControlMessage handle_alter (const AlterTopo& t);
 
-
-
- private:
-  void operator= (const Node &) 
-    { LOG(FATAL) << "cannot copy a Node"; }
-  Node (const Node & n):web_interface(*this) 
-    { LOG(FATAL) << "cannot copy a Node"; }
-  
+//TODO include private copy-constructor and operator= here?
 
 };
 
