@@ -1,11 +1,3 @@
-//
-//  dataplane_comm.h
-//  JetStream
-//
-//  Created by Ariel Rabkin on 8/28/12.
-//  Copyright (c) 2012 Ariel Rabkin. All rights reserved.
-//
-
 #ifndef JetStream_dataplane_comm_h
 #define JetStream_dataplane_comm_h
 
@@ -20,17 +12,15 @@
 
 namespace  jetstream {
   
-  
 /**
- *  Instances of this class is responsible for managing incoming data on the
+ * Instances of this class is responsible for managing incoming data on the
  * dataplane. Each IncomingConnAdaptor is the start of an operator chain
  */
 class DataplaneConnManager {
 
  private:
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pending_conns;
-  
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > live_conns;
+  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pendingConns;
+  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > liveConns;
   
   void got_data_cb (operator_id_t dest_id,
                     boost::shared_ptr<DataPlaneOperator> dest,
@@ -44,7 +34,7 @@ class DataplaneConnManager {
     { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
   
  public:
-  DataplaneConnManager():pending_conns(),live_conns()  {}
+  DataplaneConnManager () {}
  
   void enable_connection (boost::shared_ptr<ClientConnection> c,
                           operator_id_t dest_op_id,
@@ -53,14 +43,13 @@ class DataplaneConnManager {
   void pending_connection (boost::shared_ptr<ClientConnection> c,
                           operator_id_t future_op);
 
-  void created_operator (operator_id_t op_id,
+  void created_operator (operator_id_t opid,
                          boost::shared_ptr<DataPlaneOperator> dest);
   
 };
 
 
-class OutgoingConnAdaptor : public Receiver {
-
+class OutgoingConnAdaptor : public TupleReceiver {
 
  private:
   boost::shared_ptr<ClientConnection> conn;
@@ -69,21 +58,14 @@ class OutgoingConnAdaptor : public Receiver {
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
-  static const int wait_for_conn = 2000; //ms
+  static const msec_t wait_for_conn = 2000; //ms
   
  public:
-  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c):conn(c) {}
-  OutgoingConnAdaptor (ConnectionManager& cm, const std::string& addr, int32_t portno);
+  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c) {}
+  OutgoingConnAdaptor (ConnectionManager &cm, const std::string &addr, port_t portno);
+  virtual ~OutgoingConnAdaptor() {}
 
   virtual void process (boost::shared_ptr<Tuple> t);
-
-
-/*
-  void received_data_msg (boost::shared_ptr<ClientConnection> c,
-                          const jetstream::DataplaneMessage &msg,
-                          const boost::system::error_code &error);
-*/
-
 };
 
 
