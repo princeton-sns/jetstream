@@ -14,7 +14,7 @@ class MysqlDimension: public Dimension{
     MysqlDimension(jetstream::CubeSchema_Dimension _schema) : Dimension(_schema){};
 
 
-    virtual void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
+    virtual void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
     
 
     //TODO: right now this creates a full sql string. Maybe change to string with placehholders and preparedStatement?

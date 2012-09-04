@@ -138,4 +138,31 @@ TEST(Cube, MysqlTest) {
   ASSERT_EQ(100, answer->e(4).d_val());
 
 
+  t.clear_e();
+  e = t.add_e();
+  e->set_t_val(time_entered);
+  e=t.add_e();
+  e->set_s_val("http:\\\\www.example.com");
+  e=t.add_e();
+  e->set_i_val(200);
+  //aggregate values
+  e=t.add_e();
+  e->set_i_val(2);
+  e=t.add_e();
+  e->set_i_val(300);
+  e=t.add_e();
+  e->set_i_val(2);
+
+  cube->insert_partial_aggregate(t);
+
+  answer = cube_batch->get_cell_value_final(query);
+  ASSERT_TRUE(answer);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  ASSERT_EQ(200, answer->e(2).i_val());
+  ASSERT_EQ(4, answer->e(3).i_val());
+  ASSERT_EQ(125, answer->e(4).i_val());
+  ASSERT_EQ(125, answer->e(4).d_val());
+
+
 }

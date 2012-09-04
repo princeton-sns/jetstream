@@ -24,9 +24,10 @@ public:
   virtual ~DataCube() {}
 
   virtual bool insert_entry(jetstream::Tuple t) = 0;
-  //virtual bool insert_partial_aggregate(jetstream::Tuple t) = 0;
-  //virtual bool insert_full_aggregate(jetstream::Tuple t) = 0;
+  virtual bool insert_partial_aggregate(jetstream::Tuple t) = 0;
   
+  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t) = 0;
+  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t) = 0;
 
   virtual void create() = 0;
   virtual void destroy() = 0;

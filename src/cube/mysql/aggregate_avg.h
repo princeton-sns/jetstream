@@ -7,6 +7,15 @@
 namespace jetstream {
 namespace cube {
   
+  /**
+   * @brief Aggregate for avgs
+   *
+   * input tuple format:
+   *
+   * single entry: [value to be averaged as int or double]
+   * partial aggregate: [sum as int or double] [count of items in sum as int]
+   *
+   */
 class MysqlAggregateAvg: public MysqlAggregate{
   public:
     MysqlAggregateAvg(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema){};
@@ -33,6 +42,14 @@ class MysqlAggregateAvg: public MysqlAggregate{
       string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"_sum`), ";
       sql += "`"+get_base_column_name()+"_count` = `"+get_base_column_name()+"_count` + 1";
       return sql;
+    } 
+    
+    string get_update_with_partial_aggregate_sql()
+    {
+      //VALUES() allow you to incorporate the value of the new entry as it would be if the entry was inserted as a new row;  
+      string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"_sum`), ";
+      sql += "`"+get_base_column_name()+"_count` = `"+get_base_column_name()+"_count` +  VALUES(`"+get_base_column_name()+"_count`)";
+      return sql;
     }
 
     void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
@@ -51,6 +68,37 @@ class MysqlAggregateAvg: public MysqlAggregate{
         pstmt->setDouble(field_index, e.d_val());
         pstmt->setInt(field_index+1, 1);
         tuple_index += 1;
+        field_index += 2;
+        return;
+      }
+
+      LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+    }
+
+    void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    {
+      jetstream::Element e_sum = t.e(tuple_index);
+      jetstream::Element e_count = t.e(tuple_index+1);
+
+      if(!e_count.has_i_val())
+      {
+        LOG(FATAL) << "Count not properly formatted when processing tuple for field "<< name;
+        return;
+      }
+
+      if(e_sum.has_i_val())
+      {
+        pstmt->setInt(field_index, e_sum.i_val());
+        pstmt->setInt(field_index+1, e_count.i_val());
+        tuple_index += 2;
+        field_index += 2;
+        return;
+      }
+      if(e_sum.has_d_val())
+      {
+        pstmt->setDouble(field_index, e_sum.d_val());
+        pstmt->setInt(field_index+1, e_count.i_val());
+        tuple_index += 2;
         field_index += 2;
         return;
       }

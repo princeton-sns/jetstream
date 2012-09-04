@@ -22,6 +22,8 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
 
 
     virtual bool insert_entry(jetstream::Tuple t);
+    virtual bool insert_partial_aggregate(jetstream::Tuple t);
+   // virtual bool insert_full_aggregate(jetstream::Tuple t);
     
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t);
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t);
@@ -43,8 +45,12 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
     boost::shared_ptr<sql::Connection> get_connection();
     void execute_sql(string sql);
     boost::shared_ptr<sql::ResultSet> execute_query_sql(string sql);
+    
     string get_insert_entry_prepared_sql();
+    string get_insert_partial_aggregate_prepared_sql();
+
     boost::shared_ptr<sql::PreparedStatement> get_insert_entry_prepared_statement();
+    boost::shared_ptr<sql::PreparedStatement> get_insert_partial_aggregate_prepared_statement();
     
 
   private:
@@ -53,12 +59,20 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
     string db_user;
     string db_pass;
     string db_name;
-    size_t batch;
-    size_t insertEntryCurrentBatch;
-    size_t numFieldsPerBatch;
+    
     boost::shared_ptr<sql::Connection> connection; 
     boost::shared_ptr<sql::Statement> statement;
+    
+    size_t batch;
+
+    size_t insertEntryCurrentBatch;
+    size_t insertPartialAggregateCurrentBatch;
+    
+    size_t numFieldsPerInsertEntryBatch;
+    size_t numFieldsPerPartialAggregateBatch;
+    
     boost::shared_ptr<sql::PreparedStatement> insertEntryStatement;
+    boost::shared_ptr<sql::PreparedStatement> insertPartialAggregateStatement;
 
 };
 
