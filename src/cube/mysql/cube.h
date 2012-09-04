@@ -27,6 +27,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
     
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t);
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t);
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final);
 
 
     string create_sql();
@@ -41,7 +42,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
   
   protected:
 
-    boost::shared_ptr<sql::ResultSet> get_cell_value_resultset(jetstream::Tuple t);
     boost::shared_ptr<sql::Connection> get_connection();
     void execute_sql(string sql);
     boost::shared_ptr<sql::ResultSet> execute_query_sql(string sql);

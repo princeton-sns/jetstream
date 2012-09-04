@@ -267,9 +267,18 @@ bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple t)
   return true;
 }
 
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple t)
+{
+  return get_cell_value(t, true);
+}
 
 
-boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::get_cell_value_resultset(jetstream::Tuple t)
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple t)
+{
+  return get_cell_value(t, false);
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(jetstream::Tuple t, bool final)
 {
   int tuple_index = 0;
   vector<string> where_clauses;
@@ -281,12 +290,7 @@ boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::get_cell_value_res
   string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
 
   boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
-  return res;
-}
-
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple t)
-{
-  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
+  
   if(res->rowsCount() > 1)
   {
     LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
@@ -306,38 +310,10 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_f
   }
   for(size_t i=0; i<aggregates.size(); i++)
   {
-    aggregates[i]->populate_tuple_final(result, res, column_index);
-  }
-
-
-  return result;
-
-}
-
-
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple t)
-{
-  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
-  if(res->rowsCount() > 1)
-  {
-    LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
-  }
-  if(!res->first())
-  {
-    boost::shared_ptr<jetstream::Tuple> res;
-    return res;
-  }
-
-  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
-
-  int column_index = 1;
-  for(size_t i=0; i<dimensions.size(); i++)
-  {
-    dimensions[i]->populate_tuple(result, res, column_index);
-  }
-  for(size_t i=0; i<aggregates.size(); i++)
-  {
-    aggregates[i]->populate_tuple_partial(result, res, column_index);
+    if(!final)
+      aggregates[i]->populate_tuple_partial(result, res, column_index);
+    else
+      aggregates[i]->populate_tuple_final(result, res, column_index);
   }
 
 
