@@ -10,8 +10,8 @@
 */
 namespace jetstream {
 
+
 class SimpleNet {
- // boost::asio::io_service iosrv;
  boost::asio::ip::tcp::socket &sock;
 
  public:
@@ -28,5 +28,6 @@ class SimpleNet {
 };
 
 }
+
 
 #endif /* Jetstream_simple_net_h */

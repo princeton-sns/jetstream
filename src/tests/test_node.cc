@@ -46,7 +46,10 @@ void add_pair_to_topo(AlterTopo& topo)
 TEST(Node, OperatorCreate)
 {
   NodeConfig cfg;
-  Node node(cfg);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
   operator_id_t id(1,2);
   shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
   ASSERT_TRUE(op != NULL);
@@ -57,7 +60,10 @@ TEST(Node, OperatorCreate)
 TEST(Node, HandleAlter_2_Ops)
 {
   NodeConfig cfg;
-  Node node(cfg);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
   AlterTopo topo;
 
   add_pair_to_topo(topo);
@@ -86,8 +92,11 @@ TEST(Node, HandleAlter_2_Ops)
 TEST(Node,WebIfaceStartStop)
 {
   NodeConfig cfg;
-  Node node(cfg);
-  NodeWebInterface iface(node);
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
+  NodeWebInterface iface((port_t) 8081, node);
   
   for(int i=0; i < 10; ++i) {
     iface.start();
@@ -103,7 +112,10 @@ class BindTestThread {
     NodeConfig& cfg;
     shared_ptr<Node> n;
     BindTestThread(NodeConfig& c): cfg(c) {
-      n = shared_ptr<Node>(new Node(cfg));
+      boost::system::error_code error;
+      n = shared_ptr<Node>(new Node(cfg, error));
+      EXPECT_TRUE(error == 0);
+      return;
     }
     void operator()() {
       assert(n);
@@ -213,19 +225,17 @@ TEST_F(NodeNetTest, Print)
 }
 
 shared_ptr<DataPlaneOperator> 
-add_dummy_receiver(Node& n)
+add_dummy_receiver(Node& n, operator_id_t dest_id)
 {
   AlterTopo topo;
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
-  id->set_computationid(17);
-  id->set_task(3);
+  id->set_computationid(dest_id.computation_id);
+  id->set_task(dest_id.task_id);
   task->set_op_typename("DummyReceiver");
   n.handle_alter(topo);
   
-
-  operator_id_t id2(17,3);
-  shared_ptr<DataPlaneOperator> dest = n.get_operator( id2 );
+  shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
   EXPECT_TRUE( dest != 0 );
   return dest;
 }
@@ -240,7 +250,8 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
 
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n);
+  operator_id_t dest_id(17,3);
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n, dest_id);
 
   //At this point we have a receiver ready to go. Next: connect to it
   
@@ -321,7 +332,9 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   cout <<"sent chain connect; data length = " << data_msg.ByteSize() << endl;
 
 //add receiver
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n);
+  operator_id_t dest_id(17,3);
+
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n, dest_id);
 
   
   shared_ptr<DataplaneMessage> resp = data_conn.get_data_msg();
@@ -347,4 +360,67 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   
   
   cout << "test ending" <<endl;
+}
+
+
+TEST(NodeIntegration,DataplaneConn) {
+  shared_ptr<Node> nodes[2];
+  shared_ptr<tcp::socket> sockets[2];
+  shared_ptr<SimpleNet> connections[2];
+
+  asio::io_service io_service;
+  
+  ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
+  ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
+  
+  acceptor.listen();
+  pair<string, port_t> p("127.0.0.1", concrete_end.port());
+
+  NodeConfig cfg;
+  cfg.heartbeat_time = 2000;
+  cfg.controllers.push_back(p);
+  
+  boost::system::error_code err;
+  
+  
+  for (int i=0; i < 2; ++i) {
+    BindTestThread testThreadBody(cfg);
+    thread testThread(testThreadBody);
+    nodes[i] = testThreadBody.n;
+    sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
+    acceptor.accept(*sockets[i], err);
+    connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
+    connections[i]->get_ctrl_msg();
+  }
+  cout << "created nodes, got heartbeats" << endl;
+//  boost::this_thread::sleep(boost::posix_time::seconds(2));
+
+  operator_id_t dest_id(17,3), src_id(17,2);
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
+  
+  cout << "created receiver" << endl;
+
+  AlterTopo topo;
+  TaskMeta* task = topo.add_tostart();
+  TaskID* id = task->mutable_id();
+  id->set_computationid(src_id.computation_id);
+  id->set_task(src_id.task_id);
+  Edge * e = topo.add_edges();
+  e->set_src(src_id.task_id);
+  e->set_dest(dest_id.task_id);
+  e->set_computation(src_id.computation_id);
+  NodeID * dest_node = e->mutable_dest_addr();
+  
+  const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
+  dest_node->set_portno(dest_node_addr.port());
+  dest_node->set_address("127.0.0.1");
+
+  task->set_op_typename("SendOne");
+  nodes[1]->handle_alter(topo);
+
+  boost::this_thread::sleep(boost::posix_time::seconds(2));
+  
+  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+
 }

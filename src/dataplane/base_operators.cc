@@ -109,4 +109,11 @@ DummyReceiver::~DummyReceiver() {
 }
 
 
+void
+SendOne::start(std::map<std::string,std::string> config) {
+  boost::shared_ptr<Tuple> t(new Tuple);
+  t->add_e()->set_s_val("foo");
+  emit(t);
+}
+
 }

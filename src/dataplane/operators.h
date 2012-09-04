@@ -1,5 +1,3 @@
-
-
 #ifndef JetStream_operators_h
 #define JetStream_operators_h
 
@@ -25,7 +23,6 @@ class FileRead: public DataPlaneOperator {
   //TODO: Make this (or something similar) a part of DataPlaneOperator API?
   bool isRunning();
   virtual void process(boost::shared_ptr<Tuple> t);
-  
   
 
  protected:
@@ -61,7 +58,17 @@ public:
   
   ~DummyReceiver();
 };
+
   
+class SendOne: public DataPlaneOperator {
+public:
+  virtual void start(std::map<std::string,std::string> config);
+/*  virtual void process(boost::shared_ptr<Tuple> t) {
+     LOG(ERROR) << "Should not send data to a SendOne";
+    } */
+  
+  ~SendOne() {}
+};  
   
 }
 
