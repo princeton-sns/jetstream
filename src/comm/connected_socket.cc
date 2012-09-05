@@ -46,8 +46,7 @@ ConnectedSocket::SerializedMessageOut::SerializedMessageOut
     error = boost::asio::error::message_size;
     return;
   }
-
-  u_int32_t len = lexical_cast<u_int32_t> (len_check);
+  u_int32_t len = static_cast<u_int32_t> (len_check); // Was lexical_cast. Why? --asr
   u_int32_t len_nbo = htonl (len);
 
   nbytes = len + hdrlen;

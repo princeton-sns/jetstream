@@ -33,6 +33,7 @@ struct operator_id_t {
 class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
+  virtual ~TupleReceiver() {}
 };
 
 

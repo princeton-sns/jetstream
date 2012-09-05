@@ -421,6 +421,6 @@ TEST(NodeIntegration,DataplaneConn) {
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+  ASSERT_EQ((unsigned int) 1, rec->tuples.size());
 
 }

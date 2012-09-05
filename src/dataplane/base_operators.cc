@@ -110,6 +110,11 @@ DummyReceiver::~DummyReceiver() {
 
 
 void
+SendOne::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a SendOne";
+} 
+
+void
 SendOne::start(std::map<std::string,std::string> config) {
   boost::shared_ptr<Tuple> t(new Tuple);
   t->add_e()->set_s_val("foo");
