@@ -45,7 +45,9 @@ class TestController(unittest.TestCase):
     buf = self.client.do_rpc(req, False)
     # Since no response is expected, sleep a little to give the controller time to process message
     time.sleep(1)
-    self.assertEquals(len(self.controller.get_nodes()), 1)
+    workerList = self.controller.get_nodes()
+    self.assertEquals(len(workerList), 1)
+    self.assertEquals(workerList[0].endpoint, self.client.sock.getsockname())
 
 
   def test_worker_liveness(self):
@@ -61,20 +63,20 @@ class TestController(unittest.TestCase):
     # Initially the controller should see two alive workers
     workerList = self.controller.get_nodes()
     self.assertEquals(len(workerList), 2)
-    self.assertEquals(workerList[0].state, WorkerState.ALIVE)
-    self.assertEquals(workerList[1].state, WorkerState.ALIVE)
+    self.assertEquals(workerList[0].state, CWorker.ALIVE)
+    self.assertEquals(workerList[1].state, CWorker.ALIVE)
 
     # Kill one of the workers, it should be marked dead after several hb intervals
     worker1.stop()
-    time.sleep(hbInterval * (WorkerState.DEFAULT_HB_DEAD_INTERVALS + 1))
+    time.sleep(hbInterval * (CWorker.DEFAULT_HB_DEAD_INTERVALS + 1))
     workerList = self.controller.get_nodes()
     self.assertEquals(len(workerList), 1)
-    self.assertEquals(workerList[0].state, WorkerState.ALIVE)
+    self.assertEquals(workerList[0].state, CWorker.ALIVE)
 
     # Kill the second worker, this should terminate the liveness thread; starting
     # a new worker should create a new liveness thread
     worker2.stop()
-    time.sleep(hbInterval * (WorkerState.DEFAULT_HB_DEAD_INTERVALS + 1))
+    time.sleep(hbInterval * (CWorker.DEFAULT_HB_DEAD_INTERVALS + 1))
     self.assertEquals(len(self.controller.get_nodes()), 0)
     oldThread = self.controller.livenessThread
     worker3 = create_worker(self.controller.address, hbInterval)
@@ -82,33 +84,40 @@ class TestController(unittest.TestCase):
     time.sleep(hbInterval)
     self.assertEquals(len(self.controller.get_nodes()), 1)
     self.assertNotEqual(self.controller.livenessThread, oldThread)
+    worker3.stop()
     
       
   def test_deploy(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    worker = create_worker(self.controller.address)
-    worker.start_heartbeat_thread()
+    worker1 = create_worker(self.controller.address)
+    worker1.start_heartbeat_thread()
+    worker2 = create_worker(self.controller.address)
+    worker2.start_heartbeat_thread()
     time.sleep(2)
-    # Tell the controller to deploy a topology (it will then deploy it on the worker)
+    # Deploy a single-operator topology
     req = ControlMessage()
     req.type = ControlMessage.ALTER
-    newTask = TaskMeta()
-    newTask.op_typename = "cat /etc/shells"
-    newTask.id.computationID = 1
-    newTask.id.task = 1
-    # Get a worker address in the right format (note getaddrinfo returns a list of addresses)
-    newTask.site.address = worker.address[0]
-    newTask.site.portno = worker.address[1]
-    #FIXME: Why does append() not work??
-    req.alter.toStart.extend([newTask])
+    newOp = req.alter.toStart.add()
+    newOp.op_typename = "cat /etc/shells"
+    newOp.id.computationID = 1
+    newOp.id.task = 1
+    # Bind this operator to the second worker
+    workerEndpoint = worker2.connection_to_server.getsockname()
+    newOp.site.address = workerEndpoint[0]
+    newOp.site.portno = workerEndpoint[1]
     
     buf = self.client.do_rpc(req, True)
-    print "deploy finished..."
-    # Wait for the topology to start running on the worker
-    time.sleep(2)
-    self.assertEquals(len(worker.tasks), 1)
+    req = ControlMessage()
+    req.ParseFromString(buf)
+    self.assertEquals(req.type, ControlMessage.OK)
+    # Wait for the topology to start running; there should be one task on the
+    # second worker and none on the first
+    time.sleep(1)
+    self.assertEquals(len(worker2.tasks), 1)
+    self.assertEquals(len(worker1.tasks), 0)
     print "stopping worker"
-    worker.stop()
+    worker1.stop()
+    worker2.stop()
 
 if __name__ == '__main__':
   unittest.main()
