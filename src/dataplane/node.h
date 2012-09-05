@@ -24,11 +24,11 @@ class NodeConfig {
   std::vector<std::pair<std::string, port_t> > controllers; // Domain, port
   port_t controlplane_myport;  // Host byte order
   port_t dataplane_myport;     // Host byte order
-  port_t webInterfacePort;     // Host byte order
+  port_t webinterface_port;     // Host byte order
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
   NodeConfig () 
-    : controlplane_myport (0), dataplane_myport (0), webInterfacePort (0),
+    : controlplane_myport (0), dataplane_myport (0), webinterface_port (0),
     heartbeat_time (0), thread_pool_size (0)
     {}
 };

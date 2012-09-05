@@ -18,7 +18,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, conf.heartbeat_time),
-    webInterface (config.webInterfacePort, *this),
+    webInterface (conf.webinterface_port, *this),
 
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
@@ -41,7 +41,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 				      this, _1, _2));
     }
   }
-  
+
   // Setup incoming connection listener
   asio::ip::tcp::endpoint listen_port (asio::ip::tcp::v4(), 
 				       config.dataplane_myport);

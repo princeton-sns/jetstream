@@ -13,9 +13,9 @@ message NodeID {
 }
 
 /**
-* A running task (aka operator). The computationID is globally
-* unique within a particular JetStream cluster and identifies the computation or topology to which this task belongs. The task field is
-* unique within a computation.
+* A running task (aka operator). The computationID is globally unique within a
+* particular JetStream cluster and identifies the computation or topology to which 
+* this task belongs. The task field is unique within a computation.
 */
 message TaskID {
   required int32 computationID = 1;

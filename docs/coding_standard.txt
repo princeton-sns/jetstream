@@ -25,7 +25,7 @@ https://developers.google.com/protocol-buffers/docs/style).
 - Open brace should be on the same line as the statements.  
 - Space between if/else/while/do and open pare or open brace
 
-  GOOD:  if (  )  {
+  GOOD:  if (  ) {
 
   BAD:  if() {
   BAD:  if () 

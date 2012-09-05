@@ -112,8 +112,8 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("controlplane_port"))
     config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
 
-  if (input_opts.count("WebInterfacePort"))
-    config.webInterfacePort = input_opts["WebInterfacePort"].as<port_t>();
+  if (input_opts.count("webinterface_port"))
+    config.webinterface_port = input_opts["webinterface_port"].as<port_t>();
 
   if (input_opts.count("heartbeat_time"))
     config.heartbeat_time = input_opts["heartbeat_time"].as<msec_t>();
