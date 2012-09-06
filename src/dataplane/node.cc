@@ -100,6 +100,11 @@ void
 Node::stop ()
 {
   livenessMgr.stop_all_notifications();
+  dataConnMgr.close();
+  for (int i = 0; i < controllers.size(); ++i) {
+    controllers[i]->close();
+  }
+  
   iosrv->stop();
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;

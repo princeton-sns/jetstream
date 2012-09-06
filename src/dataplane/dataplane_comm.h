@@ -45,7 +45,8 @@ class DataplaneConnManager {
 
   void created_operator (operator_id_t opid,
                          boost::shared_ptr<DataPlaneOperator> dest);
-  
+                         
+  void close();
 };
 
 

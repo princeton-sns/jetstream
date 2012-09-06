@@ -118,6 +118,7 @@ set (LIBRARY_NAME jscube)
 add_subdirectory (${SRC_DIR}/cube)
 link_directories (${BUILD_DIR}/cube)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
+include_directories (${SRC_DIR}/cube/mysql)
 
 set (LIBRARY_NAME jsdataplane)
 add_subdirectory (${SRC_DIR}/dataplane)
@@ -126,6 +127,7 @@ link_directories (${BUILD_DIR}/dataplane)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 #add_subdirectory (${SRC_DIR}/cube)
+
 
 #######################################################
 # Use CLang by default
