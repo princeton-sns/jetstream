@@ -1,6 +1,6 @@
 #include "cube_manager.h"
 #include "cube.h"
-#include "mysql/cube.h"
+#include "mysql_cube.h"
 
 #include <gtest/gtest.h>
 

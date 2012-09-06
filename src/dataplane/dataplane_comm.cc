@@ -47,10 +47,11 @@ DataplaneConnManager::created_operator (operator_id_t op_id,
   enable_connection(c, op_id, dest);
 }
 
-void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
-                                        shared_ptr<DataPlaneOperator> dest,
-                                        const DataplaneMessage &msg,
-                                        const boost::system::error_code &error) 
+void
+DataplaneConnManager::got_data_cb (operator_id_t dest_id,
+                                   shared_ptr<DataPlaneOperator> dest,
+                                   const DataplaneMessage &msg,
+                                   const boost::system::error_code &error) 
 {
 
   if (error) {
@@ -79,6 +80,11 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
   }
 }
   
+  
+void
+DataplaneConnManager::close() {
+  //TODO: gracefully stop connections
+}
   
 
 OutgoingConnAdaptor::OutgoingConnAdaptor (ConnectionManager& cm,

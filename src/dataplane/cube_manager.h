@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <map>
-#include "mysql/cube.h"
+#include "mysql_cube.h"
 #include "cube.h"
 
 namespace jetstream {
