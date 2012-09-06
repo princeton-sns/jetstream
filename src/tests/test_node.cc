@@ -70,8 +70,9 @@ TEST(Node, HandleAlter_2_Ops)
 
   add_pair_to_topo(topo);
   
-  ControlMessage m = node.handle_alter(topo);
-  ASSERT_EQ(m.type(), ControlMessage::OK);
+  ControlMessage r;
+  node.handle_alter(r, topo);
+  ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
   
   operator_id_t id2(17,2);
   shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
@@ -201,7 +202,7 @@ TEST_F(NodeNetTest, NetStart)
     boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
     
     switch( h->type() ) {
-      case ControlMessage::OK:
+      case ControlMessage::ALTER_RESPONSE:
         cout << "got response back ok from AlterTopo" <<endl;
         found_response = true;
         break;
@@ -230,12 +231,14 @@ shared_ptr<DataPlaneOperator>
 add_dummy_receiver(Node& n, operator_id_t dest_id)
 {
   AlterTopo topo;
+  ControlMessage r;
+  topo.set_computationid(dest_id.computation_id);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
   id->set_computationid(dest_id.computation_id);
   id->set_task(dest_id.task_id);
   task->set_op_typename("DummyReceiver");
-  n.handle_alter(topo);
+  n.handle_alter(r, topo);
   
   shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
   EXPECT_TRUE( dest != 0 );
@@ -403,6 +406,7 @@ TEST(NodeIntegration,DataplaneConn) {
   cout << "created receiver" << endl;
 
   AlterTopo topo;
+  topo.set_computationid(src_id.computation_id);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
   id->set_computationid(src_id.computation_id);
@@ -418,7 +422,8 @@ TEST(NodeIntegration,DataplaneConn) {
   dest_node->set_address("127.0.0.1");
 
   task->set_op_typename("SendOne");
-  nodes[1]->handle_alter(topo);
+  ControlMessage r;
+  nodes[1]->handle_alter(r, topo);
 
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   

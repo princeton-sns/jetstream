@@ -43,9 +43,10 @@ class TestController(unittest.TestCase):
     time.sleep(2)
 
     # Tell the controller to deploy a topology (it will deploy it on the only worker)
+    compID = 17
     req = ControlMessage()
     req.type = ControlMessage.ALTER
-    req.alter.computationID = 17
+    req.alter.computationID = compID
     newTask = req.alter.toStart.add()
     newTask.op_typename = "FileRead"
     newTask.id.computationID = req.alter.computationID
@@ -57,14 +58,16 @@ class TestController(unittest.TestCase):
     configEntry.val = "../../src/tests/data/base_operators_data.txt";
     
     buf = self.client.do_rpc(req, True)
-    req = ControlMessage()
-    req.ParseFromString(buf)
-    self.assertEquals(req.type, ControlMessage.OK)
+    resp = ControlMessage()
+    resp.ParseFromString(buf)
+    self.assertEquals(resp.type, ControlMessage.OK)
+    # Make sure the controller created state for this computation
+    self.assertTrue(compID in self.controller.computations)
     # Wait for the topology to start running on the worker
-    time.sleep(1)
+    time.sleep(2)
     workerList = self.controller.get_nodes()
     assert(len(workerList) == 1)
-    self.assertEquals(workerList[0].assignments[req.alter.computationID].state, WorkerAssignment.RUNNING)
+    self.assertEquals(workerList[0].assignments[compID].state, WorkerAssignment.RUNNING)
     os.killpg(workerProc.pid, signal.SIGTERM)
 
  

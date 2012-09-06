@@ -90,7 +90,7 @@ class Node {
 *   returns by value; typically the response is very short and so the dynamic alloc
 *  overhead isn't worth it.
 */
-  ControlMessage handle_alter (const AlterTopo& t);
+  ControlMessage handle_alter (ControlMessage& response, const AlterTopo& t);
 
 //TODO include private copy-constructor and operator= here?
 

@@ -170,6 +170,9 @@ class Controller (ControllerAPI, JSServer):
     #TODO: As above, the code below only deals with starting tasks
     
     compID = altertopo.computationID
+    if compID not in self.computations:
+      print "WARNING: Invalid computation id %d in ALTER_RESPONSE message" % (compID)
+      return
     # Let the computation know which parts of the assignment were started/created
     actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
     self.computations[compID].update_worker(workerEndpoint, actualAssignment)

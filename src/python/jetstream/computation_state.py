@@ -22,6 +22,32 @@ class WorkerAssignment (object):
     self.cubes = cubes
 
 
+  def __eq__ (self, other):
+    if isinstance(other, WorkerAssignment):
+      if ((len(self.operators) != len(other.operators)) or
+          (len(self.cubes) != len(other.cubes)) or
+          (self.compID != other.compID)):
+        return False
+      # Compare the list of operators and cubes (assume they are sorted for now)
+      for i in range(len(self.operators)):
+        if ((self.operators[i].op_typename != other.operators[i].op_typename) or
+            (self.operators[i].id.task != other.operators[i].id.task)):
+          return False
+      for i in range(len(self.cubes)):
+        if ((self.cubes[i].op_typename != other.cubes[i].op_typename) or
+            (self.cubes[i].id.task != other.cubes[i].id.task)):
+          return False
+      return True
+    return NotImplemented
+
+
+  def __ne__ (self, other):
+    result = self.__eq__(other)
+    if result is NotImplemented:
+      return result
+    return not result
+
+
 class CWorker (object):
   """Controller's view of a worker node"""
 
