@@ -22,9 +22,11 @@ using namespace jetstream;
 //helper method to fill in an AlterTopo with a pair of operators
 void add_pair_to_topo(AlterTopo& topo)
 {
+  int compID = 17;
+  topo.set_computationid(compID);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
-  id->set_computationid(17);
+  id->set_computationid(compID);
   id->set_task(2);
   task->set_op_typename("FileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
@@ -33,14 +35,14 @@ void add_pair_to_topo(AlterTopo& topo)
 
   task = topo.add_tostart();
   id = task->mutable_id();
-  id->set_computationid(17);
+  id->set_computationid(compID);
   id->set_task(3);
   task->set_op_typename("DummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);
   e->set_dest(3);
-  e->set_computation(17);
+  e->set_computation(compID);
 }
 
 TEST(Node, OperatorCreate)

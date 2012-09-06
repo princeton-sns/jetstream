@@ -35,10 +35,10 @@ class TestController(unittest.TestCase):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
-    cli_proc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
+    workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
     time.sleep(2)
     self.assertEquals(len(self.controller.get_nodes()), 1)
-    os.killpg(cli_proc.pid, signal.SIGTERM)
+    os.killpg(workerProc.pid, signal.SIGTERM)
 
 
 if __name__ == '__main__':

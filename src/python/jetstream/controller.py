@@ -101,17 +101,17 @@ class Controller (ControllerAPI, JSServer):
     print "server responding to get_nodes with list of length %d" % len(nodeList)
 
     
-  def handle_heartbeat (self, hb, clientAddr):
+  def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
-    print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientAddr))
+    print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
     #print hb
     #print ""
     self.internals_lock.acquire()
     #TODO: Either remove locking above or add add() API
-    if clientAddr not in self.workers:
-      print "Added " + str(clientAddr)
-      self.workers[clientAddr] = CWorker(clientAddr, self.hbInterval)
-      self.workers[clientAddr].receive_hb(hb)
+    if clientEndpoint not in self.workers:
+      print "Added " + str(clientEndpoint)
+      self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+      self.workers[clientEndpoint].receive_hb(hb)
       # If this is the first worker, start the liveness thread
       if len(self.workers) == 1:
         # Make sure a previous instantiation of the thread has stopped
@@ -120,7 +120,7 @@ class Controller (ControllerAPI, JSServer):
         self.livenessThread = None
         self.start_liveness_thread()
     else:
-      self.workers[clientAddr].receive_hb(hb)
+      self.workers[clientEndpoint].receive_hb(hb)
     self.internals_lock.release()
 
     
@@ -141,9 +141,10 @@ class Controller (ControllerAPI, JSServer):
 
     # Set up the computation
     assert(len(altertopo.toStart) > 0)
-    compID = altertopo.toStart[0].id.computationID
+    compID = altertopo.computationID
     assert(compID not in self.computations)
-    self.computations[compID] = Computation(self, compID)
+    comp = Computation(self, compID)
+    self.computations[compID] = comp
 
     # Assign pinned operators to specified workers. For now, assign unpinned operators to a default worker.
     assignments = {}
@@ -159,10 +160,19 @@ class Controller (ControllerAPI, JSServer):
       assignments[endpoint].operators.append(operator)
 
     for endpoint,assignment in assignments.items():
-      self.computations[compID].assign_worker(endpoint, assignment)
+      comp.assign_worker(endpoint, assignment)
       
     # Start the computation
-    self.computations[compID].start()
+    comp.start()
+
+
+  def handle_alter_response (self, altertopo, workerEndpoint):
+    #TODO: As above, the code below only deals with starting tasks
+    
+    compID = altertopo.computationID
+    # Let the computation know which parts of the assignment were started/created
+    actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
+    self.computations[compID].update_worker(workerEndpoint, actualAssignment)
 
 
   #TODO: Move this to within operator graph abstraction.
@@ -186,12 +196,15 @@ class Controller (ControllerAPI, JSServer):
       self.handle_get_nodes(response)
     elif req.type == ControlMessage.ALTER:
       self.handle_alter(response, req.alter)
+    elif req.type == ControlMessage.ALTER_RESPONSE:
+      self.handle_alter_response(req.alter, handler.cli_addr)
+      return  # no response
     elif req.type == ControlMessage.HEARTBEAT:
-      self.handle_heartbeat(req, handler.cli_addr)
-      return # no response
+      self.handle_heartbeat(req.heartbeat, handler.cli_addr)
+      return  # no response
     elif req.type == ControlMessage.OK:
       print "Received OK response from " + str(handler.cli_addr)
-      return # no response
+      return  # no response
     else:
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "unknown error"

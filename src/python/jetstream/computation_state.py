@@ -15,11 +15,11 @@ class WorkerAssignment (object):
   RUNNING = 1
   STOPPED = 2
   
-  def __init__ (self, compID):
+  def __init__ (self, compID, operators=[], cubes=[]):
     self.compID = compID
     self.state = WorkerAssignment.STOPPED
-    self.operators = []
-    self.cubes = []
+    self.operators = operators
+    self.cubes = cubes
 
 
 class CWorker (object):
@@ -61,7 +61,6 @@ class CWorker (object):
   def create_assignment (self, compID):
     self.assignments[compID] = WorkerAssignment(compID)
     return self.assignments[compID]
-    print "DONE CREATING ASS"
 
 
 class Computation (object):
@@ -70,7 +69,7 @@ class Computation (object):
   def __init__ (self, controller, compID, opGraph=None):
     # Save the controller interface so we can communicate with workers
     self.controller = controller
-    self.computationID = compID
+    self.compID = compID
     self.opGraph = opGraph
     # Maps a worker endpoint to an assignment
     self.workerAssignments = {}
@@ -81,11 +80,23 @@ class Computation (object):
     self.workerAssignments[endpoint] = assignment
 
 
+  def update_worker (self, endpoint, actualAssignment):
+    assert(endpoint in self.workerAssignments)
+    intendedAssignment = self.workerAssignments[endpoint]
+    # Currently, an assignment's state depends on whether it was fully realized
+    if actualAssignment == intendedAssignment:
+      intendedAssignment.state = WorkerAssignment.RUNNING
+    else:
+      intendedAssignment.state = WorkerAssignment.STOPPED
+      #TODO Handle failed assignment here
+      
+
   def start (self):
     # Start each worker's assignment
     for worker in self.workerAssignments.keys():
       req = ControlMessage()
       req.type = ControlMessage.ALTER
+      req.alter.computationID = self.compID
       req.alter.toStart.extend(self.workerAssignments[worker].operators)
       req.alter.toCreate.extend(self.workerAssignments[worker].cubes)
       h = self.controller.connect_to(worker)
@@ -98,10 +109,8 @@ class Computation (object):
     for worker in self.workerAssignments.keys():
       req = ControlMessage()
       req.type = ControlMessage.ALTER
+      req.alter.computationID = self.compID
       req.alter.taskToStop.extend( [operator.id for operator in self.workerAssignments[worker].operators] )
       req.alter.cubesToStop.extend( [cube.name for cube in self.workerAssignments[worker].cubes] )
       h = self.connect_to(worker)
       h.send_pb(req)
-
-  def pause ():
-    pass

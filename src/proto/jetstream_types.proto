@@ -99,16 +99,19 @@ message Edge {
 }
 
 /**
-* An AlterTopo specifies a set of mutations to the operator graph.
-* It includes tasks and cubes to start, tasks and cubes to stop, 
+* An AlterTopo specifies a set of mutations to the operator graph of a single
+* computation. It includes tasks and cubes to start, tasks and cubes to stop, 
 * and edges to add. 
 */
 message AlterTopo {
-  repeated TaskMeta toStart = 1;
-  repeated CubeMeta toCreate = 2;
-  repeated TaskID taskToStop = 3; 
-  repeated string cubesToStop = 4; 
-  repeated Edge edges = 5;
+  // Using one message per computation ID simplifies our controller logic
+  required int32 computationID = 1;
+
+  repeated TaskMeta toStart = 2;
+  repeated CubeMeta toCreate = 3;
+  repeated TaskID taskToStop = 4; 
+  repeated string cubesToStop = 5; 
+  repeated Edge edges = 6;
 }
 
 
@@ -132,7 +135,8 @@ message Error {
 * notational convenience, and not enforced or used in the code.
 */
 message ControlMessage {
-  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; ALTER = 6; NODES_RESPONSE = 7; OK = 8; }
+  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; 
+                     ALTER = 6; ALTER_RESPONSE = 7; NODES_RESPONSE = 8; OK = 9; }
   required ControlType type = 1; 
   
   optional Error error_msg = 2;

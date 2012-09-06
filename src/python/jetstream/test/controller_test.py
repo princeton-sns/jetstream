@@ -97,9 +97,10 @@ class TestController(unittest.TestCase):
     # Deploy a single-operator topology
     req = ControlMessage()
     req.type = ControlMessage.ALTER
+    req.alter.computationID = 17
     newOp = req.alter.toStart.add()
     newOp.op_typename = "cat /etc/shells"
-    newOp.id.computationID = 1
+    newOp.id.computationID = req.alter.computationID
     newOp.id.task = 1
     # Bind this operator to the second worker
     workerEndpoint = worker2.connection_to_server.getsockname()

@@ -1,3 +1,8 @@
+#
+# Minimal implementation of a JetStream worker used for testing only (actual
+# worker implementation is in C++ and lives in jetstream/src/dataplane).
+#
+
 import asyncore
 import asynchat
 

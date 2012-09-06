@@ -249,7 +249,7 @@ operator_id_t
 unparse_id (const TaskID& id)
 {
   operator_id_t parsed;
-  parsed.computation_id = id.computationid ();
+  parsed.computation_id = id.computationid();
   parsed.task_id = id.task();
   return parsed;
 }
