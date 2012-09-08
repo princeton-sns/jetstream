@@ -92,6 +92,7 @@ Node::run ()
   iosrv->run();
 
   VLOG(1) << "Finished node::run" << endl;
+  LOG(INFO) << "Finished node::run" << endl;
 }
 
 
@@ -108,8 +109,8 @@ Node::stop ()
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
 
-    //need to stop operators before deconstructing because otherwise they may
-    //keep pointers around after destruction.
+  // Need to stop operators before deconstructing because otherwise they may
+  // keep pointers around after destruction.
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }

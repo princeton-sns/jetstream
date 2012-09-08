@@ -11,19 +11,19 @@ using namespace jetstream;
 
 TEST(Operator, BaseOp)
 {
-  DataPlaneOperator *op = new DataPlaneOperator;
-  boost::shared_ptr<Tuple> t(new Tuple);
+  DataPlaneOperator *op = new DataPlaneOperator();
+  boost::shared_ptr<Tuple> t(new Tuple());
   op->process(t);
   delete op;
 }
 
 TEST(OperatorLoader, LoadAndUnloadWithPath)
 {
-  DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader;
+  DataPlaneOperatorLoader *opl = new DataPlaneOperatorLoader();
   bool succ = opl->load("test", "src/dataplane/" + DataPlaneOperatorLoader::get_default_filename("test"));
   ASSERT_TRUE(succ);
   DataPlaneOperator *op = opl->newOp("test");
-  boost::shared_ptr<Tuple> t(new Tuple);
+  boost::shared_ptr<Tuple> t(new Tuple());
   op->process(t);
   delete op;
   opl->unload("test");

@@ -84,6 +84,14 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_id,
 void
 DataplaneConnManager::close() {
   //TODO: gracefully stop connections
+  std::map<operator_id_t, boost::shared_ptr<ClientConnection> >::iterator iter;
+
+  for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
+    iter->second->close();
+  }
+  for (iter = liveConns.begin(); iter != liveConns.end(); iter++) {
+    iter->second->close();
+  }
 }
   
 

@@ -63,9 +63,6 @@ FileRead::operator()() {
 }
 
 
-
-
-
 void
 StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];

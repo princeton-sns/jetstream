@@ -15,6 +15,7 @@ DataPlaneOperator::~DataPlaneOperator()
 void
 DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
 {
+  assert(t);
   LOG(INFO) << "Operator: base operator process" << endl;
 }
 
