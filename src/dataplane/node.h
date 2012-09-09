@@ -86,10 +86,9 @@ class Node {
   const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
   { return listeningSock->get_local_endpoint(); }
 
-/**
-*   returns by value; typically the response is very short and so the dynamic alloc
-*  overhead isn't worth it.
-*/
+  /* Returns by value; typically the response is very short and so the dynamic alloc
+   * overhead isn't worth it.
+   */
   ControlMessage handle_alter (ControlMessage& response, const AlterTopo& t);
 
 //TODO include private copy-constructor and operator= here?

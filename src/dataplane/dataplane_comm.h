@@ -51,7 +51,7 @@ class DataplaneConnManager {
 
 
 
-class OutgoingConnAdaptor : public TupleReceiver {
+class RemoteDestAdaptor : public TupleReceiver {
 
  private:
   boost::shared_ptr<ClientConnection> conn;
@@ -68,9 +68,9 @@ class OutgoingConnAdaptor : public TupleReceiver {
   static const msec_t wait_for_conn = 2000; //ms
   
  public:
-  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c) {}
-  OutgoingConnAdaptor (ConnectionManager &cm, const jetstream::Edge&);
-  virtual ~OutgoingConnAdaptor() {}
+  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c) {}
+  RemoteDestAdaptor (ConnectionManager &cm, const jetstream::Edge&);
+  virtual ~RemoteDestAdaptor() {}
 
   virtual void process (boost::shared_ptr<Tuple> t);
 };

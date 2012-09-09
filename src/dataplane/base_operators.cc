@@ -86,7 +86,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     cout << "received empty tuple, ignoring" << endl;
     return;
   }
-  //TODO: Assuming its the first element for now
+
   Element* e = t->mutable_e(id);
   if (!e->has_s_val()) {
     cout << "received tuple but element" << id << " is not string, ignoring" << endl;

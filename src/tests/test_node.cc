@@ -419,7 +419,8 @@ TEST(NodeIntegration, DataplaneConn) {
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_EQ((unsigned int) 1, rec->tuples.size());
+  // This records the failure but allows the cleanup code below to execute
+  EXPECT_EQ((unsigned int) 1, rec->tuples.size());
 
   // Close sockets to avoid badness related to io_service destruction
   sockets[0]->shutdown(tcp::socket::shutdown_both, err);

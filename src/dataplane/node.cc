@@ -318,7 +318,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
       shared_ptr<TupleReceiver> xceiver(
-          new OutgoingConnAdaptor(*connMgr, edge) );
+          new RemoteDestAdaptor(*connMgr, edge) );
       srcOperator->set_dest(xceiver);
     } 
     else {
