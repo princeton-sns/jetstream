@@ -362,6 +362,10 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
 }
 
 
+// This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.
+// Thus it can test the following scenario: an operator on one node attempts to
+// send data to a remote operator on the second node before receiving CHAIN_READY.
+// The RemoteDestAdaptor on the first node should block until the chains is ready.
 TEST(NodeIntegration, DataplaneConn) {
   asio::io_service io_service;
   shared_ptr<tcp::socket> sockets[2];
@@ -392,13 +396,18 @@ TEST(NodeIntegration, DataplaneConn) {
   cout << "created nodes, got heartbeats" << endl;
 
   operator_id_t dest_id(17,3), src_id(17,2);
+
+  // Create the receiver 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
    
   cout << "created receiver" << endl;
- 
+
+  // Start an operator on one node; it will try to send data but will block until
+  // the receiver is ready
   AlterTopo topo;
   topo.set_computationid(src_id.computation_id);
   TaskMeta* task = topo.add_tostart();
+  task->set_op_typename("SendOne");
   TaskID* id = task->mutable_id();
   id->set_computationid(src_id.computation_id);
   id->set_task(src_id.task_id);
@@ -406,16 +415,16 @@ TEST(NodeIntegration, DataplaneConn) {
   e->set_src(src_id.task_id);
   e->set_dest(dest_id.task_id);
   e->set_computation(src_id.computation_id);
+  // Provide remote destination info for the edge
   NodeID * dest_node = e->mutable_dest_addr();
-   
   const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
   dest_node->set_portno(dest_node_addr.port());
   dest_node->set_address("127.0.0.1");
  
-  task->set_op_typename("SendOne");
   ControlMessage r;
   nodes[1]->handle_alter(r, topo);
- 
+
+  // Wait for the chain to be ready and the sending operators data to flow through. 
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());

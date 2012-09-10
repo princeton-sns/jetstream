@@ -96,12 +96,14 @@ DataplaneConnManager::close() {
   
 
 RemoteDestAdaptor::RemoteDestAdaptor (ConnectionManager& cm,
-                                          const Edge & e) {
+                                          const Edge & e) 
+  : chainIsReady(false)
+{
                                           
   const std::string& addr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();      
-  dest_op_id.computation_id = e.computation();
-  dest_op_id.task_id = e.dest();
+  destOpId.computation_id = e.computation();
+  destOpId.task_id = e.dest();
                                           
   cm.create_connection(addr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
@@ -117,8 +119,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
   
   Edge * edge = data_msg.mutable_chain_link();
-  edge->set_computation(dest_op_id.computation_id);
-  edge->set_dest(dest_op_id.task_id);
+  edge->set_computation(destOpId.computation_id);
+  edge->set_dest(destOpId.task_id);
   edge->set_src(0);
   
   boost::system::error_code err;
@@ -135,7 +137,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   if (msg.type() == DataplaneMessage::CHAIN_READY) {
     LOG(INFO) << "got ready back";
-    conn_ready.notify_all();  
+    chainReadyCond.notify_all();  
   } 
   else {
     LOG(WARNING) << "unexpected response to Chain connect: " << msg.type() << 
@@ -149,15 +151,18 @@ void
 RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) 
 {
   unique_lock<boost::mutex> lock(mutex);//wraps mutex in an RIAA pattern
-  while (!conn) {
-    //SHOULD BLOCK HERE
+  while (!chainIsReady) {
     LOG(WARNING) << "trying to send data through closed conn. Should block";
    
     system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
-    bool conn_established = conn_ready.timed_wait(lock, wait_until);
+    bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
    
     if (!conn_established) {
       LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
+    } else {
+      // Future process requests need not wait because the chain is now ready
+      chainIsReady = true;
+      break;
     }
   }
 
