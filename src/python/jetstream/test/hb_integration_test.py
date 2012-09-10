@@ -33,7 +33,7 @@ class TestController(unittest.TestCase):
 
   def test_heartbeat(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
+    jsnode_cmd = "../../jsnoded -a %s:%d --start -C ../../config/datanode.conf" % (self.controller.address)
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid) 
     time.sleep(2)

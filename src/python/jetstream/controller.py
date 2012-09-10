@@ -28,7 +28,7 @@ def main():
   
 def get_server_on_this_node ():  
   bind_port = DEFAULT_BIND_PORT
-  endpoint = ('localhost', bind_port) 
+  endpoint = (socket.gethostname(), bind_port) 
   server = Controller(endpoint)
   return server
 
