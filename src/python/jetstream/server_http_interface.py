@@ -1,4 +1,5 @@
 import threading
+import socket
 
 import BaseHTTPServer
 
@@ -13,7 +14,7 @@ class JSHttpServer(BaseHTTPServer.HTTPServer):
   def __init__(self, js_server):
     self.js_server = js_server
     self.allow_reuse_address = True
-    BaseHTTPServer.HTTPServer.__init__(self, ('', SERV_PORT), JSWebInterface)
+    BaseHTTPServer.HTTPServer.__init__(self, (socket.gethostname(), SERV_PORT), JSWebInterface)
 
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
   """A simple HTTP status page for the server"""
