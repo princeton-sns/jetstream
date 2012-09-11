@@ -1,5 +1,11 @@
+import logging
+
 import threading
 import socket
+
+
+logger = logging.getLogger('JetStream')
+
 
 import BaseHTTPServer
 
@@ -15,6 +21,7 @@ class JSHttpServer(BaseHTTPServer.HTTPServer):
     self.js_server = js_server
     self.allow_reuse_address = True
     BaseHTTPServer.HTTPServer.__init__(self, (socket.gethostname(), SERV_PORT), JSWebInterface)
+    logger.info("Web interface started on port %d" % SERV_PORT)
 
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
   """A simple HTTP status page for the server"""

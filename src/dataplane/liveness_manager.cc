@@ -83,16 +83,12 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   conn->send_msg(req, send_error);
 
   if (send_error) {
-    _lm_mutex.lock();
     LOG(WARNING) << "Liveness: send error on " << conn->get_remote_endpoint()
 	 << ": " << send_error.message() << endl;
-    _lm_mutex.unlock();
   }
   else {
-    _lm_mutex.lock();
     LOG(INFO) << "Liveness: successfully scheduled message send to "
 	 << conn->get_remote_endpoint() << endl;
-    _lm_mutex.unlock();
   }
 
   wait_to_notify();
