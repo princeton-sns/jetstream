@@ -69,8 +69,10 @@ void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
 
-  if (error || !is_connected())
+  if (error || !is_connected()) {
+    LOG(WARNING) << "error " << error.message() << ". Connection state is " << is_connected();
     return;
+  }
     
   waiting = false;
 
@@ -79,6 +81,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   Heartbeat *h = req.mutable_heartbeat();
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
+  
   boost::system::error_code send_error;
   conn->send_msg(req, send_error);
 
@@ -98,8 +101,10 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
-  if (!is_connected() || waiting)
+  if (!is_connected() || waiting) {
+    LOG(WARNING) << "Bailing on wait_to_notify; connected is " << is_connected() << ". Waiting is " << waiting;    
     return;
+  }
 
   waiting = true;
   timer.expires_from_now(posix_time::milliseconds(heartbeat_time));
