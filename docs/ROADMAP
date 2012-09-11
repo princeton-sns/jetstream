@@ -10,6 +10,9 @@ Version 0.1:
 	Should have minimal code movement challenges
 	Goal:  Distributed grep.
 
+We more or less have this by mid-September 2012.
+
+
 
 Version 0.2:
 	Should run in wide area. Should have nontrivial scheduler + query optimizer.
@@ -20,3 +23,4 @@ FUTURE:
 	Decentralized control?
 	Tracking of available resources
 	Approximations
+	Try out adaptive algorithms, with circular data flows. (E.g., for top-k)

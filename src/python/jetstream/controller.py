@@ -58,6 +58,7 @@ class Controller (ControllerAPI, JSServer):
         # Just delete the node for now, but going forward we'll have to reschedule
         # computations etc.
         if s.update_state() == CWorker.DEAD:
+          logger.info("marking worker %s:%d as dead due to timeout"% (w[0],w[1])
           del self.workers[w]
       #TODO: Do all workers have the same hb interval?
       time.sleep(self.hbInterval)

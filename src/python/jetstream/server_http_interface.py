@@ -35,6 +35,6 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write("<p>Total of %d nodes. <ul>" % len(nodes))
 
     for n in nodes:
-      self.wfile.write("<li>%s</li>" % str(n))
+      self.wfile.write("<li>%s:%d</li>" % (n.endpoint[0], n.endpoint[1]))
     self.wfile.write("</ul>")
 
