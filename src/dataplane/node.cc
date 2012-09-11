@@ -129,7 +129,9 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
-    LOG(WARNING) << "Node: Monitoring connection failed: " << error.message() << endl;    
+    LOG(WARNING) << "Node: Monitoring connection to "
+		 << conn->get_remote_endpoint() 
+		 << " failed " << error.message() << endl;
     return;
   }
 

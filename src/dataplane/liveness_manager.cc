@@ -68,9 +68,11 @@ LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_p
 void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
-
   if (error || !is_connected()) {
-    LOG(WARNING) << "error " << error.message() << ". Connection state is " << is_connected();
+    LOG(WARNING) << "Liveness: Send notification with "
+		 << conn->get_remote_endpoint()
+		 << ": connected " << is_connected()
+		 << ": error " << error.message() << endl;
     return;
   }
     
@@ -86,7 +88,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   conn->send_msg(req, send_error);
 
   if (send_error) {
-    LOG(WARNING) << "Liveness: send error on " << conn->get_remote_endpoint()
+    LOG(WARNING) << "Liveness: send error with " << conn->get_remote_endpoint()
 	 << ": " << send_error.message() << endl;
   }
   else {
@@ -102,7 +104,10 @@ void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
   if (!is_connected() || waiting) {
-    LOG(WARNING) << "Bailing on wait_to_notify; connected is " << is_connected() << ". Waiting is " << waiting;    
+    LOG(WARNING) << "Stopping wait_to_notify with remote " 
+		 << conn->get_remote_endpoint()
+		 << ". Connected " << is_connected ()
+		 << "; Waiting " << waiting << endl;
     return;
   }
 
