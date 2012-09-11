@@ -284,7 +284,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
   vector<string> where_clauses;
   for(size_t i=0; i<dimensions.size(); i++)
   {
-    string where = dimensions[i]->get_where_clause_exact(t, tuple_index);
+    string where = dimensions[i]->get_where_clause_exact(t, tuple_index, false);
     where_clauses.push_back(where);
   }
   string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
@@ -321,6 +321,67 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
 
 }
 
+size_t jetstream::cube::MysqlCube::slice_start_query(jetstream::Tuple min, jetstream::Tuple max, bool final)
+{
+  int tuple_index_min = 0;
+  int tuple_index_max = 0;
+  vector<string> where_clauses;
+  
+  for(size_t i=0; i<dimensions.size(); i++) {
+    string where = dimensions[i]->get_where_clause_greater_than_eq(min, tuple_index_min, true);
+    if(where.size() > 1)
+      where_clauses.push_back(where);
+    
+    where = dimensions[i]->get_where_clause_less_than_eq(max, tuple_index_max, true);
+    if(where.size() > 1)
+      where_clauses.push_back(where);
+  }
+  string sql;
+  if(where_clauses.size() > 0) {
+    sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
+  }
+  else {
+    sql = "SELECT * FROM `"+get_table_name()+"`";
+  }
+
+  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  slice_result_set = res;
+  slice_final = final;
+  return slice_result_set->rowsCount();
+}
+
+size_t jetstream::cube::MysqlCube::slice_num_cells() {
+  if(slice_result_set)
+    return slice_result_set->rowsCount();
+  return 0;
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::slice_next_cell()
+{
+  if(!slice_result_set->next())
+  {
+    //return a NULL ptr
+    boost::shared_ptr<jetstream::Tuple> res;
+    return res;
+  }
+
+  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
+
+  int column_index = 1;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    dimensions[i]->populate_tuple(result, slice_result_set, column_index);
+  }
+  for(size_t i=0; i<aggregates.size(); i++)
+  {
+    if(!slice_final)
+      aggregates[i]->populate_tuple_partial(result, slice_result_set, column_index);
+    else
+      aggregates[i]->populate_tuple_final(result, slice_result_set, column_index);
+  }
+
+  return result;
+}
 
 void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
   batch = numBatch;

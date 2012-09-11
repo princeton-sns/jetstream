@@ -23,6 +23,18 @@ class MysqlDimension: public Dimension{
       return get_where_clause(t, tuple_index, " = ", is_optional);
     }
 
+    virtual string get_where_clause_greater_than_eq(jetstream::Tuple t, int &tuple_index, bool is_optional = true)
+    {
+      return get_where_clause(t, tuple_index, " >= ", is_optional);
+    }
+
+
+    virtual string get_where_clause_less_than_eq(jetstream::Tuple t, int &tuple_index, bool is_optional = true)
+    {
+      return get_where_clause(t, tuple_index, " <= ", is_optional);
+    }
+
+
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) = 0;
 
     string get_base_column_name()
