@@ -14,7 +14,7 @@ using namespace boost;
 using namespace boost::asio::ip;
 
 
-bool accept_cb_fired = false;
+bool accept_cb_fired;
 
 void my_cb(boost::shared_ptr<ConnectedSocket> sock, const boost::system::error_code &)
 {
@@ -23,6 +23,9 @@ void my_cb(boost::shared_ptr<ConnectedSocket> sock, const boost::system::error_c
 
 TEST(Comm, ServerConnection)
 {
+  // Initialize here in case test is run repeatedly (alternatively create setup
+  // and teardown methods for this test case)
+  accept_cb_fired = false;
   shared_ptr<asio::io_service> iosrv(new asio::io_service);
   tcp::endpoint local_0(tcp::v4(), 0);
   boost::system::error_code error;

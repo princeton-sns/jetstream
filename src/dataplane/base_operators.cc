@@ -63,9 +63,6 @@ FileRead::operator()() {
 }
 
 
-
-
-
 void
 StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];
@@ -89,7 +86,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     cout << "received empty tuple, ignoring" << endl;
     return;
   }
-  //TODO: Assuming its the first element for now
+
   Element* e = t->mutable_e(id);
   if (!e->has_s_val()) {
     cout << "received tuple but element" << id << " is not string, ignoring" << endl;
@@ -108,6 +105,11 @@ DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
 }
 
+
+void
+SendOne::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a SendOne";
+} 
 
 void
 SendOne::start(std::map<std::string,std::string> config) {

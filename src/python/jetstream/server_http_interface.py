@@ -1,4 +1,5 @@
 import threading
+import socket
 
 import BaseHTTPServer
 
@@ -13,7 +14,7 @@ class JSHttpServer(BaseHTTPServer.HTTPServer):
   def __init__(self, js_server):
     self.js_server = js_server
     self.allow_reuse_address = True
-    BaseHTTPServer.HTTPServer.__init__(self, ('', SERV_PORT), JSWebInterface)
+    BaseHTTPServer.HTTPServer.__init__(self, (socket.gethostname(), SERV_PORT), JSWebInterface)
 
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
   """A simple HTTP status page for the server"""
@@ -34,6 +35,6 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write("<p>Total of %d nodes. <ul>" % len(nodes))
 
     for n in nodes:
-      self.wfile.write("<li>%s</li>" % str(n))
+      self.wfile.write("<li>%s:%d</li>" % (n.endpoint[0], n.endpoint[1]))
     self.wfile.write("</ul>")
 

@@ -1,3 +1,8 @@
+#
+# Minimal implementation of a JetStream worker used for testing only (actual
+# worker implementation is in C++ and lives in jetstream/src/dataplane).
+#
+
 import asyncore
 import asynchat
 
@@ -12,7 +17,7 @@ from local_controller import LocalUnix
 
 from generic_netinterface import JSServer
 from controller import DEFAULT_BIND_PORT
-from computation_state import WorkerState
+from computation_state import CWorker
 
 logger = logging.getLogger('JetStream')
 DEFAULT_WORKER_BIND_PORT = 0
@@ -25,9 +30,10 @@ def main():
   print "connected, starting heartbeat thread" 
   worker_thread.heartbeat_thread()
  
-def create_worker(server_address, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SECS):
+def create_worker(server_address, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
   my_address = ('localhost', DEFAULT_WORKER_BIND_PORT) 
   cli_loop = Worker(my_address, hbInterval)
+  print "worker bound to " + str(cli_loop.address)
   cli_loop.connect_to_server(server_address)
   cli_loop.start_as_thread()
   return cli_loop
@@ -35,7 +41,7 @@ def create_worker(server_address, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SEC
 
 class Worker(JSServer):
   
-  def __init__(self, addr, hbInterval=WorkerState.DEFAULT_HB_INTERVAL_SECS):
+  def __init__(self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.tasks = {}
     self.hbInterval = hbInterval

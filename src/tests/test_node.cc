@@ -22,9 +22,11 @@ using namespace jetstream;
 //helper method to fill in an AlterTopo with a pair of operators
 void add_pair_to_topo(AlterTopo& topo)
 {
+  int compID = 17;
+  topo.set_computationid(compID);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
-  id->set_computationid(17);
+  id->set_computationid(compID);
   id->set_task(2);
   task->set_op_typename("FileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
@@ -33,14 +35,14 @@ void add_pair_to_topo(AlterTopo& topo)
 
   task = topo.add_tostart();
   id = task->mutable_id();
-  id->set_computationid(17);
+  id->set_computationid(compID);
   id->set_task(3);
   task->set_op_typename("DummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);
   e->set_dest(3);
-  e->set_computation(17);
+  e->set_computation(compID);
 }
 
 TEST(Node, OperatorCreate)
@@ -68,8 +70,9 @@ TEST(Node, HandleAlter_2_Ops)
 
   add_pair_to_topo(topo);
   
-  ControlMessage m = node.handle_alter(topo);
-  ASSERT_EQ(m.type(), ControlMessage::OK);
+  ControlMessage r;
+  node.handle_alter(r, topo);
+  ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
   
   operator_id_t id2(17,2);
   shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
@@ -107,18 +110,17 @@ TEST(Node,WebIfaceStartStop)
 }
 
 
-class BindTestThread {
+class NodeTestThread {
   public:
     NodeConfig& cfg;
     shared_ptr<Node> n;
-    BindTestThread(NodeConfig& c): cfg(c) {
+    NodeTestThread(NodeConfig& c): cfg(c) {
       boost::system::error_code error;
       n = shared_ptr<Node>(new Node(cfg, error));
       EXPECT_TRUE(error == 0);
       return;
     }
     void operator()() {
-      assert(n);
       n->run();
     }
 };
@@ -128,14 +130,17 @@ class NodeNetTest : public ::testing::Test {
 
  public:
   shared_ptr<Node> n;
+  // Order matters here! The constructor initializes io_service before the socket
+  // (also see superfluous initializer below)
   asio::io_service io_service;
   ip::tcp::socket cli_socket;
   SimpleNet synch_net;
+  thread testThread;
 
-  NodeNetTest():cli_socket(io_service),synch_net(cli_socket) {
-  
-  }
-  
+  // Include a superfluous io_service initializer to cause a compile error if the
+  // order of initialization above is switched
+  NodeNetTest() : io_service(), cli_socket(io_service), synch_net(cli_socket) {}
+
   
   virtual void SetUp() {
     ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
@@ -148,8 +153,8 @@ class NodeNetTest : public ::testing::Test {
     cfg.heartbeat_time = 2000;
     cfg.controllers.push_back(p);
 
-    BindTestThread testThreadBody(cfg);
-    thread testThread(testThreadBody);
+    NodeTestThread testThreadBody(cfg);
+    testThread = thread(testThreadBody);
     // This assignment only works if 'n' is assigned before the constructor returns
     this->n = testThreadBody.n;
     
@@ -159,13 +164,16 @@ class NodeNetTest : public ::testing::Test {
   
     
   virtual void TearDown() {
-    if (n) {
-      n->stop();
-    }
+    boost::system::error_code err;
+    cli_socket.shutdown(tcp::socket::shutdown_both, err);
+    cli_socket.close();
+    assert(n);
+    n->stop();
+    testThread.join();
   }
 
-
 };
+
 
 //This test verifies that heartbeats are being sent correctly.
 TEST_F(NodeNetTest, NetBind)
@@ -175,8 +183,6 @@ TEST_F(NodeNetTest, NetBind)
   boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
   ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
-  
-  cout << "test ending" <<endl;
 }
 
 //This test verifies that the Node handles requests properly
@@ -199,7 +205,7 @@ TEST_F(NodeNetTest, NetStart)
     boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
     
     switch( h->type() ) {
-      case ControlMessage::OK:
+      case ControlMessage::ALTER_RESPONSE:
         cout << "got response back ok from AlterTopo" <<endl;
         found_response = true;
         break;
@@ -213,8 +219,6 @@ TEST_F(NodeNetTest, NetStart)
   }
 
   ASSERT_TRUE(found_response);
-  cout << "test ending" <<endl;  
-
 }
 
 TEST_F(NodeNetTest, Print)
@@ -228,15 +232,17 @@ shared_ptr<DataPlaneOperator>
 add_dummy_receiver(Node& n, operator_id_t dest_id)
 {
   AlterTopo topo;
+  ControlMessage r;
+  topo.set_computationid(dest_id.computation_id);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
   id->set_computationid(dest_id.computation_id);
   id->set_task(dest_id.task_id);
   task->set_op_typename("DummyReceiver");
-  n.handle_alter(topo);
+  n.handle_alter(r, topo);
   
   shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
-  EXPECT_TRUE( dest != 0 );
+  EXPECT_TRUE( dest != NULL );
   return dest;
 }
 
@@ -295,11 +301,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
-  
-  
-  cout << "test ending" <<endl;
 }
-
 
 
 // This test verifies that the dataplane can receive data if the operator
@@ -357,22 +359,22 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
-  
-  
-  cout << "test ending" <<endl;
 }
 
 
-TEST(NodeIntegration,DataplaneConn) {
-  shared_ptr<Node> nodes[2];
+// This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.
+// Thus it can test the following scenario: an operator on one node attempts to
+// send data to a remote operator on the second node before receiving CHAIN_READY.
+// The RemoteDestAdaptor on the first node should block until the chains is ready.
+TEST(NodeIntegration, DataplaneConn) {
+  asio::io_service io_service;
   shared_ptr<tcp::socket> sockets[2];
   shared_ptr<SimpleNet> connections[2];
+  shared_ptr<Node> nodes[2];
+  thread testThreads[2];
 
-  asio::io_service io_service;
-  
   ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
   ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
-  
   acceptor.listen();
   pair<string, port_t> p("127.0.0.1", concrete_end.port());
 
@@ -381,11 +383,10 @@ TEST(NodeIntegration,DataplaneConn) {
   cfg.controllers.push_back(p);
   
   boost::system::error_code err;
-  
-  
-  for (int i=0; i < 2; ++i) {
-    BindTestThread testThreadBody(cfg);
-    thread testThread(testThreadBody);
+
+  for (int i = 0; i < 2; ++i) {
+    NodeTestThread testThreadBody(cfg);
+    testThreads[i] = thread(testThreadBody);
     nodes[i] = testThreadBody.n;
     sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
     acceptor.accept(*sockets[i], err);
@@ -393,15 +394,20 @@ TEST(NodeIntegration,DataplaneConn) {
     connections[i]->get_ctrl_msg();
   }
   cout << "created nodes, got heartbeats" << endl;
-//  boost::this_thread::sleep(boost::posix_time::seconds(2));
 
   operator_id_t dest_id(17,3), src_id(17,2);
+
+  // Create the receiver 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
-  
+   
   cout << "created receiver" << endl;
 
+  // Start an operator on one node; it will try to send data but will block until
+  // the receiver is ready
   AlterTopo topo;
+  topo.set_computationid(src_id.computation_id);
   TaskMeta* task = topo.add_tostart();
+  task->set_op_typename("SendOne");
   TaskID* id = task->mutable_id();
   id->set_computationid(src_id.computation_id);
   id->set_task(src_id.task_id);
@@ -409,18 +415,30 @@ TEST(NodeIntegration,DataplaneConn) {
   e->set_src(src_id.task_id);
   e->set_dest(dest_id.task_id);
   e->set_computation(src_id.computation_id);
+  // Provide remote destination info for the edge
   NodeID * dest_node = e->mutable_dest_addr();
-  
   const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
   dest_node->set_portno(dest_node_addr.port());
   dest_node->set_address("127.0.0.1");
+ 
+  ControlMessage r;
+  nodes[1]->handle_alter(r, topo);
 
-  task->set_op_typename("SendOne");
-  nodes[1]->handle_alter(topo);
-
+  // Wait for the chain to be ready and the sending operators data to flow through. 
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+  // This records the failure but allows the cleanup code below to execute
+  EXPECT_EQ((unsigned int) 1, rec->tuples.size());
 
+  // Close sockets to avoid badness related to io_service destruction
+  sockets[0]->shutdown(tcp::socket::shutdown_both, err);
+  sockets[0]->close();
+  sockets[1]->shutdown(tcp::socket::shutdown_both, err);
+  sockets[1]->close();
+
+  nodes[0]->stop();
+  nodes[1]->stop();
+  testThreads[0].join();
+  testThreads[1].join();
 }

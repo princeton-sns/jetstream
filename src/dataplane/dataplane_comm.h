@@ -45,18 +45,20 @@ class DataplaneConnManager {
 
   void created_operator (operator_id_t opid,
                          boost::shared_ptr<DataPlaneOperator> dest);
-  
+                         
+  void close();
 };
 
 
 
-class OutgoingConnAdaptor : public TupleReceiver {
+class RemoteDestAdaptor : public TupleReceiver {
 
  private:
   boost::shared_ptr<ClientConnection> conn;
-  boost::condition_variable conn_ready;
+  boost::condition_variable chainReadyCond;
   boost::mutex mutex;
-  operator_id_t dest_op_id;
+  bool chainIsReady;
+  operator_id_t destOpId;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -67,9 +69,9 @@ class OutgoingConnAdaptor : public TupleReceiver {
   static const msec_t wait_for_conn = 2000; //ms
   
  public:
-  OutgoingConnAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c) {}
-  OutgoingConnAdaptor (ConnectionManager &cm, const jetstream::Edge&);
-  virtual ~OutgoingConnAdaptor() {}
+  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c), chainIsReady(false) {}
+  RemoteDestAdaptor (ConnectionManager &cm, const jetstream::Edge&);
+  virtual ~RemoteDestAdaptor() {}
 
   virtual void process (boost::shared_ptr<Tuple> t);
 };

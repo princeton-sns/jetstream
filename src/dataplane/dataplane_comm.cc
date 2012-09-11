@@ -47,10 +47,11 @@ DataplaneConnManager::created_operator (operator_id_t op_id,
   enable_connection(c, op_id, dest);
 }
 
-void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
-                                        shared_ptr<DataPlaneOperator> dest,
-                                        const DataplaneMessage &msg,
-                                        const boost::system::error_code &error) 
+void
+DataplaneConnManager::got_data_cb (operator_id_t dest_id,
+                                   shared_ptr<DataPlaneOperator> dest,
+                                   const DataplaneMessage &msg,
+                                   const boost::system::error_code &error) 
 {
 
   if (error) {
@@ -80,21 +81,36 @@ void DataplaneConnManager::got_data_cb (operator_id_t dest_id,
 }
   
   
+void
+DataplaneConnManager::close() {
+  //TODO: gracefully stop connections
+  std::map<operator_id_t, boost::shared_ptr<ClientConnection> >::iterator iter;
 
-OutgoingConnAdaptor::OutgoingConnAdaptor (ConnectionManager& cm,
-                                          const Edge & e) {
+  for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
+    iter->second->close();
+  }
+  for (iter = liveConns.begin(); iter != liveConns.end(); iter++) {
+    iter->second->close();
+  }
+}
+  
+
+RemoteDestAdaptor::RemoteDestAdaptor (ConnectionManager& cm,
+                                          const Edge & e) 
+  : chainIsReady(false)
+{
                                           
   const std::string& addr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();      
-  dest_op_id.computation_id = e.computation();
-  dest_op_id.task_id = e.dest();
+  destOpId.computation_id = e.computation();
+  destOpId.task_id = e.dest();
                                           
   cm.create_connection(addr, portno, boost::bind(
-                 &OutgoingConnAdaptor::conn_created_cb, this, _1, _2));
+                 &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
 }
 
 void
-OutgoingConnAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
+RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) 
 {
   conn = c;
@@ -103,12 +119,12 @@ OutgoingConnAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
   
   Edge * edge = data_msg.mutable_chain_link();
-  edge->set_computation(dest_op_id.computation_id);
-  edge->set_dest(dest_op_id.task_id);
+  edge->set_computation(destOpId.computation_id);
+  edge->set_dest(destOpId.task_id);
   edge->set_src(0);
   
   boost::system::error_code err;
-  conn->recv_data_msg(boost::bind( &OutgoingConnAdaptor::conn_ready_cb, 
+  conn->recv_data_msg(boost::bind( &RemoteDestAdaptor::conn_ready_cb, 
            this, _1, _2), err);
   conn->send_msg(data_msg, err);
 
@@ -116,12 +132,12 @@ OutgoingConnAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
 }
 
 void
-OutgoingConnAdaptor::conn_ready_cb(const DataplaneMessage &msg,
+RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
   if (msg.type() == DataplaneMessage::CHAIN_READY) {
     LOG(INFO) << "got ready back";
-    conn_ready.notify_all();  
+    chainReadyCond.notify_all();  
   } 
   else {
     LOG(WARNING) << "unexpected response to Chain connect: " << msg.type() << 
@@ -132,27 +148,30 @@ OutgoingConnAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   
 void
-OutgoingConnAdaptor::process (boost::shared_ptr<Tuple> t) 
+RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) 
 {
   unique_lock<boost::mutex> lock(mutex);//wraps mutex in an RIAA pattern
-  while (!conn) {
-   //SHOULD BLOCK HERE
-   LOG(WARNING) << "trying to send data through closed conn. Should block";
+  while (!chainIsReady) {
+    LOG(WARNING) << "trying to send data through closed conn. Should block";
    
-   system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
-   bool conn_established = conn_ready.timed_wait(lock, wait_until);
+    system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
+    bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
    
-   if (!conn_established) {
-    LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
-   }
- }
+    if (!conn_established) {
+      LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
+    } else {
+      // Future process requests need not wait because the chain is now ready
+      chainIsReady = true;
+      break;
+    }
+  }
 
- DataplaneMessage d;
- d.set_type(DataplaneMessage::DATA);
- d.add_data()->MergeFrom(*t);
- //TODO: could we merge multiple tuples here?
+  DataplaneMessage d;
+  d.set_type(DataplaneMessage::DATA);
+  d.add_data()->MergeFrom(*t);
+  //TODO: could we merge multiple tuples here?
 
- boost::system::error_code err;
- conn->send_msg(d, err);
+  boost::system::error_code err;
+  conn->send_msg(d, err);
 }
   

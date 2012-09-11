@@ -18,7 +18,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, conf.heartbeat_time),
-    webInterface (config.webInterfacePort, *this),
+    webInterface (conf.webinterface_port, *this),
 
     // XXX This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
@@ -41,7 +41,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 				      this, _1, _2));
     }
   }
-  
+
   // Setup incoming connection listener
   asio::ip::tcp::endpoint listen_port (asio::ip::tcp::v4(), 
 				       config.dataplane_myport);
@@ -71,7 +71,6 @@ Node::~Node ()
 }
 
 
-
 /***
 * Run the node. This method starts several threads and does not return until
 * the node process is terminated.
@@ -93,6 +92,7 @@ Node::run ()
   iosrv->run();
 
   VLOG(1) << "Finished node::run" << endl;
+  LOG(INFO) << "Finished node::run" << endl;
 }
 
 
@@ -100,12 +100,17 @@ void
 Node::stop ()
 {
   livenessMgr.stop_all_notifications();
+  dataConnMgr.close();
+  for (u_int i = 0; i < controllers.size(); ++i) {
+    controllers[i]->close();
+  }
+  
   iosrv->stop();
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
 
-    //need to stop operators before deconstructing because otherwise they may
-    //keep pointers around after destruction.
+  // Need to stop operators before deconstructing because otherwise they may
+  // keep pointers around after destruction.
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }
@@ -124,7 +129,12 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
-    LOG(WARNING) << "Node: Monitoring connection failed: " << error.message() << endl;
+    if (conn)  {
+      LOG(WARNING) << "Node: Monitoring connection to " << conn->get_remote_endpoint() << " failed: " << error.message() << endl;
+    } 
+    else {
+      LOG(WARNING) << "Node: Monitoring connection failed: " << error.message() << endl;    
+    }
     return;
   }
 
@@ -151,8 +161,9 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case ControlMessage::ALTER:
     {
+      ControlMessage response;
       const AlterTopo &alter = msg.alter();
-      ControlMessage response = handle_alter(alter);
+      handle_alter(response, alter);
       c->send_msg(response, send_error);
 
       if (send_error != boost::system::errc::success) {
@@ -245,19 +256,23 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   }
 }
 
+
 operator_id_t 
-unparse_id (const TaskID& id)
-{
+unparse_id (const TaskID& id) {
   operator_id_t parsed;
-  parsed.computation_id = id.computationid ();
+  parsed.computation_id = id.computationid();
   parsed.task_id = id.task();
   return parsed;
 }
 
 
 ControlMessage
-Node::handle_alter (const AlterTopo& topo)
+Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 {
+  response.set_type(ControlMessage::ALTER_RESPONSE);
+  AlterTopo *respTopo = response.mutable_alter();
+  respTopo->set_computationid(topo.computationid());
+
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
     const TaskMeta &task = topo.tostart(i);
@@ -269,14 +284,21 @@ Node::handle_alter (const AlterTopo& topo)
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     operator_configs[id] = config;
-    create_operator(cmd, id);
-     //TODO: what if this returns a null pointer, indicating create failed?
+    if (create_operator(cmd, id) != NULL) {
+      respTopo->add_tostart()->CopyFrom(task);
+    } else {
+      respTopo->add_tasktostop()->CopyFrom(task.id());
+    }
   }
   
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
-    cubeMgr.create_cube(task.name(), task.schema());
+    if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
+      respTopo->add_tocreate()->CopyFrom(task);
+    } else {
+      respTopo->add_cubestostop(task.name());
+    }
   }
   
   //TODO remove cubes and operators if specified.
@@ -301,7 +323,7 @@ Node::handle_alter (const AlterTopo& topo)
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
       shared_ptr<TupleReceiver> xceiver(
-          new OutgoingConnAdaptor(*connMgr, edge) );
+          new RemoteDestAdaptor(*connMgr, edge) );
       srcOperator->set_dest(xceiver);
     } 
     else {
@@ -316,16 +338,15 @@ Node::handle_alter (const AlterTopo& topo)
     }
   }
   
-    //now start the operators
+  // Now start the operators
+  //TODO: Should start() return an error? If so, update respTopo.
   map<operator_id_t, map<string,string> >::iterator iter;
   for (iter = operator_configs.begin(); iter != operator_configs.end(); iter++) {
     shared_ptr<DataPlaneOperator> op = get_operator(iter->first);
     op->start(iter->second);
   }
-  
-  ControlMessage msg;
-  msg.set_type(ControlMessage::OK);
-  return msg;
+
+  return response;
 }
 
 

@@ -21,8 +21,10 @@ NodeWebInterface::start ()
     LOG(ERROR) << "Web server already initialized" << endl;
   }
   else {
-    const char *mg_config[] = {"listening_ports", boost::lexical_cast<char *> (portno), NULL};
+    string port_as_str(boost::lexical_cast<string> (portno));
+    const char *mg_config[] = {"listening_ports", port_as_str.c_str(), NULL};
     mongoose_ctxt = mg_start(process_req, this, mg_config);
+    //FIXME: is it safe for cfg to go out of scope here?
   }
 }
 
