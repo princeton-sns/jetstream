@@ -164,5 +164,62 @@ TEST(Cube, MysqlTest) {
   ASSERT_EQ(125, answer->e(4).i_val());
   ASSERT_EQ(125, answer->e(4).d_val());
 
+  t.clear_e();
+  e = t.add_e();
+  e->set_t_val(time_entered);
+  e=t.add_e();
+  e->set_s_val("http:\\\\www.example.com");
+  e=t.add_e();
+  e->set_i_val(300);
+  //aggregate values
+  e=t.add_e();
+  e->set_i_val(2);
+  e=t.add_e();
+  e->set_i_val(300);
+  e=t.add_e();
+  e->set_i_val(2);
+
+  cube->insert_partial_aggregate(t);
+
+
+  jetstream::Tuple max;
+  e=max.add_e(); //time
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+  
+  cube->slice_start_query(max, max, true);
+  ASSERT_EQ((size_t)2, cube->slice_num_cells());
+ 
+  answer = cube->slice_next_cell();  
+  ASSERT_TRUE(answer);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  answer = cube->slice_next_cell();  
+  ASSERT_TRUE(answer);
+  ASSERT_EQ(time_entered, answer->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
+  answer = cube->slice_next_cell();  
+  ASSERT_FALSE(answer);
+
+  max.clear_e();
+  e=max.add_e(); //time
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+  e->set_i_val(350);
+
+  jetstream::Tuple min;
+  e=min.add_e(); //time
+  e=min.add_e(); //url
+  e=min.add_e(); //rc
+  e->set_i_val(250);
+  
+  cube->slice_start_query(min, max, true);
+  ASSERT_EQ((size_t)1, cube->slice_num_cells());
+
+  e=min.mutable_e(2);
+  e->set_i_val(200);
+
+  cube->slice_start_query(min, max, true);
+  ASSERT_EQ((size_t)2, cube->slice_num_cells());
 
 }

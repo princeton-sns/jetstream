@@ -137,6 +137,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   if (msg.type() == DataplaneMessage::CHAIN_READY) {
     LOG(INFO) << "got ready back";
+    {
+      unique_lock<boost::mutex> lock(mutex);
+      // Indicate the chain is ready before calling notify to avoid a race condition
+      chainIsReady = true;
+    }
+    // Unblock any threads that are waiting for the chain to be ready; the mutex does
+    // not need to be locked across the notify call
     chainReadyCond.notify_all();  
   } 
   else {
@@ -150,19 +157,17 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 void
 RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) 
 {
-  unique_lock<boost::mutex> lock(mutex);//wraps mutex in an RIAA pattern
-  while (!chainIsReady) {
-    LOG(WARNING) << "trying to send data through closed conn. Should block";
+  {
+    unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
+    while (!chainIsReady) {
+      LOG(WARNING) << "trying to send data through closed conn. Should block";
    
-    system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
-    bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
-   
-    if (!conn_established) {
-      LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
-    } else {
-      // Future process requests need not wait because the chain is now ready
-      chainIsReady = true;
-      break;
+      system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
+      bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
+      
+      if (!conn_established) {
+	LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
+      } 
     }
   }
 

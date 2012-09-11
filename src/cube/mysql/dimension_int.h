@@ -40,6 +40,8 @@ class MysqlDimensionInt: public MysqlDimension{
       }
       if(!is_optional)
         LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+      
+      tuple_index += 1;
       return "";
     }
 

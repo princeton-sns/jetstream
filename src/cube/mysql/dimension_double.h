@@ -39,8 +39,11 @@ class MysqlDimensionDouble: public MysqlDimension{
         tuple_index += 1;
         return "`"+get_base_column_name() + "` "+ op +" "+boost::lexical_cast<std::string>(e.d_val());
       }
+      
       if(!is_optional)
         LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+      
+      tuple_index += 1;
       return "";
     }
     

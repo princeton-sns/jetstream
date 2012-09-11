@@ -267,57 +267,30 @@ bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple t)
   return true;
 }
 
-
-
-boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::get_cell_value_resultset(jetstream::Tuple t)
-{
-  int tuple_index = 0;
-  vector<string> where_clauses;
-  for(size_t i=0; i<dimensions.size(); i++)
-  {
-    string where = dimensions[i]->get_where_clause_exact(t, tuple_index);
-    where_clauses.push_back(where);
-  }
-  string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
-
-  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
-  return res;
-}
-
 boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple t)
 {
-  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
-  if(res->rowsCount() > 1)
-  {
-    LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
-  }
-  if(!res->first())
-  {
-    boost::shared_ptr<jetstream::Tuple> res;
-    return res;
-  }
-
-  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
-
-  int column_index = 1;
-  for(size_t i=0; i<dimensions.size(); i++)
-  {
-    dimensions[i]->populate_tuple(result, res, column_index);
-  }
-  for(size_t i=0; i<aggregates.size(); i++)
-  {
-    aggregates[i]->populate_tuple_final(result, res, column_index);
-  }
-
-
-  return result;
-
+  return get_cell_value(t, true);
 }
 
 
 boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple t)
 {
-  boost::shared_ptr<sql::ResultSet> res = get_cell_value_resultset(t);
+  return get_cell_value(t, false);
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(jetstream::Tuple t, bool final)
+{
+  int tuple_index = 0;
+  vector<string> where_clauses;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    string where = dimensions[i]->get_where_clause_exact(t, tuple_index, false);
+    where_clauses.push_back(where);
+  }
+  string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
+
+  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  
   if(res->rowsCount() > 1)
   {
     LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
@@ -337,7 +310,10 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_p
   }
   for(size_t i=0; i<aggregates.size(); i++)
   {
-    aggregates[i]->populate_tuple_partial(result, res, column_index);
+    if(!final)
+      aggregates[i]->populate_tuple_partial(result, res, column_index);
+    else
+      aggregates[i]->populate_tuple_final(result, res, column_index);
   }
 
 
@@ -345,6 +321,67 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_p
 
 }
 
+size_t jetstream::cube::MysqlCube::slice_start_query(jetstream::Tuple min, jetstream::Tuple max, bool final)
+{
+  int tuple_index_min = 0;
+  int tuple_index_max = 0;
+  vector<string> where_clauses;
+  
+  for(size_t i=0; i<dimensions.size(); i++) {
+    string where = dimensions[i]->get_where_clause_greater_than_eq(min, tuple_index_min, true);
+    if(where.size() > 1)
+      where_clauses.push_back(where);
+    
+    where = dimensions[i]->get_where_clause_less_than_eq(max, tuple_index_max, true);
+    if(where.size() > 1)
+      where_clauses.push_back(where);
+  }
+  string sql;
+  if(where_clauses.size() > 0) {
+    sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
+  }
+  else {
+    sql = "SELECT * FROM `"+get_table_name()+"`";
+  }
+
+  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  slice_result_set = res;
+  slice_final = final;
+  return slice_result_set->rowsCount();
+}
+
+size_t jetstream::cube::MysqlCube::slice_num_cells() {
+  if(slice_result_set)
+    return slice_result_set->rowsCount();
+  return 0;
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::slice_next_cell()
+{
+  if(!slice_result_set->next())
+  {
+    //return a NULL ptr
+    boost::shared_ptr<jetstream::Tuple> res;
+    return res;
+  }
+
+  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
+
+  int column_index = 1;
+  for(size_t i=0; i<dimensions.size(); i++)
+  {
+    dimensions[i]->populate_tuple(result, slice_result_set, column_index);
+  }
+  for(size_t i=0; i<aggregates.size(); i++)
+  {
+    if(!slice_final)
+      aggregates[i]->populate_tuple_partial(result, slice_result_set, column_index);
+    else
+      aggregates[i]->populate_tuple_final(result, slice_result_set, column_index);
+  }
+
+  return result;
+}
 
 void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
   batch = numBatch;
