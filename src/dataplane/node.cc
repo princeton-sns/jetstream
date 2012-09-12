@@ -143,12 +143,12 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 
   // Start listening on messages from controller
   boost::system::error_code e;
-  conn->recv_control_msg(bind(&Node::received_ctrl_msg, this, conn,  _1, _2), e);
+  conn->recv_control_msg(bind(&Node::received_ctrl_msg, this, conn, _1, _2), e);
 }
 
 
 void
-Node::received_ctrl_msg (shared_ptr<ClientConnection> c, 
+Node::received_ctrl_msg (shared_ptr<ClientConnection> conn, 
 			 const jetstream::ControlMessage &msg,
 			 const boost::system::error_code &error)
 {
@@ -161,7 +161,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
       ControlMessage response;
       const AlterTopo &alter = msg.alter();
       handle_alter(response, alter);
-      c->send_msg(response, send_error);
+      conn->send_msg(response, send_error);
 
       if (send_error != boost::system::errc::success) {
         LOG(WARNING) << "Node: failure sending response: " << send_error.message() << endl;
@@ -174,7 +174,11 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> c,
      break;
   }
   
+  // Wait for the next control message 
+  boost::system::error_code e;
+  conn->recv_control_msg(bind(&Node::received_ctrl_msg, this, conn, _1, _2), e);
 }
+
 
 void
 Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock, 
@@ -221,7 +225,8 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
         
         LOG(INFO) << "Chain request for operator " << dest_operator_id.to_string();
-        if (dest) {        // Operator exists so we can report "ready"
+	// Operator exists so we can report "ready"
+        if (dest) { 
           // Note that it's important to put the connection into receive mode
           // before sending the READY.
          
@@ -240,7 +245,6 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         response.set_type(DataplaneMessage::ERROR);
         response.mutable_error_msg()->set_msg("got connect with no dest");
         c->send_msg(response, send_error);
-
       }
     }
     break;

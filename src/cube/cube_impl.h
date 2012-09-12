@@ -18,7 +18,8 @@ namespace cube {
 template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=jetstream::cube::Aggregate>
 class DataCubeImpl : public DataCube {
   public:
-    DataCubeImpl(jetstream::CubeSchema _schema): DataCube(_schema) {
+  
+  DataCubeImpl(jetstream::CubeSchema _schema): DataCube(_schema) {
       build(_schema);
     }
 

@@ -1,6 +1,7 @@
 #include "cube_manager.h"
 #include "cube.h"
 #include "mysql_cube.h"
+#include "mysql/cube_iterator_impl.h"
 
 #include <gtest/gtest.h>
 
@@ -8,31 +9,40 @@ using namespace jetstream;
 using namespace jetstream::cube;
 using namespace boost;
 
-TEST(Cube, MysqlTest) {
+class CubeTest : public ::testing::Test {
+  protected:
+    virtual void SetUp() {
 
-  jetstream::CubeSchema * sc = new jetstream::CubeSchema();
-  sc->set_name("web_requests");
-  
-  jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
-  dim->set_name("time");
-  dim->set_type(Element_ElementType_TIME);
-  
-  dim = sc->add_dimensions();
-  dim->set_name("url");
-  dim->set_type(Element_ElementType_STRING);
-  
-  dim = sc->add_dimensions();
-  dim->set_name("response_code");
-  dim->set_type(Element_ElementType_INT32);
+      sc = new jetstream::CubeSchema();
+      sc->set_name("web_requests");
 
-  jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
-  agg->set_name("count");
-  agg->set_type("count");
+      jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
+      dim->set_name("time");
+      dim->set_type(Element_ElementType_TIME);
 
-  agg = sc->add_aggregates();
-  agg->set_name("avg_size");
-  agg->set_type("avg");
+      dim = sc->add_dimensions();
+      dim->set_name("url");
+      dim->set_type(Element_ElementType_STRING);
 
+      dim = sc->add_dimensions();
+      dim->set_name("response_code");
+      dim->set_type(Element_ElementType_INT32);
+
+      jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
+      agg->set_name("count");
+      agg->set_type("count");
+
+      agg = sc->add_aggregates();
+      agg->set_name("avg_size");
+      agg->set_type("avg");
+
+    }
+    
+    jetstream::CubeSchema * sc;
+};
+
+
+TEST_F(CubeTest, MysqlTest) {
 
 
 
@@ -180,26 +190,89 @@ TEST(Cube, MysqlTest) {
   e->set_i_val(2);
 
   cube->insert_partial_aggregate(t);
+}
+
+
+TEST_F(CubeTest, MysqlTestIt) {
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+
+  cube->destroy();
+  cube->create();
+
+  jetstream::Tuple t;
+  jetstream::Element *e;
+  time_t time_entered = time(NULL);
+
+  t.clear_e();
+  e = t.add_e();
+  e->set_t_val(time_entered);
+  e=t.add_e();
+  e->set_s_val("http:\\\\www.example.com");
+  e=t.add_e();
+  e->set_i_val(200);
+  //aggregate values
+  e=t.add_e();
+  e->set_i_val(2);
+  e=t.add_e();
+  e->set_i_val(300);
+  e=t.add_e();
+  e->set_i_val(2);
+
+  cube->insert_partial_aggregate(t);
+
+  t.clear_e();
+  e = t.add_e();
+  e->set_t_val(time_entered);
+  e=t.add_e();
+  e->set_s_val("http:\\\\www.example.com");
+  e=t.add_e();
+  e->set_i_val(300);
+  //aggregate values
+  e=t.add_e();
+  e->set_i_val(2);
+  e=t.add_e();
+  e->set_i_val(300);
+  e=t.add_e();
+  e->set_i_val(2);
+
+  cube->insert_partial_aggregate(t);
 
 
   jetstream::Tuple max;
   e=max.add_e(); //time
   e=max.add_e(); //url
   e=max.add_e(); //rc
-  
-  cube->slice_start_query(max, max, true);
-  ASSERT_EQ((size_t)2, cube->slice_num_cells());
  
-  answer = cube->slice_next_cell();  
-  ASSERT_TRUE(answer);
-  ASSERT_EQ(time_entered, answer->e(0).t_val());
-  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
-  answer = cube->slice_next_cell();  
-  ASSERT_TRUE(answer);
-  ASSERT_EQ(time_entered, answer->e(0).t_val());
-  ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
-  answer = cube->slice_next_cell();  
-  ASSERT_FALSE(answer);
+  CubeIterator it = cube->slice_query(max, max, true);
+
+  ASSERT_EQ((size_t)2, it.numCells());
+  ASSERT_FALSE(it == cube->end());
+
+  boost::shared_ptr<Tuple> ptrTup;
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+
+  ++it;
+  ASSERT_FALSE(it == cube->end());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+
+  ++it;
+  ptrTup = *it;
+  ASSERT_FALSE(ptrTup);
+  ASSERT_TRUE(it == cube->end());
+  
+  /*it = cube->slice_query(max, max, true);
+  std::copy(
+        it, cube->end()
+      , std::ostream_iterator<boost::shared_ptr<jetstream::Tuple> >(std::cout, " ")
+    );
+  */
 
   max.clear_e();
   e=max.add_e(); //time
@@ -213,13 +286,29 @@ TEST(Cube, MysqlTest) {
   e=min.add_e(); //rc
   e->set_i_val(250);
   
-  cube->slice_start_query(min, max, true);
-  ASSERT_EQ((size_t)1, cube->slice_num_cells());
+  it = cube->slice_query(min, max, true);
+  ASSERT_EQ((size_t)1, it.numCells());
 
   e=min.mutable_e(2);
   e->set_i_val(200);
 
-  cube->slice_start_query(min, max, true);
-  ASSERT_EQ((size_t)2, cube->slice_num_cells());
+  it = cube->slice_query(min, max, true);
+  ASSERT_EQ((size_t)2, it.numCells());
 
+  max.clear_e();
+  e=max.add_e(); //time
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+  e->set_i_val(150);
+
+  min.clear_e();
+  e=min.add_e(); //time
+  e=min.add_e(); //url
+  e=min.add_e(); //rc
+  e->set_i_val(100);
+  
+  it = cube->slice_query(min, max, true);
+  ASSERT_EQ((size_t)0, it.numCells());
+  ptrTup = *it;
+  ASSERT_FALSE(ptrTup);
 }

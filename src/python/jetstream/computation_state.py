@@ -15,11 +15,11 @@ class WorkerAssignment (object):
   RUNNING = 1
   STOPPED = 2
   
-  def __init__ (self, compID, operators=[], cubes=[]):
+  def __init__ (self, compID, operators=None, cubes=None):
     self.compID = compID
     self.state = WorkerAssignment.STOPPED
-    self.operators = operators
-    self.cubes = cubes
+    self.operators = operators if operators is not None else []
+    self.cubes = cubes if cubes is not None else []
 
 
   def __eq__ (self, other):
@@ -85,6 +85,7 @@ class CWorker (object):
 
 
   def create_assignment (self, compID):
+    assert compID not in self.assignments
     self.assignments[compID] = WorkerAssignment(compID)
     return self.assignments[compID]
 

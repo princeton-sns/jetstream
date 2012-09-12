@@ -252,14 +252,8 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recvMsg,
     return;
   }
     
-    //re-enable callback
-  if (sock->is_open()) {
-    recvStrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
-
-  }
   VLOG(2) << "In ConnectedSocket::received_body; passing along buffer of length "
      << recvMsg->len << " data bytes on port " << sock->local_endpoint().port();
-
 
   if (recvcb) {
     boost::system::error_code success;  //FIXME: where do we set this?
