@@ -83,7 +83,7 @@ void jetstream::cube::MysqlCube::create()
 
 void jetstream::cube::MysqlCube::destroy()
 {
-  execute_sql("DROP TABLE `"+get_table_name()+"`");
+  execute_sql("DROP TABLE IF EXISTS `"+get_table_name()+"`");
 }
 
 
