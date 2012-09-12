@@ -164,6 +164,7 @@ class Controller (ControllerAPI, JSServer):
       comp.assign_worker(endpoint, assignment)
       
     # Start the computation
+    logger.info("Starting computation %d" % (compID))
     comp.start()
 
 

@@ -333,7 +333,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   
   cout <<"sent chain connect; data length = " << data_msg.ByteSize() << endl;
 
-//add receiver
+  // Create the receiver
   operator_id_t dest_id(17,3);
 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n, dest_id);
@@ -399,7 +399,6 @@ TEST(NodeIntegration, DataplaneConn) {
 
   // Create the receiver 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
-   
   cout << "created receiver" << endl;
 
   // Start an operator on one node; it will try to send data but will block until

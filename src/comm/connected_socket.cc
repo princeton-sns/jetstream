@@ -61,6 +61,10 @@ void
 ConnectedSocket::send_msg (const ProtobufMessage &m,
 			   boost::system::error_code &error)
 {
+  if (!sock->is_open()) {
+    error = make_error_code(boost::system::errc::connection_reset);
+    return; 
+  }
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
     sendStrand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
@@ -226,14 +230,8 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recvMsg,
     return;
   }
     
-    //re-enable callback
-  if (sock->is_open()) {
-    recvStrand.post(bind(&ConnectedSocket::perform_recv, shared_from_this()));
-
-  }
   VLOG(2) << "In ConnectedSocket::received_body; passing along buffer of length "
      << recvMsg->len << " data bytes on port " << sock->local_endpoint().port();
-
 
   if (recvcb) {
     boost::system::error_code success;  //FIXME: where do we set this?
