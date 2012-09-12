@@ -68,9 +68,13 @@ LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_p
 void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
-
-  if (error || !is_connected())
+  if (error || !is_connected()) {
+    LOG(WARNING) << "Liveness: Send notification with "
+		 << conn->get_remote_endpoint()
+		 << ": connected " << is_connected()
+		 << ": error " << error.message() << endl;
     return;
+  }
     
   waiting = false;
 
@@ -79,20 +83,17 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   Heartbeat *h = req.mutable_heartbeat();
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
+  
   boost::system::error_code send_error;
   conn->send_msg(req, send_error);
 
   if (send_error) {
-    _lm_mutex.lock();
-    LOG(WARNING) << "Liveness: send error on " << conn->get_remote_endpoint()
+    LOG(WARNING) << "Liveness: send error with " << conn->get_remote_endpoint()
 	 << ": " << send_error.message() << endl;
-    _lm_mutex.unlock();
   }
   else {
-    _lm_mutex.lock();
     LOG(INFO) << "Liveness: successfully scheduled message send to "
 	 << conn->get_remote_endpoint() << endl;
-    _lm_mutex.unlock();
   }
 
   wait_to_notify();
@@ -102,8 +103,13 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
-  if (!is_connected() || waiting)
+  if (!is_connected() || waiting) {
+    LOG(WARNING) << "Stopping wait_to_notify with remote " 
+		 << conn->get_remote_endpoint()
+		 << ". Connected " << is_connected ()
+		 << "; Waiting " << waiting << endl;
     return;
+  }
 
   waiting = true;
   timer.expires_from_now(posix_time::milliseconds(heartbeat_time));

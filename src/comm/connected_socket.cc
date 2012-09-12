@@ -61,6 +61,10 @@ void
 ConnectedSocket::send_msg (const ProtobufMessage &m,
 			   boost::system::error_code &error)
 {
+  if (!sock->is_open()) {
+    error = make_error_code(boost::system::errc::connection_reset);
+    return; 
+  }
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
     sendStrand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
