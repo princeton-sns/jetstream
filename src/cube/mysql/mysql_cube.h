@@ -36,11 +36,13 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     virtual CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final);
     virtual CubeIterator end();
 
+    virtual size_t num_leaf_cells() const;
+
     string create_sql();
     void create();
     void destroy();
 
-    string get_table_name();
+    string get_table_name() const;
     vector<string> get_dimension_column_types();
     vector<string> get_aggregate_column_types();
 
@@ -50,7 +52,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     boost::shared_ptr<sql::Connection> get_connection();
     void execute_sql(string sql);
-    boost::shared_ptr<sql::ResultSet> execute_query_sql(string sql);
+    boost::shared_ptr<sql::ResultSet> execute_query_sql(string sql) const;
     
     string get_insert_entry_prepared_sql();
     string get_insert_partial_aggregate_prepared_sql();

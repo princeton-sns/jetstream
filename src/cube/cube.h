@@ -31,8 +31,11 @@ public:
   virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t) = 0;
   virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t) = 0;
 
+  virtual jetstream::cube::CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final) = 0;
   virtual jetstream::cube::CubeIterator end() = 0;
 
+  virtual size_t num_leaf_cells() const = 0;
+  
   virtual void create() = 0;
   virtual void destroy() = 0;
 

@@ -35,7 +35,7 @@ void jetstream::cube::MysqlCube::execute_sql(string sql)
   statement->execute(sql);
 }
 
-boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string sql)
+boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string sql) const
 {
   boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
   return res;
@@ -87,7 +87,7 @@ void jetstream::cube::MysqlCube::destroy()
 }
 
 
-string jetstream::cube::MysqlCube::get_table_name()
+string jetstream::cube::MysqlCube::get_table_name() const
 {
   return name;
 }
@@ -368,4 +368,27 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::end()
 
 void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
   batch = numBatch;
+}
+
+size_t jetstream::cube::MysqlCube::num_leaf_cells() const
+{
+  string sql = "SELECT COUNT(*) FROM `"+get_table_name()+"`";
+
+  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  
+  if(res->rowsCount() != 1)
+  {
+    LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
+  }
+
+  res->first();
+
+  int sz = res->getInt(1);
+
+  if(sz < 0)
+  {
+    LOG(FATAL) << "Something went wrong, got a negative count";
+  }
+
+  return (size_t) sz;
 }

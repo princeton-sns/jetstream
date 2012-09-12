@@ -67,6 +67,7 @@ TEST_F(CubeTest, MysqlTest) {
   cube->destroy();
   cube->create();
 
+  ASSERT_EQ(0U, cube->num_leaf_cells());
 
   jetstream::Tuple t;
   jetstream::Element *e = t.add_e();
@@ -80,6 +81,7 @@ TEST_F(CubeTest, MysqlTest) {
   e->set_i_val(50);
  
   cube->insert_entry(t);
+  ASSERT_EQ(1U, cube->num_leaf_cells());
 
   jetstream::Tuple query;
   e = query.add_e();
@@ -110,6 +112,7 @@ TEST_F(CubeTest, MysqlTest) {
   e = t.mutable_e(3);
   e->set_i_val(100);
   cube->insert_entry(t);
+  ASSERT_EQ(1U, cube->num_leaf_cells());
 
   answer = cube->get_cell_value_final(query);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
@@ -164,6 +167,7 @@ TEST_F(CubeTest, MysqlTest) {
   e->set_i_val(2);
 
   cube->insert_partial_aggregate(t);
+  ASSERT_EQ(1U, cube->num_leaf_cells());
 
   answer = cube_batch->get_cell_value_final(query);
   ASSERT_TRUE(answer);
@@ -190,6 +194,7 @@ TEST_F(CubeTest, MysqlTest) {
   e->set_i_val(2);
 
   cube->insert_partial_aggregate(t);
+  ASSERT_EQ(2U, cube->num_leaf_cells());
 }
 
 
