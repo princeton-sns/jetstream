@@ -174,7 +174,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
      break;
   }
   
-  // Wait for the next message from the controller
+  // Wait for the next control message 
   boost::system::error_code e;
   conn->recv_control_msg(bind(&Node::received_ctrl_msg, this, conn, _1, _2), e);
 }
@@ -225,7 +225,8 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
         
         LOG(INFO) << "Chain request for operator " << dest_operator_id.to_string();
-        if (dest) {        // Operator exists so we can report "ready"
+	// Operator exists so we can report "ready"
+        if (dest) { 
           // Note that it's important to put the connection into receive mode
           // before sending the READY.
          

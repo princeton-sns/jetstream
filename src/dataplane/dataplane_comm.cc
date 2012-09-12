@@ -48,7 +48,7 @@ DataplaneConnManager::created_operator (operator_id_t op_id,
 }
 
 void
-DataplaneConnManager::got_data_cb (operator_id_t dest_id,
+DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
                                    shared_ptr<DataPlaneOperator> dest,
                                    const DataplaneMessage &msg,
                                    const boost::system::error_code &error) 
@@ -61,7 +61,10 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_id,
   
   if (!dest)
     LOG(FATAL) << "got data but no operator to receive it";
-  
+
+  shared_ptr<ClientConnection> c = liveConns[dest_op_id];
+  assert(c);
+
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
@@ -73,11 +76,14 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_id,
       break;
     }
     default:
-     shared_ptr<ClientConnection> c = liveConns[dest_id];
-     assert(c);
-     LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
+      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
         " from " << c->get_remote_endpoint() << " for existing dataplane connection";
   }
+
+  // Wait for the next data message
+  boost::system::error_code e;
+  c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
+  			this, dest_op_id, dest, _1, _2), e);
 }
   
   
@@ -127,8 +133,6 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   conn->recv_data_msg(boost::bind( &RemoteDestAdaptor::conn_ready_cb, 
            this, _1, _2), err);
   conn->send_msg(data_msg, err);
-
-  //send chain ready, setup cb for ready
 }
 
 void
@@ -150,7 +154,6 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     LOG(WARNING) << "unexpected response to Chain connect: " << msg.type() << 
        " error code is " << error;  
   }
-  
 }
 
   
