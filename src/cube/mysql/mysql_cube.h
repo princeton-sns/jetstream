@@ -2,6 +2,7 @@
 #define CUBE_6ITS9P4J
 
 #include "../cube_impl.h"
+#include "../cube_iterator.h"
 #include "dimension.h"
 #include "aggregate.h"
 #include <boost/algorithm/string/join.hpp>
@@ -12,12 +13,15 @@
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
+#include <boost/enable_shared_from_this.hpp>
 
 namespace jetstream {
 namespace cube {
   
-class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
-  public: 
+class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public boost::enable_shared_from_this<MysqlCube>{
+  public:
+    friend class MysqlCubeIteratorImpl;
+
     MysqlCube(jetstream::CubeSchema _schema, string db_host="localhost", string db_user="root", string db_pass="", string db_name="test_cube", size_t batch=1);
 
 
@@ -29,9 +33,8 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t);
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final);
 
-    virtual size_t slice_start_query(jetstream::Tuple min, jetstream::Tuple max, bool final);
-    virtual size_t slice_num_cells();
-    virtual boost::shared_ptr<jetstream::Tuple> slice_next_cell();
+    virtual CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final);
+    virtual CubeIterator end();
 
     string create_sql();
     void create();
@@ -54,7 +57,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>{
 
     boost::shared_ptr<sql::PreparedStatement> get_insert_entry_prepared_statement();
     boost::shared_ptr<sql::PreparedStatement> get_insert_partial_aggregate_prepared_statement();
-    
+    boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final);
 
   private:
     void init_connection();

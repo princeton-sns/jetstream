@@ -1,6 +1,8 @@
 
 
 #include "mysql_cube.h"
+#include "cube_iterator.h"
+#include "cube_iterator_impl.h"
 
 using namespace ::std;
 
@@ -301,6 +303,10 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
     return res;
   }
 
+  return make_tuple_from_result_set(res, final);
+}
+
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final) {
   boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
 
   int column_index = 1;
@@ -318,10 +324,9 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
 
 
   return result;
-
 }
 
-size_t jetstream::cube::MysqlCube::slice_start_query(jetstream::Tuple min, jetstream::Tuple max, bool final)
+jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final)
 {
   int tuple_index_min = 0;
   int tuple_index_max = 0;
@@ -345,42 +350,20 @@ size_t jetstream::cube::MysqlCube::slice_start_query(jetstream::Tuple min, jetst
   }
 
   boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
-  slice_result_set = res;
-  slice_final = final;
-  return slice_result_set->rowsCount();
+  boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl;
+  if(!res->next())  {
+    impl = boost::make_shared<jetstream::cube::MysqlCubeIteratorImpl>(); 
+  }
+  else {
+    impl = boost::make_shared<jetstream::cube::MysqlCubeIteratorImpl>(shared_from_this(), res, final); 
+  }
+  return CubeIterator(impl);
 }
-
-size_t jetstream::cube::MysqlCube::slice_num_cells() {
-  if(slice_result_set)
-    return slice_result_set->rowsCount();
-  return 0;
-}
-
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::slice_next_cell()
+ 
+jetstream::cube::CubeIterator jetstream::cube::MysqlCube::end()
 {
-  if(!slice_result_set->next())
-  {
-    //return a NULL ptr
-    boost::shared_ptr<jetstream::Tuple> res;
-    return res;
-  }
-
-  boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
-
-  int column_index = 1;
-  for(size_t i=0; i<dimensions.size(); i++)
-  {
-    dimensions[i]->populate_tuple(result, slice_result_set, column_index);
-  }
-  for(size_t i=0; i<aggregates.size(); i++)
-  {
-    if(!slice_final)
-      aggregates[i]->populate_tuple_partial(result, slice_result_set, column_index);
-    else
-      aggregates[i]->populate_tuple_final(result, slice_result_set, column_index);
-  }
-
-  return result;
+  boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl = MysqlCubeIteratorImpl::end();
+  return CubeIterator(impl);
 }
 
 void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {

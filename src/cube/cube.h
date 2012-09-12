@@ -4,6 +4,7 @@
 #include <iterator>
 #include <vector>
 #include "dataplaneoperator.h"  //needed only for Receiver
+#include "cube_iterator.h"
 
 
 #include "jetstream_types.pb.h"
@@ -18,6 +19,7 @@ namespace jetstream {
 class DataCube : public TupleReceiver {
   
 public:
+
   virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
   
   DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
@@ -28,6 +30,8 @@ public:
   
   virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t) = 0;
   virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t) = 0;
+
+  virtual jetstream::cube::CubeIterator end() = 0;
 
   virtual void create() = 0;
   virtual void destroy() = 0;
