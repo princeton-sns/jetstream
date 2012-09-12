@@ -191,7 +191,7 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
   // Need to convert the connected socket to a client_connection
   LOG(INFO) << "incoming dataplane connection received ok";
   
-  boost::shared_ptr<ClientConnection> conn(new ClientConnection(sock) );
+  boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
 
 }
