@@ -129,9 +129,8 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
-    LOG(WARNING) << "Node: Monitoring connection to "
-		 << conn->get_remote_endpoint() 
-		 << " failed " << error.message() << endl;
+    LOG(WARNING) << "Node: Monitoring connection failed "
+                 << error.message() << endl;
     return;
   }
 
@@ -296,8 +295,10 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
     if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
+      LOG(INFO) << "Created cube " << task.name() <<endl;
       respTopo->add_tocreate()->CopyFrom(task);
     } else {
+      LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
       respTopo->add_cubestostop(task.name());
     }
   }

@@ -20,7 +20,7 @@ class JSHttpServer(BaseHTTPServer.HTTPServer):
   def __init__(self, js_server):
     self.js_server = js_server
     self.allow_reuse_address = True
-    BaseHTTPServer.HTTPServer.__init__(self, (socket.gethostname(), SERV_PORT), JSWebInterface)
+    BaseHTTPServer.HTTPServer.__init__(self, ("", SERV_PORT), JSWebInterface)
     logger.info("Web interface started on port %d" % SERV_PORT)
 
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):

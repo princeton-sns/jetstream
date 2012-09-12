@@ -35,6 +35,8 @@ class NodeConfig {
 
 
 class Node {
+  friend class NodeWebInterface;
+
  private:
   NodeConfig config;
   boost::shared_ptr<boost::asio::io_service> iosrv;
