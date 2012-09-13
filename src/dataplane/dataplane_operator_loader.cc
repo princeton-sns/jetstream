@@ -59,8 +59,8 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
     return new DummyReceiver();
   } else if (name.compare("FileRead") == 0) {
     return new FileRead();
-  } else if (name.compare("SendOne") == 0) {
-    return new SendOne();
+  } else if (name.compare("SendK") == 0) {
+    return new SendK();
   }
   
   if(cache.count(name) < 1)

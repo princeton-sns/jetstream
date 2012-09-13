@@ -86,7 +86,7 @@ TEST(Node, HandleAlter_2_Ops)
   boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_GT(rec->tuples.size(),(unsigned int) 4);
+  ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
   string s = rec->tuples[0]->e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
 }
@@ -300,7 +300,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+  ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
 }
 
 
@@ -358,7 +358,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  ASSERT_EQ(rec->tuples.size(),(unsigned int) 1);
+  ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
 }
 
 
@@ -397,16 +397,18 @@ TEST(NodeIntegration, DataplaneConn) {
 
   operator_id_t dest_id(17,3), src_id(17,2);
 
-  // Create the receiver 
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
-  cout << "created receiver" << endl;
-
-  // Start an operator on one node; it will try to send data but will block until
-  // the receiver is ready
+  // Start an operator on one node before even creating the receiver; it will 
+  // try to send data but will block until the receiver is ready
+  string kStr = "5";
   AlterTopo topo;
   topo.set_computationid(src_id.computation_id);
   TaskMeta* task = topo.add_tostart();
-  task->set_op_typename("SendOne");
+  task->set_op_typename("SendK");
+  // Send some tuples, e.g. k = 5
+  TaskMeta_DictEntry* op_cfg = task->add_config();
+  op_cfg->set_opt_name("k");
+  op_cfg->set_val(kStr);
+
   TaskID* id = task->mutable_id();
   id->set_computationid(src_id.computation_id);
   id->set_task(src_id.task_id);
@@ -423,12 +425,18 @@ TEST(NodeIntegration, DataplaneConn) {
   ControlMessage r;
   nodes[1]->handle_alter(r, topo);
 
-  // Wait for the chain to be ready and the sending operators data to flow through. 
+  // Create the receiver 
+  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
+  cout << "created receiver" << endl;
+
+  // Wait for the chain to be ready and the sending operator's data to flow through. 
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  // This records the failure but allows the cleanup code below to execute
-  EXPECT_EQ((unsigned int) 1, rec->tuples.size());
+  u_int k;
+  stringstream(kStr) >> k;
+  // EXPECT_* records the failure but allows the cleanup code below to execute
+  EXPECT_EQ(k, rec->tuples.size());
 
   // Close sockets to avoid badness related to io_service destruction
   sockets[0]->shutdown(tcp::socket::shutdown_both, err);
