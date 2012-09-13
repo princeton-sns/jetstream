@@ -4,6 +4,7 @@
 
 using namespace jetstream;
 using namespace std;
+using namespace boost;
 
 
 NodeWebInterface::NodeWebInterface (port_t webPortno, Node &n) 
@@ -24,7 +25,7 @@ NodeWebInterface::start ()
     string port_as_str(boost::lexical_cast<string> (portno));
     const char *mg_config[] = {"listening_ports", port_as_str.c_str(), NULL};
     mongoose_ctxt = mg_start(process_req, this, mg_config);
-    //FIXME: is it safe for cfg to go out of scope here?
+    //FIXME: iscube_iter safe for cfg to go out of scope here?
   }
 }
 
@@ -77,10 +78,10 @@ NodeWebInterface::make_base_page(ostream &buf)
   buf << "<h2>JetStream worker alive</h2>"<< endl ;
   boost::shared_ptr<vector<string> > cubeList = node.cubeMgr.list_cubes();
   
-  buf << "<p>Cubes:" << endl<<"<ol>"<<endl;
-  vector<string>::iterator it;
-  for (it = cubeList->begin(); it != cubeList->end(); ++it) {
-   string& name = *it;
+  buf << "<p>Cubes:</p>" << endl<<"<ol>"<<endl;
+  vector<string>::iterator cube_it;
+  for (cube_it = cubeList->begin();cube_it != cubeList->end(); ++cube_it) {
+   string& name = *cube_it;
    boost::shared_ptr<DataCube> cube = node.cubeMgr.get_cube(name);
    if (!cube)
     continue; //cube deleted since list created
@@ -88,6 +89,19 @@ NodeWebInterface::make_base_page(ostream &buf)
    buf << "<li><b>" << name << "</b> ( SIZE NOT IMPLEMENTED) " << endl;
    buf << "</li>" << endl;
   }
+  
+  buf << "</li>"<<endl;
+
+  buf << "<p>Operators:</p>" << endl<<"<ol>"<<endl;
+
+//TODO lock around access to node structures?
+  map<operator_id_t,shared_ptr<DataPlaneOperator> >::iterator oper_it;
+  for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
+    const operator_id_t& o_id = oper_it->first;
+    shared_ptr<DataPlaneOperator> op = oper_it->second;
+    buf << "<li><b>" << o_id << "</b>" << endl;
+  }
+  
   buf << "</ol>" << endl;
   buf << "</body></html>"<< endl;
 }

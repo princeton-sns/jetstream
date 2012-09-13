@@ -68,6 +68,7 @@ class TestController(unittest.TestCase):
     print str(req)
     
     buf = self.client.do_rpc(req, True)
+    
     resp = ControlMessage()
     resp.ParseFromString(buf)
     self.assertEquals(resp.type, ControlMessage.OK)

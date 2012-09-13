@@ -308,7 +308,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
     LOG(INFO) << "stopping " << id << " due to server request";
-    bool stopped = stop_operator(id);
+    stop_operator(id);
     // TODO: Should we log whether the stop happened?
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
     
