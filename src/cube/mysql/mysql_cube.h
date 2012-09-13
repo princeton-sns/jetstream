@@ -31,7 +31,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t);
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t);
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final);
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final = true);
 
     virtual CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final = true, list<string> sort = list<string>(), size_t limit = 0);
     virtual CubeIterator end();
