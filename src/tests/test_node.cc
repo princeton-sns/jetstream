@@ -45,7 +45,7 @@ void add_pair_to_topo(AlterTopo& topo)
   e->set_computation(compID);
 }
 
-TEST(Node, OperatorCreate)
+TEST(Node, OperatorCreateDestroy)
 {
   NodeConfig cfg;
   boost::system::error_code error;
@@ -56,6 +56,11 @@ TEST(Node, OperatorCreate)
   shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
+  
+  bool stopped = node.stop_operator(id);
+  ASSERT_TRUE(stopped);
+  ASSERT_FALSE(node.get_operator( id ));
+  
 }
 
 

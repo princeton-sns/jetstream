@@ -79,11 +79,12 @@ class Node {
   void run ();
   void stop ();
 
-  boost::shared_ptr<DataPlaneOperator>
-    get_operator (operator_id_t name) { return operators[name]; }
+  boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
+    
+  bool stop_operator(operator_id_t name); 
     
   boost::shared_ptr<DataCube>
     get_cube (const std::string &name) { return cubeMgr.get_cube(name); }

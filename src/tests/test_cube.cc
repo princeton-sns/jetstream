@@ -417,7 +417,7 @@ TEST(Cube,Attach) {
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
-  // Send some tuples, e.g. k = 5
+  // Send some tuples
   TaskMeta_DictEntry* op_cfg = task->add_config();
   op_cfg->set_opt_name("k");
   op_cfg->set_val("2");
