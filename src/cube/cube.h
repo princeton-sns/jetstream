@@ -3,6 +3,7 @@
 
 #include <iterator>
 #include <vector>
+#include <list>
 #include "dataplaneoperator.h"  //needed only for Receiver
 #include "cube_iterator.h"
 
@@ -28,11 +29,13 @@ public:
   virtual bool insert_entry(jetstream::Tuple t) = 0;
   virtual bool insert_partial_aggregate(jetstream::Tuple t) = 0;
   
-  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t) = 0;
-  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t) = 0;
+  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final = true) = 0;
 
+  virtual cube::CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final = true, std::list<std::string> sort = std::list<std::string>(), size_t limit = 0) = 0;
   virtual jetstream::cube::CubeIterator end() = 0;
 
+  virtual size_t num_leaf_cells() const = 0;
+  
   virtual void create() = 0;
   virtual void destroy() = 0;
 

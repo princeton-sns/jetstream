@@ -20,7 +20,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
   public:
     MysqlAggregateAvg(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema){};
 
-    vector<string> get_column_types()
+    vector<string> get_column_types() const
     {
       vector<string> decl;
       decl.push_back("INT");
@@ -28,7 +28,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       return decl;
     }
     
-    vector<string> get_column_names()
+    vector<string> get_column_names() const
     {
       vector<string> decl;
       decl.push_back(get_base_column_name()+"_sum");
@@ -36,7 +36,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       return decl;
     }
 
-    string get_update_with_new_entry_sql()
+    string get_update_with_new_entry_sql() const
     {
       //VALUES() allow you to incorporate the value of the new entry as it would be if the entry was inserted as a new row;  
       string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"_sum`), ";
@@ -44,7 +44,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       return sql;
     } 
     
-    string get_update_with_partial_aggregate_sql()
+    string get_update_with_partial_aggregate_sql() const
     {
       //VALUES() allow you to incorporate the value of the new entry as it would be if the entry was inserted as a new row;  
       string sql = "`"+get_base_column_name()+"_sum` = `"+get_base_column_name()+"_sum` + VALUES(`"+get_base_column_name()+"_sum`), ";
@@ -52,7 +52,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       return sql;
     }
 
-    void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())
@@ -75,7 +75,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
 
-    void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
       jetstream::Element e_sum = t.e(tuple_index);
       jetstream::Element e_count = t.e(tuple_index+1);
@@ -106,7 +106,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
 
-  void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+    virtual void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
     int sum = resultset->getInt(column_index);
     int count = resultset->getInt(column_index+1);
     column_index += 2;
@@ -115,7 +115,7 @@ class MysqlAggregateAvg: public MysqlAggregate{
     elem->set_d_val((float)sum/(float)count);
   }
 
-   void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) {
+   void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
     int sum = resultset->getInt(column_index);
     int count = resultset->getInt(column_index+1);
     column_index += 2;
