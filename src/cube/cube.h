@@ -26,13 +26,14 @@ public:
   DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
   virtual ~DataCube() {}
 
-  virtual bool insert_entry(jetstream::Tuple t) = 0;
-  virtual bool insert_partial_aggregate(jetstream::Tuple t) = 0;
+  virtual bool insert_entry(jetstream::Tuple const &t) = 0;
+  virtual bool insert_partial_aggregate(jetstream::Tuple const&t) = 0;
   
-  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final = true) = 0;
+  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const= 0;
 
-  virtual cube::CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final = true, std::list<std::string> sort = std::list<std::string>(), size_t limit = 0) = 0;
-  virtual jetstream::cube::CubeIterator end() = 0;
+  virtual cube::CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max, bool final = true, std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
+  
+  virtual jetstream::cube::CubeIterator end() const = 0;
 
   virtual size_t num_leaf_cells() const = 0;
   

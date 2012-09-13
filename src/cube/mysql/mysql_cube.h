@@ -22,44 +22,44 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
   public:
     friend class MysqlCubeIteratorImpl;
 
-    MysqlCube(jetstream::CubeSchema _schema, string db_host="localhost", string db_user="root", string db_pass="", string db_name="test_cube", size_t batch=1);
+    MysqlCube(jetstream::CubeSchema const _schema, string db_host="localhost", string db_user="root", string db_pass="", string db_name="test_cube", size_t batch=1);
 
 
-    virtual bool insert_entry(jetstream::Tuple t);
-    virtual bool insert_partial_aggregate(jetstream::Tuple t);
+    virtual bool insert_entry(jetstream::Tuple const &t);
+    virtual bool insert_partial_aggregate(jetstream::Tuple const &t);
    // virtual bool insert_full_aggregate(jetstream::Tuple t);
     
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple t);
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple t);
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple t, bool final = true);
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple const &t) const;
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple const &t) const ;
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const;
 
-    virtual CubeIterator slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final = true, list<string> sort = list<string>(), size_t limit = 0);
-    virtual CubeIterator end();
+    virtual CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
+    virtual CubeIterator end() const;
 
     virtual size_t num_leaf_cells() const;
 
-    string create_sql();
+    string create_sql() const;
     void create();
     void destroy();
 
     string get_table_name() const;
-    vector<string> get_dimension_column_types();
-    vector<string> get_aggregate_column_types();
+    vector<string> get_dimension_column_types() const;
+    vector<string> get_aggregate_column_types() const;
 
     void set_batch(size_t numBatch);
   
   protected:
 
-    boost::shared_ptr<sql::Connection> get_connection();
-    void execute_sql(string sql);
-    boost::shared_ptr<sql::ResultSet> execute_query_sql(string sql) const;
+    boost::shared_ptr<sql::Connection> get_connection() const;
+    void execute_sql(string const &sql) const;
+    boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql) const;
     
     string get_insert_entry_prepared_sql();
     string get_insert_partial_aggregate_prepared_sql();
 
     boost::shared_ptr<sql::PreparedStatement> get_insert_entry_prepared_statement();
     boost::shared_ptr<sql::PreparedStatement> get_insert_partial_aggregate_prepared_statement();
-    boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final);
+    boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final) const;
 
   private:
     void init_connection();

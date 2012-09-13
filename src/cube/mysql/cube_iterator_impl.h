@@ -13,7 +13,7 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
   public:
     MysqlCubeIteratorImpl(): final(true), num_cells(0){}
     
-    MysqlCubeIteratorImpl(boost::shared_ptr<jetstream::cube::MysqlCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true): cube(cube), res(rs), final(final), num_cells(rs->rowsCount()){}
+    MysqlCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MysqlCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true): cube(cube), res(rs), final(final), num_cells(rs->rowsCount()){};
 
 
     virtual size_t numCells() {
@@ -59,10 +59,10 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
 
   private:
     static boost::shared_ptr<MysqlCubeIteratorImpl> const impl_end;
-    boost::shared_ptr<MysqlCube> cube;
+    boost::shared_ptr<const MysqlCube> const cube;
     boost::shared_ptr<sql::ResultSet> res;
-    bool final;
-    size_t num_cells;
+    bool const final;
+    size_t const num_cells;
 };
 
 boost::shared_ptr<MysqlCubeIteratorImpl> const MysqlCubeIteratorImpl::impl_end = make_shared<MysqlCubeIteratorImpl>();

@@ -6,7 +6,7 @@
 
 using namespace ::std;
 
-jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema _schema, string db_host, string db_user, string db_pass, string db_name, size_t batch) : 
+jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema const _schema, string db_host, string db_user, string db_pass, string db_name, size_t batch) : 
       DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema), 
       db_host(db_host),
       db_user(db_user),
@@ -30,24 +30,24 @@ void jetstream::cube::MysqlCube::init_connection()
   }
 }
 
-void jetstream::cube::MysqlCube::execute_sql(string sql)
+void jetstream::cube::MysqlCube::execute_sql(string const &sql) const
 {
   statement->execute(sql);
 }
 
-boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string sql) const
+boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string const &sql) const
 {
   boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
   return res;
 }
 
 
-boost::shared_ptr<sql::Connection> jetstream::cube::MysqlCube::get_connection()
+boost::shared_ptr<sql::Connection> jetstream::cube::MysqlCube::get_connection() const
 {
   return connection;
 }
 
-string jetstream::cube::MysqlCube::create_sql() {
+string jetstream::cube::MysqlCube::create_sql() const {
   string sql = "CREATE TABLE `"+get_table_name()+"` (";
   vector<string> pk;
   for(size_t i=0; i<dimensions.size(); i++)
@@ -92,7 +92,7 @@ string jetstream::cube::MysqlCube::get_table_name() const
   return name;
 }
 
-vector<string> jetstream::cube::MysqlCube::get_dimension_column_types()
+vector<string> jetstream::cube::MysqlCube::get_dimension_column_types() const
 {
   vector<string> cols;
   size_t i;
@@ -106,7 +106,7 @@ vector<string> jetstream::cube::MysqlCube::get_dimension_column_types()
   return cols;
 }
 
-vector<string> jetstream::cube::MysqlCube::get_aggregate_column_types()
+vector<string> jetstream::cube::MysqlCube::get_aggregate_column_types() const
 {
   vector<string> cols;
   size_t i;
@@ -219,7 +219,7 @@ boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert
   return insertPartialAggregateStatement;
 }
 
-bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple t)
+bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t)
 {
   boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_entry_prepared_statement();
   int tuple_index = 0;
@@ -244,7 +244,7 @@ bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple t)
   return true;
 }
 
-bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple t)
+bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple const &t)
 {
   boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_partial_aggregate_prepared_statement();
   int tuple_index = 0;
@@ -269,18 +269,18 @@ bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple t)
   return true;
 }
 
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple t)
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple const &t) const
 {
   return get_cell_value(t, true);
 }
 
 
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple t)
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_partial(jetstream::Tuple const &t) const
 {
   return get_cell_value(t, false);
 }
 
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(jetstream::Tuple t, bool final)
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(jetstream::Tuple const &t, bool final) const
 {
   int tuple_index = 0;
   vector<string> where_clauses;
@@ -306,7 +306,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
   return make_tuple_from_result_set(res, final);
 }
 
-boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final) {
+boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final) const {
   boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
 
   int column_index = 1;
@@ -326,7 +326,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::make_tuple_from_
   return result;
 }
 
-jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final, list<string> sort, size_t limit)
+jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final, list<string> const &sort, size_t limit) const
 {
   int tuple_index_min = 0;
   int tuple_index_max = 0;
@@ -343,7 +343,7 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream:
   }
 
   string sort_sql = "";
-  for(list<string>::iterator i = sort.begin(); i != sort.end(); i++) {
+  for(list<string>::const_iterator i = sort.begin(); i != sort.end(); i++) {
     string item = *i;
     if(i != sort.begin())
       sort_sql += ", ";
@@ -386,7 +386,7 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream:
   return CubeIterator(impl);
 }
  
-jetstream::cube::CubeIterator jetstream::cube::MysqlCube::end()
+jetstream::cube::CubeIterator jetstream::cube::MysqlCube::end() const
 {
   boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl = MysqlCubeIteratorImpl::end();
   return CubeIterator(impl);
