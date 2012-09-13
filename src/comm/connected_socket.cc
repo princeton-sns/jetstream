@@ -9,6 +9,28 @@ using namespace boost::asio::ip;
 using namespace jetstream;
 
 
+std::string
+ConnectedSocket::get_fourtuple () const
+{
+  boost::system::error_code error_local, error_remote;
+  ostringstream fourtuple;
+
+  tcp::endpoint local = sock->local_endpoint(error_local);
+  if (error_local)
+    fourtuple << ":0";
+  else
+    fourtuple << local.address().to_string() << ":" << local.port();
+
+  tcp::endpoint remote = sock->remote_endpoint(error_remote);
+  if (error_remote)
+    fourtuple << ":0";
+  else
+    fourtuple << ":" << remote.address().to_string() << ":" << remote.port();
+
+  return fourtuple.str();
+}
+
+
 void
 ConnectedSocket::fail (const boost::system::error_code &error)
 {

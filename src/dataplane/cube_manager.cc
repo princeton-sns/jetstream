@@ -3,6 +3,7 @@
 
 using namespace boost;
 using namespace jetstream;
+using namespace ::std;
 
 shared_ptr<DataCube> 
 CubeManager::get_cube (const std::string &name) 
@@ -37,3 +38,17 @@ CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c)
   cubeMap.insert (std::pair<std::string, shared_ptr<DataCube> > (name, c));
 }
 
+boost::shared_ptr<vector<string> >
+CubeManager::list_cubes() {
+  lock_guard<boost::mutex> lock (mapMutex);
+
+  size_t numCubes = cubeMap.size();
+  boost::shared_ptr<vector<string> > cubeList(new vector<string>(numCubes));
+  
+  map<string, shared_ptr<DataCube> >::iterator it;
+  for (it=cubeMap.begin() ; it != cubeMap.end(); it++ ) {
+    cubeList->push_back(it->first);
+  }
+  return cubeList;
+
+}

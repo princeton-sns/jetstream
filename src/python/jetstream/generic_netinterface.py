@@ -31,6 +31,7 @@ class JSServer(asyncore.dispatcher):
     asyncore.dispatcher.__init__(self, map=self.my_sockets)
     self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
     self.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+    logger.info("server binding to %s:%d" % (address[0], address[1]) )
     self.bind(address)
     self.addr_to_handler = {}
     self.address = self.socket.getsockname()

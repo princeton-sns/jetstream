@@ -129,13 +129,21 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   // Clients of this class use this method to register the receive callback
   // Underlying use of async reads are thread safe
   void recv_msg (cb_raw_msg_t receivecb);
+  
+  boost::shared_ptr<boost::asio::io_service> get_iosrv () { return iosrv; }
 
-   //these are here so we can wrap an existing ConnectedSocket in a ClientConnection
-  boost::shared_ptr<boost::asio::io_service> get_iosrv() { return iosrv;}
-  boost::shared_ptr<boost::asio::ip::tcp::socket> get_raw_sock() {return sock;}
+  // FIXME sock->remote/local can through exceptions.  Can with error code instead?
+  boost::asio::ip::tcp::endpoint get_remote_endpoint () const 
+  { return sock->remote_endpoint(); }
+  boost::asio::ip::tcp::endpoint get_local_endpoint () const 
+  { return sock->local_endpoint(); }
 
+  /**
+   * Return socket four tuple in string:  
+   * local addr | local port | remote addr | remote port 
+   */
+  std::string get_fourtuple () const;
 };
-
 
 }
 

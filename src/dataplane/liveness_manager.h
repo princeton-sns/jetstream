@@ -32,8 +32,9 @@ class LivenessManager {
     void stop_notify ();
     bool is_connected () const { return (conn && conn->is_connected()); }
   };
-  
-  typedef std::map<boost::asio::ip::tcp::endpoint,
+
+  // Map on connection four-tuple as key
+  typedef std::map<std::string, 
     boost::shared_ptr<ConnectionNotification> > connection_map;
   connection_map connections;
 

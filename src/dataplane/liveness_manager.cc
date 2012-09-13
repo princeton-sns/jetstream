@@ -25,19 +25,21 @@ LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
 void
 LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
 {
-  connection_map::iterator iter 
-    = connections.find(c->get_remote_endpoint());
+  std::string fourtuple = c->get_fourtuple();
 
+  connection_map::iterator iter = connections.find(fourtuple);
   if (iter != connections.end()) {
     // Stop existing notification
     iter->second->stop_notify();
     connections.erase (iter);
   }
 
+  LOG(INFO) << "Starting notifications to " << fourtuple << endl;
+
   shared_ptr<ConnectionNotification> notif 
     (new ConnectionNotification (iosrv, c, heartbeat_time));
 
-  connections[c->get_remote_endpoint()] = notif;
+  connections[fourtuple] = notif;
 
   boost::system::error_code success; 
   notif->send_notification(success);
@@ -69,8 +71,8 @@ void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
   if (error || !is_connected()) {
-    LOG(WARNING) << "Liveness: Send notification with "
-		 << conn->get_remote_endpoint()
+    LOG(WARNING) << "Send notification on "
+		 << conn->get_fourtuple()
 		 << ": connected " << is_connected()
 		 << ": error " << error.message() << endl;
     return;
@@ -88,12 +90,12 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   conn->send_msg(req, send_error);
 
   if (send_error) {
-    LOG(WARNING) << "Liveness: send error with " << conn->get_remote_endpoint()
+    LOG(WARNING) << "Send error on " << conn->get_fourtuple()
 	 << ": " << send_error.message() << endl;
   }
   else {
-    LOG(INFO) << "Liveness: successfully scheduled message send to "
-	 << conn->get_remote_endpoint() << endl;
+    LOG(INFO) << "Successfully scheduled message on "
+	 << conn->get_fourtuple() << endl;
   }
 
   wait_to_notify();
@@ -104,8 +106,8 @@ void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
   if (!is_connected() || waiting) {
-    LOG(WARNING) << "Stopping wait_to_notify with remote " 
-		 << conn->get_remote_endpoint()
+    LOG(WARNING) << "Stopping wait_to_notify on " 
+		 << conn->get_fourtuple()
 		 << ". Connected " << is_connected ()
 		 << "; Waiting " << waiting << endl;
     return;

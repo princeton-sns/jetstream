@@ -25,7 +25,7 @@ ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
 
 ClientConnection::ClientConnection(boost::shared_ptr<ConnectedSocket> s)
   : connected (true), iosrv (s->get_iosrv()),
-    remote (), timer (*iosrv),
+    remote (s->get_remote_endpoint()), timer (*iosrv),
     connSock (s)
 {
 }
@@ -45,7 +45,7 @@ ClientConnection::connect (msec_t timeout, cb_err_t cb)
 
   // Start the asynchronous connect operation.
   sock->async_connect(remote,
-		     bind(&ClientConnection::connect_cb, this, cb, _1));
+		      bind(&ClientConnection::connect_cb, this, cb, _1));
 
   timer.async_wait(bind(&ClientConnection::timeout_cb, this, cb, _1));
 }
@@ -171,21 +171,4 @@ ClientConnection::recv_control_msg (cb_control_protomsg_t cb,
   }
   connSock->recv_msg(boost::bind(&ClientConnection::recv_control_msg_cb, cb, _1, _2));
 }
-
-
-#if 0
-boost::shared_ptr<ClientConnection> get_connection (const boost::asio::ip::tcp::endpoint &remote);
-
-shared_ptr<ClientConnection>
-ClientConnectionManager::get_connection (const tcp::endpoint &remote)
-{
-  map<tcp::endpoint, shared_ptr<ClientConnection> >::iterator iter = conns.find (remote);
-  if (iter == conns.end())
-    return shared_ptr<ClientConnection> ();
-  else
-    return iter->second;
-}
-#endif
-
-
 

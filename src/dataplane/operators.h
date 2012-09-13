@@ -17,10 +17,12 @@ namespace jetstream {
  */
 class FileRead: public DataPlaneOperator {
  public:
+  //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
+  //for source operators?
+  FileRead() : running(false) {}
   virtual void start(std::map<std::string,std::string> config);
   virtual void stop();
-  void operator()(); //a thread that will loop while reading the file
-  //TODO: Make this (or something similar) a part of DataPlaneOperator API?
+  void operator()();  // A thread that will loop while reading the file
   bool isRunning();
   virtual void process(boost::shared_ptr<Tuple> t);
   
@@ -31,15 +33,32 @@ class FileRead: public DataPlaneOperator {
   volatile bool running;
 };
 
+
+/***
+ * Operator for emitting a specified number of generic tuples.
+ */
+class SendK: public DataPlaneOperator {
+ public:
+  virtual void start(std::map<std::string,std::string> config);
+  virtual void stop();
+  virtual void process(boost::shared_ptr<Tuple> t);
+  void operator()();  // A thread that will loop while reading the file    
+    
+ protected:
+  u_int k; //name of file to read
+  boost::shared_ptr<boost::thread> loopThread;
+  volatile bool running;
+};  
+  
+
 /***
  * Operator for filtering strings. Expects one parameter, a string named 'pattern'
  * containing a regular expression. Assumes each received tuple has a first element
  * that is a string, and re-emits the tuple if the string matches 'pattern'.
  */
-
 class StringGrep: public DataPlaneOperator {
  public:
-  StringGrep () : id (0) {}
+  StringGrep() : id (0) {}
   virtual void start(std::map<std::string,std::string> config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
@@ -50,7 +69,7 @@ class StringGrep: public DataPlaneOperator {
 
   
 class DummyReceiver: public DataPlaneOperator {
-public:
+ public:
   std::vector< boost::shared_ptr<Tuple> > tuples;
   virtual void process(boost::shared_ptr<Tuple> t) {
     tuples.push_back(t);
@@ -59,15 +78,6 @@ public:
   virtual ~DummyReceiver();
 };
 
-  
-class SendOne: public DataPlaneOperator {
-public:
-  virtual void start(std::map<std::string,std::string> config);
-  virtual void process(boost::shared_ptr<Tuple> t);
-  
-  virtual ~SendOne() {}
-};  
-  
 }
 
 #endif

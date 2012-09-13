@@ -57,18 +57,39 @@ NodeWebInterface::process_req(enum mg_event event, struct mg_connection *conn)
     web_iface_obj->make_base_page(response);
 
     std::string s = response.str();
+      //need to render whole response first so we know length
+      
     mg_printf(conn, hdr, s.length());
     mg_write(conn, s.c_str(), s.length());
     return (void *) hdr;  // Mark as processed
-  } // Not a request, so ignore the callback and let Mongoose do the default thing.
-  return NULL;
+  }
+  else {
+    // Not a request, so ignore the callback and let Mongoose do the default thing.
+    return NULL;
+  }
 }
 
 
 void
 NodeWebInterface::make_base_page(ostream &buf)
 {
-  buf <<"<html><body>JetStream worker alive</body></html>";
+  buf << "<html><title>JetStream Status</title>" << endl;
+  buf << "<h2>JetStream worker alive</h2>"<< endl ;
+  boost::shared_ptr<vector<string> > cubeList = node.cubeMgr.list_cubes();
+  
+  buf << "<p>Cubes:" << endl<<"<ol>"<<endl;
+  vector<string>::iterator it;
+  for (it = cubeList->begin(); it != cubeList->end(); ++it) {
+   string& name = *it;
+   boost::shared_ptr<DataCube> cube = node.cubeMgr.get_cube(name);
+   if (!cube)
+    continue; //cube deleted since list created
+    
+   buf << "<li><b>" << name << "</b> ( SIZE NOT IMPLEMENTED) " << endl;
+   buf << "</li>" << endl;
+  }
+  buf << "</ol>" << endl;
+  buf << "</body></html>"<< endl;
 }
 
 

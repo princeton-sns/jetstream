@@ -16,7 +16,7 @@ namespace jetstream {
 
 /**
 * Responsible for local allocation and management of data cubes. Cubes are stored
-* in a table, listed by name.  Access functions (get/put/destory) block on
+* in a table, listed by name.  Access functions (get/put/destroy) block on
 * lock acquisition for thread safety.
 */
 class CubeManager {
@@ -31,6 +31,7 @@ class CubeManager {
   boost::shared_ptr<DataCube> get_cube (const std::string &name);
   void put_cube (const std::string &name, boost::shared_ptr<DataCube> c);
   void destroy_cube (const std::string &name);
+  boost::shared_ptr<std::vector<std::string> > list_cubes();
 };
 
 }

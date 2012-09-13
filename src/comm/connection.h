@@ -87,8 +87,12 @@ class ClientConnection {
   ClientConnection (boost::shared_ptr<ConnectedSocket> connSock);
   ~ClientConnection () { close(); }
 
-  const boost::asio::ip::tcp::endpoint & get_remote_endpoint () const 
+  boost::asio::ip::tcp::endpoint get_remote_endpoint () const 
   { return remote; }
+  boost::asio::ip::tcp::endpoint get_local_endpoint () const 
+  { return connSock->get_local_endpoint (); }
+  std::string get_fourtuple () const
+  { return connSock->get_fourtuple(); }
 
   void connect (msec_t timeout, cb_err_t cb);
   bool is_connected () const { return connected; }

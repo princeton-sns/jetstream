@@ -16,11 +16,25 @@ from computation_state import *
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
 
+from optparse import OptionParser 
+#Could use ArgParse instead, but it's 2.7+ only.
+
 
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
 def main():
 #  Could read config here
+  
+  parser = OptionParser()
+  parser.add_option("-C", "--config", dest="config_file",
+                  help="read config from FILE", metavar="FILE")
+
+  (options, args) = parser.parse_args()
+  if options.config_file is not None:
+    config = ConfigParser.ConfigParser()
+    config.read(options.config_file)
+    
+
   serv = get_server_on_this_node()
   start_web_interface(serv)
   serv.evtloop()
@@ -28,7 +42,7 @@ def main():
   
 def get_server_on_this_node ():  
   bind_port = DEFAULT_BIND_PORT
-  endpoint = (socket.gethostname(), bind_port) 
+  endpoint = ("", bind_port) #all interfaces?
   server = Controller(endpoint)
   return server
 

@@ -11,7 +11,7 @@ using namespace boost;
 
 namespace jetstream {
 
-  
+
 void
 FileRead::start(map<string,string> config) {
   f_name = config["file"];
@@ -25,6 +25,7 @@ FileRead::start(map<string,string> config) {
   loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
 
+
 void
 FileRead::stop() {
   running = false;
@@ -32,15 +33,18 @@ FileRead::stop() {
   loopThread->join();
 }
 
+
 void
 FileRead::process(boost::shared_ptr<Tuple> t) {
-  LOG(WARNING) << "Should never be sending data to a FileRead";
+  LOG(WARNING) << "Should not send data to a FileRead";
 }
+
 
 bool
 FileRead::isRunning() {
   return running;
 }
+
 
 void
 FileRead::operator()() {
@@ -64,15 +68,57 @@ FileRead::operator()() {
 
 
 void
+SendK::start(std::map<std::string,std::string> config) {
+  if (config["k"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["k"]) >> k)) {
+      cout << "invalid number of tuples: " << config["k"] << endl;
+      return;
+    }
+  } else {
+    // Send one tuple by default
+    k = 1;
+  }
+  running = true;
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+}
+
+
+void
+SendK::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a SendK";
+} 
+
+
+void
+SendK::stop() {
+  running = false;
+  LOG(INFO) << "Stopping SendK operator";
+  loopThread->join();
+}
+
+
+void
+SendK::operator()() {
+  boost::shared_ptr<Tuple> t(new Tuple);
+  t->add_e()->set_s_val("foo");
+  for (u_int i = 0; i < k; i++) {
+    emit(t);
+  }
+}
+
+
+void
 StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];
-  istringstream ( config["id"] ) >> id;
+  istringstream(config["id"]) >> id;
   if (pattern.length() == 0) {
     cout << "no regexp pattern specified, bailing" << endl;
     return;
   }
   re.assign(pattern);
 }
+
 
 void
 StringGrep::process (boost::shared_ptr<Tuple> t)
@@ -103,19 +149,6 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 
 DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
-}
-
-
-void
-SendOne::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a SendOne";
-} 
-
-void
-SendOne::start(std::map<std::string,std::string> config) {
-  boost::shared_ptr<Tuple> t(new Tuple);
-  t->add_e()->set_s_val("foo");
-  emit(t);
 }
 
 }
