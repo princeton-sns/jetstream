@@ -111,6 +111,7 @@ Node::stop ()
 
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
+  LOG(INFO) << "killing " << operators.size() << " operators on stop";
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }
@@ -273,6 +274,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
 
+  cout << topo.Utf8DebugString() << endl;
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
     const TaskMeta &task = topo.tostart(i);
@@ -302,8 +304,18 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       respTopo->add_cubestostop(task.name());
     }
   }
+    // Stop operators if need be
+  for (int i=0; i < topo.tasktostop_size(); ++i) {
+    operator_id_t id = unparse_id(topo.tasktostop(i));
+    LOG(INFO) << "stopping " << id << " due to server request";
+    bool stopped = stop_operator(id);
+    // TODO: Should we log whether the stop happened?
+    respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
+    
+    
+  }
   
-  //TODO remove cubes and operators if specified.
+  //TODO remove cubes if specified.
   
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
@@ -351,6 +363,17 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   return response;
 }
 
+boost::shared_ptr<DataPlaneOperator> 
+Node::get_operator (operator_id_t name) { 
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  iter = operators.find(name);
+  if (iter != operators.end())
+    return iter->second;
+  else {
+    boost::shared_ptr<DataPlaneOperator> x;
+    return x; 
+  }
+}
 
 shared_ptr<DataPlaneOperator>
 Node::create_operator (string op_typename, operator_id_t name) 
@@ -370,4 +393,20 @@ Node::create_operator (string op_typename, operator_id_t name)
   return d;
 }
 
+bool 
+Node::stop_operator(operator_id_t name) {
+// No need for locking provided that operator is invoked in the control
+//  connection strand. Otherwise would need to avoid concurrent modification
+//  to the operator table
+  shared_ptr<DataPlaneOperator> op = operators[name];
+  if (op) { //operator still around
+    op->stop();
+    int delCount = operators.erase(name);
+    assert(delCount > 0);
+    return true;
+// TODO: should unload code at some point. Presumably when no more operators
+// of that type are running? Can we push that into operatorloader?
 
+  }
+  return false;
+}
