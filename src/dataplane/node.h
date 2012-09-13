@@ -84,6 +84,9 @@ class Node {
   
   boost::shared_ptr<DataPlaneOperator>
     create_operator (std::string op_typename, operator_id_t name);
+    
+  boost::shared_ptr<DataCube>
+    get_cube (const std::string &name) { return cubeMgr.get_cube(name); }
 
   const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
   { return listeningSock->get_local_endpoint(); }

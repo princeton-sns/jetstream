@@ -1,5 +1,7 @@
 #include "cube_manager.h"
 #include "cube.h"
+#include "node.h"
+
 #include "mysql_cube.h"
 #include "mysql/cube_iterator_impl.h"
 
@@ -311,4 +313,53 @@ TEST_F(CubeTest, MysqlTestIt) {
   ASSERT_EQ((size_t)0, it.numCells());
   ptrTup = *it;
   ASSERT_FALSE(ptrTup);
+}
+
+TEST(Cube,Attach) {
+  int compID = 4;
+
+  NodeConfig cfg;
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+
+  AlterTopo topo;
+  topo.set_computationid(compID);
+  
+  jetstream::CubeMeta * cube_meta = topo.add_tocreate();
+  jetstream::CubeSchema * sc = cube_meta->mutable_schema();
+  
+  jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
+  dim->set_name("text");
+  dim->set_type(Element_ElementType_STRING);
+  sc->set_name("test cube");
+  cube_meta->set_name("test cube");
+
+  TaskMeta* task = topo.add_tostart();
+  task->set_op_typename("SendK");
+  // Send some tuples, e.g. k = 5
+  TaskMeta_DictEntry* op_cfg = task->add_config();
+  op_cfg->set_opt_name("k");
+  op_cfg->set_val("2");
+  
+  TaskID* id = task->mutable_id();
+  id->set_computationid(compID);
+  id->set_task(1);
+  
+  Edge * e = topo.add_edges();
+  e->set_src(1);
+  e->set_cube_name("test cube");
+  e->set_computation(compID);
+  
+//  cout << topo.Utf8DebugString();
+  
+  ControlMessage r;
+  node.handle_alter(r, topo);
+  cout << "alter sent; data should be present" << endl;
+  
+  shared_ptr<DataCube> cube = node.get_cube("test cube");
+  ASSERT_TRUE( cube );
+  
+  
+
 }
