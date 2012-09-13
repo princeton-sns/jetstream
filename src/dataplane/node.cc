@@ -290,7 +290,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
   }
-  
+  cout << "request to create " << topo.tocreate_size() << " cubes" <<endl;
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
@@ -356,7 +356,7 @@ shared_ptr<DataPlaneOperator>
 Node::create_operator (string op_typename, operator_id_t name) 
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
-
+  d->id() = name;
    //TODO logging
   /*
   if (d.get() != NULL) {

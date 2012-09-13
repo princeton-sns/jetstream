@@ -7,6 +7,8 @@
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include <map>
+#include <iostream>
+
 
 namespace jetstream {
 
@@ -29,6 +31,10 @@ struct operator_id_t {
   operator_id_t () : computation_id (0), task_id (0) {}
 };
 
+inline std::ostream& operator<<(std::ostream& out, operator_id_t id) {
+  out << "(" << id.computation_id << "," << id.task_id << ")";
+  return out;
+}
 
 class TupleReceiver {
  public:
@@ -39,7 +45,7 @@ class TupleReceiver {
 
 class DataPlaneOperator : public TupleReceiver {
  private:
-  int operID; // TODO: when is this set???  -Ari
+  operator_id_t operID; // TODO: when is this set???  -Ari
   boost::shared_ptr<TupleReceiver> dest;
 
  protected:
@@ -51,6 +57,7 @@ class DataPlaneOperator : public TupleReceiver {
 
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+  operator_id_t & id() {return operID;}
 
   /**
    * An operator must not start emitting tuples until start() has been called.

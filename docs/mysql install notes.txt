@@ -3,6 +3,9 @@ Notes on installing mysql for use with jetstream
 1) Make sure you install mysql.  
 	Via macports:   sudo port install mysql5 +server
 
+1a) Change permissions/create  /opt/local/var/run/mysql5
+ and /opt/local/var/db/mysql5
+
 2) create DB via
    /opt/local/lib/mysql5/bin/mysql_install_db  --user=mysql
 3)   /opt/local/share/mysql5/mysql/mysql.server start

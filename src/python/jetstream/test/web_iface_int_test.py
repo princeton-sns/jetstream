@@ -49,7 +49,7 @@ class TestController(unittest.TestCase):
     req.alter.computationID = compID
     
     newTask = req.alter.toStart.add()
-    newTask.op_typename = "SendOne"
+    newTask.op_typename = "SendK"
     newTask.id.computationID = req.alter.computationID
     newTask.id.task = 2
     
