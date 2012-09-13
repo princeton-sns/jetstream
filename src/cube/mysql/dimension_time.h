@@ -12,7 +12,7 @@ class MysqlDimensionTime: public MysqlDimension{
   public:
     MysqlDimensionTime(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema){};
 
-    vector<string> get_column_names()
+    vector<string> get_column_names() const
     {
       //this should be the leaf. No need for agg_level column
       //that goes in rollup table. to be done later;
@@ -22,7 +22,7 @@ class MysqlDimensionTime: public MysqlDimension{
       return decl;
     }
 
-    vector<string> get_column_types()
+    vector<string> get_column_types() const
     {
       vector<string> decl;
       decl.push_back("DATETIME");
@@ -30,7 +30,7 @@ class MysqlDimensionTime: public MysqlDimension{
       return decl;
     }
     
-    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index)
+    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_t_val())
@@ -48,7 +48,7 @@ class MysqlDimensionTime: public MysqlDimension{
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
 
-    string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) {
+    string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) const {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_t_val())
       {
@@ -67,7 +67,7 @@ class MysqlDimensionTime: public MysqlDimension{
       return "";
     }
     
-    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index)
+    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const
     {
       jetstream::Element *elem = t->add_e();
       string timestring = resultset->getString(column_index);

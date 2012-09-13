@@ -11,14 +11,14 @@ class MysqlDimensionInt: public MysqlDimension{
   public:
     MysqlDimensionInt(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema){};
 
-    vector<string> get_column_types()
+    vector<string> get_column_types() const
     {
       vector<string> decl;
       decl.push_back("INT");
       return decl;
     }
      
-    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index)
+    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())
@@ -31,7 +31,7 @@ class MysqlDimensionInt: public MysqlDimension{
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
 
-    string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) {
+    string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) const {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())
       {
@@ -45,7 +45,7 @@ class MysqlDimensionInt: public MysqlDimension{
       return "";
     }
 
-    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index)
+    virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const
     {
       jetstream::Element *elem = t->add_e();
       elem->set_i_val(resultset->getInt(column_index));
