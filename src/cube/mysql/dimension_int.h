@@ -18,7 +18,7 @@ class MysqlDimensionInt: public MysqlDimension{
       return decl;
     }
      
-    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index)
+    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index)
     {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())
@@ -31,7 +31,7 @@ class MysqlDimensionInt: public MysqlDimension{
       LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
     }
 
-    string get_where_clause(jetstream::Tuple t, int &tuple_index, string op, bool is_optional=true) {
+    string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) {
       jetstream::Element e = t.e(tuple_index);
       if(e.has_i_val())
       {

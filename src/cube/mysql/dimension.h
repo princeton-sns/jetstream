@@ -14,22 +14,22 @@ class MysqlDimension: public Dimension{
     MysqlDimension(jetstream::CubeSchema_Dimension _schema) : Dimension(_schema){};
 
 
-    virtual void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple t, int &tuple_index, int &field_index) = 0;
+    virtual void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) = 0;
     
 
     //TODO: right now this creates a full sql string. Maybe change to string with placehholders and preparedStatement?
-    virtual string get_where_clause_exact(jetstream::Tuple t, int &tuple_index, bool is_optional = true)
+    virtual string get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true)
     {
       return get_where_clause(t, tuple_index, " = ", is_optional);
     }
 
-    virtual string get_where_clause_greater_than_eq(jetstream::Tuple t, int &tuple_index, bool is_optional = true)
+    virtual string get_where_clause_greater_than_eq(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true)
     {
       return get_where_clause(t, tuple_index, " >= ", is_optional);
     }
 
 
-    virtual string get_where_clause_less_than_eq(jetstream::Tuple t, int &tuple_index, bool is_optional = true)
+    virtual string get_where_clause_less_than_eq(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true)
     {
       return get_where_clause(t, tuple_index, " <= ", is_optional);
     }
@@ -60,7 +60,7 @@ class MysqlDimension: public Dimension{
     }
 
   protected:
-    virtual string get_where_clause(jetstream::Tuple t, int &tuple_index, string op, bool is_optional = true) = 0;
+    virtual string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional = true) = 0;
     shared_ptr<sql::Connection> connection;
 };
 
