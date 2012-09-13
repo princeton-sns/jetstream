@@ -33,6 +33,7 @@ class DataCubeImpl : public DataCube {
         ptr_dim = DimensionFactory<CubeDimension>::create(_schema.dimensions(i));
         //ptr_dim = make_shared<CubeDimension>(_schema.dimensions(i));
         dimensions.push_back(ptr_dim);
+        dimensionMap[ptr_dim->get_name()] = dimensions.size()-1;
       }
 
       for (int i = 0; i < _schema.aggregates_size() ; i++) {
@@ -41,11 +42,16 @@ class DataCubeImpl : public DataCube {
       }
     }
 
+  boost::shared_ptr<CubeDimension> get_dimension(string name) const {
+    size_t pos = dimensionMap.find(name)->second;
+    return dimensions.at(pos);
+  }
 
 
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
+    std::map<string, size_t> dimensionMap;
 };
 
 }

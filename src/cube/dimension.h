@@ -20,6 +20,10 @@ public:
   };
   virtual ~Dimension (){};
 
+  string get_name() const {
+    return name;
+  }
+
 protected:
   string name;
   Element_ElementType type;

@@ -326,7 +326,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::make_tuple_from_
   return result;
 }
 
-jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final)
+jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple min, jetstream::Tuple max, bool final, list<string> sort, size_t limit)
 {
   int tuple_index_min = 0;
   int tuple_index_max = 0;
@@ -341,6 +341,31 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream:
     if(where.size() > 1)
       where_clauses.push_back(where);
   }
+
+  string sort_sql = "";
+  for(list<string>::iterator i = sort.begin(); i != sort.end(); i++) {
+    string item = *i;
+    if(i != sort.begin())
+      sort_sql += ", ";
+    else 
+      sort_sql = " ORDER BY ";
+
+    if(item[0] == '-') {
+      boost::shared_ptr<MysqlDimension> dim = get_dimension(item.erase(0,1));
+      sort_sql += dim->get_base_column_name()+" DESC";
+    }
+    else {
+      boost::shared_ptr<MysqlDimension> dim = get_dimension(item);
+      sort_sql += dim->get_base_column_name()+" ASC";
+    }
+  }
+
+  string limit_sql = "";
+  if (limit > 0)
+  {
+    limit_sql = " LIMIT "+ boost::lexical_cast<string>(limit);
+  }
+
   string sql;
   if(where_clauses.size() > 0) {
     sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
@@ -348,6 +373,7 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream:
   else {
     sql = "SELECT * FROM `"+get_table_name()+"`";
   }
+  sql += sort_sql+limit_sql;
 
   boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
   boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl;

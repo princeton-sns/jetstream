@@ -317,3 +317,78 @@ TEST_F(CubeTest, MysqlTestIt) {
   ptrTup = *it;
   ASSERT_FALSE(ptrTup);
 }
+
+TEST_F(CubeTest, MysqlTestSort) {
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+
+  cube->destroy();
+  cube->create();
+
+  jetstream::Tuple t;
+  jetstream::Element *e;
+  time_t time_entered = time(NULL);
+
+  list<int> rscs;
+  rscs.push_back(100);
+  rscs.push_back(200);
+  rscs.push_back(300);
+  rscs.push_back(400);
+  rscs.push_back(500);
+
+  for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
+    t.clear_e();
+    e = t.add_e();
+    e->set_t_val(time_entered);
+    e=t.add_e();
+    e->set_s_val("http:\\\\www.example.com");
+    e=t.add_e();
+    e->set_i_val(*i);
+    //aggregate values
+    e=t.add_e();
+    e->set_i_val(2);
+    e=t.add_e();
+    e->set_i_val(300);
+    e=t.add_e();
+    e->set_i_val(2);
+
+    cube->insert_partial_aggregate(t);
+  }
+  jetstream::Tuple max;
+  e=max.add_e(); //time
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+
+  list<string> sort;
+  sort.push_back("response_code");
+
+  CubeIterator it = cube->slice_query(max, max, true, sort);
+  ASSERT_EQ((size_t)5, it.numCells());
+
+  boost::shared_ptr<Tuple> ptrTup;
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(100, ptrTup->e(2).i_val());
+  
+  it = cube->slice_query(max, max, true, sort, 1);
+  ASSERT_EQ((size_t)1, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(100, ptrTup->e(2).i_val());
+
+  sort.clear();
+  sort.push_back("-response_code");
+  
+  it = cube->slice_query(max, max, true, sort);
+  ASSERT_EQ((size_t)5, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(500, ptrTup->e(2).i_val());
+
+  it = cube->slice_query(max, max, true, sort, 3);
+  ASSERT_EQ((size_t)3, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(500, ptrTup->e(2).i_val());
+
+}
