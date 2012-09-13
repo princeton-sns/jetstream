@@ -19,5 +19,6 @@ target_link_libraries (jscube ${GLOG_LIB})
 target_link_libraries (jscube ${MYSQL_LIBS})
 
 
-add_subdirectory (prototype/)
+#add_subdirectory (prototype/)
+add_subdirectory (performance_tests/)
 
