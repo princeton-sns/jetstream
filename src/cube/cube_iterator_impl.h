@@ -14,6 +14,7 @@ class CubeIteratorImpl
 {
  public:
     CubeIteratorImpl() {}
+    virtual ~CubeIteratorImpl() {}
     virtual size_t numCells() = 0;
  
     virtual void increment() = 0;
