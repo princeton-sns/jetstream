@@ -151,4 +151,10 @@ DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
 }
 
+
+const string FileRead::my_type_name("FileRead operator");
+const string StringGrep::my_type_name("StringGrep operator");
+const string DummyReceiver::my_type_name("DummyReceiver operator");
+const string SendK::my_type_name("SendK operator");
+
 }

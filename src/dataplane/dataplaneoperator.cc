@@ -31,3 +31,4 @@ DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
   //  cout << "Base Operator emit" << endl;
 }
 
+const string DataPlaneOperator::my_type_name("base operator");

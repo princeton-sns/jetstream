@@ -47,6 +47,7 @@ class DataPlaneOperator : public TupleReceiver {
  private:
   operator_id_t operID; // TODO: when is this set???  -Ari
   boost::shared_ptr<TupleReceiver> dest;
+  const static std::string my_type_name;
 
  protected:
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
@@ -54,7 +55,9 @@ class DataPlaneOperator : public TupleReceiver {
  public:
   DataPlaneOperator ()  {}
   virtual ~DataPlaneOperator ();
-
+  
+  virtual const std::string& get_type() {return my_type_name;}
+  
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
   operator_id_t & id() {return operID;}
