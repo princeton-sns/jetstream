@@ -131,7 +131,7 @@ int main(int argc, const char **argv)
       }
       else
       {
-        LOG(FATAL)<<"Error in time conversion";
+        LOG(ERROR)<<"Error in time conversion: " << time;
       }
 
       e=t.mutable_e(1);
