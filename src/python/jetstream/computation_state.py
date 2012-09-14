@@ -34,8 +34,7 @@ class WorkerAssignment (object):
             (self.operators[i].id.task != other.operators[i].id.task)):
           return False
       for i in range(len(self.cubes)):
-        if ((self.cubes[i].op_typename != other.cubes[i].op_typename) or
-            (self.cubes[i].id.task != other.cubes[i].id.task)):
+        if self.cubes[i].name != other.cubes[i].name:
           return False
       return True
     return NotImplemented
