@@ -14,7 +14,7 @@ class MysqlAggregate : public Aggregate {
 
     virtual void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const = 0;
 
-    virtual void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const& t, int &tuple_index, int &field_index) const = 0;
+    virtual void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const = 0;
     
     string get_base_column_name() const {
       return name;

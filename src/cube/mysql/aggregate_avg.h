@@ -54,18 +54,18 @@ class MysqlAggregateAvg: public MysqlAggregate{
 
     void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
-      jetstream::Element e = t.e(tuple_index);
-      if(e.has_i_val())
+      jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
+      if(e->has_i_val())
       {
-        pstmt->setInt(field_index, e.i_val());
+        pstmt->setInt(field_index, e->i_val());
         pstmt->setInt(field_index+1, 1);
         tuple_index += 1;
         field_index += 2;
         return;
       }
-      if(e.has_d_val())
+      if(e->has_d_val())
       {
-        pstmt->setDouble(field_index, e.d_val());
+        pstmt->setDouble(field_index, e->d_val());
         pstmt->setInt(field_index+1, 1);
         tuple_index += 1;
         field_index += 2;
@@ -77,27 +77,27 @@ class MysqlAggregateAvg: public MysqlAggregate{
 
     void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
-      jetstream::Element e_sum = t.e(tuple_index);
-      jetstream::Element e_count = t.e(tuple_index+1);
+      jetstream::Element * const e_sum = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
+      jetstream::Element * const e_count = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index+1);
 
-      if(!e_count.has_i_val())
+      if(!e_count->has_i_val())
       {
         LOG(FATAL) << "Count not properly formatted when processing tuple for field "<< name;
         return;
       }
 
-      if(e_sum.has_i_val())
+      if(e_sum->has_i_val())
       {
-        pstmt->setInt(field_index, e_sum.i_val());
-        pstmt->setInt(field_index+1, e_count.i_val());
+        pstmt->setInt(field_index, e_sum->i_val());
+        pstmt->setInt(field_index+1, e_count->i_val());
         tuple_index += 2;
         field_index += 2;
         return;
       }
-      if(e_sum.has_d_val())
+      if(e_sum->has_d_val())
       {
-        pstmt->setDouble(field_index, e_sum.d_val());
-        pstmt->setInt(field_index+1, e_count.i_val());
+        pstmt->setDouble(field_index, e_sum->d_val());
+        pstmt->setInt(field_index+1, e_count->i_val());
         tuple_index += 2;
         field_index += 2;
         return;

@@ -20,10 +20,10 @@ class MysqlDimensionInt: public MysqlDimension{
      
     void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
     {
-      jetstream::Element e = t.e(tuple_index);
-      if(e.has_i_val())
+      jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
+      if(e->has_i_val())
       {
-        pstmt->setInt(field_index, e.i_val());
+        pstmt->setInt(field_index, e->i_val());
         tuple_index += 1;
         field_index += 1;
         return;
