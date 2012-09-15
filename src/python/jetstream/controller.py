@@ -51,12 +51,26 @@ class Controller (ControllerAPI, JSServer):
   """A JetStream controller"""
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
-    JSServer.__init__(self, addr)
+    JSServer.__init__ (self, addr)
     self.workers = {}
     self.computations = {}
-    self.livenessThread = None
     self.hbInterval = hbInterval
+    self.running = False
+    self.livenessThread = None
     self.internals_lock = threading.RLock()
+
+
+  def start (self):
+    self.running = True
+    JSServer.start(self)
+    # Start the liveness thread
+    self.start_liveness_thread()
+
+
+  def stop (self):
+    self.running = False
+    self.livenessThread.join()
+    JSServer.stop(self)
 
 
   def start_liveness_thread (self):
@@ -67,14 +81,15 @@ class Controller (ControllerAPI, JSServer):
 
 
   def liveness_thread (self):
-    while len(self.workers) > 0:
+    while self.running:
       for w,s in self.workers.items():
         # Just delete the node for now, but going forward we'll have to reschedule
         # computations etc.
         if s.update_state() == CWorker.DEAD:
           logger.info("marking worker %s:%d as dead due to timeout" % (w[0],w[1]))
           del self.workers[w]
-      #TODO: Do all workers have the same hb interval?
+          
+      #TODO: Do all workers have the same hb interval? I think yes
       time.sleep(self.hbInterval)
 
 
@@ -119,21 +134,12 @@ class Controller (ControllerAPI, JSServer):
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
     print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
-    #print hb
-    #print ""
     self.internals_lock.acquire()
     #TODO: Either remove locking above or add add() API
     if clientEndpoint not in self.workers:
       print "Added " + str(clientEndpoint)
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
       self.workers[clientEndpoint].receive_hb(hb)
-      # If this is the first worker, start the liveness thread
-      if len(self.workers) == 1:
-        # Make sure a previous instantiation of the thread has stopped
-        if (self.livenessThread != None) and (self.livenessThread.is_alive()):
-          self.livenessThread.join()
-        self.livenessThread = None
-        self.start_liveness_thread()
     else:
       self.workers[clientEndpoint].receive_hb(hb)
     self.internals_lock.release()

@@ -17,7 +17,7 @@ class TestController(unittest.TestCase):
 
   def setUp(self):
     self.controller = Controller(('localhost', 0))
-    self.controller.start_as_thread()
+    self.controller.start()
     print "controller bound to %s:%d" % self.controller.address
     self.client = JSClient(self.controller.address)
 
@@ -55,9 +55,9 @@ class TestController(unittest.TestCase):
     hbInterval = 0.5
     self.controller.hbInterval = hbInterval
     worker1 = create_worker(self.controller.address, hbInterval)
-    worker1.start_heartbeat_thread()
+    worker1.start()
     worker2 = create_worker(self.controller.address, hbInterval)
-    worker2.start_heartbeat_thread()
+    worker2.start()
     time.sleep(hbInterval)
 
     # Initially the controller should see two alive workers
@@ -73,26 +73,18 @@ class TestController(unittest.TestCase):
     self.assertEquals(len(workerList), 1)
     self.assertEquals(workerList[0].state, CWorker.ALIVE)
 
-    # Kill the second worker, this should terminate the liveness thread; starting
-    # a new worker should create a new liveness thread
+    # Kill the second worker
     worker2.stop()
     time.sleep(hbInterval * (CWorker.DEFAULT_HB_DEAD_INTERVALS + 1))
     self.assertEquals(len(self.controller.get_nodes()), 0)
-    oldThread = self.controller.livenessThread
-    worker3 = create_worker(self.controller.address, hbInterval)
-    worker3.start_heartbeat_thread()
-    time.sleep(hbInterval)
-    self.assertEquals(len(self.controller.get_nodes()), 1)
-    self.assertNotEqual(self.controller.livenessThread, oldThread)
-    worker3.stop()
     
       
   def test_deploy(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     worker1 = create_worker(self.controller.address)
-    worker1.start_heartbeat_thread()
+    worker1.start()
     worker2 = create_worker(self.controller.address)
-    worker2.start_heartbeat_thread()
+    worker2.start()
     time.sleep(2)
     # Deploy a single-operator topology
     req = ControlMessage()
@@ -103,7 +95,7 @@ class TestController(unittest.TestCase):
     newOp.id.computationID = req.alter.computationID
     newOp.id.task = 1
     # Bind this operator to the second worker
-    workerEndpoint = worker2.connection_to_server.getsockname()
+    workerEndpoint = worker2.controllerConn.getsockname()
     newOp.site.address = workerEndpoint[0]
     newOp.site.portno = workerEndpoint[1]
     

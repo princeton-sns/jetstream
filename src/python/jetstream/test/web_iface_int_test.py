@@ -25,7 +25,7 @@ class TestController(unittest.TestCase):
 
   def setUp(self):
     self.controller = Controller(('localhost', 0))
-    self.controller.start_as_thread()
+    self.controller.start()
     print "controller bound to %s:%d" % self.controller.address
     self.client = JSClient(self.controller.address)
 

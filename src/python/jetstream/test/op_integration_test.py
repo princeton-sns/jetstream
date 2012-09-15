@@ -25,7 +25,7 @@ class TestController(unittest.TestCase):
 
   def setUp(self):
     self.controller = Controller(('localhost', 0))
-    self.controller.start_as_thread()
+    self.controller.start()
     print "controller bound to %s:%d" % self.controller.address
     self.client = JSClient(self.controller.address)
 
@@ -48,7 +48,7 @@ class TestController(unittest.TestCase):
     req.type = ControlMessage.ALTER
     req.alter.computationID = compID
     newTask = req.alter.toStart.add()
-    newTask.op_typename = "SendOne"
+    newTask.op_typename = "SendK"
     newTask.id.computationID = req.alter.computationID
     newTask.id.task = 2
     
@@ -83,7 +83,7 @@ class TestController(unittest.TestCase):
       req.alter.Clear()
       req.alter.computationID = compID
       newTask = req.alter.toStart.add()
-      newTask.op_typename = "SendOne"
+      newTask.op_typename = "SendK"
       newTask.id.computationID = compID
       newTask.id.task = 2
       buf = self.client.do_rpc(req, True)

@@ -36,8 +36,9 @@ class JSServer(asyncore.dispatcher):
     self.addr_to_handler = {}
     self.address = self.socket.getsockname()
     logger.info("server bound to %s:%d" % (self.address[0], self.address[1]) )
-    self.stopped = False
-    self.thread = None
+    # Uses name mangling to avoid clashes with subclasses
+    self.__running = False
+    self.evtThread = None
     self.listen(1)
     return
 
@@ -69,19 +70,20 @@ class JSServer(asyncore.dispatcher):
     self.close()
     
   def stop(self):
-    self.stopped = True
+    self.running = False
     self.close()
     # Close any outgoing connections we have initiated (since these are part of our socket map,
     # they will prevent asyncore.loop() from exiting)
     for h in self.addr_to_handler.values():
       h.close()
-    if (self.thread != None) and (self.thread.is_alive()):
-      self.thread.join()
+    if (self.evtThread != None) and (self.evtThread.is_alive()):
+      self.evtThread.join()
 
-  def start_as_thread(self):
-    self.thread = threading.Thread(group=None, target=self.evtloop, args=())
-    self.thread.daemon = True
-    self.thread.start()
+  def start(self):
+    self.__running = True
+    self.evtThread = threading.Thread(group=None, target=self.evtloop, args=())
+    self.evtThread.daemon = True
+    self.evtThread.start()
 
   def evtloop(self):
     try:
@@ -89,7 +91,7 @@ class JSServer(asyncore.dispatcher):
       # the default is 30 seconds, which takes forever.
       asyncore.loop(map=self.my_sockets, timeout=1)
     except Exception as e:
-      if not self.stopped:
+      if self.running:
         print "Exception caught leaving loop",e
     
      
