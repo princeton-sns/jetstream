@@ -180,6 +180,16 @@ class Controller (ControllerAPI, JSServer):
         assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
       assignments[endpoint].operators.append(operator)
 
+    # Repeat for cubes (temporary)
+    for cube in altertopo.toCreate:
+      endpoint = defaultEndpoint
+      if cube.site.address != '':
+        # Cube is pinned, so overwrite the target worker address
+        endpoint = (cube.site.address, cube.site.portno)
+      if endpoint not in assignments:
+        assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
+      assignments[endpoint].cubes.append(cube)
+
     for endpoint,assignment in assignments.items():
       comp.assign_worker(endpoint, assignment)
       

@@ -24,13 +24,20 @@ class FileRead: public DataPlaneOperator {
   virtual void stop();
   void operator()();  // A thread that will loop while reading the file
   bool isRunning();
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process(boost::shared_ptr<Tuple> t);  
   
+//  virtual const char * get_type() {return "File read";}
 
  protected:
   std::string f_name; //name of file to read
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
+
+
+ private:
+   const static std::string my_type_name;  
+ public:
+   virtual const std::string& get_type() {return my_type_name;}
 };
 
 
@@ -43,11 +50,18 @@ class SendK: public DataPlaneOperator {
   virtual void stop();
   virtual void process(boost::shared_ptr<Tuple> t);
   void operator()();  // A thread that will loop while reading the file    
+
     
  protected:
   u_int k; //name of file to read
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
+  
+
+ private:
+   const static std::string my_type_name;  
+ public:
+   virtual const std::string& get_type() {return my_type_name;}
 };  
   
 
@@ -65,6 +79,12 @@ class StringGrep: public DataPlaneOperator {
  protected:
   boost::regex re; // regexp pattern to match tuples against
   int id; // the field on which to filter
+
+
+ private:
+   const static std::string my_type_name;  
+ public:
+   virtual const std::string& get_type() {return my_type_name;}
 };
 
   
@@ -76,6 +96,11 @@ class DummyReceiver: public DataPlaneOperator {
   }
   
   virtual ~DummyReceiver();
+
+ private:
+   const static std::string my_type_name;  
+ public:
+   virtual const std::string& get_type() {return my_type_name;}
 };
 
 }

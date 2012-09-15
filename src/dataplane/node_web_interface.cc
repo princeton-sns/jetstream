@@ -99,7 +99,7 @@ NodeWebInterface::make_base_page(ostream &buf)
   for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
     const operator_id_t& o_id = oper_it->first;
     shared_ptr<DataPlaneOperator> op = oper_it->second;
-    buf << "<li><b>" << o_id << "</b>" << endl;
+    buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b>" << endl;
   }
   
   buf << "</ol>" << endl;
