@@ -1,9 +1,7 @@
 #
 # Integration tests spanning the python client/controller and C++ dataplane. These 
 # tests create a python controller, start one or more C++ and/or python workers,
-# and verify that requests (heartbeats, queries) are handled properly. By placing a
-# python worker last in the operator chain, we can verify the final results locally
-# (instead of having to communicate with the C++ worker processes).
+# and verify that deployed computations are properly depicted in the web interface.
 #
 
 import random
@@ -15,6 +13,7 @@ import subprocess
 import thread
 import time
 import unittest
+import urllib2
 
 from controller import *
 from generic_netinterface import JSClient
@@ -35,7 +34,7 @@ class TestController(unittest.TestCase):
     self.controller.stop()
 
 
-  def test_operator(self):
+  def test_operator_cube(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
@@ -65,23 +64,23 @@ class TestController(unittest.TestCase):
     edge.computation = compID
     edge.cube_name = "a test cube"
     
-    print str(req)
-    
+    #print str(req)
     buf = self.client.do_rpc(req, True)
-    
     resp = ControlMessage()
     resp.ParseFromString(buf)
     self.assertEquals(resp.type, ControlMessage.OK)
-    # Make sure the controller created state for this computation
     self.assertTrue(compID in self.controller.computations)
     # Wait for the topology to start running on the worker
     time.sleep(2)
     workerList = self.controller.get_nodes()
     assert(len(workerList) == 1)
     self.assertEquals(workerList[0].assignments[compID].state, WorkerAssignment.RUNNING)
-    time.sleep(200000)
-#    os.killpg(workerProc.pid, signal.SIGTERM)
 
+    # GET the web interface page and make sure both the operator and cube appear
+    getResp = urllib2.urlopen("http://localhost:8081/").read()
+    self.assertTrue(newTask.op_typename in getResp)
+    self.assertTrue(newCube.name in getResp)
+    os.killpg(workerProc.pid, signal.SIGTERM)
 
 
 if __name__ == '__main__':
