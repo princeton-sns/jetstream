@@ -30,14 +30,14 @@ class MysqlDimensionTime: public MysqlDimension{
       return decl;
     }
     
-    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const
+    void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const&t, int &tuple_index, int &field_index) const
     {
-      jetstream::Element e = t.e(tuple_index);
-      if(e.has_t_val())
+      jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
+      if(e->has_t_val())
       {
         struct tm temptm;
         char timestring[30];
-        time_t clock = e.t_val();
+        time_t clock = e->t_val();
         localtime_r(&clock, &temptm);
         strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
         pstmt->setString(field_index, timestring);
