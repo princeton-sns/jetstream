@@ -286,6 +286,8 @@ unparse_id (const TaskID& id) {
 ControlMessage
 Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 {
+  // Create a response indicating which operators and cubes were successfully
+  // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
@@ -320,15 +322,13 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       respTopo->add_cubestostop(task.name());
     }
   }
-    // Stop operators if need be
+  // Stop operators if need be
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
     LOG(INFO) << "stopping " << id << " due to server request";
     stop_operator(id);
     // TODO: Should we log whether the stop happened?
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
-    
-    
   }
   
   //TODO remove cubes if specified.
