@@ -1,9 +1,9 @@
 #!/bin/bash
 
-HOSTSFILE=nodes.txt
-SSH_OPTS=""
+HOSTSFILE=sns_experiments/nodes.txt
+SSH_OPTS="-o StrictHostKeyChecking=no"
 JS_DIR=/home/asrabkin/jetstream/
-CMD="${JS_DIR}/jsnoded --start -C ${JS_DIR}/config/datanode.conf'
+CMD="nohup ${JS_DIR}/jsnoded --start -C ${JS_DIR}/config/sns48.conf & "
 
 cd $JS_DIR
 
