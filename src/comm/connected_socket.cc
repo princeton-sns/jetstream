@@ -15,6 +15,10 @@ ConnectedSocket::get_fourtuple () const
   boost::system::error_code error_local, error_remote;
   ostringstream fourtuple;
 
+  if (!sock) {
+    LOG(FATAL) << "trying to get four-tuple from non-initialized sock";
+  }
+
   tcp::endpoint local = sock->local_endpoint(error_local);
   if (error_local)
     fourtuple << ":0";

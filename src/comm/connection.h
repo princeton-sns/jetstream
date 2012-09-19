@@ -95,10 +95,12 @@ class ClientConnection {
   boost::asio::ip::tcp::endpoint get_local_endpoint () const 
   { return connSock->get_local_endpoint (); }
   std::string get_fourtuple () const  //NOT SAFE TO CALL IF CONNECTION ISN'T UP
-  { return connSock->get_fourtuple(); }
+  { assert(connected);  return connSock->get_fourtuple(); }
 
   void connect (msec_t timeout, cb_err_t cb);
-  bool is_connected () const { return connected; }
+  bool is_connected () const
+  { assert ( !connected || (connSock != NULL) ); return connected; }
+  
   void close ();
 
   // Underlying use of async writes are thread safe
