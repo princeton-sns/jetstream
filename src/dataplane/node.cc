@@ -65,9 +65,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 
 Node::~Node () 
 {
-  if (!iosrv->stopped()) {
-    stop();
-  }
+  stop();
 }
 
 
@@ -76,8 +74,10 @@ Node::~Node ()
 * the node process is terminated.
 */
 void
-Node::run ()
+Node::start ()
 {
+
+  LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
@@ -85,20 +85,25 @@ Node::run ()
   
   webInterface.start();
 
-  // Wait for all threads in pool to exit
-  for (u_int i=0; i < threads.size(); i++)
-    threads[i]->join();
+//  iosrv->run();
 
-  iosrv->run();
-
-  VLOG(1) << "Finished node::run" << endl;
-  LOG(INFO) << "Finished node::run" << endl;
+//  VLOG(1) << "Finished node::run" << endl;
+//  LOG(INFO) << "Finished node::run" << endl;
 }
 
 
 void
 Node::stop ()
 {
+  unique_lock<boost::mutex> lock(threadpoolLock);
+  
+  if (iosrv->stopped()) {  //use the io serv as a marker for already-stopped
+    VLOG(1) << "Node was stopped twice; suppressing";
+    return;
+  }
+
+  
+
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   for (u_int i = 0; i < controllers.size(); ++i) {
@@ -106,6 +111,8 @@ Node::stop ()
   }
   
   iosrv->stop();
+  LOG(INFO) << "io service stopped" << endl;
+  
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
 
@@ -115,11 +122,20 @@ Node::stop ()
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }
-  //  LOG(INFO) << "io service stopped" << endl;
-
+  operators.empty(); //remove pointers, AFTER the stop.
+  
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
   //  google::protobuf::ShutdownProtobufLibrary();
+
+
+  // Wait for all threads in pool to exit; this only happens when the io service
+  //  is stopped.
+  while (threads.size() > 0 ) {
+    threads.back()->join();
+    threads.pop_back();
+    LOG(INFO) << "joined thread " << threads.size();
+  }
 
   LOG(INFO) << "Finished node::stop" << endl;
 }

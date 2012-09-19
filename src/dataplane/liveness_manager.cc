@@ -71,8 +71,8 @@ void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
   if (error || !is_connected()) {
-    LOG(WARNING) << "Send notification on "
-		 << conn->get_fourtuple()
+    LOG(WARNING) << "Send notification "
+		 << conn_debug_str()
 		 << ": connected " << is_connected()
 		 << ": error " << error.message() << endl;
     return;
@@ -107,7 +107,7 @@ LivenessManager::ConnectionNotification::wait_to_notify ()
 {
   if (!is_connected() || waiting) {
     LOG(WARNING) << "Stopping wait_to_notify on " 
-		 << conn->get_fourtuple()
+		 <<  conn_debug_str()
 		 << ". Connected " << is_connected ()
 		 << "; Waiting " << waiting << endl;
     return;

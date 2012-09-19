@@ -53,6 +53,8 @@ typedef boost::function<void (jetstream::SerializedMessageIn &msg,
  * even in multi-threaded applications.
  */
 class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
+
+friend class ClientConnection;
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
@@ -118,7 +120,9 @@ class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
     : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-    sending (false), receiving (false) {}
+    sending (false), receiving (false) {
+    VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
+  }
 
   void close ();
 

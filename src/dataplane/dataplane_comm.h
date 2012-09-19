@@ -58,6 +58,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
   bool chainIsReady;
+//  bool stopping;
   operator_id_t destOpId;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
@@ -69,7 +70,11 @@ class RemoteDestAdaptor : public TupleReceiver {
   static const msec_t wait_for_conn = 2000; //ms
   
  public:
-  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c), chainIsReady(false) {}
+  //  The below ctor might be useful at some future point, but for now we aren't
+  //    using it and therefore won't have it enabled
+//  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) :
+//      conn (c), chainIsReady(false), stopping(false) {}
+
   RemoteDestAdaptor (ConnectionManager &cm, const jetstream::Edge&);
   virtual ~RemoteDestAdaptor() {}
 

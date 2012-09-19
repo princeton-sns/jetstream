@@ -151,8 +151,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     chainReadyCond.notify_all();  
   } 
   else {
-    LOG(WARNING) << "unexpected response to Chain connect: " << msg.type() << 
-       " error code is " << error;  
+    LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString() <<
+       "\nError code is " << error;  
   }
 }
 
@@ -168,8 +168,11 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
       system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
       bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
       
+//      if (stopping)
+//         return;
       if (!conn_established) {
-	LOG(WARNING) << "timeout on dataplane connection. Retrying. Should tear down instead?";
+        LOG(WARNING) << "timeout on dataplane connection. Aborting. Should retry instead?";
+        return;
       } 
     }
   }

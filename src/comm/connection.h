@@ -58,7 +58,10 @@ class ServerConnection {
   void close ();
 };
 
-
+/**
+ *  Represents a connection, either pending or already created. If and only if
+ *   the connection is fully initialized, connSock will be defined.
+ */
 class ClientConnection {
  protected:
   bool connected;
@@ -91,7 +94,7 @@ class ClientConnection {
   { return remote; }
   boost::asio::ip::tcp::endpoint get_local_endpoint () const 
   { return connSock->get_local_endpoint (); }
-  std::string get_fourtuple () const
+  std::string get_fourtuple () const  //NOT SAFE TO CALL IF CONNECTION ISN'T UP
   { return connSock->get_fourtuple(); }
 
   void connect (msec_t timeout, cb_err_t cb);

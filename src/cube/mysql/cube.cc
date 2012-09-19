@@ -4,6 +4,8 @@
 #include "cube_iterator.h"
 #include "cube_iterator_impl.h"
 
+#include <glog/logging.h>
+
 using namespace ::std;
 
 jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema const _schema, string db_host, string db_user, string db_pass, string db_name, size_t batch) : 
@@ -32,13 +34,23 @@ void jetstream::cube::MysqlCube::init_connection()
 
 void jetstream::cube::MysqlCube::execute_sql(string const &sql) const
 {
-  statement->execute(sql);
+  try {
+    statement->execute(sql);
+  } catch (sql::SQLException &e) {
+    LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+  }
 }
 
 boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string const &sql) const
 {
-  boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
-  return res;
+  try {
+    boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
+    return res;
+  } catch (sql::SQLException &e) {
+    LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+  }
+  boost::shared_ptr<sql::ResultSet> no_results;
+  return no_results;
 }
 
 
