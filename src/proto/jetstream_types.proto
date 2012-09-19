@@ -42,21 +42,20 @@ message Dimension {
 
 
 /**
-* Metadata of a task (aka operator). When used solely to identify a task, only the
-* required fields below are necessary (in particular the TaskID). 
+* Metadata of a task (aka operator). When used solely to identify the task, only the
+* id field needs to be specified.
 */
 message TaskMeta {
+  required TaskID id = 2;           // uniquely identifies the operator
   required string op_typename = 1;  // type of operator, typically a classname
                                     // (note that 'typename' is a C++ keyword.
-  required TaskID id = 2;
-
   optional NodeID site = 3;
 
   message DictEntry {
     required string opt_name = 1;
     required string val = 2;
   }
-  repeated DictEntry config = 4;  // list of key-value pairs. 
+  repeated DictEntry config = 4;    // list of key-value pairs. 
 
   //TODO: Determine minimal set of attributes client must specify for submitted operators.
   // optional int32 partialAggRatio
@@ -65,7 +64,7 @@ message TaskMeta {
 
 
 message CubeSchema{
-  required string name = 1;
+  required string name = 1;    // uniquele identifies the cube
 
   message Dimension {
     required string name = 1;
@@ -75,12 +74,16 @@ message CubeSchema{
 
   message Aggregate {
     required string name = 1;
-    required string type = 2;  // class name of aggregate type;
+    required string type = 2;  // class name of aggregate type
   }
   repeated Aggregate aggregates = 3;
 }
 
 
+/**
+* Metadata of a cube. When used solely to identify the cube, only the name field needs
+* to be specified.
+*/
 message CubeMeta {
   required string name = 1;
   required CubeSchema schema = 2;

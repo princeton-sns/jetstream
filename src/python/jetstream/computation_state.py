@@ -30,8 +30,7 @@ class WorkerAssignment (object):
         return False
       # Compare the list of operators and cubes (assume they are sorted for now)
       for i in range(len(self.operators)):
-        if ((self.operators[i].op_typename != other.operators[i].op_typename) or
-            (self.operators[i].id.task != other.operators[i].id.task)):
+        if self.operators[i].id.task != other.operators[i].id.task:
           return False
       for i in range(len(self.cubes)):
         if self.cubes[i].name != other.cubes[i].name:

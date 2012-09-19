@@ -306,24 +306,28 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     operator_configs[id] = config;
+    // Record the outcome of creating the operator in the response message
     if (create_operator(cmd, id) != NULL) {
-      respTopo->add_tostart()->CopyFrom(task);
+      respTopo->add_tostart()->mutable_id()->CopyFrom(task.id());
     } else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
   }
+
   cout << "request to create " << topo.tocreate_size() << " cubes" <<endl;
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
+    // Record the outcome of creating the cube in the response message
     if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
-      respTopo->add_tocreate()->CopyFrom(task);
+      respTopo->add_tocreate()->set_name(task.name());
     } else {
       LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
       respTopo->add_cubestostop(task.name());
     }
   }
+
   // Stop operators if need be
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
