@@ -122,12 +122,10 @@ Node::stop ()
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }
-  operators.empty(); //remove pointers, AFTER the stop.
   
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
   //  google::protobuf::ShutdownProtobufLibrary();
-
 
   // Wait for all threads in pool to exit; this only happens when the io service
   //  is stopped.
@@ -136,6 +134,10 @@ Node::stop ()
     threads.pop_back();
     LOG(INFO) << "joined thread " << threads.size();
   }
+
+  operators.empty(); //remove pointers, AFTER the threads stop.
+  
+  startStopCond.notify_all();
 
   LOG(INFO) << "Finished node::stop" << endl;
 }

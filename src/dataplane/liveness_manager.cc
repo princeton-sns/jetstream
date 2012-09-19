@@ -53,7 +53,9 @@ LivenessManager::stop_all_notifications ()
        iter != connections.end(); ++iter) {
     iter->second->stop_notify ();
   }
-  connections.clear ();
+ // wait until dtor for this -- otherwise threads may still be touching connections,
+ // and the pointers will dangle.
+//  connections.clear ();
 }
 
 

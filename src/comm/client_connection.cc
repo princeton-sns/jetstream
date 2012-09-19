@@ -68,12 +68,11 @@ ClientConnection::connect_cb (cb_err_t cb,
 
   if (error)
     close();
-  else
+  else {
+    shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
+    connSock = cs;
     connected = true;
-
-  shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
-  connSock = cs;
-
+  }
   cb(error);
 }
 
