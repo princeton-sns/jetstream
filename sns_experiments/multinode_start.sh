@@ -3,7 +3,7 @@
 HOSTSFILE=sns_experiments/nodes.txt
 SSH_OPTS="-o StrictHostKeyChecking=no"
 JS_DIR=/home/asrabkin/jetstream/
-CMD="nohup ${JS_DIR}/jsnoded --start -C ${JS_DIR}/config/sns48.conf & "
+CMD="${JS_DIR}/bin/start_worker.sh"
 
 cd $JS_DIR
 
@@ -17,5 +17,5 @@ CTRL_HOST=`hostname`:3456
 
 for node in `cat $HOSTSFILE`; do
 echo "will start on $node"
-ssh ${SSH_OPTS} $node -a $CTRL_HOST ${CMD}
+ssh ${SSH_OPTS} $node ${CMD}
 done
