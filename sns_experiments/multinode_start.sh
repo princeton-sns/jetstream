@@ -17,5 +17,5 @@ CTRL_HOST=`hostname`:3456
 
 for node in `cat $HOSTSFILE`; do
 echo "will start on $node"
-ssh ${SSH_OPTS} $node $CMD -a $CTRL_HOST
+ssh ${SSH_OPTS} $node -a $CTRL_HOST ${CMD}
 done
