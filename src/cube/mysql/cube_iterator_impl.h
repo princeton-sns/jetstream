@@ -65,7 +65,6 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
     size_t const num_cells;
 };
 
-boost::shared_ptr<MysqlCubeIteratorImpl> const MysqlCubeIteratorImpl::impl_end = make_shared<MysqlCubeIteratorImpl>();
 }
 }
 
