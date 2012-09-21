@@ -21,7 +21,7 @@ class DataCube : public TupleReceiver {
   
 public:
 
-  virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
+  virtual void process(boost::shared_ptr<Tuple> t) { insert_entry(*t); }  //inserts a tuple
   
   DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
   virtual ~DataCube() {}
@@ -39,6 +39,18 @@ public:
   
   virtual void create() = 0;
   virtual void destroy() = 0;
+  
+  Tuple empty_tuple() {
+    Tuple t;
+    for (int i=0; i < schema.dimensions_size(); ++i) {
+      t.add_e();
+    }
+    return t;
+  }
+  
+  const jetstream::CubeSchema& get_schema() { return schema; }
+  std::string as_string() { return schema.name(); }
+
 
   /**
   * It's possible to mark a cube as locked. The intended use of this is to allow

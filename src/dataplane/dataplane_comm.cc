@@ -9,8 +9,7 @@ using namespace boost;
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          operator_id_t dest_op_id,
-                                         shared_ptr<DataPlaneOperator> dest) 
-{
+                                         shared_ptr<DataPlaneOperator> dest) {
   liveConns[dest_op_id] = c;
 
   boost::system::error_code error;
@@ -20,7 +19,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
   DataplaneMessage response;
 
   if (!error) {
-    LOG(INFO) << "dataplane connection enabled for data";
+    LOG(INFO) << "created dataplane connection into " << dest->id();
     response.set_type(DataplaneMessage::CHAIN_READY);
     // XXX This should include an Edge
   }
@@ -31,16 +30,14 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
      
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
-                                          operator_id_t future_op) 
-{
+                                          operator_id_t future_op) {
   pendingConns[future_op] = c;
 }
 
 
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
-                                        shared_ptr<DataPlaneOperator> dest) 
-{
+                                        shared_ptr<DataPlaneOperator> dest) {
   shared_ptr<ClientConnection> c = pendingConns[op_id];
   pendingConns.erase(op_id);
 
@@ -51,9 +48,7 @@ void
 DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
                                    shared_ptr<DataPlaneOperator> dest,
                                    const DataplaneMessage &msg,
-                                   const boost::system::error_code &error) 
-{
-
+                                   const boost::system::error_code &error) {
   if (error) {
     LOG(WARNING) << "error trying to read data: " << error.message();
     return;
@@ -103,22 +98,20 @@ DataplaneConnManager::close() {
 
 RemoteDestAdaptor::RemoteDestAdaptor (ConnectionManager& cm,
                                           const Edge & e) 
-  : chainIsReady(false)
-{
+  : chainIsReady(false) {
                                           
-  const std::string& addr = e.dest_addr().address();
+  remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();      
   destOpId.computation_id = e.computation();
   destOpId.task_id = e.dest();
                                           
-  cm.create_connection(addr, portno, boost::bind(
+  cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
 }
 
 void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
-                                     boost::system::error_code error) 
-{
+                                     boost::system::error_code error) {
   conn = c;
   
   DataplaneMessage data_msg;
@@ -171,7 +164,7 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
 //      if (stopping)
 //         return;
       if (!conn_established) {
-        LOG(WARNING) << "timeout on dataplane connection. Aborting. Should retry instead?";
+        LOG(WARNING) << "timeout on dataplane connection. Aborting for this tuple. Should queue/retry instead?";
         return;
       } 
     }
@@ -186,3 +179,11 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   conn->send_msg(d, err);
 }
   
+
+string
+RemoteDestAdaptor::as_string() {
+    std::ostringstream buf;
+    buf << "connection to " << destOpId << " on " << remoteAddr <<
+       (chainIsReady ? " (ready)" : " (unready)");
+    return buf.str();
+}

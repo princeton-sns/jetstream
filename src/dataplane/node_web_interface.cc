@@ -6,6 +6,7 @@ using namespace jetstream;
 using namespace std;
 using namespace boost;
 
+const int MAX_ROWS_TO_SHOW = 10;
 
 NodeWebInterface::NodeWebInterface (port_t webPortno, Node &n) 
   : mongoose_ctxt (NULL),
@@ -86,7 +87,38 @@ NodeWebInterface::make_base_page(ostream &buf)
    if (!cube)
     continue; //cube deleted since list created
     
-   buf << "<li><b>" << name << "</b> ( SIZE NOT IMPLEMENTED) " << endl;
+   buf << "<li><b>" << name << "</b> " + cube->num_leaf_cells() << " cells." << endl;
+
+      //could print schema here
+
+
+   Tuple empty = cube->empty_tuple();
+   cube::CubeIterator it = cube->slice_query
+              (empty, empty, true, std::list<std::string>(), MAX_ROWS_TO_SHOW);
+    
+   if (it.numCells() > 0) {
+     buf << "<table>" << endl;
+     while (it != cube->end()) {
+       buf << "<tr>";
+       boost::shared_ptr<Tuple> t = *it;
+       for (int v = 0; v < t->e_size(); ++ v) {
+         buf << "<td>";
+         const Element& cell = t->e(v);
+         if (cell.has_i_val())
+           buf << cell.i_val();
+         else if (cell.has_s_val())
+           buf << cell.s_val();
+         else if (cell.has_d_val())
+           buf << cell.d_val();
+         else if (cell.has_t_val())
+           buf << cell.t_val();
+         
+         buf << "</td>";
+       }
+       buf << "</tr>";
+     }
+     buf << "</table>" << endl;
+   }
    buf << "</li>" << endl;
   }
   
@@ -100,6 +132,8 @@ NodeWebInterface::make_base_page(ostream &buf)
     const operator_id_t& o_id = oper_it->first;
     shared_ptr<DataPlaneOperator> op = oper_it->second;
     buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b>" << endl;
+    buf << op->get_dest()->as_string();
+    buf << "</li>";
   }
   
   buf << "</ol>" << endl;

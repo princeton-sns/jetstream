@@ -60,6 +60,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   bool chainIsReady;
 //  bool stopping;
   operator_id_t destOpId;
+  std::string remoteAddr;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -67,7 +68,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   void conn_ready_cb (const DataplaneMessage &msg,
                       const boost::system::error_code &error);
    
-  static const msec_t wait_for_conn = 2000; //ms
+  static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
   
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
@@ -79,6 +80,8 @@ class RemoteDestAdaptor : public TupleReceiver {
   virtual ~RemoteDestAdaptor() {}
 
   virtual void process (boost::shared_ptr<Tuple> t);
+  
+  std::string as_string();
 };
 
 

@@ -308,7 +308,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     operator_configs[id] = config;
     // Record the outcome of creating the operator in the response message
     if (create_operator(cmd, id) != NULL) {
-      respTopo->add_tostart()->mutable_id()->CopyFrom(task.id());
+      TaskMeta *started_task = respTopo->add_tostart();
+      started_task->mutable_id()->CopyFrom(task.id());
+      started_task->set_op_typename(task.op_typename());
     } else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
