@@ -53,7 +53,7 @@ class TestController(unittest.TestCase):
     newTask.id.task = 2
     
     newCube = req.alter.toCreate.add()
-    newCube.name = "a test cube"
+    newCube.name = "a_test_cube"
     newCube.schema.name = newCube.name
     d = newCube.schema.dimensions.add()
     d.name = "text"
@@ -62,7 +62,7 @@ class TestController(unittest.TestCase):
     edge = req.alter.edges.add()
     edge.src = 2
     edge.computation = compID
-    edge.cube_name = "a test cube"
+    edge.cube_name = newCube.name
     
     #print str(req)
     buf = self.client.do_rpc(req, True)
@@ -80,6 +80,7 @@ class TestController(unittest.TestCase):
     getResp = urllib2.urlopen("http://localhost:8081/").read()
     self.assertTrue(newTask.op_typename in getResp)
     self.assertTrue(newCube.name in getResp)
+    print getResp
     os.killpg(workerProc.pid, signal.SIGTERM)
 
 

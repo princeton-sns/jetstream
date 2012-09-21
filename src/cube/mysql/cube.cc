@@ -84,6 +84,8 @@ string jetstream::cube::MysqlCube::create_sql() const {
   sql += boost::algorithm::join(pk, ", ");
   sql += ")";
   sql += ") ENGINE=MyISAM";
+  
+  LOG(INFO) << "Create statement: " << sql;
   return sql;
 
 }

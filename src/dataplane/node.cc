@@ -323,7 +323,8 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     // Record the outcome of creating the cube in the response message
     if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
-      respTopo->add_tocreate()->set_name(task.name());
+      CubeMeta *created = respTopo->add_tocreate();
+      created->CopyFrom(task);
     } else {
       LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
       respTopo->add_cubestostop(task.name());
