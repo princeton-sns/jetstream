@@ -3,7 +3,7 @@
 #include "node.h"
 
 #include "mysql_cube.h"
-#include "mysql/cube_iterator_impl.h"
+#include "cube_iterator_impl.h"
 
 #include <gtest/gtest.h>
 
@@ -64,7 +64,7 @@ TEST_F(CubeTest, MysqlTest) {
     cout << test_strings[i] <<endl;
   }*/
 
-  ASSERT_STREQ("CREATE TABLE `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
+  ASSERT_STREQ("CREATE TABLE IF NOT EXISTS `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
 
   cube->destroy();
   cube->create();
@@ -412,8 +412,8 @@ TEST(Cube,Attach) {
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_name("text");
   dim->set_type(Element_ElementType_STRING);
-  sc->set_name("test cube");
-  cube_meta->set_name("test cube");
+  sc->set_name("test_cube");
+  cube_meta->set_name("test_cube");
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
@@ -422,13 +422,17 @@ TEST(Cube,Attach) {
   op_cfg->set_opt_name("k");
   op_cfg->set_val("2");
   
+  op_cfg = task->add_config();
+  op_cfg->set_opt_name("send_now");
+  op_cfg->set_val("true");
+  
   TaskID* id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(1);
   
   Edge * e = topo.add_edges();
   e->set_src(1);
-  e->set_cube_name("test cube");
+  e->set_cube_name("test_cube");
   e->set_computation(compID);
   
 //  cout << topo.Utf8DebugString();
@@ -437,8 +441,10 @@ TEST(Cube,Attach) {
   node.handle_alter(r, topo);
   cout << "alter sent; data should be present" << endl;
   
-  shared_ptr<DataCube> cube = node.get_cube("test cube");
+  shared_ptr<DataCube> cube = node.get_cube("test_cube");
   ASSERT_TRUE( cube );
+  ASSERT_EQ( cube->num_leaf_cells(), 2 );
+
   cout << "done"<< endl;
   node.stop();
  

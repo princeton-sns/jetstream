@@ -60,7 +60,7 @@ boost::shared_ptr<sql::Connection> jetstream::cube::MysqlCube::get_connection() 
 }
 
 string jetstream::cube::MysqlCube::create_sql() const {
-  string sql = "CREATE TABLE `"+get_table_name()+"` (";
+  string sql = "CREATE TABLE IF NOT EXISTS `"+get_table_name()+"` (";
   vector<string> pk;
   for(size_t i=0; i<dimensions.size(); i++)
   {
@@ -162,7 +162,7 @@ string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql()
 
   string sql = "INSERT INTO `"+get_table_name()+"`";
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
-  sql += "VALUES ";
+  sql += " VALUES ";
   string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
   numFieldsPerInsertEntryBatch = column_values.size();
   for(size_t i=0; i < (batch-1); i++) {
@@ -200,7 +200,7 @@ string jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_sql()
 
   string sql = "INSERT INTO `"+get_table_name()+"`";
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
-  sql += "VALUES ";
+  sql += " VALUES ";
   string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
   numFieldsPerPartialAggregateBatch = column_values.size();
   for(size_t i=0; i < (batch-1); i++) {
@@ -213,19 +213,25 @@ string jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_sql()
 
 boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert_entry_prepared_statement()
 {
-  if(!insertEntryStatement)
-  {
-    shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(get_insert_entry_prepared_sql()));
-    insertEntryStatement = stmnt;
-    insertEntryCurrentBatch = 0;
+  if(!insertEntryStatement) {
+    string stmt_as_text = get_insert_entry_prepared_sql();
+    try {
+      shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(stmt_as_text));
+      insertEntryStatement = stmnt;
+      insertEntryCurrentBatch = 0;
+     } catch (sql::SQLException &e) {
+       LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+       LOG(WARNING) << "statement was " << stmt_as_text;
+       boost::shared_ptr<sql::PreparedStatement> p;
+       return p;
+     }
   }
   return insertEntryStatement;
 }
 
-boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_statement()
-{
-  if(!insertPartialAggregateStatement)
-  {
+boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_statement() {
+
+  if(!insertPartialAggregateStatement) {
     shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(get_insert_partial_aggregate_prepared_sql()));
     insertPartialAggregateStatement = stmnt;
     insertPartialAggregateCurrentBatch = 0;
@@ -238,13 +244,11 @@ bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t)
   boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_entry_prepared_statement();
   int tuple_index = 0;
   int field_index = (insertEntryCurrentBatch*numFieldsPerInsertEntryBatch)+1;
-  for(size_t i=0; i<dimensions.size(); i++)
-  {
+  for(size_t i=0; i<dimensions.size(); i++) {
     dimensions[i]->set_value_for_insert(pstmt, t, tuple_index, field_index);
   }
   
-  for(size_t i=0; i<aggregates.size(); i++)
-  {
+  for(size_t i=0; i<aggregates.size(); i++) {
     aggregates[i]->set_value_for_insert_entry(pstmt, t, tuple_index, field_index);
   }
   

@@ -79,8 +79,14 @@ SendK::start(std::map<std::string,std::string> config) {
     // Send one tuple by default
     k = 1;
   }
-  running = true;
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  
+  if (config["send_now"].length() > 0) {
+    (*this)();
+  }
+  else {
+    running = true;
+    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  }
 }
 
 

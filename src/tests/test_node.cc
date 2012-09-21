@@ -460,3 +460,17 @@ TEST(NodeIntegration, DataplaneConn) {
 //  testThreads[0].join();
 //  testThreads[1].join();
 }
+
+TEST(Node,Ctor) {
+  NodeConfig cfg;
+  boost::system::error_code err;
+  Node n(cfg,err);
+}
+
+TEST(Node,BareStop) {
+  NodeConfig cfg;
+  boost::system::error_code err;
+  Node n(cfg,err);
+  n.stop();
+  n.stop();
+}
