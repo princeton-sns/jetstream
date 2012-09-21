@@ -20,6 +20,7 @@ namespace jetstream {
 class DataCube : public TupleReceiver {
   
 public:
+  static unsigned int const LEAF_LEVEL;
 
   virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
   
@@ -32,6 +33,8 @@ public:
   virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const= 0;
 
   virtual cube::CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max, bool final = true, std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
+  
+ // virtual cube::CubeIterator rollup(jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<unsigned int> const &levels, bool final = true) = 0;
   
   virtual jetstream::cube::CubeIterator end() const = 0;
 

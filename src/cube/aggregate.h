@@ -7,21 +7,18 @@
 
 namespace jetstream {
 namespace cube {
-  
+
 using namespace ::std;
 using namespace boost;
 
 class Aggregate {
-public:
-  Aggregate (jetstream::CubeSchema_Aggregate schema_dimension){
-    name = schema_dimension.name();
-    type = schema_dimension.type();
-  };
-  virtual ~Aggregate (){};
+  public:
+    Aggregate (jetstream::CubeSchema_Aggregate schema_dimension);
+    virtual ~Aggregate () {};
 
-protected:
-  string name;
-  string type;
+  protected:
+    string name;
+    string type;
 };
 
 } /* cube */

@@ -9,27 +9,22 @@
 
 namespace jetstream {
 namespace cube {
-  
+
 template <class I>
-struct AggregateFactory{
+struct AggregateFactory {
 
 };
 
 template<>
-struct AggregateFactory<jetstream::cube::MysqlAggregate>
-{
-  static boost::shared_ptr<jetstream::cube::MysqlAggregate> create(jetstream::CubeSchema_Aggregate _schema)
-  {
-    if(_schema.type() == "count")
-    {
+struct AggregateFactory<jetstream::cube::MysqlAggregate> {
+  static boost::shared_ptr<jetstream::cube::MysqlAggregate> create(jetstream::CubeSchema_Aggregate _schema) {
+    if(_schema.type() == "count") {
       return boost::make_shared<MysqlAggregateCount>(_schema);
     }
-    else if(_schema.type() == "avg")
-    {
+    else if(_schema.type() == "avg") {
       return boost::make_shared<MysqlAggregateAvg>(_schema);
     }
-    else
-    {
+    else {
       LOG(FATAL) << "Don't have right aggregate";
     }
   };

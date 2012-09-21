@@ -13,34 +13,22 @@ namespace cube {
 
 class CubeIterator
   : public boost::iterator_facade<
-        CubeIterator
-      , jetstream::Tuple
-      , boost::forward_traversal_tag
-      , boost::shared_ptr<jetstream::Tuple>
-    >
-{
- public:
+  CubeIterator
+  , jetstream::Tuple
+  , boost::forward_traversal_tag
+  , boost::shared_ptr<jetstream::Tuple>
+    > {
+  public:
     CubeIterator(boost::shared_ptr<CubeIteratorImpl> impl): impl(impl) {}
 
-    size_t numCells() { 
-      return impl->numCells(); 
-    }
- 
- protected:
+    size_t numCells();
+
+  protected:
     friend class boost::iterator_core_access;
 
-    void increment() { 
-      return impl->increment(); 
-    }
-
-    bool equal(CubeIterator const& other) const {
-      return impl->equal(*(other.impl)); 
-    }
-
-    boost::shared_ptr<jetstream::Tuple> dereference() const {
-      return impl->dereference(); 
-    };
-    
+    void increment();
+    bool equal(CubeIterator const& other) const ;
+    boost::shared_ptr<jetstream::Tuple> dereference() const;
     boost::shared_ptr<CubeIteratorImpl> impl;
 };
 
