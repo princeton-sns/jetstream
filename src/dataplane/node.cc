@@ -308,7 +308,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     operator_configs[id] = config;
     // Record the outcome of creating the operator in the response message
     if (create_operator(cmd, id) != NULL) {
-      respTopo->add_tostart()->mutable_id()->CopyFrom(task.id());
+      TaskMeta *started_task = respTopo->add_tostart();
+      started_task->mutable_id()->CopyFrom(task.id());
+      started_task->set_op_typename(task.op_typename());
     } else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
@@ -321,7 +323,8 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     // Record the outcome of creating the cube in the response message
     if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
-      respTopo->add_tocreate()->set_name(task.name());
+      CubeMeta *created = respTopo->add_tocreate();
+      created->CopyFrom(task);
     } else {
       LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
       respTopo->add_cubestostop(task.name());

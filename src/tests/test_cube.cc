@@ -439,6 +439,7 @@ TEST(Cube,Attach) {
   
   shared_ptr<DataCube> cube = node.get_cube("test cube");
   ASSERT_TRUE( cube );
-  
+  cout << "done"<< endl;
+  node.stop();
  
 }

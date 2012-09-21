@@ -18,7 +18,9 @@ CubeManager::create_cube (const std::string &name, const CubeSchema &schema)
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
   shared_ptr<DataCube> c (new cube::MysqlCube(schema));
-  put_cube(name, c);
+  c->create();
+  if (c != NULL)
+    put_cube(name, c);
   return c;
 }
 
