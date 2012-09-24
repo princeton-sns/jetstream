@@ -100,7 +100,8 @@ void
 SendK::stop() {
   running = false;
   LOG(INFO) << "Stopping SendK operator";
-  loopThread->join();
+  if (running)
+    loopThread->join();
 }
 
 

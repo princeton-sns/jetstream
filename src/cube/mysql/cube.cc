@@ -8,17 +8,30 @@
 
 using namespace ::std;
 
-jetstream::cube::MysqlCube::MysqlCube(jetstream::CubeSchema const _schema, string db_host, string db_user, string db_pass, string db_name, size_t batch) : 
-      DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema), 
+jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
+                                       bool delete_if_exists,
+                                       string db_host,
+                                       string db_user,
+                                       string db_pass,
+                                       string db_name,
+                                       size_t batch) :
+      DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema),
       db_host(db_host),
       db_user(db_user),
       db_pass(db_pass),
       db_name(db_name),
       batch(batch)
-      { init_connection(); }
+  {
+  init_connection();
+  LOG(INFO) << "creating cube "<<db_name<< "."<< _schema.name() <<
+      (delete_if_exists ? " and deleting prior contents": ".");
+  if (delete_if_exists) {
+    destroy();
+  }
+}
 
-void jetstream::cube::MysqlCube::init_connection()
-{
+void
+jetstream::cube::MysqlCube::init_connection() {
   sql::Driver * driver = get_driver_instance();
   shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
   connection = con;
@@ -32,8 +45,8 @@ void jetstream::cube::MysqlCube::init_connection()
   }
 }
 
-void jetstream::cube::MysqlCube::execute_sql(string const &sql) const
-{
+void
+jetstream::cube::MysqlCube::execute_sql (string const &sql) const {
   try {
     statement->execute(sql);
   } catch (sql::SQLException &e) {
@@ -41,8 +54,8 @@ void jetstream::cube::MysqlCube::execute_sql(string const &sql) const
   }
 }
 
-boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(string const &sql) const
-{
+boost::shared_ptr<sql::ResultSet>
+jetstream::cube::MysqlCube::execute_query_sql(string const &sql) const {
   try {
     boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
     return res;
@@ -54,8 +67,8 @@ boost::shared_ptr<sql::ResultSet> jetstream::cube::MysqlCube::execute_query_sql(
 }
 
 
-boost::shared_ptr<sql::Connection> jetstream::cube::MysqlCube::get_connection() const
-{
+boost::shared_ptr<sql::Connection>
+jetstream::cube::MysqlCube::get_connection() const {
   return connection;
 }
 
@@ -85,7 +98,7 @@ string jetstream::cube::MysqlCube::create_sql() const {
   sql += ")";
   sql += ") ENGINE=MyISAM";
   
-  LOG(INFO) << "Create statement: " << sql;
+  VLOG(1) << "Create statement: " << sql;
   return sql;
 
 }

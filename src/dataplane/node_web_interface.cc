@@ -100,7 +100,7 @@ NodeWebInterface::make_base_page(ostream &buf)
      buf << "<table>" << endl;
      while (it != cube->end()) {
        buf << "<tr>";
-       boost::shared_ptr<Tuple> t = *it;
+       boost::shared_ptr<Tuple> t = *(it++);
        for (int v = 0; v < t->e_size(); ++ v) {
          buf << "<td>";
          const Element& cell = t->e(v);
