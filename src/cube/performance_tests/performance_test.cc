@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
   cout << endl;
   
   boost::shared_ptr<jetstream::CubeSchema> sc = get_schema();
-  boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc);
+  boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc, true);
   cube->set_batch(batch);
 
   cube->destroy();

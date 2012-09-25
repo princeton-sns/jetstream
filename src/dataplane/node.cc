@@ -294,7 +294,12 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
 
-  cout << topo.Utf8DebugString() << endl;
+  VLOG(1) << topo.Utf8DebugString() << endl;
+
+  LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes"
+      << "and " << topo.tostart_size() << " operators." <<endl;
+
+
   map<operator_id_t, map<string, string> > operator_configs;
   for (int i=0; i < topo.tostart_size(); ++i) {
     const TaskMeta &task = topo.tostart(i);
@@ -316,12 +321,11 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     }
   }
 
-  cout << "request to create " << topo.tocreate_size() << " cubes" <<endl;
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
     // Record the outcome of creating the cube in the response message
-    if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
+    if (cubeMgr.create_cube(task.name(), task.schema(), task.overwrite_old()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
       CubeMeta *created = respTopo->add_tocreate();
       created->CopyFrom(task);

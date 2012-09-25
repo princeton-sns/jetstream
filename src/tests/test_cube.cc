@@ -48,7 +48,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 
 
-  MysqlCube * cube = new MysqlCube(*sc);
+  MysqlCube * cube = new MysqlCube(*sc, true);
   vector<std::string> test_strings = cube->get_dimension_column_types();
  
   ASSERT_STREQ("DATETIME",test_strings[0].c_str());
@@ -132,7 +132,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(150, answer->e(4).i_val());
   ASSERT_EQ(2, answer->e(5).i_val());
   
-  MysqlCube * cube_batch = new MysqlCube(*sc);
+  MysqlCube * cube_batch = new MysqlCube(*sc, true);
   cube_batch->set_batch(2);
 
   cube_batch->destroy();
@@ -202,7 +202,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 TEST_F(CubeTest, MysqlTestIt) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, true);
 
   cube->destroy();
   cube->create();
@@ -322,7 +322,7 @@ TEST_F(CubeTest, MysqlTestIt) {
 
 TEST_F(CubeTest, MysqlTestSort) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, true);
 
   cube->destroy();
   cube->create();
@@ -412,8 +412,15 @@ TEST(Cube,Attach) {
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_name("text");
   dim->set_type(Element_ElementType_STRING);
+  
+  jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
+  agg->set_name("count");
+  agg->set_type("count");
+
+  
   sc->set_name("test_cube");
   cube_meta->set_name("test_cube");
+  cube_meta->set_overwrite_old(true);
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
@@ -443,8 +450,16 @@ TEST(Cube,Attach) {
   
   shared_ptr<DataCube> cube = node.get_cube("test_cube");
   ASSERT_TRUE( cube );
-  ASSERT_EQ( cube->num_leaf_cells(), 2 );
+  ASSERT_EQ(1, cube->num_leaf_cells());
+  Tuple empty = cube->empty_tuple();
+  cube::CubeIterator it = cube->slice_query(empty, empty);
+  ASSERT_EQ(1, it.numCells());
+  int total_count = 0;
+  shared_ptr<Tuple> t = *it;
+  ASSERT_EQ(2, t->e_size());
+  total_count += t->e(1).i_val();
 
+  ASSERT_EQ(2, total_count);
   cout << "done"<< endl;
   node.stop();
  

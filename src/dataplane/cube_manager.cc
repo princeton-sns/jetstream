@@ -13,11 +13,13 @@ CubeManager::get_cube (const std::string &name)
 }
   
 shared_ptr<DataCube> 
-CubeManager::create_cube (const std::string &name, const CubeSchema &schema) 
+CubeManager::create_cube ( const std::string &name,
+                           const CubeSchema &schema,
+                           bool overwrite_if_present)
 {
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
-  shared_ptr<DataCube> c (new cube::MysqlCube(schema));
+  shared_ptr<DataCube> c (new cube::MysqlCube(schema, overwrite_if_present));
   c->create();
   if (c != NULL)
     put_cube(name, c);

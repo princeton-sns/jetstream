@@ -64,7 +64,7 @@ message TaskMeta {
 
 
 message CubeSchema{
-  required string name = 1;    // uniquele identifies the cube
+  required string name = 1;    // uniquely identifies the cube
 
   message Dimension {
     required string name = 1;
@@ -88,6 +88,11 @@ message CubeMeta {
   required string name = 1;
   required CubeSchema schema = 2;
   optional NodeID site = 3;
+  
+  optional bool overwrite_old = 4 [default = false];  
+    // If overwrite_old set to true, cube will be emptied on create; schema will
+    // be changed if table already existed. If set to false, schema will not be
+    // changed. Create will succeed only if existing table has same schema.
 }
 
 
