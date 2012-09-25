@@ -2,6 +2,7 @@ import asyncore
 import asynchat
 
 import logging
+import re
 import socket
 import struct
 import subprocess
@@ -69,7 +70,8 @@ class Controller (ControllerAPI, JSServer):
 
   def stop (self):
     self.running = False
-    self.livenessThread.join()
+    if self.livenessThread:
+      self.livenessThread.join()
     JSServer.stop(self)
 
 
@@ -144,6 +146,19 @@ class Controller (ControllerAPI, JSServer):
       self.workers[clientEndpoint].receive_hb(hb)
     self.internals_lock.release()
 
+  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
+  def validate_topo(self,altertopo):
+    """Validates a topology. Should return an empty string if valid, else an error message"""
+    if len(altertopo.toStart) == 0:
+      return "Topology includes no operators"
+    if altertopo.computationID in self.computations:
+      return "computation ID %d already in use" % altertopo.computationID
+    for cube in altertopo.toCreate:
+      if not self.CUBE_NAME_PAT.match(cube.name):
+        return "invalid cube name %s" % cube.name
+
+    return ""
+    
     
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
@@ -152,8 +167,15 @@ class Controller (ControllerAPI, JSServer):
       print "WARNING: Worker node list on controller is empty!!"
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "No workers available to deploy topology"
-      return
+      return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
+    err = self.validate_topo(altertopo)
+    if len(err) > 0:
+      print "Invalid topology:",err
+      response.type = ControlMessage.ERROR
+      response.error_msg.msg = err
+      return
+      
     #TODO: The code below only deals with starting tasks. We also assume the client topology looks
     #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
 
@@ -161,9 +183,7 @@ class Controller (ControllerAPI, JSServer):
     #taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
 
     # Set up the computation
-    assert(len(altertopo.toStart) > 0)
     compID = altertopo.computationID
-    assert(compID not in self.computations)
     comp = Computation(self, compID)
     self.computations[compID] = comp
 

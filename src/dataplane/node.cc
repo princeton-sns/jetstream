@@ -296,8 +296,8 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 
   VLOG(1) << topo.Utf8DebugString() << endl;
 
-  LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes"
-      << "and " << topo.tostart_size() << " operators." <<endl;
+  LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
+      << topo.tostart_size() << " operators." <<endl;
 
 
   map<operator_id_t, map<string, string> > operator_configs;
