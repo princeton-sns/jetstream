@@ -102,12 +102,12 @@ message Tuple {
 * Cubes are globally visible and are NOT tied to a computation.
 */
 message Edge {
-  required int32 src = 1;
-  required int32 computation = 4;  // which computation these operators are in
+  required int32 src = 1;          // operator ID, local
+  required int32 computation = 4;  // which computation the edge is in
 
-  optional int32 dest = 2;   //local dest
-  optional string cube_name = 3;  //cube, local or remote
-  optional NodeID dest_addr = 5;  //dest addr if remote
+  optional int32 dest = 2;         // operator ID, local
+  optional string cube_name = 3;   // cube name, local or remote
+  optional NodeID dest_addr = 5;   // dest address if remote
 }
 
 

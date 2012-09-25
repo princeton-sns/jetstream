@@ -61,6 +61,8 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
     return new FileRead();
   } else if (name.compare("SendK") == 0) {
     return new SendK();
+  } else if (name.compare("StringGrep") == 0) {
+    return new StringGrep();
   }
   
   if(cache.count(name) < 1)
