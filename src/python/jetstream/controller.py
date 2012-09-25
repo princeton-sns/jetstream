@@ -148,14 +148,28 @@ class Controller (ControllerAPI, JSServer):
 
   CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
   def validate_topo(self,altertopo):
-    """Validates a topology. Should return an empty string if valid, else an error message"""
-    if len(altertopo.toStart) == 0:
-      return "Topology includes no operators"
+    """Validates a topology. Should return an empty string if valid, else an error message."""
+    
+    #Organization of this method is parallel to the altertopo structure.
+  # First verify top-level metadata. Then operators, then cubes.
     if altertopo.computationID in self.computations:
       return "computation ID %d already in use" % altertopo.computationID
+
+    if len(altertopo.toStart) == 0:
+      return "Topology includes no operators"
+
+#  Can't really do this verification -- breaks with UDFs
+#    for operator in altertopo.toStart:
+#      if not operator.op_typename in KNOWN_OP_TYPES:
+#        print "WARNING: unknown operator type KNOWN_OP_TYPES"
+      
     for cube in altertopo.toCreate:
       if not self.CUBE_NAME_PAT.match(cube.name):
         return "invalid cube name %s" % cube.name
+      if len(cube.schema.aggregates) == 0:
+        return "cubes must have at least one aggregate per cell"
+      if len(cube.schema.dimensions) == 0:
+        return "cubes must have at least one dimension"
 
     return ""
     

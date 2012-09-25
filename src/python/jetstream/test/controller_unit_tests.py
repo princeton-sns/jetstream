@@ -49,9 +49,31 @@ class TestController(unittest.TestCase):
     
     err = self.controller.validate_topo(alter)
     
-    self.assertTrue( len(err) > 0) #error should be because compID is in use
+    self.assertTrue( len(err) > 0) #error should be because name is invalid
     self.assertTrue( "invalid cube name" in err)
     
+    #### Cube without aggregates
+    
+    new_cube.name = "valid_name"
+    err = self.controller.validate_topo(alter)
+    
+    self.assertTrue( len(err) > 0) #error should be because no aggregates
+    print err
+    self.assertTrue( "aggregate" in err)
+
+    #### Cube without dimension
+
+    agg = new_cube.schema.aggregates.add()
+    agg.name = "count"
+    agg.type = "count"
+    
+    ### Valid cube
+    dim = new_cube.schema.dimensions.add()
+    dim.name = "count"
+    dim.type = Element.INT32
+    err = self.controller.validate_topo(alter)
+    
+    self.assertEquals( len(err), 0) #error should be because no aggregates
     
     
 
