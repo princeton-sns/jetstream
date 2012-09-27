@@ -1,5 +1,7 @@
 #include "dataplaneoperator.h"
-#include "operators.h"
+#include "base_operators.h"
+#include <boost/algorithm/string.hpp>
+
 #include <iostream>
 #include <fstream>
 #include "stdlib.h"
@@ -120,7 +122,7 @@ StringGrep::start(map<string,string> config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> id;
   if (pattern.length() == 0) {
-    cout << "no regexp pattern specified, bailing" << endl;
+    LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
     return;
   }
   re.assign(pattern);
@@ -154,6 +156,57 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 }
 
 
+
+void
+GenericParse::start(std::map<std::string,std::string> config) {
+  string pattern = config["pattern"];
+  re.assign(pattern);
+  
+  istringstream(config["field_to_parse"]) >> fld_to_parse;
+
+  field_types = boost::to_upper_copy(config["types"]);
+  static boost::regex re("[SDI]+");
+  
+  if (!regex_match(field_types, re)) {
+    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+  }
+  
+  if (pattern.length() == 0) {
+    cout << "no regexp pattern specified, bailing" << endl;
+    return;
+  }
+}
+
+void
+GenericParse::process(const boost::shared_ptr<Tuple> t) {
+
+  shared_ptr<Tuple> t2( new Tuple);
+  for(int i = 0; i < t->e_size() && i < fld_to_parse; ++i) {
+    Element * e = t2->add_e();
+    e->CopyFrom(t->e(i));
+  }
+  
+  boost::smatch matchResults;
+  bool found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
+  if (found) {
+    for (int fld = 1; fld < matchResults.size(); ++ fld) {
+      string s = matchResults.str(fld);
+      
+      
+      
+    }
+  }
+  else {
+   // what do we do on parse failures?
+  }
+
+  for(int i = fld_to_parse+1; i < t->e_size(); ++i) {
+    Element * e = t2->add_e();
+    e->CopyFrom(t->e(i));
+  }  
+  emit (t2);
+}
+
 DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
 }
@@ -161,6 +214,8 @@ DummyReceiver::~DummyReceiver() {
 
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
+const string GenericParse::my_type_name("Parser operator");
+
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 

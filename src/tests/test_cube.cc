@@ -1,5 +1,4 @@
 #include "cube_manager.h"
-#include "cube.h"
 #include "node.h"
 
 #include "mysql_cube.h"

@@ -2,7 +2,7 @@
 *  Tests for various system operators, such as ReadLine
 */
 
-#include "operators.h"
+#include "base_operators.h"
 #include <map>
 #include <iostream>
 #include <boost/thread/thread.hpp>
@@ -116,3 +116,11 @@ TEST(Operator, OperatorChain)
   }
 }
 
+TEST(Operator,ParseOperator) {
+  map<string,string> config;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  GenericParse parse;
+  parse.set_dest(rec);
+  
+  
+}

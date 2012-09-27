@@ -17,13 +17,15 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 			this, dest_op_id, dest,  _1, _2), error);
 
   DataplaneMessage response;
-
   if (!error) {
     LOG(INFO) << "created dataplane connection into " << dest->id();
     response.set_type(DataplaneMessage::CHAIN_READY);
     // XXX This should include an Edge
   }
-
+  else {
+    LOG(WARNING) << " couldn't enable receive-data callback; "<< error;
+  }
+  
   c->send_msg(response, error);
 }
                 
@@ -35,13 +37,14 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 }
 
 
+// Calle
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
                                         shared_ptr<DataPlaneOperator> dest) {
   shared_ptr<ClientConnection> c = pendingConns[op_id];
   pendingConns.erase(op_id);
-
-  enable_connection(c, op_id, dest);
+  if (c != NULL)
+    enable_connection(c, op_id, dest);
 }
 
 void

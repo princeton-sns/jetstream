@@ -426,6 +426,7 @@ Node::create_operator (string op_typename, operator_id_t name)
   } */
 //  d->operID = name.task_id;
   operators[name] = d;
+  dataConnMgr.created_operator(name, d);
   return d;
 }
 
