@@ -120,11 +120,40 @@ TEST(Operator, OperatorChain)
   }
 }
 
+void extend_tuple(Tuple& t, int i) {
+  t.add_e()->set_i_val(i);
+}
+void extend_tuple(Tuple& t, double d) {
+  t.add_e()->set_d_val(d);
+}
+void extend_tuple(Tuple& t, const string& s) {
+  t.add_e()->set_s_val(s);
+}
+
 TEST(Operator,ParseOperator) {
-  map<string,string> config;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   GenericParse parse;
   parse.set_dest(rec);
+  operator_config_t cfg;
+  cfg["pattern"] = "(\\w+) (\\d+)";
+  cfg["field_to_parse"] = "1";
+  cfg["types"] = "Si";
+  parse.configure(cfg);
+  
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 1);
+  extend_tuple(*t, "foo 7");
+  extend_tuple(*t, 1.2);
+  
+  parse.process(t);
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ((size_t)4, result->e_size());
+  ASSERT_EQ(1, result->e(0).i_val());
+  ASSERT_EQ(string("foo"), result->e(1).s_val());
+  ASSERT_EQ(7, result->e(2).i_val());
+  ASSERT_EQ(1.2, result->e(3).d_val());
+  
   
   
 }

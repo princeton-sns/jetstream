@@ -15,7 +15,7 @@ namespace jetstream {
 
 
 void
-FileRead::configure(map<string,string> config) {
+FileRead::configure(map<string,string> &config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     LOG(WARNING) << "no file to read, bailing" << endl;
@@ -74,7 +74,7 @@ FileRead::operator()() {
 
 
 void
-SendK::configure(std::map<std::string,std::string> config) {
+SendK::configure(std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {
@@ -126,7 +126,7 @@ SendK::operator()() {
 
 
 void
-StringGrep::configure(map<string,string> config) {
+StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> id;
   if (pattern.length() == 0) {
@@ -166,11 +166,15 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 
 
 void
-GenericParse::configure(std::map<std::string,std::string> config) {
+GenericParse::configure(std::map<std::string,std::string> &config) {
   string pattern = config["pattern"];
   re.assign(pattern);
   
+  
   istringstream(config["field_to_parse"]) >> fld_to_parse;
+  if (fld_to_parse < 0 || fld_to_parse > 100) {
+    LOG(WARNING) << "field ID " << fld_to_parse << "looks bogus";
+  }
 
   field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
@@ -194,14 +198,41 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     e->CopyFrom(t->e(i));
   }
   
+  if (fld_to_parse >= t->e_size()) {
+    LOG(WARNING) << "can't parse field " << fld_to_parse << "; total size is only" << t->e_size();
+  }
+  
   boost::smatch matchResults;
   bool found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
   if (found) {
     for (int fld = 1; fld < matchResults.size(); ++ fld) {
       string s = matchResults.str(fld);
-      
-      
-      
+      char typecode = field_types[fld-1];
+      Element * e = t2->add_e();
+
+      switch (typecode) {
+        case 'I':
+          {
+            int i;
+            istringstream(s) >> i;
+            e->set_i_val( i );
+            break;
+          }
+        case 'D':
+          {
+            double d;
+            istringstream(s) >> d;
+            e->set_d_val( d );
+            break;
+          }
+        case 'S':
+          {
+            e->set_s_val( s );
+            break;
+          }
+        default:
+          LOG(FATAL) << "should be impossible to have typecode " << typecode;
+      }
     }
   }
   else {

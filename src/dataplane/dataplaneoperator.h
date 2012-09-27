@@ -73,7 +73,7 @@ class DataPlaneOperator : public TupleReceiver {
   /** This method will be called on every operator, before start() and before
   * any tuples will be received. This method must not block or emit tuples
   */ 
-  virtual void configure (std::map<std::string, std::string> config) {};
+  virtual void configure (std::map<std::string, std::string> &) {};
 
 
   /**

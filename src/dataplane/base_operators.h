@@ -26,7 +26,7 @@ class FileRead: public DataPlaneOperator {
   //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
   //for source operators?
   FileRead() : running(false) {}
-  virtual void configure(std::map<std::string,std::string> config);
+  virtual void configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void stop();
   void operator()();  // A thread that will loop while reading the file
@@ -49,7 +49,7 @@ GENERIC_CLNAME
  */
 class SendK: public DataPlaneOperator {
  public:
-  virtual void configure(std::map<std::string,std::string> config);
+  virtual void configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void stop();
   virtual void process(boost::shared_ptr<Tuple> t);
@@ -74,7 +74,7 @@ GENERIC_CLNAME
 class StringGrep: public DataPlaneOperator {
  public:
   StringGrep() : id (0) {}
-  virtual void configure(std::map<std::string,std::string> config);
+  virtual void configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
  protected:
@@ -96,10 +96,12 @@ class StringGrep: public DataPlaneOperator {
  * [S = string, I = Int, D = double]
  *
  *  Behavior is un-specified if the regex doesn't match.
+ *  NOTE THAT FIELDS ARE NUMBERED FROM ZERO
  */
 class GenericParse: public DataPlaneOperator {
 
-  virtual void configure(std::map<std::string,std::string> config);
+ public:
+  virtual void configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
  protected:
