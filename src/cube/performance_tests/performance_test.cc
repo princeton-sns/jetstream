@@ -54,7 +54,6 @@ boost::shared_ptr<jetstream::CubeSchema> get_schema()
 {
 
       boost::shared_ptr<jetstream::CubeSchema> sc = boost::make_shared<jetstream::CubeSchema>();
-      sc->set_name("web_requests");
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
@@ -96,7 +95,7 @@ int main(int argc, const char **argv)
   cout << endl;
   
   boost::shared_ptr<jetstream::CubeSchema> sc = get_schema();
-  boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc, true);
+  boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc, "web_requests", true);
   cube->set_batch(batch);
 
   cube->destroy();
