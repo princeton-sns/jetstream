@@ -68,9 +68,11 @@ class DataPlaneOperator : public TupleReceiver {
 
 
   /**
-   * An operator must not start emitting tuples until start() has been called.
-   * This function must not block. If asynchronous processing is required (e.g.,
+   * An operator must not start emitting tuples until start() has been called or
+   * until it has received a tuple.
+   * This function ought not block. If asynchronous processing is required (e.g.,
    * in a source operator, launch a thread to do this).
+   * Special dispensation for test code.
    */
   virtual void start (std::map<std::string, std::string> config) {};
 

@@ -20,7 +20,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     livenessMgr (iosrv, conf.heartbeat_time),
     webInterface (conf.webinterface_port, *this),
 
-    // XXX This should get set through config files
+    // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
   LOG(INFO) << "creating node" << endl;
@@ -50,14 +50,14 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     (new ServerConnection(iosrv, listen_port, error));
 
   if (error) {
-    LOG(ERROR) << "Node: Error creating server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
     return;
   }
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
 
   if (error) {
-    LOG(ERROR) << "Node: Error accepting server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error accepting server socket: " << error.message() << endl;
     return;
   }
 }
@@ -148,15 +148,13 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
-    LOG(WARNING) << "Node: Monitoring connection failed "
-                 << error.message() << endl;
+    LOG(WARNING) << "Monitoring connection failed: " << error.message();
     return;
   }
 
   controllers.push_back(conn);
 
-  LOG(INFO) << "Node: Connected to controller: " 
-	    << conn->get_remote_endpoint() << endl;
+  LOG(INFO) << "Connected to controller: " << conn->get_remote_endpoint();
   livenessMgr.start_notifications(conn);
 
   // Start listening on messages from controller
@@ -182,7 +180,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
       conn->send_msg(response, send_error);
 
       if (send_error != boost::system::errc::success) {
-        LOG(WARNING) << "Node: failure sending response: " << send_error.message() << endl;
+        LOG(WARNING) << "Failure sending response: " << send_error.message() << endl;
       }
         
       break;
@@ -204,14 +202,14 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
 {
   if (error) {
     if (!iosrv->stopped())
-      LOG(WARNING) << "error receiving incoming connection: " << error.value()
+      LOG(WARNING) << "Error receiving incoming connection: " << error.value()
 		   << "(" << error.message() << ")" << endl;
     return;
   }
   boost::system::error_code e;
   
   // Need to convert the connected socket to a client_connection
-  LOG(INFO) << "incoming dataplane connection received ok";
+  LOG(INFO) << "Incoming dataplane connection received ok";
   
   boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
@@ -230,7 +228,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
 {
   boost::system::error_code send_error;
 
-  VLOG(1) << "node received data message of type " << msg.type();
+  VLOG(1) << "Received data message of type " << msg.type();
 
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
@@ -268,7 +266,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
     break;
   default:
      // Everything else is an error
-     LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
+     LOG(WARNING) << "Unexpected dataplane message: " << msg.type() << 
         " from " << c->get_remote_endpoint();
         
      break;
@@ -338,13 +336,22 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   // Stop operators if need be
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
-    LOG(INFO) << "stopping " << id << " due to server request";
+    LOG(INFO) << "Stopping " << id << " due to server request";
     stop_operator(id);
     // TODO: Should we log whether the stop happened?
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
   }
   
-  //TODO remove cubes if specified.
+  // Remove cubes if specified.
+  for (int i=0; i < topo.cubestostop_size(); ++i) {
+    string id = topo.cubestostop(i);
+    LOG(INFO) << "Closing cube " << id << " due to server request";
+    cubeMgr.destroy_cube(id); //Note that this disconnects the cube and marks it
+        // as locked. It doesn't actually delete the cube in memory.
+        
+    // TODO: Should we log whether the stop happened correctly?
+  }
+
   
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
