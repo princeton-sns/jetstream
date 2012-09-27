@@ -54,7 +54,6 @@ class TestController(unittest.TestCase):
     
     newCube = req.alter.toCreate.add()
     newCube.name = "a_test_cube"
-    newCube.schema.name = newCube.name
     d = newCube.schema.dimensions.add()
     d.name = "text"
     d.type = Element.STRING
