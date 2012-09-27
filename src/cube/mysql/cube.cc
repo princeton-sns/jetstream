@@ -9,21 +9,22 @@
 using namespace ::std;
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
+                                       string _name,
                                        bool delete_if_exists,
                                        string db_host,
                                        string db_user,
                                        string db_pass,
                                        string db_name,
                                        size_t batch) :
-      DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema),
+      DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name),
       db_host(db_host),
       db_user(db_user),
       db_pass(db_pass),
       db_name(db_name),
-      batch(batch)
-  {
+      batch(batch) {
+      
   init_connection();
-  LOG(INFO) << "creating cube "<<db_name<< "."<< _schema.name() <<
+  LOG(INFO) << "creating cube "<<db_name<< "."<< name <<
       (delete_if_exists ? " and deleting prior contents": ".");
   if (delete_if_exists) {
     destroy();
@@ -46,21 +47,23 @@ jetstream::cube::MysqlCube::init_connection() {
 }
 
 void
-jetstream::cube::MysqlCube::execute_sql (string const &sql) const {
+jetstream::cube::MysqlCube::execute_sql (const string &sql) const {
   try {
     statement->execute(sql);
   } catch (sql::SQLException &e) {
-    LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+    LOG(WARNING) << "couldn't execute sql statement; " << e.what() <<
+    "\nStatement was " << sql;
   }
 }
 
 boost::shared_ptr<sql::ResultSet>
-jetstream::cube::MysqlCube::execute_query_sql(string const &sql) const {
+jetstream::cube::MysqlCube::execute_query_sql(const string &sql) const {
   try {
     boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
     return res;
   } catch (sql::SQLException &e) {
-    LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+    LOG(WARNING) << "couldn't execute sql statement; " << e.what() << 
+    "\nStatement was " << sql;
   }
   boost::shared_ptr<sql::ResultSet> no_results;
   return no_results;

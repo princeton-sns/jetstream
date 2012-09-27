@@ -59,6 +59,10 @@ class TestController(unittest.TestCase):
     d.name = "text"
     d.type = Element.STRING
     
+    d = newCube.schema.aggregates.add()
+    d.name = "count"
+    d.type = "count"
+    
     edge = req.alter.edges.add()
     edge.src = 2
     edge.computation = compID

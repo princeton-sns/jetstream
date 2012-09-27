@@ -11,6 +11,7 @@ import asyncore
 import asynchat
 
 import logging
+import re
 import socket
 import struct
 import subprocess
@@ -77,7 +78,8 @@ class Controller (ControllerAPI, JSServer):
 
   def stop (self):
     self.running = False
-    self.livenessThread.join()
+    if self.livenessThread:
+      self.livenessThread.join()
     JSServer.stop(self)
 
 
@@ -144,6 +146,33 @@ class Controller (ControllerAPI, JSServer):
     self.workers[clientEndpoint].receive_hb(hb)
     self.stateLock.release()
 
+  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
+  def validate_topo(self,altertopo):
+    """Validates a topology. Should return an empty string if valid, else an error message."""
+    
+    #Organization of this method is parallel to the altertopo structure.
+  # First verify top-level metadata. Then operators, then cubes.
+    if altertopo.computationID in self.computations:
+      return "computation ID %d already in use" % altertopo.computationID
+
+    if len(altertopo.toStart) == 0:
+      return "Topology includes no operators"
+
+#  Can't really do this verification -- breaks with UDFs
+#    for operator in altertopo.toStart:
+#      if not operator.op_typename in KNOWN_OP_TYPES:
+#        print "WARNING: unknown operator type KNOWN_OP_TYPES"
+      
+    for cube in altertopo.toCreate:
+      if not self.CUBE_NAME_PAT.match(cube.name):
+        return "invalid cube name %s" % cube.name
+      if len(cube.schema.aggregates) == 0:
+        return "cubes must have at least one aggregate per cell"
+      if len(cube.schema.dimensions) == 0:
+        return "cubes must have at least one dimension"
+
+    return ""
+    
     
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
@@ -153,8 +182,15 @@ class Controller (ControllerAPI, JSServer):
       logger.warning(errorMsg)
       response.type = ControlMessage.ERROR
       response.error_msg.msg = errorMsg
-      return
+      return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
+    err = self.validate_topo(altertopo)
+    if len(err) > 0:
+      print "Invalid topology:",err
+      response.type = ControlMessage.ERROR
+      response.error_msg.msg = err
+      return
+      
     #TODO: The code below only deals with starting tasks. We also assume the client topology looks
     #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
 
@@ -162,9 +198,7 @@ class Controller (ControllerAPI, JSServer):
     #taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
 
     # Set up the computation
-    assert(len(altertopo.toStart) > 0)
     compID = altertopo.computationID
-    assert(compID not in self.computations)
     comp = Computation(self, compID)
     self.computations[compID] = comp
 

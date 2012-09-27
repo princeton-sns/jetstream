@@ -23,6 +23,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     friend class MysqlCubeIteratorImpl;
 
     MysqlCube (jetstream::CubeSchema const _schema,
+               string _name,
                bool overwrite_if_present,
                string db_host="localhost",
                string db_user="root",

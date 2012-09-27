@@ -16,7 +16,6 @@ class CubeTest : public ::testing::Test {
     virtual void SetUp() {
 
       sc = new jetstream::CubeSchema();
-      sc->set_name("web_requests");
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
@@ -48,7 +47,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 
 
-  MysqlCube * cube = new MysqlCube(*sc, true);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   vector<std::string> test_strings = cube->get_dimension_column_types();
  
   ASSERT_STREQ("DATETIME",test_strings[0].c_str());
@@ -132,7 +131,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(150, answer->e(4).i_val());
   ASSERT_EQ(2, answer->e(5).i_val());
   
-  MysqlCube * cube_batch = new MysqlCube(*sc, true);
+  MysqlCube * cube_batch = new MysqlCube(*sc, "web_requests", true);
   cube_batch->set_batch(2);
 
   cube_batch->destroy();
@@ -202,7 +201,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 TEST_F(CubeTest, MysqlTestIt) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, true);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 
   cube->destroy();
   cube->create();
@@ -322,7 +321,7 @@ TEST_F(CubeTest, MysqlTestIt) {
 
 TEST_F(CubeTest, MysqlTestSort) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, true);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 
   cube->destroy();
   cube->create();
@@ -407,18 +406,17 @@ TEST(Cube,Attach) {
   topo.set_computationid(compID);
   
   jetstream::CubeMeta * cube_meta = topo.add_tocreate();
+  cube_meta->set_name("text");
+
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
   
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
-  dim->set_name("text");
   dim->set_type(Element_ElementType_STRING);
+  dim->set_name("text");  
   
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
   agg->set_name("count");
   agg->set_type("count");
-
-  
-  sc->set_name("test_cube");
   cube_meta->set_name("test_cube");
   cube_meta->set_overwrite_old(true);
 

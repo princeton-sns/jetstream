@@ -24,7 +24,9 @@ public:
 
   virtual void process(boost::shared_ptr<Tuple> t) { insert_entry(*t); }  //inserts a tuple
   
-  DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
+  DataCube(jetstream::CubeSchema _schema, std::string _name) : 
+    schema(_schema), name(_name) {};
+    
   virtual ~DataCube() {}
 
   virtual bool insert_entry(jetstream::Tuple const &t) = 0;
@@ -52,7 +54,7 @@ public:
   }
   
   const jetstream::CubeSchema& get_schema() { return schema; }
-  std::string as_string() { return schema.name(); }
+  std::string as_string() { return name; }
 
 
   /**

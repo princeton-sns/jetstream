@@ -63,8 +63,9 @@ message TaskMeta {
 }
 
 
-message CubeSchema{
-  required string name = 1;    // uniquely identifies the cube
+message CubeSchema {
+//  required string name = 1;    // uniquely identifies the cube
+ //un-needed; this is present in the CubeMeta
 
   message Dimension {
     required string name = 1;

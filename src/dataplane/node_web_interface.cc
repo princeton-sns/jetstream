@@ -75,7 +75,9 @@ NodeWebInterface::process_req(enum mg_event event, struct mg_connection *conn)
 void
 NodeWebInterface::make_base_page(ostream &buf)
 {
-  buf << "<html><title>JetStream Status</title>" << endl;
+  buf << "<html><head><title>JetStream Status</title></head>" << endl;
+  buf << "<body>" << endl;
+
   buf << "<h2>JetStream worker alive</h2>"<< endl ;
   boost::shared_ptr<vector<string> > cubeList = node.cubeMgr.list_cubes();
   
@@ -87,7 +89,7 @@ NodeWebInterface::make_base_page(ostream &buf)
    if (!cube)
     continue; //cube deleted since list created
     
-   buf << "<li><b>" << name << "</b> " + cube->num_leaf_cells() << " cells." << endl;
+   buf << "<li><b>" << name << "</b> " << cube->num_leaf_cells() << " cells." << endl;
 
       //could print schema here
 
@@ -122,7 +124,7 @@ NodeWebInterface::make_base_page(ostream &buf)
    buf << "</li>" << endl;
   }
   
-  buf << "</li>"<<endl;
+  buf << "</ol>"<<endl;
 
   buf << "<p>Operators:</p>" << endl<<"<ol>"<<endl;
 
@@ -132,7 +134,10 @@ NodeWebInterface::make_base_page(ostream &buf)
     const operator_id_t& o_id = oper_it->first;
     shared_ptr<DataPlaneOperator> op = oper_it->second;
     buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b>" << endl;
-    buf << op->get_dest()->as_string();
+    if (op->get_dest())
+      buf << op->get_dest()->as_string();
+    else
+      buf << " (no destination)";
     buf << "</li>";
   }
   
