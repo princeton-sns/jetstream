@@ -18,7 +18,7 @@ void
 FileRead::configure(map<string,string> config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
-    cout << "no file to read, bailing" << endl;
+    LOG(WARNING) << "no file to read, bailing" << endl;
     return;
   }
 }
@@ -56,7 +56,7 @@ void
 FileRead::operator()() {
   ifstream in_file (f_name.c_str());
   if (in_file.fail()) {
-    cout << "could not open file " << f_name.c_str() << endl;
+    LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
     running = false;
     return;
   }
@@ -78,7 +78,7 @@ SendK::configure(std::map<std::string,std::string> config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {
-      cout << "invalid number of tuples: " << config["k"] << endl;
+      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
       return;
     }
   } else {
@@ -142,17 +142,17 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 {
   assert(t);
   if (re.empty()) {
-    cout << "no pattern assigned; did you start the operators in the right order?" << endl;
+    LOG(WARNING) << "no pattern assigned; did you start the operators properly?";
     return;
   }
   if (t->e_size() == 0) {
-    cout << "received empty tuple, ignoring" << endl;
+    LOG(INFO) << "received empty tuple, ignoring" << endl;
     return;
   }
 
   Element* e = t->mutable_e(id);
   if (!e->has_s_val()) {
-    cout << "received tuple but element" << id << " is not string, ignoring" << endl;
+    LOG(WARNING) << "received tuple but element" << id << " is not string, ignoring" << endl;
     return;
   }
   boost::smatch matchResults;
@@ -180,7 +180,7 @@ GenericParse::configure(std::map<std::string,std::string> config) {
   }
   
   if (pattern.length() == 0) {
-    cout << "no regexp pattern specified, bailing" << endl;
+    LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
     return;
   }
 }
