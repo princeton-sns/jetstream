@@ -1,5 +1,5 @@
 #
-# Classes representing a JetStream controller's state, in particular the state of 
+# Classes representing the state of a JetStream controller, in particular the state of 
 # a computation.
 #
 

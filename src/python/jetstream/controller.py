@@ -1,3 +1,12 @@
+#
+# A JetStream controller.
+#
+# Note on threading: Built-in Python structures such as dict and list are themselves
+# thread-safe (at least in CPython with the GIL), but access to the contents of the
+# structures is not. For example, updating the list of workers is safe, but modifying
+# the state of a worker is not (see liveness thread vs. handling heartbeat).
+#
+
 import asyncore
 import asynchat
 
@@ -8,7 +17,6 @@ import subprocess
 import sys
 import threading
 import time
-from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
@@ -18,7 +26,6 @@ from server_http_interface import start_web_interface
 
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
-
 
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
@@ -57,7 +64,8 @@ class Controller (ControllerAPI, JSServer):
     self.hbInterval = hbInterval
     self.running = False
     self.livenessThread = None
-    self.internals_lock = threading.RLock()
+    # Given GIL, coarse-grained locking should be sufficient
+    self.stateLock = threading.RLock()
 
 
   def start (self):
@@ -82,35 +90,31 @@ class Controller (ControllerAPI, JSServer):
 
   def liveness_thread (self):
     while self.running:
+      self.stateLock.acquire()
       for w,s in self.workers.items():
-        # Just delete the node for now, but going forward we'll have to reschedule
-        # computations etc.
+        # TODO: Just delete the node for now, but going forward we'll have to 
+        # reschedule computations etc.
         if s.update_state() == CWorker.DEAD:
           logger.info("marking worker %s:%d as dead due to timeout" % (w[0],w[1]))
+          # This is thread-safe since we are using items() and not an iterator
           del self.workers[w]
+      self.stateLock.release()
           
-      #TODO: Do all workers have the same hb interval? I think yes
+      # All workers reporting to a controller should have the same hb interval
+      # (enforced via common config file)
       time.sleep(self.hbInterval)
 
 
-  ###TODO: Decide whether we need locks for internal datastructure access in methods below.
-    
   def get_nodes (self):
     """Returns a list of Workers"""
-    self.internals_lock.acquire()
     res = []
     res.extend(self.workers.values())
-    self.internals_lock.release()
     return res
 
     
   def get_one_node (self):
-    self.internals_lock.acquire()
     res = self.workers.keys()[0]
-    self.internals_lock.release()
     return res
-
-  ###TODO: See above
 
 
   def serialize_nodeList (self, nodes):
@@ -128,30 +132,27 @@ class Controller (ControllerAPI, JSServer):
     response.type = ControlMessage.NODES_RESPONSE
     response.nodes.extend(self.serialize_nodeList(nodeList))
     response.node_count = len(nodeList)
-    print "server responding to get_nodes with list of length %d" % len(nodeList)
 
     
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
     print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
-    self.internals_lock.acquire()
-    #TODO: Either remove locking above or add add() API
+    self.stateLock.acquire()
     if clientEndpoint not in self.workers:
-      print "Added " + str(clientEndpoint)
+      logger.info("Added worker %s" % (str(clientEndpoint)))
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
-      self.workers[clientEndpoint].receive_hb(hb)
-    else:
-      self.workers[clientEndpoint].receive_hb(hb)
-    self.internals_lock.release()
+    self.workers[clientEndpoint].receive_hb(hb)
+    self.stateLock.release()
 
     
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
     
     if len(self.workers) == 0:
-      print "WARNING: Worker node list on controller is empty!!"
+      errorMsg = "No workers available to deploy the topology"
+      logger.warning(errorMsg)
       response.type = ControlMessage.ERROR
-      response.error_msg.msg = "No workers available to deploy topology"
+      response.error_msg.msg = errorMsg
       return
 
     #TODO: The code below only deals with starting tasks. We also assume the client topology looks
@@ -238,7 +239,9 @@ class Controller (ControllerAPI, JSServer):
       self.handle_heartbeat(req.heartbeat, handler.cli_addr)
       return  # no response
     elif req.type == ControlMessage.OK:
-      print "Received OK response from " + str(handler.cli_addr)
+      # This should not be used
+      logger.fatal("Received dangling OK message from %s" % (str(handler.cli_addr)))
+      assert(false)
       return  # no response
     else:
       response.type = ControlMessage.ERROR
