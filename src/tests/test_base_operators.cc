@@ -23,7 +23,8 @@ TEST(Operator, ReadOperator) {
   config["file"] =  "src/tests/data/base_operators_data.txt";
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   reader.set_dest(rec);
-  reader.start(config);
+  reader.configure(config);
+  reader.start();
   // Wait for reader to process entire file (alternatively, call stop() after a while)
   while (reader.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
@@ -45,7 +46,7 @@ TEST(Operator, GrepOperator)
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   shared_ptr<StringGrep> grepper(new StringGrep);
   grepper->set_dest(rec);
-  grepper->start(config);
+  grepper->configure(config);
 
   {
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -84,6 +85,10 @@ TEST(Operator, OperatorChain)
   // Create a chain of operators that reads lines from a file, filters them, and 
   // stores the results
   FileRead reader;
+  config["file"] = "src/tests/data/base_operators_data.txt";
+  reader.configure(config);
+  config.clear();
+
   shared_ptr<StringGrep> grepper1(new StringGrep);
   shared_ptr<StringGrep> grepper2(new StringGrep);
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
@@ -93,13 +98,12 @@ TEST(Operator, OperatorChain)
   config["pattern"] = "/usr";
   config["id"] = "0";
   re1.assign(config["pattern"]);
-  grepper2->start(config);
+  grepper2->configure(config);
   // Filters comments, i.e. any line that has a '#' in it
   config["pattern"] = "^((?!#).)*$";
   re2.assign(config["pattern"]);
-  grepper1->start(config);
-  config["file"] = "src/tests/data/base_operators_data.txt";
-  reader.start(config);
+  grepper1->configure(config);
+  reader.start();
   // Wait for reader to process entire file (alternatively, call stop() after a while)
   while (reader.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));

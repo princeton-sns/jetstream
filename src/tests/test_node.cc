@@ -53,7 +53,8 @@ TEST(Node, OperatorCreateDestroy)
   ASSERT_TRUE(error == 0);
 
   operator_id_t id(1,2);
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
+  operator_config_t oper_cfg;
+  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id, oper_cfg);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   

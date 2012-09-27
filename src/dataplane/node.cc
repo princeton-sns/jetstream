@@ -298,7 +298,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       << topo.tostart_size() << " operators." <<endl;
 
 
-  map<operator_id_t, map<string, string> > operator_configs;
+  vector<operator_id_t > operators_to_start;
   for (int i=0; i < topo.tostart_size(); ++i) {
     const TaskMeta &task = topo.tostart(i);
     operator_id_t id = unparse_id(task.id());
@@ -308,12 +308,12 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
     }
-    operator_configs[id] = config;
     // Record the outcome of creating the operator in the response message
-    if (create_operator(cmd, id) != NULL) {
+    if (create_operator(cmd, id, config) != NULL) {
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
       started_task->set_op_typename(task.op_typename());
+      operators_to_start.push_back(id);
     } else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
@@ -390,10 +390,13 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
-  map<operator_id_t, map<string,string> >::iterator iter;
-  for (iter = operator_configs.begin(); iter != operator_configs.end(); iter++) {
-    shared_ptr<DataPlaneOperator> op = get_operator(iter->first);
-    op->start(iter->second);
+  vector<operator_id_t >::iterator iter;
+  for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
+    const operator_id_t& name = *iter;
+    shared_ptr<DataPlaneOperator> op = get_operator(name);
+    op->start();
+    dataConnMgr.created_operator(name, op);
+
   }
 
   return response;
@@ -412,21 +415,21 @@ Node::get_operator (operator_id_t name) {
 }
 
 shared_ptr<DataPlaneOperator>
-Node::create_operator (string op_typename, operator_id_t name) 
+Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   d->id() = name;
+  d->configure(cfg);
    //TODO logging
-  /*
+  
   if (d.get() != NULL) {
-    cout << "creating operator of type " << op_typename <<endl;
+    LOG(INFO) << "starting operator " << name << "of type " << op_typename;
+  }
   else 
   {
-    cout <<" failed to create operator. Type was "<<op_typename <<endl;
-  } */
-//  d->operID = name.task_id;
+    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+  }
   operators[name] = d;
-  dataConnMgr.created_operator(name, d);
   return d;
 }
 

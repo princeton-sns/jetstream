@@ -15,12 +15,16 @@ namespace jetstream {
 
 
 void
-FileRead::start(map<string,string> config) {
+FileRead::configure(map<string,string> config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     cout << "no file to read, bailing" << endl;
     return;
   }
+}
+
+void
+FileRead::start() {
   running = true;
   // Pass a reference to this object, otherwise boost makes its own copy (with its 
   // own member variables). Must ensure (*this) doesn't die before the thread exits!
@@ -70,7 +74,7 @@ FileRead::operator()() {
 
 
 void
-SendK::start(std::map<std::string,std::string> config) {
+SendK::configure(std::map<std::string,std::string> config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {
@@ -81,8 +85,12 @@ SendK::start(std::map<std::string,std::string> config) {
     // Send one tuple by default
     k = 1;
   }
-  
-  if (config["send_now"].length() > 0) {
+  send_now = config["send_now"].length() > 0;
+}
+
+void
+SendK::start() {
+  if (send_now) {
     (*this)();
   }
   else {
@@ -118,7 +126,7 @@ SendK::operator()() {
 
 
 void
-StringGrep::start(map<string,string> config) {
+StringGrep::configure(map<string,string> config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> id;
   if (pattern.length() == 0) {
@@ -158,7 +166,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 
 
 void
-GenericParse::start(std::map<std::string,std::string> config) {
+GenericParse::configure(std::map<std::string,std::string> config) {
   string pattern = config["pattern"];
   re.assign(pattern);
   

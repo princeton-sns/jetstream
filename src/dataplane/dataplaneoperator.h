@@ -43,6 +43,9 @@ class TupleReceiver {
   virtual std::string as_string() = 0; //return a description
 };
 
+typedef std::map<std::string,std::string> operator_config_t;
+
+
 
 class DataPlaneOperator : public TupleReceiver {
  private:
@@ -67,6 +70,12 @@ class DataPlaneOperator : public TupleReceiver {
   std::string as_string() { return operID.to_string(); }
 
 
+  /** This method will be called on every operator, before start() and before
+  * any tuples will be received. This method must not block or emit tuples
+  */ 
+  virtual void configure (std::map<std::string, std::string> config) {};
+
+
   /**
    * An operator must not start emitting tuples until start() has been called or
    * until it has received a tuple.
@@ -74,7 +83,8 @@ class DataPlaneOperator : public TupleReceiver {
    * in a source operator, launch a thread to do this).
    * Special dispensation for test code.
    */
-  virtual void start (std::map<std::string, std::string> config) {};
+  virtual void start () {};
+
 
   /**
    * An operator should stop processing tuples before this returns.
