@@ -205,7 +205,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   boost::smatch matchResults;
   bool found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
   if (found) {
-    for (int fld = 1; fld < matchResults.size(); ++ fld) {
+    for (size_t fld = 1; fld < matchResults.size(); ++ fld) {
       string s = matchResults.str(fld);
       char typecode = field_types[fld-1];
       Element * e = t2->add_e();
