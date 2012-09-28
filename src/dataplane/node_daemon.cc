@@ -169,6 +169,7 @@ jsnode_start (NodeConfig &config, char **argv)
   // Create logger first thing
   google::LogToStderr();
   google::InitGoogleLogging(argv[0]);
+  
 
   boost::system::error_code error;
   Node n (config, error);
