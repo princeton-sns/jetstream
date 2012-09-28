@@ -16,46 +16,15 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
     MysqlCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MysqlCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true): cube(cube), res(rs), final(final), num_cells(rs->rowsCount()){};
 
 
-    virtual size_t numCells() {
-      return num_cells;
-    }
+    virtual size_t numCells() ;
 
-    virtual void increment() {
-      if(res && !res->next())
-      {
-        boost::shared_ptr<sql::ResultSet> rs;
-        res=rs; 
-      }
-    }
+    virtual void increment() ;
   
-    virtual bool equal(CubeIteratorImpl const& other) const  {
-      try
-      {
-        MysqlCubeIteratorImpl const& otherm = dynamic_cast<MysqlCubeIteratorImpl const&>(other);
-        if(!res)
-        {
-          return !otherm.res;
-        }
-        return (this->res == otherm.res && this->res->getRow() == otherm.res->getRow());
+    virtual bool equal(CubeIteratorImpl const& other) const ; 
 
-      }
-      catch (const std::bad_cast& e)
-      {
-        return false;
-      }
-    }
+    virtual boost::shared_ptr<jetstream::Tuple> dereference() const; 
 
-    virtual boost::shared_ptr<jetstream::Tuple> dereference() const {
-      if(!res) {
-        boost::shared_ptr<jetstream::Tuple> tup;
-        return tup;
-      }
-      return cube->make_tuple_from_result_set(res, final);
-    }
-
-    static boost::shared_ptr<MysqlCubeIteratorImpl> end() {
-        return MysqlCubeIteratorImpl::impl_end;
-    }
+    static boost::shared_ptr<MysqlCubeIteratorImpl> end(); 
 
   private:
     static boost::shared_ptr<MysqlCubeIteratorImpl> const impl_end;
@@ -65,7 +34,6 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
     size_t const num_cells;
 };
 
-boost::shared_ptr<MysqlCubeIteratorImpl> const MysqlCubeIteratorImpl::impl_end = make_shared<MysqlCubeIteratorImpl>();
 }
 }
 

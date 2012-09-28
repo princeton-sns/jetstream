@@ -1,5 +1,10 @@
 #include <boost/thread/locks.hpp>
+#include "mysql_cube.h"
+
 #include "cube_manager.h"
+#include <boost/regex.hpp>
+
+#include <glog/logging.h>
 
 using namespace boost;
 using namespace jetstream;
@@ -13,12 +18,26 @@ CubeManager::get_cube (const std::string &name)
 }
   
 shared_ptr<DataCube> 
-CubeManager::create_cube (const std::string &name, const CubeSchema &schema) 
-{
+CubeManager::create_cube ( const std::string &name,
+                           const CubeSchema &schema,
+                           bool overwrite_if_present) {
+
+  static const boost::regex NAME_PAT("[a-zA-Z0-9_]+$");
+
+  shared_ptr<DataCube> c;
+  if (!regex_match(name, NAME_PAT)) {
+    LOG(WARNING) << "Invalid cube name caught in dataplane:" <<
+          " should be a valid C identifier but got " << name;
+    return c;
+  }
+
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
-  shared_ptr<DataCube> c (new cube::MysqlCube(schema));
-  put_cube(name, c);
+  
+  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present));
+  c->create();
+  if (c != NULL)
+    put_cube(name, c);
   return c;
 }
 

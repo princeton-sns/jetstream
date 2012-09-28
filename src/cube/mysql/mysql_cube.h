@@ -22,7 +22,14 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
   public:
     friend class MysqlCubeIteratorImpl;
 
-    MysqlCube(jetstream::CubeSchema const _schema, string db_host="localhost", string db_user="root", string db_pass="", string db_name="test_cube", size_t batch=1);
+    MysqlCube (jetstream::CubeSchema const _schema,
+               string _name,
+               bool overwrite_if_present,
+               string db_host="localhost",
+               string db_user="root",
+               string db_pass="",
+               string db_name="test_cube",
+               size_t batch=1);
 
 
     virtual bool insert_entry(jetstream::Tuple const &t);
@@ -47,6 +54,10 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     vector<string> get_aggregate_column_types() const;
 
     void set_batch(size_t numBatch);
+  
+    virtual ~MysqlCube() {
+      if(is_frozen) { destroy(); }
+    }
   
   protected:
 

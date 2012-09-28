@@ -22,38 +22,45 @@ from computation_state import CWorker
 logger = logging.getLogger('JetStream')
 DEFAULT_WORKER_BIND_PORT = 0
 
+
 def main():
-#  Could read config here
-  
+  # Could read config here
   server_address = ('localhost', DEFAULT_BIND_PORT)
   worker_thread = create_worker(server_address)
   print "connected, starting heartbeat thread" 
   worker_thread.heartbeat_thread()
+
  
-def create_worker(server_address, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
-  my_address = ('localhost', DEFAULT_WORKER_BIND_PORT) 
-  cli_loop = Worker(my_address, hbInterval)
-  print "worker bound to " + str(cli_loop.address)
-  cli_loop.connect_to_server(server_address)
-  cli_loop.start_as_thread()
-  return cli_loop
+def create_worker(controllerAddr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
+  myAddr = ('localhost', DEFAULT_WORKER_BIND_PORT) 
+  newWorker = Worker(myAddr, controllerAddr, hbInterval)
+  print "worker bound to " + str(newWorker.address)
+  return newWorker
 
 
 class Worker(JSServer):
   
-  def __init__(self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
+  def __init__(self, addr, controllerAddr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.tasks = {}
+    self.controllerConn = self.connect_to(controllerAddr)
     self.hbInterval = hbInterval
-    self.looping = True
+    self.running = False
     self.hbThread = None
 
+
+  def start(self):
+    self.running = True
+    JSServer.start(self)
+    # Start the heartbeat thread
+    self.start_heartbeat_thread()
+    
+
   def stop(self):
+    self.running = False
     self.stop_heartbeat_thread()
     JSServer.stop(self)
 
-  def connect_to_server(self, server_address):
-    self.connection_to_server = self.connect_to(server_address)
 
   def handle_deploy(self, altertopo):
     #TODO: Assumes operators are all command line execs
@@ -67,6 +74,7 @@ class Worker(JSServer):
         #TODO Add stop() method to operator interface and stop tasks here
         del self.tasks[taskId.task]
 
+
   def process_message(self, buf, handler):
   
     req = ControlMessage()
@@ -75,26 +83,31 @@ class Worker(JSServer):
     if req.type == ControlMessage.ALTER:
       self.handle_deploy(req.alter)
 #    handler.send_pb(response)
+
     
   def start_heartbeat_thread(self):
+    self.running = True
     self.hbThread = threading.Thread(group=None, target=self.heartbeat_thread, args=())
     self.hbThread.daemon = True
     self.hbThread.start()
 
+
   def stop_heartbeat_thread(self):
-    self.looping = False
+    self.running = False
     if (self.hbThread != None) and (self.hbThread.is_alive()):
       self.hbThread.join()
 
+
   def heartbeat_thread(self):
     req = ControlMessage()
-    while self.looping:
+    while self.running:
       print "sending HB"
       req.type = ControlMessage.HEARTBEAT
       req.heartbeat.freemem_mb = 100
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
-      self.connection_to_server.send_pb(req)
+      self.controllerConn.send_pb(req)
       time.sleep(self.hbInterval)
+
 
 if __name__ == '__main__':
   main()

@@ -1,14 +1,14 @@
 #include<iostream>
 #include <gtest/gtest.h>
 
-#include <boost/thread/thread.hpp>
+//#include <boost/thread/thread.hpp>
 #include <boost/date_time.hpp>
 #include <boost/asio.hpp>
 
 #include <netinet/in.h>
 
 #include "node.h"
-#include "operators.h"
+#include "base_operators.h"
 #include "simple_net.h"
 
 
@@ -53,7 +53,8 @@ TEST(Node, OperatorCreateDestroy)
   ASSERT_TRUE(error == 0);
 
   operator_id_t id(1,2);
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
+  operator_config_t oper_cfg;
+  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id, oper_cfg);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   
@@ -114,7 +115,7 @@ TEST(Node,WebIfaceStartStop)
 
 }
 
-
+/*
 class NodeTestThread {
   public:
     NodeConfig& cfg;
@@ -128,7 +129,8 @@ class NodeTestThread {
     void operator()() {
       n->run();
     }
-};
+    
+};*/
 
 
 class NodeNetTest : public ::testing::Test {
@@ -157,11 +159,11 @@ class NodeNetTest : public ::testing::Test {
     NodeConfig cfg;
     cfg.heartbeat_time = 2000;
     cfg.controllers.push_back(p);
-
-    NodeTestThread testThreadBody(cfg);
-    testThread = thread(testThreadBody);
-    // This assignment only works if 'n' is assigned before the constructor returns
-    this->n = testThreadBody.n;
+  
+    boost::system::error_code error;
+    n = shared_ptr<Node>(new Node(cfg, error));
+    EXPECT_TRUE(error == 0);
+    n->start();
     
     boost::system::error_code ec;
     acceptor.accept(cli_socket, ec);
@@ -173,8 +175,10 @@ class NodeNetTest : public ::testing::Test {
     cli_socket.shutdown(tcp::socket::shutdown_both, err);
     cli_socket.close();
     assert(n);
+    cout << "stopping node" << endl;
     n->stop();
     testThread.join();
+    cout << "test runner thread stopped OK" << endl;
   }
 
 };
@@ -188,6 +192,7 @@ TEST_F(NodeNetTest, NetBind)
   boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
   ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
+  cout << "leaving NetBindTest; starting teardown" << endl;
 }
 
 //This test verifies that the Node handles requests properly
@@ -376,7 +381,6 @@ TEST(NodeIntegration, DataplaneConn) {
   shared_ptr<tcp::socket> sockets[2];
   shared_ptr<SimpleNet> connections[2];
   shared_ptr<Node> nodes[2];
-  thread testThreads[2];
 
   ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
   ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
@@ -390,9 +394,12 @@ TEST(NodeIntegration, DataplaneConn) {
   boost::system::error_code err;
 
   for (int i = 0; i < 2; ++i) {
-    NodeTestThread testThreadBody(cfg);
-    testThreads[i] = thread(testThreadBody);
-    nodes[i] = testThreadBody.n;
+
+    boost::system::error_code error;
+    nodes[i] = shared_ptr<Node>(new Node(cfg, error));
+    EXPECT_TRUE(error == 0);
+    nodes[i]->start();
+  
     sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
     acceptor.accept(*sockets[i], err);
     connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
@@ -428,7 +435,10 @@ TEST(NodeIntegration, DataplaneConn) {
   dest_node->set_address("127.0.0.1");
  
   ControlMessage r;
-  nodes[1]->handle_alter(r, topo);
+  nodes[1]->handle_alter(r, topo);  //starting on node 0, ordering it to send to node 1
+  
+  while (nodes[1]->operator_count() == 0)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
@@ -451,6 +461,20 @@ TEST(NodeIntegration, DataplaneConn) {
 
   nodes[0]->stop();
   nodes[1]->stop();
-  testThreads[0].join();
-  testThreads[1].join();
+//  testThreads[0].join();
+//  testThreads[1].join();
+}
+
+TEST(Node,Ctor) {
+  NodeConfig cfg;
+  boost::system::error_code err;
+  Node n(cfg,err);
+}
+
+TEST(Node,BareStop) {
+  NodeConfig cfg;
+  boost::system::error_code err;
+  Node n(cfg,err);
+  n.stop();
+  n.stop();
 }

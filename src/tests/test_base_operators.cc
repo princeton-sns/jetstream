@@ -2,7 +2,7 @@
 *  Tests for various system operators, such as ReadLine
 */
 
-#include "operators.h"
+#include "base_operators.h"
 #include <map>
 #include <iostream>
 #include <boost/thread/thread.hpp>
@@ -23,7 +23,8 @@ TEST(Operator, ReadOperator) {
   config["file"] =  "src/tests/data/base_operators_data.txt";
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   reader.set_dest(rec);
-  reader.start(config);
+  reader.configure(config);
+  reader.start();
   // Wait for reader to process entire file (alternatively, call stop() after a while)
   while (reader.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
@@ -45,7 +46,7 @@ TEST(Operator, GrepOperator)
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   shared_ptr<StringGrep> grepper(new StringGrep);
   grepper->set_dest(rec);
-  grepper->start(config);
+  grepper->configure(config);
 
   {
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -84,6 +85,10 @@ TEST(Operator, OperatorChain)
   // Create a chain of operators that reads lines from a file, filters them, and 
   // stores the results
   FileRead reader;
+  config["file"] = "src/tests/data/base_operators_data.txt";
+  reader.configure(config);
+  config.clear();
+
   shared_ptr<StringGrep> grepper1(new StringGrep);
   shared_ptr<StringGrep> grepper2(new StringGrep);
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
@@ -93,13 +98,12 @@ TEST(Operator, OperatorChain)
   config["pattern"] = "/usr";
   config["id"] = "0";
   re1.assign(config["pattern"]);
-  grepper2->start(config);
+  grepper2->configure(config);
   // Filters comments, i.e. any line that has a '#' in it
   config["pattern"] = "^((?!#).)*$";
   re2.assign(config["pattern"]);
-  grepper1->start(config);
-  config["file"] = "src/tests/data/base_operators_data.txt";
-  reader.start(config);
+  grepper1->configure(config);
+  reader.start();
   // Wait for reader to process entire file (alternatively, call stop() after a while)
   while (reader.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
@@ -116,3 +120,40 @@ TEST(Operator, OperatorChain)
   }
 }
 
+void extend_tuple(Tuple& t, int i) {
+  t.add_e()->set_i_val(i);
+}
+void extend_tuple(Tuple& t, double d) {
+  t.add_e()->set_d_val(d);
+}
+void extend_tuple(Tuple& t, const string& s) {
+  t.add_e()->set_s_val(s);
+}
+
+TEST(Operator,ParseOperator) {
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  GenericParse parse;
+  parse.set_dest(rec);
+  operator_config_t cfg;
+  cfg["pattern"] = "(\\w+) (\\d+)";
+  cfg["field_to_parse"] = "1";
+  cfg["types"] = "Si";
+  parse.configure(cfg);
+  
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 1);
+  extend_tuple(*t, "foo 7");
+  extend_tuple(*t, 1.2);
+  
+  parse.process(t);
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ((size_t)4, result->e_size());
+  ASSERT_EQ(1, result->e(0).i_val());
+  ASSERT_EQ(string("foo"), result->e(1).s_val());
+  ASSERT_EQ(7, result->e(2).i_val());
+  ASSERT_EQ(1.2, result->e(3).d_val());
+  
+  
+  
+}

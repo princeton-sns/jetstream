@@ -40,7 +40,11 @@ class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
   virtual ~TupleReceiver() {}
+  virtual std::string as_string() = 0; //return a description
 };
+
+typedef std::map<std::string,std::string> operator_config_t;
+
 
 
 class DataPlaneOperator : public TupleReceiver {
@@ -60,14 +64,27 @@ class DataPlaneOperator : public TupleReceiver {
   
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+  boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
+  
   operator_id_t & id() {return operID;}
+  std::string as_string() { return operID.to_string(); }
+
+
+  /** This method will be called on every operator, before start() and before
+  * any tuples will be received. This method must not block or emit tuples
+  */ 
+  virtual void configure (std::map<std::string, std::string> &) {};
+
 
   /**
-   * An operator must not start emitting tuples until start() has been called.
-   * This function must not block. If asynchronous processing is required (e.g.,
+   * An operator must not start emitting tuples until start() has been called or
+   * until it has received a tuple.
+   * This function ought not block. If asynchronous processing is required (e.g.,
    * in a source operator, launch a thread to do this).
+   * Special dispensation for test code.
    */
-  virtual void start (std::map<std::string, std::string> config) {};
+  virtual void start () {};
+
 
   /**
    * An operator should stop processing tuples before this returns.

@@ -1,7 +1,7 @@
 #
 # Integration tests spanning the python client/controller and C++ dataplane. These 
 # tests create a python controller, start one or more C++ and/or python workers,
-# and verify that requests (heartbeats, queries) are handled properly.
+# and verify that heartbeats are handled properly.
 #
 
 import random
@@ -23,7 +23,7 @@ class TestController(unittest.TestCase):
 
   def setUp(self):
     self.controller = Controller(('localhost', 0))
-    self.controller.start_as_thread()
+    self.controller.start()
     print "controller bound to %s:%d" % self.controller.address
 
 

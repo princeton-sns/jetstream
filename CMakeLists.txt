@@ -19,7 +19,7 @@ if(USE_CLANG)
 endif(USE_CLANG)
 
 set (CMAKE_VERBOSE_MAKEFILE ON)
-set (BUILD_SHARED_LIBS ON)
+set (BUILD_SHARED_LIBS OFF)
 
 SET (CMAKE_C_FLAGS                "-Wall -Werror -std=c99 -DNO_SSL")
 SET (CMAKE_C_FLAGS_DEBUG          "-g -O0")

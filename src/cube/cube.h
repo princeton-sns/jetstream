@@ -20,10 +20,13 @@ namespace jetstream {
 class DataCube : public TupleReceiver {
   
 public:
+  static unsigned int const LEAF_LEVEL;
 
-  virtual void process(boost::shared_ptr<Tuple> t) {} //inserts a tuple
+  virtual void process(boost::shared_ptr<Tuple> t) { insert_entry(*t); }  //inserts a tuple
   
-  DataCube(jetstream::CubeSchema _schema):schema(_schema), name(_schema.name()){};
+  DataCube(jetstream::CubeSchema _schema, std::string _name) : 
+    schema(_schema), name(_name) {};
+    
   virtual ~DataCube() {}
 
   virtual bool insert_entry(jetstream::Tuple const &t) = 0;
@@ -33,12 +36,26 @@ public:
 
   virtual cube::CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max, bool final = true, std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
   
+ // virtual cube::CubeIterator rollup(jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<unsigned int> const &levels, bool final = true) = 0;
+  
   virtual jetstream::cube::CubeIterator end() const = 0;
 
   virtual size_t num_leaf_cells() const = 0;
   
   virtual void create() = 0;
   virtual void destroy() = 0;
+  
+  Tuple empty_tuple() {
+    Tuple t;
+    for (int i=0; i < schema.dimensions_size(); ++i) {
+      t.add_e();
+    }
+    return t;
+  }
+  
+  const jetstream::CubeSchema& get_schema() { return schema; }
+  std::string as_string() { return name; }
+
 
   /**
   * It's possible to mark a cube as locked. The intended use of this is to allow

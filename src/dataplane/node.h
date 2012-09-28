@@ -29,7 +29,7 @@ class NodeConfig {
   u_int  thread_pool_size;
   NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0), webinterface_port (0),
-    heartbeat_time (0), thread_pool_size (0)
+    heartbeat_time (0), thread_pool_size (1)
     {}
 };
 
@@ -47,7 +47,10 @@ class Node {
   DataplaneConnManager dataConnMgr;
   boost::shared_ptr<ServerConnection> listeningSock;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
-  
+  boost::mutex threadpoolLock; // a mutex to make sure concurrent starts/stops
+            //don't interfere
+  boost::condition_variable startStopCond;
+            
   // I don't think we need this
   //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
   // perhaps we should keep a map from dest to socket instead?
@@ -76,15 +79,24 @@ class Node {
   Node (const NodeConfig &conf, boost::system::error_code &error);
   ~Node ();
 
-  void run ();
+  void start (); //starts and returns after creating threads.
   void stop ();
+  
+  void join ()  {
+     boost::unique_lock<boost::mutex> lock(threadpoolLock);
+     startStopCond.wait(lock);
+  }
 
   boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
   
   boost::shared_ptr<DataPlaneOperator>
-    create_operator (std::string op_typename, operator_id_t name);
+    create_operator (std::string op_typename, operator_id_t, operator_config_t);
     
-  bool stop_operator(operator_id_t name); 
+  bool stop_operator (operator_id_t name);
+  
+  int operator_count () const
+    {return operators.size(); }
+  
     
   boost::shared_ptr<DataCube>
     get_cube (const std::string &name) { return cubeMgr.get_cube(name); }

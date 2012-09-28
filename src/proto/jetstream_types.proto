@@ -1,6 +1,6 @@
 package jetstream;
 
-//option optimize_for = LITE_RUNTIME; //Messages become MessageLite-s
+//option optimize_for = LITE_RUNTIME;  // Messages become MessageLite-s
 
 
 /**
@@ -12,8 +12,9 @@ message NodeID {
   required int32 portno = 2;
 }
 
+
 /**
-* A running task (aka operator). The computationID is globally unique within a
+* The ID of a task (aka operator). The computationID is globally unique within a
 * particular JetStream cluster and identifies the computation or topology to which 
 * this task belongs. The task field is unique within a computation.
 */
@@ -21,6 +22,7 @@ message TaskID {
   required int32 computationID = 1;
   required int32 task = 2;
 }
+
 
 message Element {
   // Keep this type consistent with the optional fields below
@@ -31,23 +33,29 @@ message Element {
   optional int32 t_val = 4;
 }
 
+
 message Dimension {
   required string name = 1;
   required Element.ElementType type = 2;
   optional Element default_val = 3;
 }
 
+
+/**
+* Metadata of a task (aka operator). When used solely to identify the task, only the
+* id field needs to be specified.
+*/
 message TaskMeta {
-  required string op_typename = 1; //type of operator. typically a classname. 
-                                //Note that 'typename' is a C++ keyword.
-  required TaskID id = 2;
+  required TaskID id = 2;           // uniquely identifies the operator
+  required string op_typename = 1;  // type of operator, typically a classname
+                                    // (note that 'typename' is a C++ keyword.
   optional NodeID site = 3;
 
   message DictEntry {
     required string opt_name = 1;
     required string val = 2;
   }
-  repeated DictEntry config= 4; //list of key-value pairs. 
+  repeated DictEntry config = 4;    // list of key-value pairs. 
 
   //TODO: Determine minimal set of attributes client must specify for submitted operators.
   // optional int32 partialAggRatio
@@ -55,8 +63,9 @@ message TaskMeta {
 }
 
 
-message CubeSchema{
-  required string name = 1;
+message CubeSchema {
+//  required string name = 1;    // uniquely identifies the cube
+ //un-needed; this is present in the CubeMeta
 
   message Dimension {
     required string name = 1;
@@ -66,22 +75,31 @@ message CubeSchema{
 
   message Aggregate {
     required string name = 1;
-    required string type = 2; //class name of aggregate type;
+    required string type = 2;  // class name of aggregate type
   }
   repeated Aggregate aggregates = 3;
 }
 
 
+/**
+* Metadata of a cube. When used solely to identify the cube, only the name field needs
+* to be specified.
+*/
 message CubeMeta {
   required string name = 1;
   required CubeSchema schema = 2;
   optional NodeID site = 3;
+  
+  optional bool overwrite_old = 4 [default = false];  
+    // If overwrite_old set to true, cube will be emptied on create; schema will
+    // be changed if table already existed. If set to false, schema will not be
+    // changed. Create will succeed only if existing table has same schema.
 }
+
 
 message Tuple {
  repeated Element e = 1;
 }
-
 
 
 /**
@@ -90,21 +108,29 @@ message Tuple {
 * Cubes are globally visible and are NOT tied to a computation.
 */
 message Edge {
-  required int32 src = 1;
-  required int32 computation = 4; //which computation these operators are in
+  required int32 src = 1;          // operator ID, local
+  required int32 computation = 4;  // which computation the edge is in
 
-  optional int32 dest = 2;   //local dest
-  optional string cube_name = 3;  //cube, local or remote
-  optional NodeID dest_addr = 5;  //dest addr if remote
+  optional int32 dest = 2;         // operator ID, local
+  optional string cube_name = 3;   // cube name, local or remote
+  optional NodeID dest_addr = 5;   // dest address if remote
 }
+
 
 /**
 * An AlterTopo specifies a set of mutations to the operator graph of a single
-* computation. It includes tasks and cubes to start, tasks and cubes to stop, 
-* and edges to add. 
+* computation. 
+*
+* When used as a request, it includes operators and cubes to start, operators and
+* cubes to stop, and edges to add. Since cubes are shared across computations, care 
+* must be taken when starting/stopping them (but the directive should still be
+* associated with a computation ID). 
+* 
+* When used as a response, the AlterTopo message indicates which operators and cubes
+* were successfully started/stopped.
 */
 message AlterTopo {
-  // Using one message per computation ID simplifies our controller logic
+  // Use one computation ID per message
   required int32 computationID = 1;
 
   repeated TaskMeta toStart = 2;
@@ -121,13 +147,15 @@ message AlterTopo {
 message Heartbeat {
   //SS: Consider including an explicit nodeID, in case heartbeats are aggregated/forwarded.
   //required NodeID nodeId = 16;
-  required int32 freemem_mb = 17; //MB of free mem on node
-  required int32 cpuload_pct = 18; //percentage of CPU resources that's free. 
+  required int32 freemem_mb = 17;   // MB of free mem on node
+  required int32 cpuload_pct = 18;  // percentage of CPU resources that's free
 }
+
 
 message Error {
  required string msg = 1;
 }
+
 
 /*** 
 * A message between controller and workers, or from client to controller.
@@ -146,6 +174,7 @@ message ControlMessage {
   repeated NodeID nodes = 7;
    
 }
+
 
 /***
 * "dataplane" message, from worker to worker.

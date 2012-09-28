@@ -36,13 +36,18 @@ class DataplaneConnManager {
  public:
   DataplaneConnManager () {}
  
+ 
+    // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
                           operator_id_t dest_op_id,
                           boost::shared_ptr<DataPlaneOperator> dest);
                      
+
+    // called to attach income connection c to an operator that doesn't yet exist
   void pending_connection (boost::shared_ptr<ClientConnection> c,
                           operator_id_t future_op);
 
+    // called when an operator is created
   void created_operator (operator_id_t opid,
                          boost::shared_ptr<DataPlaneOperator> dest);
                          
@@ -58,7 +63,9 @@ class RemoteDestAdaptor : public TupleReceiver {
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
   bool chainIsReady;
+//  bool stopping;
   operator_id_t destOpId;
+  std::string remoteAddr;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -66,14 +73,20 @@ class RemoteDestAdaptor : public TupleReceiver {
   void conn_ready_cb (const DataplaneMessage &msg,
                       const boost::system::error_code &error);
    
-  static const msec_t wait_for_conn = 2000; //ms
+  static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
   
  public:
-  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) : conn (c), chainIsReady(false) {}
+  //  The below ctor might be useful at some future point, but for now we aren't
+  //    using it and therefore won't have it enabled
+//  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) :
+//      conn (c), chainIsReady(false), stopping(false) {}
+
   RemoteDestAdaptor (ConnectionManager &cm, const jetstream::Edge&);
   virtual ~RemoteDestAdaptor() {}
 
   virtual void process (boost::shared_ptr<Tuple> t);
+  
+  std::string as_string();
 };
 
 

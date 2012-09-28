@@ -169,6 +169,7 @@ jsnode_start (NodeConfig &config, char **argv)
   // Create logger first thing
   google::LogToStderr();
   google::InitGoogleLogging(argv[0]);
+  
 
   boost::system::error_code error;
   Node n (config, error);
@@ -178,8 +179,9 @@ jsnode_start (NodeConfig &config, char **argv)
     return;
   }
 
-  n.run();
-
+  n.start();
+  n.join(); //wait for node to exit
+  
   // Optional:  Delete all global objects allocated by libprotobuf.
   google::protobuf::ShutdownProtobufLibrary();
   LOG(INFO) << "Exiting cleanly" << endl;

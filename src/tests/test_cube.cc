@@ -1,9 +1,8 @@
 #include "cube_manager.h"
-#include "cube.h"
 #include "node.h"
 
 #include "mysql_cube.h"
-#include "mysql/cube_iterator_impl.h"
+#include "cube_iterator_impl.h"
 
 #include <gtest/gtest.h>
 
@@ -16,7 +15,6 @@ class CubeTest : public ::testing::Test {
     virtual void SetUp() {
 
       sc = new jetstream::CubeSchema();
-      sc->set_name("web_requests");
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
@@ -48,7 +46,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 
 
-  MysqlCube * cube = new MysqlCube(*sc);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   vector<std::string> test_strings = cube->get_dimension_column_types();
  
   ASSERT_STREQ("DATETIME",test_strings[0].c_str());
@@ -64,7 +62,7 @@ TEST_F(CubeTest, MysqlTest) {
     cout << test_strings[i] <<endl;
   }*/
 
-  ASSERT_STREQ("CREATE TABLE `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
+  ASSERT_STREQ("CREATE TABLE IF NOT EXISTS `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
 
   cube->destroy();
   cube->create();
@@ -132,7 +130,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(150, answer->e(4).i_val());
   ASSERT_EQ(2, answer->e(5).i_val());
   
-  MysqlCube * cube_batch = new MysqlCube(*sc);
+  MysqlCube * cube_batch = new MysqlCube(*sc, "web_requests", true);
   cube_batch->set_batch(2);
 
   cube_batch->destroy();
@@ -202,7 +200,7 @@ TEST_F(CubeTest, MysqlTest) {
 
 TEST_F(CubeTest, MysqlTestIt) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 
   cube->destroy();
   cube->create();
@@ -322,7 +320,7 @@ TEST_F(CubeTest, MysqlTestIt) {
 
 TEST_F(CubeTest, MysqlTestSort) {
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 
   cube->destroy();
   cube->create();
@@ -407,13 +405,19 @@ TEST(Cube,Attach) {
   topo.set_computationid(compID);
   
   jetstream::CubeMeta * cube_meta = topo.add_tocreate();
+  cube_meta->set_name("text");
+
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
   
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
-  dim->set_name("text");
   dim->set_type(Element_ElementType_STRING);
-  sc->set_name("test cube");
-  cube_meta->set_name("test cube");
+  dim->set_name("text");  
+  
+  jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
+  agg->set_name("count");
+  agg->set_type("count");
+  cube_meta->set_name("test_cube");
+  cube_meta->set_overwrite_old(true);
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
@@ -422,13 +426,17 @@ TEST(Cube,Attach) {
   op_cfg->set_opt_name("k");
   op_cfg->set_val("2");
   
+  op_cfg = task->add_config();
+  op_cfg->set_opt_name("send_now");
+  op_cfg->set_val("true");
+  
   TaskID* id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(1);
   
   Edge * e = topo.add_edges();
   e->set_src(1);
-  e->set_cube_name("test cube");
+  e->set_cube_name("test_cube");
   e->set_computation(compID);
   
 //  cout << topo.Utf8DebugString();
@@ -437,8 +445,19 @@ TEST(Cube,Attach) {
   node.handle_alter(r, topo);
   cout << "alter sent; data should be present" << endl;
   
-  shared_ptr<DataCube> cube = node.get_cube("test cube");
+  shared_ptr<DataCube> cube = node.get_cube("test_cube");
   ASSERT_TRUE( cube );
-  
+  ASSERT_EQ(1, cube->num_leaf_cells());
+  Tuple empty = cube->empty_tuple();
+  cube::CubeIterator it = cube->slice_query(empty, empty);
+  ASSERT_EQ(1, it.numCells());
+  int total_count = 0;
+  shared_ptr<Tuple> t = *it;
+  ASSERT_EQ(2, t->e_size());
+  total_count += t->e(1).i_val();
+
+  ASSERT_EQ(2, total_count);
+  cout << "done"<< endl;
+  node.stop();
  
 }

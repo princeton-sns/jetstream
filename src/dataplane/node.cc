@@ -20,7 +20,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     livenessMgr (iosrv, conf.heartbeat_time),
     webInterface (conf.webinterface_port, *this),
 
-    // XXX This should get set through config files
+    // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
   LOG(INFO) << "creating node" << endl;
@@ -50,14 +50,14 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     (new ServerConnection(iosrv, listen_port, error));
 
   if (error) {
-    LOG(ERROR) << "Node: Error creating server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
     return;
   }
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
 
   if (error) {
-    LOG(ERROR) << "Node: Error accepting server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error accepting server socket: " << error.message() << endl;
     return;
   }
 }
@@ -65,9 +65,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 
 Node::~Node () 
 {
-  if (!iosrv->stopped()) {
-    stop();
-  }
+  stop();
 }
 
 
@@ -76,8 +74,10 @@ Node::~Node ()
 * the node process is terminated.
 */
 void
-Node::run ()
+Node::start ()
 {
+
+  LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
@@ -85,20 +85,25 @@ Node::run ()
   
   webInterface.start();
 
-  // Wait for all threads in pool to exit
-  for (u_int i=0; i < threads.size(); i++)
-    threads[i]->join();
+//  iosrv->run();
 
-  iosrv->run();
-
-  VLOG(1) << "Finished node::run" << endl;
-  LOG(INFO) << "Finished node::run" << endl;
+//  VLOG(1) << "Finished node::run" << endl;
+//  LOG(INFO) << "Finished node::run" << endl;
 }
 
 
 void
 Node::stop ()
 {
+  unique_lock<boost::mutex> lock(threadpoolLock);
+  
+  if (iosrv->stopped()) {  //use the io serv as a marker for already-stopped
+    VLOG(1) << "Node was stopped twice; suppressing";
+    return;
+  }
+
+  
+
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   for (u_int i = 0; i < controllers.size(); ++i) {
@@ -106,6 +111,8 @@ Node::stop ()
   }
   
   iosrv->stop();
+  LOG(INFO) << "io service stopped" << endl;
+  
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
 
@@ -115,11 +122,22 @@ Node::stop ()
   for (iter = operators.begin(); iter != operators.end(); iter++) {
     iter->second->stop();
   }
-  //  LOG(INFO) << "io service stopped" << endl;
-
+  
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
   //  google::protobuf::ShutdownProtobufLibrary();
+
+  // Wait for all threads in pool to exit; this only happens when the io service
+  //  is stopped.
+  while (threads.size() > 0 ) {
+    threads.back()->join();
+    threads.pop_back();
+    LOG(INFO) << "joined thread " << threads.size();
+  }
+
+  operators.empty(); //remove pointers, AFTER the threads stop.
+  
+  startStopCond.notify_all();
 
   LOG(INFO) << "Finished node::stop" << endl;
 }
@@ -130,15 +148,13 @@ Node::controller_connected (shared_ptr<ClientConnection> conn,
 			    boost::system::error_code error)
 {
   if (error) {
-    LOG(WARNING) << "Node: Monitoring connection failed "
-                 << error.message() << endl;
+    LOG(WARNING) << "Monitoring connection failed: " << error.message();
     return;
   }
 
   controllers.push_back(conn);
 
-  LOG(INFO) << "Node: Connected to controller: " 
-	    << conn->get_remote_endpoint() << endl;
+  LOG(INFO) << "Connected to controller: " << conn->get_remote_endpoint();
   livenessMgr.start_notifications(conn);
 
   // Start listening on messages from controller
@@ -164,7 +180,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
       conn->send_msg(response, send_error);
 
       if (send_error != boost::system::errc::success) {
-        LOG(WARNING) << "Node: failure sending response: " << send_error.message() << endl;
+        LOG(WARNING) << "Failure sending response: " << send_error.message() << endl;
       }
         
       break;
@@ -186,14 +202,14 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
 {
   if (error) {
     if (!iosrv->stopped())
-      LOG(WARNING) << "error receiving incoming connection: " << error.value()
+      LOG(WARNING) << "Error receiving incoming connection: " << error.value()
 		   << "(" << error.message() << ")" << endl;
     return;
   }
   boost::system::error_code e;
   
   // Need to convert the connected socket to a client_connection
-  LOG(INFO) << "incoming dataplane connection received ok";
+  LOG(INFO) << "Incoming dataplane connection received ok";
   
   boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
@@ -212,7 +228,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
 {
   boost::system::error_code send_error;
 
-  VLOG(1) << "node received data message of type " << msg.type();
+  VLOG(1) << "Received data message of type " << msg.type();
 
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
@@ -250,7 +266,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
     break;
   default:
      // Everything else is an error
-     LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
+     LOG(WARNING) << "Unexpected dataplane message: " << msg.type() << 
         " from " << c->get_remote_endpoint();
         
      break;
@@ -270,12 +286,19 @@ unparse_id (const TaskID& id) {
 ControlMessage
 Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 {
+  // Create a response indicating which operators and cubes were successfully
+  // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
 
-  cout << topo.Utf8DebugString() << endl;
-  map<operator_id_t, map<string, string> > operator_configs;
+  VLOG(1) << topo.Utf8DebugString() << endl;
+
+  LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
+      << topo.tostart_size() << " operators." <<endl;
+
+
+  vector<operator_id_t > operators_to_start;
   for (int i=0; i < topo.tostart_size(); ++i) {
     const TaskMeta &task = topo.tostart(i);
     operator_id_t id = unparse_id(task.id());
@@ -285,37 +308,50 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
     }
-    operator_configs[id] = config;
-    if (create_operator(cmd, id) != NULL) {
-      respTopo->add_tostart()->CopyFrom(task);
+    // Record the outcome of creating the operator in the response message
+    if (create_operator(cmd, id, config) != NULL) {
+      TaskMeta *started_task = respTopo->add_tostart();
+      started_task->mutable_id()->CopyFrom(task.id());
+      started_task->set_op_typename(task.op_typename());
+      operators_to_start.push_back(id);
     } else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
   }
-  cout << "request to create " << topo.tocreate_size() << " cubes" <<endl;
+
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
-    if (cubeMgr.create_cube(task.name(), task.schema()) != NULL) {
+    // Record the outcome of creating the cube in the response message
+    if (cubeMgr.create_cube(task.name(), task.schema(), task.overwrite_old()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
-      respTopo->add_tocreate()->CopyFrom(task);
+      CubeMeta *created = respTopo->add_tocreate();
+      created->CopyFrom(task);
     } else {
       LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
       respTopo->add_cubestostop(task.name());
     }
   }
-    // Stop operators if need be
+
+  // Stop operators if need be
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
-    LOG(INFO) << "stopping " << id << " due to server request";
+    LOG(INFO) << "Stopping " << id << " due to server request";
     stop_operator(id);
     // TODO: Should we log whether the stop happened?
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
-    
-    
   }
   
-  //TODO remove cubes if specified.
+  // Remove cubes if specified.
+  for (int i=0; i < topo.cubestostop_size(); ++i) {
+    string id = topo.cubestostop(i);
+    LOG(INFO) << "Closing cube " << id << " due to server request";
+    cubeMgr.destroy_cube(id); //Note that this disconnects the cube and marks it
+        // as locked. It doesn't actually delete the cube in memory.
+        
+    // TODO: Should we log whether the stop happened correctly?
+  }
+
   
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
@@ -354,10 +390,13 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
-  map<operator_id_t, map<string,string> >::iterator iter;
-  for (iter = operator_configs.begin(); iter != operator_configs.end(); iter++) {
-    shared_ptr<DataPlaneOperator> op = get_operator(iter->first);
-    op->start(iter->second);
+  vector<operator_id_t >::iterator iter;
+  for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
+    const operator_id_t& name = *iter;
+    shared_ptr<DataPlaneOperator> op = get_operator(name);
+    op->start();
+    dataConnMgr.created_operator(name, op);
+
   }
 
   return response;
@@ -376,19 +415,20 @@ Node::get_operator (operator_id_t name) {
 }
 
 shared_ptr<DataPlaneOperator>
-Node::create_operator (string op_typename, operator_id_t name) 
+Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   d->id() = name;
+  d->configure(cfg);
    //TODO logging
-  /*
+  
   if (d.get() != NULL) {
-    cout << "creating operator of type " << op_typename <<endl;
+    LOG(INFO) << "starting operator " << name << "of type " << op_typename;
+  }
   else 
   {
-    cout <<" failed to create operator. Type was "<<op_typename <<endl;
-  } */
-//  d->operID = name.task_id;
+    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+  }
   operators[name] = d;
   return d;
 }

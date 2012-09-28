@@ -20,14 +20,16 @@ ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
     sock->open(tcp::v6(), error);
   else
     error = asio::error::address_family_not_supported;
+  VLOG(1) << "Client connection via endpoint ctor";
 }
 
 
 ClientConnection::ClientConnection(boost::shared_ptr<ConnectedSocket> s)
-  : connected (true), iosrv (s->get_iosrv()),
-    remote (s->get_remote_endpoint()), timer (*iosrv),
+  : connected (true), iosrv (s->get_iosrv()), sock(s->sock),
+    remote (s->get_remote_endpoint()), timer (*iosrv),  
     connSock (s)
 {
+  VLOG(1) << "Client connection via connectedSocket ctor";
 }
 
 
@@ -66,12 +68,11 @@ ClientConnection::connect_cb (cb_err_t cb,
 
   if (error)
     close();
-  else
+  else {
+    shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
+    connSock = cs;
     connected = true;
-
-  shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
-  connSock = cs;
-
+  }
   cb(error);
 }
 

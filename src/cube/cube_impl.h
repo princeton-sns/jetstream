@@ -19,14 +19,14 @@ template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=je
 class DataCubeImpl : public DataCube {
   public:
   
-  DataCubeImpl(jetstream::CubeSchema _schema): DataCube(_schema) {
+  DataCubeImpl(jetstream::CubeSchema _schema, std::string n): DataCube(_schema, n) {
       build(_schema);
     }
 
     virtual void build(jetstream::CubeSchema _schema)  {
 
       //TODO: verify name is lowercase, _, no spaces.
-      name = _schema.name();
+//      name = _schema.name();
       shared_ptr<CubeDimension> ptr_dim;
       shared_ptr<CubeAggregate> ptr_agg;
       for (int i = 0; i < _schema.dimensions_size(); i++) {

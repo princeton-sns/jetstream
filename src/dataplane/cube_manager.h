@@ -9,7 +9,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <map>
-#include "mysql_cube.h"
 #include "cube.h"
 
 namespace jetstream {
@@ -27,7 +26,10 @@ class CubeManager {
  public:
   CubeManager () {}
 
-  boost::shared_ptr<DataCube> create_cube (const std::string &name, const CubeSchema &schema);
+  boost::shared_ptr<DataCube> create_cube (const std::string &name,
+                                           const CubeSchema &schema,
+                                           bool overwrite_if_present);
+  
   boost::shared_ptr<DataCube> get_cube (const std::string &name);
   void put_cube (const std::string &name, boost::shared_ptr<DataCube> c);
   void destroy_cube (const std::string &name);

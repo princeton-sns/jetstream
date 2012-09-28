@@ -9,3 +9,4 @@
 #   -- CMAKE (2.x?)
 #   -- Google Glog (0.3.2+)  Can be installed as google-glog via macports.
 
+We currently also require the Oracle MySQL Connector/C++.  NOTE THAT THIS IS UNDER GPL (v2)!!

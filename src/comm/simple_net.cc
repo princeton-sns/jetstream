@@ -62,9 +62,6 @@ SimpleNet::send_msg(google::protobuf::MessageLite& m)
   memcpy(msg, &len_nbo, HEADER_LEN);
   m.SerializeToArray((msg + HEADER_LEN), sz);
 
-  //  std::cout << "synchronous send. First bytes of mock data: " <<
-  //     ((int*) msg)[1] << std::endl;
-
   sock.send(boost::asio::buffer(msg, nbytes));
   delete msg;
 }

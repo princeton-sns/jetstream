@@ -21,13 +21,11 @@ class TestWorker(unittest.TestCase):
     
   def test_connect(self):
     server = get_server_on_this_node()
-    server.start_as_thread()
+    server.start()
     
     time.sleep(1)
     worker = create_worker(server.address)
-    
-    time.sleep(1) #wait for connect to server to be ready before we start beating
-    worker.start_heartbeat_thread()
+    worker.start()
     
 #    while True:
 #      print "main thread is pausing..."

@@ -1,14 +1,23 @@
+#
+# A JetStream controller.
+#
+# Note on threading: Built-in Python structures such as dict and list are themselves
+# thread-safe (at least in CPython with the GIL), but access to the contents of the
+# structures is not. For example, updating the list of workers is safe, but modifying
+# the state of a worker is not (see liveness thread vs. handling heartbeat).
+#
+
 import asyncore
 import asynchat
 
 import logging
+import re
 import socket
 import struct
 import subprocess
 import sys
 import threading
 import time
-from collections import namedtuple
 
 from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
@@ -18,7 +27,6 @@ from server_http_interface import start_web_interface
 
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
-
 
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
@@ -51,12 +59,28 @@ class Controller (ControllerAPI, JSServer):
   """A JetStream controller"""
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
-    JSServer.__init__(self, addr)
+    JSServer.__init__ (self, addr)
     self.workers = {}
     self.computations = {}
-    self.livenessThread = None
     self.hbInterval = hbInterval
-    self.internals_lock = threading.RLock()
+    self.running = False
+    self.livenessThread = None
+    # Given GIL, coarse-grained locking should be sufficient
+    self.stateLock = threading.RLock()
+
+
+  def start (self):
+    self.running = True
+    JSServer.start(self)
+    # Start the liveness thread
+    self.start_liveness_thread()
+
+
+  def stop (self):
+    self.running = False
+    if self.livenessThread:
+      self.livenessThread.join()
+    JSServer.stop(self)
 
 
   def start_liveness_thread (self):
@@ -67,35 +91,32 @@ class Controller (ControllerAPI, JSServer):
 
 
   def liveness_thread (self):
-    while len(self.workers) > 0:
+    while self.running:
+      self.stateLock.acquire()
       for w,s in self.workers.items():
-        # Just delete the node for now, but going forward we'll have to reschedule
-        # computations etc.
+        # TODO: Just delete the node for now, but going forward we'll have to 
+        # reschedule computations etc.
         if s.update_state() == CWorker.DEAD:
           logger.info("marking worker %s:%d as dead due to timeout" % (w[0],w[1]))
+          # This is thread-safe since we are using items() and not an iterator
           del self.workers[w]
-      #TODO: Do all workers have the same hb interval?
+      self.stateLock.release()
+          
+      # All workers reporting to a controller should have the same hb interval
+      # (enforced via common config file)
       time.sleep(self.hbInterval)
 
 
-  ###TODO: Decide whether we need locks for internal datastructure access in methods below.
-    
   def get_nodes (self):
     """Returns a list of Workers"""
-    self.internals_lock.acquire()
     res = []
     res.extend(self.workers.values())
-    self.internals_lock.release()
     return res
 
     
   def get_one_node (self):
-    self.internals_lock.acquire()
     res = self.workers.keys()[0]
-    self.internals_lock.release()
     return res
-
-  ###TODO: See above
 
 
   def serialize_nodeList (self, nodes):
@@ -113,41 +134,63 @@ class Controller (ControllerAPI, JSServer):
     response.type = ControlMessage.NODES_RESPONSE
     response.nodes.extend(self.serialize_nodeList(nodeList))
     response.node_count = len(nodeList)
-    print "server responding to get_nodes with list of length %d" % len(nodeList)
 
     
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
     print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
-    #print hb
-    #print ""
-    self.internals_lock.acquire()
-    #TODO: Either remove locking above or add add() API
+    self.stateLock.acquire()
     if clientEndpoint not in self.workers:
-      print "Added " + str(clientEndpoint)
+      logger.info("Added worker %s" % (str(clientEndpoint)))
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
-      self.workers[clientEndpoint].receive_hb(hb)
-      # If this is the first worker, start the liveness thread
-      if len(self.workers) == 1:
-        # Make sure a previous instantiation of the thread has stopped
-        if (self.livenessThread != None) and (self.livenessThread.is_alive()):
-          self.livenessThread.join()
-        self.livenessThread = None
-        self.start_liveness_thread()
-    else:
-      self.workers[clientEndpoint].receive_hb(hb)
-    self.internals_lock.release()
+    self.workers[clientEndpoint].receive_hb(hb)
+    self.stateLock.release()
 
+  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
+  def validate_topo(self,altertopo):
+    """Validates a topology. Should return an empty string if valid, else an error message."""
+    
+    #Organization of this method is parallel to the altertopo structure.
+  # First verify top-level metadata. Then operators, then cubes.
+    if altertopo.computationID in self.computations:
+      return "computation ID %d already in use" % altertopo.computationID
+
+    if len(altertopo.toStart) == 0:
+      return "Topology includes no operators"
+
+#  Can't really do this verification -- breaks with UDFs
+#    for operator in altertopo.toStart:
+#      if not operator.op_typename in KNOWN_OP_TYPES:
+#        print "WARNING: unknown operator type KNOWN_OP_TYPES"
+      
+    for cube in altertopo.toCreate:
+      if not self.CUBE_NAME_PAT.match(cube.name):
+        return "invalid cube name %s" % cube.name
+      if len(cube.schema.aggregates) == 0:
+        return "cubes must have at least one aggregate per cell"
+      if len(cube.schema.dimensions) == 0:
+        return "cubes must have at least one dimension"
+
+    return ""
+    
     
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
     
     if len(self.workers) == 0:
-      print "WARNING: Worker node list on controller is empty!!"
+      errorMsg = "No workers available to deploy the topology"
+      logger.warning(errorMsg)
       response.type = ControlMessage.ERROR
-      response.error_msg.msg = "No workers available to deploy topology"
-      return
+      response.error_msg.msg = errorMsg
+      return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
+    err = self.validate_topo(altertopo)
+    if len(err) > 0:
+      print "Invalid topology:",err
+      response.type = ControlMessage.ERROR
+      response.error_msg.msg = err
+      return
+      
     #TODO: The code below only deals with starting tasks. We also assume the client topology looks
     #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
 
@@ -155,9 +198,7 @@ class Controller (ControllerAPI, JSServer):
     #taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
 
     # Set up the computation
-    assert(len(altertopo.toStart) > 0)
     compID = altertopo.computationID
-    assert(compID not in self.computations)
     comp = Computation(self, compID)
     self.computations[compID] = comp
 
@@ -232,7 +273,9 @@ class Controller (ControllerAPI, JSServer):
       self.handle_heartbeat(req.heartbeat, handler.cli_addr)
       return  # no response
     elif req.type == ControlMessage.OK:
-      print "Received OK response from " + str(handler.cli_addr)
+      # This should not be used
+      logger.fatal("Received dangling OK message from %s" % (str(handler.cli_addr)))
+      assert(false)
       return  # no response
     else:
       response.type = ControlMessage.ERROR

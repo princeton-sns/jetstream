@@ -31,6 +31,12 @@ class LivenessManager {
     void send_notification (const boost::system::error_code &error);
     void stop_notify ();
     bool is_connected () const { return (conn && conn->is_connected()); }
+    
+  
+    std::string conn_debug_str() {
+      return (is_connected() ? conn->get_fourtuple() : " unbound connection ");
+    }
+    
   };
 
   // Map on connection four-tuple as key

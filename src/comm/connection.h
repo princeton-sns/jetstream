@@ -58,7 +58,10 @@ class ServerConnection {
   void close ();
 };
 
-
+/**
+ *  Represents a connection, either pending or already created. If and only if
+ *   the connection is fully initialized, connSock will be defined.
+ */
 class ClientConnection {
  protected:
   bool connected;
@@ -91,11 +94,13 @@ class ClientConnection {
   { return remote; }
   boost::asio::ip::tcp::endpoint get_local_endpoint () const 
   { return connSock->get_local_endpoint (); }
-  std::string get_fourtuple () const
-  { return connSock->get_fourtuple(); }
+  std::string get_fourtuple () const  //NOT SAFE TO CALL IF CONNECTION ISN'T UP
+  { assert(connected);  return connSock->get_fourtuple(); }
 
   void connect (msec_t timeout, cb_err_t cb);
-  bool is_connected () const { return connected; }
+  bool is_connected () const
+  { assert ( !connected || (connSock != NULL) ); return connected; }
+  
   void close ();
 
   // Underlying use of async writes are thread safe
