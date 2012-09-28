@@ -7,6 +7,7 @@
 #include <boost/tokenizer.hpp>
 	
 #include "mysql_connection.h"
+#include "mysql_driver.h"
 	
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
@@ -122,7 +123,7 @@ int main(int argc, const char **argv)
 
 
   try {
-    sql::Driver * driver = get_driver_instance();
+    sql::Driver * driver = sql::mysql::get_driver_instance();
     sql::Statement *stmt;
     std::auto_ptr<sql::Connection > con(driver->connect(url, user, pass));
     con->setSchema(database);

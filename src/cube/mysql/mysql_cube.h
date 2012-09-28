@@ -7,6 +7,7 @@
 #include "aggregate.h"
 #include <boost/algorithm/string/join.hpp>
 
+#include "mysql_driver.h"
 #include "mysql_connection.h"
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
