@@ -31,7 +31,7 @@ class TestLocalController(unittest.TestCase):
     n = self.server.get_a_node()
     g = OperatorGraph()
     op = g.operator(Operators.UNIX, "cat /etc/shells")
-    cube = g.cube("storeddata", "presumbably a schema goes here")
+    cube = g.cube("storeddata", {})
     g.connect(op, cube)
     cube.instantiate_on(n)
     self.assertTrue( cube.get_name().endswith("/storeddata"))
@@ -50,7 +50,7 @@ class TestLocalController(unittest.TestCase):
   def test_clone_back(self):
     g = OperatorGraph()
     op = g.operator(Operators.UNIX, "cat /etc/shells")
-    cube = g.cube("storeddata", "presumbably a schema goes here")
+    cube = g.cube("storeddata", {})
     g.connect(op, cube)
     self.assertEquals(g.opID, 3)
     g.clone_back_from(cube, 1)
@@ -72,7 +72,7 @@ class TestLocalController(unittest.TestCase):
     
     g = OperatorGraph()
     op = g.operator(Operators.UNIX, "cat /etc/shells")
-    cube = g.cube("storeddata", "presumbably a schema goes here")
+    cube = g.cube("storeddata", {})
     g.connect(op, cube)
     
     cube.instantiate_on([n, n2])

@@ -24,7 +24,7 @@ class OperatorGraph(object):
     self.opID += 1
     return o  
     
-  def cube(self, name, desc):
+  def cube(self, name, desc = {}):
     """Add a cube to the graph"""
     o = Cube(self, name, desc, self.opID)
     self.cubes[self.opID] = o
@@ -40,13 +40,13 @@ class OperatorGraph(object):
     for e in self.edges:
       pb_e = alter.edges.add()
       pb_e.computation = 0
-      if e[0] in operators:
+      if e[0] in self.operators:
         pb_e.src = e[0]
-        if e[1] in operators:
+        if e[1] in self.operators:
           pb_e.dest = e[1]
         else:
-          assert(e[1] in cubes)
-          pb_e.cube_name = cubes[e[1]].name
+          assert(e[1] in self.cubes)
+          pb_e.cube_name = self.cubes[e[1]].name
       else:
         raise "haven't implemented out-edges from cubes"
     
@@ -84,7 +84,9 @@ class OperatorGraph(object):
 
   def copy_dest(self, dest):
     if isinstance(dest,Operator):
-      return self.operator(dest.type, dest.cfg)
+      new_cfg = {}
+      new_cfg.update(dest.cfg)
+      return self.operator(dest.type, new_cfg)
     elif isinstance(dest,Cube):
       return self.cube(dest.name, dest.desc)
     else:
@@ -137,13 +139,12 @@ class Operator(Destination):
     
 
   def add_to_PB(self, alter):
-     task_meta = alter.toCreate.add()
+     task_meta = alter.toStart.add()
      task_meta.id.computationID = 0 #filled in by controller
      task_meta.id.task = self.id
      task_meta.op_typename = self.type
      if self._location is not None:
-       task_meta.site.address = self._location[0]
-       task_meta.site.portno = self._location[1]
+       task_meta.site.CopyFrom(self._location)
      for opt,val in self.cfg.items():
        d_entry = task_meta.config.add()
        d_entry.opt_name = opt
@@ -151,14 +152,42 @@ class Operator(Destination):
      
 
 class Cube(Destination):
+  
+  STRING = "string"
+  COUNT = "count"
 
   def __init__(self, graph, name, desc, id):
     super(Cube,self).__init__(graph, id)
     self.name = name
-    self.desc = desc
+    self.desc = {}
+    self.desc.update(desc)
+    if 'dims' not in self.desc:
+      self.desc['dims'] = []
+    if 'aggs' not in self.desc:
+      self.desc['aggs'] = []
+
+
+  def add_dim(self, dim_name, dim_type):
+    self.desc['dims'].append(  (dim_name, dim_type) )
+
+  def add_agg(self, a_name, a_type):
+    self.desc['aggs'].append(  (a_name, a_type) )
 
   def add_to_PB(self, alter):
-    raise "unimplemented"
+    c_meta = alter.toCreate.add()
+    c_meta.name = self.name
+    if self._location is not None:
+      c_meta.site.CopyFrom(self._location)
+    
+    for (name,type) in self.desc['dims']:    
+      d = c_meta.schema.dimensions.add()
+      d.name = name
+      d.type = type
+    for (name,type) in self.desc['aggs']:    
+      d = c_meta.schema.aggregates.add()
+      d.name = name
+      d.type = type
+      
      
   def get_name(self):
     if self._location is not None:
@@ -167,6 +196,12 @@ class Cube(Destination):
       return self.name
 
 
-def ReadOperator(graph, file):
+def FileRead(graph, file):
    cfg = {"file":file}
    return graph.operator("FileRead", cfg)  
+   
+
+
+def StringGrep(graph, pattern):
+   cfg = {"pattern":pattern}
+   return graph.operator("StringGrep", cfg)  
