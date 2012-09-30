@@ -3,10 +3,12 @@
 # http://www.cmake.org/cmake/help/cmake_tutorial.html
 
 cmake_minimum_required (VERSION 2.4)
+cmake_policy(SET CMP0003 NEW)
 
 # Add Compiler Definitions.  Must be done before project or language set.
 
 option(USE_CLANG "build application with clang" ON)
+option(FULL_STATIC "build application maximally statically" OFF)
 
 if(USE_CLANG)
     SET (CMAKE_C_COMPILER             "/usr/bin/clang")
@@ -19,7 +21,16 @@ if(USE_CLANG)
 endif(USE_CLANG)
 
 set (CMAKE_VERBOSE_MAKEFILE ON)
-set (BUILD_SHARED_LIBS OFF)
+
+if (FULL_STATIC)
+    set (BUILD_SHARED_LIBS OFF)
+    message (STATUS "library suffixes were ${CMAKE_FIND_LIBRARY_SUFFIXES} now .a;.so")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a;.so)
+    set(Boost_USE_STATIC_LIBS ON)
+else (FULL_STATIC)
+    set (BUILD_SHARED_LIBS ON)
+    set(Boost_USE_STATIC_LIBS OFF)
+endif (FULL_STATIC)
 
 SET (CMAKE_C_FLAGS                "-Wall -Werror -std=c99 -DNO_SSL")
 SET (CMAKE_C_FLAGS_DEBUG          "-g -O0")
@@ -64,6 +75,11 @@ if (APPLE)
   set (Boost_USE_MULTITHREADED ON) 
 endif ()
 include_directories (${Boost_INCLUDE_DIRS})
+
+#hack because something messes up the suffixes
+if (FULL_STATIC)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a;.so)
+endif (FULL_STATIC)
 
 # Require ProtoBufs
 include (FindProtobuf)
@@ -150,6 +166,7 @@ message (STATUS "Linking libraries ${LIBRARIES}")
 set (JSNODED jsnoded)
 
 add_executable (${JSNODED} ${SRC_DIR}/dataplane/node_daemon.cc)
+target_link_libraries (${JSNODED} ${CMAKE_DL_LIBS})
 add_dependencies (${JSNODED} jsproto) #A js-specific entry to add our protobuf generated code
 target_link_libraries (${JSNODED} ${LIBRARIES})
 
@@ -164,6 +181,7 @@ file (GLOB_RECURSE TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/test_*.cc")
 set (TESTS ${SRC_DIR}/js_unit_tests.cc ${TESTS})
 
 add_executable (js_unit_tests ${TESTS})
+target_link_libraries (js_unit_tests ${CMAKE_DL_LIBS})
 target_link_libraries (js_unit_tests ${LIBRARIES})
 target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
 
