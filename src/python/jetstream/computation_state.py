@@ -4,6 +4,7 @@
 #
 
 import time
+import types
 
 from jetstream_types_pb2 import *
 
@@ -18,9 +19,9 @@ class WorkerAssignment (object):
   def __init__ (self, compID, operators=None, cubes=None):
     self.compID = compID
     self.state = WorkerAssignment.STOPPED
+      #lists of protobuf items
     self.operators = operators if operators is not None else []
     self.cubes = cubes if cubes is not None else []
-
 
   def __eq__ (self, other):
     if isinstance(other, WorkerAssignment):
@@ -91,17 +92,25 @@ class CWorker (object):
 class Computation (object):
   """Controller's view of a computation"""
 
-  def __init__ (self, controller, compID, opGraph=None):
+  def __init__ (self, controller, compID): #, opGraph=None):
     # Save the controller interface so we can communicate with workers
     self.controller = controller
     self.compID = compID
-    self.opGraph = opGraph
+#    self.opGraph = opGraph   #unused
     # Maps a worker endpoint to an assignment
-    self.workerAssignments = {}
+    self.workerAssignments = {} #worker ID to WorkerAssignment object
+    self.taskLocations = {} #maps operator ID or cube name to host,port pair
+          # operator IDs are just ints for now.
+    self.outEdges = {} #map from operator ID to destination.
+          # right now dest is just an operator ID but might become an optional list.
 
 
   def assign_worker (self, endpoint, assignment):
     assert(endpoint not in self.workerAssignments)
+    for task in assignment.operators:
+      self.taskLocations[task.id.task] = endpoint
+    for cube in assignment.cubes:
+      self.taskLocations[str(cube.name)] = endpoint
     self.workerAssignments[endpoint] = assignment
 
 
@@ -116,17 +125,57 @@ class Computation (object):
       #TODO Handle failed assignment here
       
 
+  def add_edges(self, edgeList):
+    for edge in edgeList:
+      if edge.src not in self.taskLocations:
+        print "unknown source %s" % str(edge.src)
+        raise UserException("Edge from nonexistent source")
+      dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+      self.outEdges[edge.src] = dest
+
   def start (self):
     # Start each worker's assignment
     for worker in self.workerAssignments.keys():
-      req = ControlMessage()
-      req.type = ControlMessage.ALTER
-      req.alter.computationID = self.compID
-      req.alter.toStart.extend(self.workerAssignments[worker].operators)
-      req.alter.toCreate.extend(self.workerAssignments[worker].cubes)
+      req = self.get_worker_pb(worker)            
       h = self.controller.connect_to(worker)
-      h.send_pb(req)
+      h.send_pb(req)   #send without waiting for response; we'll get those in the main
+          # network message handler
 
+
+  def get_worker_pb(self, workerID):
+    """Returns the control message to start the portion of this computation on worker 
+    with id workerID"""
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER
+    req.alter.computationID = self.compID
+    req.alter.toStart.extend(self.workerAssignments[workerID].operators)
+    req.alter.toCreate.extend(self.workerAssignments[workerID].cubes)
+    
+    print self.taskLocations
+      #now the edges
+    for operator in self.workerAssignments[workerID].operators:
+      tid = operator.id.task
+      if tid in self.outEdges: #operator has a link to next
+        destID = self.outEdges[tid]
+        pb_e = req.alter.edges.add()
+        pb_e.src = tid
+        pb_e.computation = self.compID
+        
+        dest_host = self.taskLocations[destID]
+
+        if type(destID) == types.StringType:
+          pb_e.cube_name = destID
+        elif type(destID) == types.IntType:
+          pb_e.dest = destID
+        else:
+          print "no such task: %s of type %s" % (str(destID), str(type(destID)))
+          assert False           
+
+        if dest_host != workerID:
+          pb_e.dest_addr.address = dest_host[0]
+          pb_e.dest_addr.portno = dest_host[1]
+          
+    return req
 
   def stop (self):
     # Stop each worker's assignment

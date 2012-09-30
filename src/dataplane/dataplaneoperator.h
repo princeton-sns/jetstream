@@ -52,12 +52,13 @@ class DataPlaneOperator : public TupleReceiver {
   operator_id_t operID; // TODO: when is this set???  -Ari
   boost::shared_ptr<TupleReceiver> dest;
   const static std::string my_type_name;
+  int tuplesEmitted;
 
  protected:
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
     
  public:
-  DataPlaneOperator ()  {}
+  DataPlaneOperator ():tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
   
   virtual const std::string& get_type() {return my_type_name;}
@@ -68,7 +69,7 @@ class DataPlaneOperator : public TupleReceiver {
   
   operator_id_t & id() {return operID;}
   std::string as_string() { return operID.to_string(); }
-
+  int emitted_count() { return tuplesEmitted;}
 
   /** This method will be called on every operator, before start() and before
   * any tuples will be received. This method must not block or emit tuples

@@ -423,7 +423,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
    //TODO logging
   
   if (d.get() != NULL) {
-    LOG(INFO) << "starting operator " << name << "of type " << op_typename;
+    LOG(INFO) << "starting operator " << name << " of type " << op_typename;
   }
   else 
   {

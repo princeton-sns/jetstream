@@ -128,10 +128,12 @@ SendK::operator()() {
 void
 StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
-  istringstream(config["id"]) >> id;
+  istringstream(config["id"]) >> fieldID;
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
     return;
+  } else {
+    LOG(INFO) << "starting grep operator " << id() << " with pattern " << pattern;
   }
   re.assign(pattern);
 }
@@ -150,9 +152,9 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     return;
   }
 
-  Element* e = t->mutable_e(id);
+  Element* e = t->mutable_e(fieldID);
   if (!e->has_s_val()) {
-    LOG(WARNING) << "received tuple but element" << id << " is not string, ignoring" << endl;
+    LOG(WARNING) << "received tuple but element" << fieldID << " is not string, ignoring" << endl;
     return;
   }
   boost::smatch matchResults;

@@ -23,6 +23,7 @@ DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
 void 
 DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
 {
+  tuplesEmitted ++;
   if (dest)
     dest->process(t);
   else

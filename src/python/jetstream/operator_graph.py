@@ -1,3 +1,5 @@
+import types
+
 from jetstream_types_pb2 import *
 
 
@@ -33,6 +35,8 @@ class OperatorGraph(object):
 
     
   def add_to_PB(self, alter):
+    
+    alter.computationID = 0
     for id,operator in self.operators.items():
       operator.add_to_PB(alter)
     for id,cube in self.cubes.items():
@@ -172,6 +176,10 @@ class Cube(Destination):
 
   def add_agg(self, a_name, a_type):
     self.desc['aggs'].append(  (a_name, a_type) )
+    
+  def set_overwrite(self, overwrite):
+    assert(type(overwrite) == types.BooleanType)
+    self.desc['overwrite'] = overwrite
 
   def add_to_PB(self, alter):
     c_meta = alter.toCreate.add()
@@ -187,7 +195,8 @@ class Cube(Destination):
       d = c_meta.schema.aggregates.add()
       d.name = name
       d.type = type
-      
+    if 'overwrite' in  self.desc:
+      c_meta.overwrite_old = self.desc['overwrite'] 
      
   def get_name(self):
     if self._location is not None:

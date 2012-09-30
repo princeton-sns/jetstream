@@ -108,7 +108,8 @@ class Controller (ControllerAPI, JSServer):
 
 
   def get_nodes (self):
-    """Returns a list of Workers"""
+    """Returns a list of Workers.
+     Return type is list of tuples, each of which is address, port"""
     res = []
     res.extend(self.workers.values())
     return res
@@ -145,6 +146,7 @@ class Controller (ControllerAPI, JSServer):
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
     self.workers[clientEndpoint].receive_hb(hb)
     self.stateLock.release()
+
 
   CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
   def validate_topo(self,altertopo):
@@ -227,7 +229,9 @@ class Controller (ControllerAPI, JSServer):
 
     for endpoint,assignment in assignments.items():
       comp.assign_worker(endpoint, assignment)
-      
+    
+    comp.add_edges(altertopo.edges)
+    
     # Start the computation
     logger.info("Starting computation %d" % (compID))
     comp.start()

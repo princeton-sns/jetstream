@@ -73,13 +73,13 @@ GENERIC_CLNAME
  */
 class StringGrep: public DataPlaneOperator {
  public:
-  StringGrep() : id (0) {}
+  StringGrep() : fieldID (0) {}
   virtual void configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
  protected:
   boost::regex re; // regexp pattern to match tuples against
-  int id; // the field on which to filter
+  int fieldID; // the field on which to filter
 
  GENERIC_CLNAME
 };

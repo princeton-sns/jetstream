@@ -102,7 +102,11 @@ NodeWebInterface::make_base_page(ostream &buf)
      buf << "<table>" << endl;
      while (it != cube->end()) {
        buf << "<tr>";
-       boost::shared_ptr<Tuple> t = *(it++);
+       boost::shared_ptr<Tuple> t = *it;
+       it++;
+       if (t == NULL) {
+         LOG(WARNING) << "unexpected null tuple when printing cube";
+       }
        for (int v = 0; v < t->e_size(); ++ v) {
          buf << "<td>";
          const Element& cell = t->e(v);
@@ -133,11 +137,12 @@ NodeWebInterface::make_base_page(ostream &buf)
   for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
     const operator_id_t& o_id = oper_it->first;
     shared_ptr<DataPlaneOperator> op = oper_it->second;
-    buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b>" << endl;
+    buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b> " << endl;
     if (op->get_dest())
       buf << op->get_dest()->as_string();
     else
-      buf << " (no destination)";
+      buf << "(no destination)";
+    buf << "<br>\n" << op->emitted_count() << " tuples emitted.<br>"<<endl;
     buf << "</li>";
   }
   
