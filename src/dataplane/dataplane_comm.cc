@@ -184,9 +184,12 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   
 
 string
-RemoteDestAdaptor::as_string() {
+RemoteDestAdaptor::long_description() {
     std::ostringstream buf;
-    buf << "connection to " << destOpId << " on " << remoteAddr <<
+    buf << destOpId << " on " << remoteAddr <<
        (chainIsReady ? " (ready)" : " (unready)");
     return buf.str();
 }
+
+
+const std::string RemoteDestAdaptor::generic_name("Remote connection");

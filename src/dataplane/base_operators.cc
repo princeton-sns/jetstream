@@ -72,6 +72,12 @@ FileRead::operator()() {
   running = false;
 }
 
+std::string
+FileRead::long_description() {
+  std::ostringstream buf;
+  buf << "reading" << f_name;
+  return buf.str();
+}
 
 void
 SendK::configure(std::map<std::string,std::string> &config) {
@@ -166,6 +172,13 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
 }
 
 
+std::string
+StringGrep::long_description() {
+  std::ostringstream buf;
+  buf << "filtering for "<< re.str() << " in field " << fieldID;
+  return buf.str();
+}
+
 
 void
 GenericParse::configure(std::map<std::string,std::string> &config) {
@@ -256,6 +269,8 @@ DummyReceiver::~DummyReceiver() {
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
+const string ExtendOperator::my_type_name("Extend operator");
+
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");

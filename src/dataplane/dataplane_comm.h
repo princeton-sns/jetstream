@@ -86,7 +86,13 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   virtual void process (boost::shared_ptr<Tuple> t);
   
-  std::string as_string();
+  virtual const std::string& typename_as_str() {return generic_name;};
+  virtual std::string long_description();
+  virtual std::string id_as_str() {return long_description();}
+
+  
+  private:
+   static const std::string generic_name;
 };
 
 

@@ -3,6 +3,7 @@
 
 #include "dataplaneoperator.h"
 #include <string>
+#include <iostream>
 #include <boost/regex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
@@ -11,7 +12,7 @@
 #define GENERIC_CLNAME  private: \
    const static std::string my_type_name; \
  public: \
-   virtual const std::string& get_type() {return my_type_name;}
+   virtual const std::string& typename_as_str() {return my_type_name;}
 
 
 namespace jetstream {
@@ -32,8 +33,8 @@ class FileRead: public DataPlaneOperator {
   void operator()();  // A thread that will loop while reading the file
   bool isRunning();
   virtual void process(boost::shared_ptr<Tuple> t);  
-  
-//  virtual const char * get_type() {return "File read";}
+
+  virtual std::string long_description();
 
  protected:
   std::string f_name; //name of file to read
@@ -76,6 +77,7 @@ class StringGrep: public DataPlaneOperator {
   StringGrep() : fieldID (0) {}
   virtual void configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
+  virtual std::string long_description();
 
  protected:
   boost::regex re; // regexp pattern to match tuples against
@@ -119,10 +121,48 @@ class DummyReceiver: public DataPlaneOperator {
     tuples.push_back(t);
   }
   
+  virtual std::string long_description() {
+      std::ostringstream buf;
+      buf << tuples.size() << " stored tuples.";
+      return buf.str();
+  }
+  
   virtual ~DummyReceiver();
 
 GENERIC_CLNAME
 };
+
+
+/**
+ Adds constant data to a tuple
+*/
+class ExtendOperator: public DataPlaneOperator {
+ public:
+  std::vector< Element > new_data;
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void configure(std::map<std::string,std::string> &config);
+
+  
+  virtual ~ExtendOperator();
+
+GENERIC_CLNAME
+};
+
+
+/**
+ Rearranges the order of elements in a tuple
+
+class Rearrange: public DataPlaneOperator {
+ public:
+  std::vector< int > new_positions;
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void configure(std::map<std::string,std::string> &config);
+
+  
+  virtual ~Rearrange();
+
+GENERIC_CLNAME
+};*/
 
 }
 

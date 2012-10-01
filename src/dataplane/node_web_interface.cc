@@ -137,9 +137,9 @@ NodeWebInterface::make_base_page(ostream &buf)
   for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
     const operator_id_t& o_id = oper_it->first;
     shared_ptr<DataPlaneOperator> op = oper_it->second;
-    buf << "<li><b>"<< op ->get_type() << " " << o_id << "</b> " << endl;
+    buf << "<li><b>"<< op->typename_as_str() << " " << op->long_description() << " " << o_id << "</b> " << endl;
     if (op->get_dest())
-      buf << op->get_dest()->as_string();
+      buf << "Connected to "<< op->get_dest()->id_as_str();
     else
       buf << "(no destination)";
     buf << "<br>\n" << op->emitted_count() << " tuples emitted.<br>"<<endl;

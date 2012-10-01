@@ -54,7 +54,8 @@ public:
   }
   
   const jetstream::CubeSchema& get_schema() { return schema; }
-  std::string as_string() { return name; }
+  virtual std::string id_as_str() { return name; }
+  virtual const std::string& typename_as_str() { return my_tyepename; }
 
 
   /**
@@ -78,6 +79,9 @@ protected:
   std::string name;
   bool is_frozen;
 //TODO should figure out how to implement this
+
+private:
+  static const std::string my_tyepename;
   
 };
 
