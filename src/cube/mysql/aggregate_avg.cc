@@ -101,3 +101,8 @@ void MysqlAggregateAvg::populate_tuple_partial(boost::shared_ptr<jetstream::Tupl
   elem->set_i_val(count);
 }
 
+
+string MysqlAggregateAvg::get_select_clause_for_rollup() const {
+  return "SUM("+get_base_column_name()+"_sum), SUM("+get_base_column_name()+"_count)";
+}
+

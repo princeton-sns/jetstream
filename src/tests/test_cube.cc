@@ -448,10 +448,10 @@ TEST(Cube,Attach) {
   
   shared_ptr<DataCube> cube = node.get_cube("test_cube");
   ASSERT_TRUE( cube );
-  ASSERT_EQ(1, cube->num_leaf_cells());
+  ASSERT_EQ(1U, cube->num_leaf_cells());
   Tuple empty = cube->empty_tuple();
   cube::CubeIterator it = cube->slice_query(empty, empty);
-  ASSERT_EQ(1, it.numCells());
+  ASSERT_EQ(1U, it.numCells());
   int total_count = 0;
   shared_ptr<Tuple> t = *it;
   ASSERT_EQ(2, t->e_size());
@@ -461,4 +461,81 @@ TEST(Cube,Attach) {
   cout << "done"<< endl;
   node.stop();
  
+}
+
+TEST_F(CubeTest, MysqlTestFlatRollup) {
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
+
+  cube->destroy();
+  cube->create();
+
+  jetstream::Tuple t;
+  jetstream::Element *e;
+  time_t time_entered = time(NULL);
+
+  list<int> rscs;
+  rscs.push_back(100);
+  rscs.push_back(200);
+  rscs.push_back(300);
+  rscs.push_back(400);
+  rscs.push_back(500);
+
+  for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
+    t.clear_e();
+    e = t.add_e();
+    e->set_t_val(time_entered);
+    e=t.add_e();
+    e->set_s_val("http:\\\\www.example.com");
+    e=t.add_e();
+    e->set_i_val(*i);
+    //aggregate values
+    e=t.add_e();
+    e->set_i_val(*i/100);
+    e=t.add_e();
+    e->set_i_val(*i);
+    e=t.add_e();
+    e->set_i_val(*i/100);
+
+    cube->insert_partial_aggregate(t);
+  }
+
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+  e=empty.add_e(); //url
+  e=empty.add_e(); //rc
+ 
+  list<unsigned int> levels;
+  levels.push_back(1);
+  levels.push_back(1);
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  CubeIterator it = cube->rollup_slice_query(levels, empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+  boost::shared_ptr<Tuple> ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
+  ASSERT_EQ(1, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(2).s_val().c_str());
+  ASSERT_EQ(1, ptrTup->e(3).i_val());
+  ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(0, ptrTup->e(5).i_val());
+  ASSERT_EQ(15, ptrTup->e(6).i_val());
+  ASSERT_EQ(100, ptrTup->e(7).i_val());
+
+
+  //doesn't exist
+
+  jetstream::Tuple max;
+  e=max.add_e(); //time
+  e->set_t_val(50);
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+  cube->do_rollup(levels, empty, max);
+
+  it = cube->rollup_slice_query(levels, empty, max);
+  ASSERT_EQ(0U, it.numCells());
+
+
 }

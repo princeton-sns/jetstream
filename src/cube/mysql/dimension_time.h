@@ -1,16 +1,16 @@
 #ifndef DIMENSION_TIME_Q8TYGR7Q
 #define DIMENSION_TIME_Q8TYGR7Q
 
-#include "dimension.h"
+#include "dimension_flat.h"
 #include <time.h>
 #include <stdlib.h>
 
 namespace jetstream {
 namespace cube {
 
-class MysqlDimensionTime : public MysqlDimension {
+class MysqlDimensionTime : public MysqlDimensionFlat {
   public:
-    MysqlDimensionTime(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema) {};
+    MysqlDimensionTime(jetstream::CubeSchema_Dimension _schema) : MysqlDimensionFlat(_schema) {};
 
     vector<string> get_column_names() const ;
 
@@ -22,6 +22,7 @@ class MysqlDimensionTime : public MysqlDimension {
 
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
+    virtual vector<string> get_default_value() const;
 };
 
 

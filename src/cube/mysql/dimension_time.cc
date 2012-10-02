@@ -14,6 +14,12 @@ vector<string> MysqlDimensionTime::get_column_names() const {
   return decl;
 }
 
+vector<string> MysqlDimensionTime::get_default_value() const {
+  vector<string> decl;
+  decl.push_back("\"0000-00-00 00:00:00\"");
+  return decl;
+}
+
 vector<string> MysqlDimensionTime::get_column_types() const {
   vector<string> decl;
   decl.push_back("DATETIME");

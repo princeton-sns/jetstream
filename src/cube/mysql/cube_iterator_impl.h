@@ -11,9 +11,9 @@ namespace cube {
   
 class MysqlCubeIteratorImpl : public CubeIteratorImpl {
   public:
-    MysqlCubeIteratorImpl(): final(true), num_cells(0){}
+    MysqlCubeIteratorImpl(): final(true), num_cells(0), rollup(false){}
     
-    MysqlCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MysqlCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true): cube(cube), res(rs), final(final), num_cells(rs->rowsCount()){};
+    MysqlCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MysqlCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true, bool rollup = false): cube(cube), res(rs), final(final), num_cells(rs->rowsCount()), rollup(rollup){};
 
 
     virtual size_t numCells() ;
@@ -32,6 +32,7 @@ class MysqlCubeIteratorImpl : public CubeIteratorImpl {
     boost::shared_ptr<sql::ResultSet> res;
     bool const final;
     size_t const num_cells;
+    bool const rollup;
 };
 
 }

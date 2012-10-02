@@ -36,7 +36,9 @@ class MysqlAggregate : public Aggregate {
       boost::shared_ptr<jetstream::Tuple> t,
       boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const =0;
 
+    virtual string get_select_clause_for_rollup() const = 0;
 };
+    
 
 
 } /* cube */

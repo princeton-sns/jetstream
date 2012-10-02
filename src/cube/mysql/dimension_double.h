@@ -1,15 +1,15 @@
 #ifndef DIMENSION_DOUBLE_Q8TYGR7Q
 #define DIMENSION_DOUBLE_Q8TYGR7Q
 
-#include "dimension.h"
+#include "dimension_flat.h"
 #include <boost/lexical_cast.hpp>
 
 namespace jetstream {
 namespace cube {
 
-class MysqlDimensionDouble: public MysqlDimension {
+class MysqlDimensionDouble: public MysqlDimensionFlat {
   public:
-    MysqlDimensionDouble(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema) {};
+    MysqlDimensionDouble(jetstream::CubeSchema_Dimension _schema) : MysqlDimensionFlat(_schema) {};
 
     vector<string> get_column_types() const ;
 
@@ -20,6 +20,7 @@ class MysqlDimensionDouble: public MysqlDimension {
 
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
+    virtual vector<string> get_default_value() const;
 };
 
 

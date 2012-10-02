@@ -10,6 +10,12 @@ vector<string> MysqlDimensionDouble::get_column_types() const {
   return decl;
 }
 
+vector<string> MysqlDimensionDouble::get_default_value() const {
+  vector<string> decl;
+  decl.push_back("0");
+  return decl;
+}
+
 void MysqlDimensionDouble::set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
   jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
 

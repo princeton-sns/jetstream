@@ -21,6 +21,10 @@ string  MysqlDimension::get_base_column_name() const {
   return name;
 }
 
+string  MysqlDimension::get_rollup_level_column_name() const {
+  return name+"_level";
+}
+
 vector<string>  MysqlDimension::get_column_names() const {
   vector<string> decl;
   decl.push_back(get_base_column_name());
