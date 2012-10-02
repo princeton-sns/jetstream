@@ -419,6 +419,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   d->id() = name;
+  d->set_node(this);
   d->configure(cfg);
    //TODO logging
   

@@ -80,7 +80,7 @@ FileRead::long_description() {
 }
 
 void
-SendK::configure(std::map<std::string,std::string> &config) {
+SendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {

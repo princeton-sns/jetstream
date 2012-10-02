@@ -86,6 +86,9 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   virtual void process (boost::shared_ptr<Tuple> t);
   
+  virtual void no_more_tuples() {}; //TODO: should tear down connection?
+
+  
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
   virtual std::string id_as_str() {return long_description();}
