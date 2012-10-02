@@ -23,6 +23,8 @@ public:
   static unsigned int const LEAF_LEVEL;
 
   virtual void process(boost::shared_ptr<Tuple> t) { insert_entry(*t); }  //inserts a tuple
+  virtual void no_more_tuples() {};
+
   
   DataCube(jetstream::CubeSchema _schema, std::string _name) : 
     schema(_schema), name(_name) {};

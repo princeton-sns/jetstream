@@ -9,8 +9,12 @@
 #include <map>
 #include <iostream>
 
+//#include "node.h"
 
 namespace jetstream {
+
+class Node;
+
 
 struct operator_id_t {
   int32_t computation_id; // which computation
@@ -39,6 +43,8 @@ inline std::ostream& operator<<(std::ostream& out, operator_id_t id) {
 class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
+  virtual void no_more_tuples() = 0;
+  
   virtual ~TupleReceiver() {}
   virtual const std::string& typename_as_str() = 0; //return a name for the type
   virtual std::string id_as_str() = 0;
@@ -55,8 +61,9 @@ typedef std::map<std::string,std::string> operator_config_t;
 
 class DataPlaneOperator : public TupleReceiver {
  private:
-  operator_id_t operID; // TODO: when is this set???  -Ari
+  operator_id_t operID; // note that id() returns a reference, letting us set this
   boost::shared_ptr<TupleReceiver> dest;
+  Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
   const static std::string my_type_name;
   int tuplesEmitted;
 
@@ -66,9 +73,10 @@ class DataPlaneOperator : public TupleReceiver {
  public:
   DataPlaneOperator ():tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
+
   
-  virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+  void set_node (Node * n) { node = n; }
   boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   
   
@@ -78,11 +86,10 @@ class DataPlaneOperator : public TupleReceiver {
   virtual const std::string& typename_as_str() { return my_type_name; }
   int emitted_count() { return tuplesEmitted;}
   
-  /** This method will be called on every operator, before start() and before
+    /** This method will be called on every operator, before start() and before
   * any tuples will be received. This method must not block or emit tuples
   */ 
   virtual void configure (std::map<std::string, std::string> &) {};
-
 
   /**
    * An operator must not start emitting tuples until start() has been called or
@@ -92,7 +99,15 @@ class DataPlaneOperator : public TupleReceiver {
    * Special dispensation for test code.
    */
   virtual void start () {};
-
+  
+  
+  
+  virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
+  
+  /** Called when no more data will be passed in from upstream; operators
+  may choose to stop in response to this.
+  */
+  virtual void no_more_tuples();
 
   /**
    * An operator should stop processing tuples before this returns.
