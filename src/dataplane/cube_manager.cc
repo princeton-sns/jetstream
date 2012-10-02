@@ -1,7 +1,10 @@
 #include <boost/thread/locks.hpp>
+#include "mysql_cube.h"
+
 #include "cube_manager.h"
 #include <boost/regex.hpp>
 
+#include <glog/logging.h>
 
 using namespace boost;
 using namespace jetstream;

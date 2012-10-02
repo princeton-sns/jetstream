@@ -5,7 +5,9 @@ find_library(MYSQL_CLI mysql5/mysql/libmysqlclient.dylib)
 set(MYSQL_LIBS ${MYSQL_CONN}  ${MYSQL_CLI})
 else()
 find_library(MYSQL_CONN NAMES mysqlcppconn HINTS /usr/lib/ /opt/local/lib/)
-set(MYSQL_LIBS ${MYSQL_CONN})
+find_library(MYSQL_CLI NAMES mysqlclient HINTS /usr/lib/ /opt/local/lib/)
+set(MYSQL_LIBS z ${MYSQL_CONN}  ${MYSQL_CLI})
+#set(MYSQL_LIBS ${MYSQL_CONN})
 endif()
 
 
@@ -19,6 +21,6 @@ target_link_libraries (jscube ${GLOG_LIB})
 target_link_libraries (jscube ${MYSQL_LIBS})
 
 
-#add_subdirectory (prototype/)
+add_subdirectory (prototype/)
 add_subdirectory (performance_tests/)
 

@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 
 #include "node.h"
-#include "operators.h"
+#include "base_operators.h"
 #include "simple_net.h"
 
 
@@ -53,7 +53,8 @@ TEST(Node, OperatorCreateDestroy)
   ASSERT_TRUE(error == 0);
 
   operator_id_t id(1,2);
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id);
+  operator_config_t oper_cfg;
+  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id, oper_cfg);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   
@@ -434,7 +435,10 @@ TEST(NodeIntegration, DataplaneConn) {
   dest_node->set_address("127.0.0.1");
  
   ControlMessage r;
-  nodes[1]->handle_alter(r, topo);
+  nodes[1]->handle_alter(r, topo);  //starting on node 0, ordering it to send to node 1
+  
+  while (nodes[1]->operator_count() == 0)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);

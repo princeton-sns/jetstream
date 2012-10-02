@@ -35,7 +35,7 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
 
 void
 jetstream::cube::MysqlCube::init_connection() {
-  sql::Driver * driver = get_driver_instance();
+  sql::Driver * driver = sql::mysql::get_driver_instance();
   shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
   connection = con;
   connection->setSchema(db_name);

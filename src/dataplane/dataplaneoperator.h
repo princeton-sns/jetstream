@@ -40,8 +40,17 @@ class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
   virtual ~TupleReceiver() {}
-  virtual std::string as_string() = 0; //return a description
+  virtual const std::string& typename_as_str() = 0; //return a name for the type
+  virtual std::string id_as_str() = 0;
+    /** Return a longer description of the operator. Should NOT include the typename*/
+  virtual std::string long_description() {return "";}
+  
+
+  
 };
+
+typedef std::map<std::string,std::string> operator_config_t;
+
 
 
 class DataPlaneOperator : public TupleReceiver {
@@ -49,22 +58,30 @@ class DataPlaneOperator : public TupleReceiver {
   operator_id_t operID; // TODO: when is this set???  -Ari
   boost::shared_ptr<TupleReceiver> dest;
   const static std::string my_type_name;
+  int tuplesEmitted;
 
  protected:
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
     
  public:
-  DataPlaneOperator ()  {}
+  DataPlaneOperator ():tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
-  
-  virtual const std::string& get_type() {return my_type_name;}
   
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
   boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   
+  
+  /** A variety of (self-explanatory) debugging aids and metadata */
   operator_id_t & id() {return operID;}
-  std::string as_string() { return operID.to_string(); }
+  virtual std::string id_as_str() { return operID.to_string(); }
+  virtual const std::string& typename_as_str() { return my_type_name; }
+  int emitted_count() { return tuplesEmitted;}
+  
+  /** This method will be called on every operator, before start() and before
+  * any tuples will be received. This method must not block or emit tuples
+  */ 
+  virtual void configure (std::map<std::string, std::string> &) {};
 
 
   /**
@@ -74,7 +91,8 @@ class DataPlaneOperator : public TupleReceiver {
    * in a source operator, launch a thread to do this).
    * Special dispensation for test code.
    */
-  virtual void start (std::map<std::string, std::string> config) {};
+  virtual void start () {};
+
 
   /**
    * An operator should stop processing tuples before this returns.

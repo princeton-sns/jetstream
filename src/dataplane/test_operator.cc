@@ -13,7 +13,9 @@ using namespace std;
 */
 class TestOperator: public jetstream::DataPlaneOperator {
  public:
-  virtual void start(map<string,string> config) {
+  virtual void configure(std::map<std::string, std::string> &) {}
+  
+  virtual void start() {
     cout << "test operator 2" << endl;
   }
 };

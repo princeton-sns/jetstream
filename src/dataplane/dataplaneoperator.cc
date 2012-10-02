@@ -23,12 +23,11 @@ DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
 void 
 DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
 {
+  tuplesEmitted ++;
   if (dest)
     dest->process(t);
   else
     LOG(WARNING) << "Operator: no destination for operator " << operID << endl;
-
-  //  cout << "Base Operator emit" << endl;
 }
 
 const string DataPlaneOperator::my_type_name("base operator");

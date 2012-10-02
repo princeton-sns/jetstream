@@ -51,8 +51,6 @@ class Node {
             //don't interfere
   boost::condition_variable startStopCond;
             
-
-  
   // I don't think we need this
   //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
   // perhaps we should keep a map from dest to socket instead?
@@ -83,14 +81,22 @@ class Node {
 
   void start (); //starts and returns after creating threads.
   void stop ();
-  void join() {  boost::unique_lock<boost::mutex> lock(threadpoolLock); startStopCond.wait(lock); }
+  
+  void join ()  {
+     boost::unique_lock<boost::mutex> lock(threadpoolLock);
+     startStopCond.wait(lock);
+  }
 
   boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
   
   boost::shared_ptr<DataPlaneOperator>
-    create_operator (std::string op_typename, operator_id_t name);
+    create_operator (std::string op_typename, operator_id_t, operator_config_t);
     
-  bool stop_operator(operator_id_t name); 
+  bool stop_operator (operator_id_t name);
+  
+  int operator_count () const
+    {return operators.size(); }
+  
     
   boost::shared_ptr<DataCube>
     get_cube (const std::string &name) { return cubeMgr.get_cube(name); }

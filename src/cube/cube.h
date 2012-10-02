@@ -64,30 +64,25 @@ class DataCube : public TupleReceiver {
 
       return t;
     }
-
-    const jetstream::CubeSchema& get_schema() {
-      return schema;
-    }
-    std::string as_string() {
-      return name;
-    }
+  
+  const jetstream::CubeSchema& get_schema() { return schema; }
+  virtual std::string id_as_str() { return name; }
+  virtual const std::string& typename_as_str() { return my_tyepename; }
 
 
-    /**
-    * It's possible to mark a cube as locked. The intended use of this is to allow
-    * graceful deletion. The deleter marks the cube as frozen. As updates to the cube fail,
-    * data sources drop their pointer. When the last smart pointer is removed,
-    * the cube is deleted.
-    *
-    * Possibly a different mechanism is needed to do visibility control.
-    *
-    */
-    void mark_as_deleted() {
-      is_frozen = true;
-    }
+  /**
+  * It's possible to mark a cube as locked. The intended use of this is to allow
+  * graceful deletion. The deleter marks the cube as frozen. As updates to the cube fail,
+  * data sources drop their pointer. When the last smart pointer is removed,
+  * the cube is deleted. 
+  *
+  * Possibly a different mechanism is needed to do visibility control.  
+  *
+  */
+  void mark_as_deleted() {is_frozen = true; }
 
-    //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
-
+  //iterator<forward_iterator_tag, Tuple> stream_tuples(Tuple k);
+  
 
 //TODO: should have an entry here for the aggregation/update function.
 
@@ -97,6 +92,8 @@ class DataCube : public TupleReceiver {
     bool is_frozen;
 //TODO should figure out how to implement this
 
+private:
+  static const std::string my_tyepename;
 };
 
 }

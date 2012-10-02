@@ -7,6 +7,7 @@
 #include <boost/tokenizer.hpp>
 	
 #include "mysql_connection.h"
+#include "mysql_driver.h"
 	
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
@@ -76,7 +77,7 @@ if(argc < 3)
 
 
   try {
-    sql::Driver * driver = get_driver_instance();
+    sql::Driver * driver = sql::mysql::get_driver_instance();
     std::auto_ptr<sql::Connection > con(driver->connect(HOST, USER, PASS));
     sql::Statement *stmt;
     con->setSchema(DB);

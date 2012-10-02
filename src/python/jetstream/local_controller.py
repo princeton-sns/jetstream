@@ -30,12 +30,12 @@ class LocalController(ControllerAPI):
     """Deploys an operator graph"""
     
     dests = {}
-    for cube in op_graph.cubes:
+    for id,cube in op_graph.cubes.items():
       c = self.instantiate_cube(cube)
-      dests[cube.get_id()] = c
+      dests[id] = c
       self.cubes[cube.get_name()] = c
-    for op in op_graph.operators:
-      dests[op.get_id()] = self.instantiate_op(op)
+    for id,op in op_graph.operators.items():
+      dests[id] = self.instantiate_op(op)
     
     for (e1, e2) in op_graph.edges:
       d1, d2 = dests[e1], dests[e2]
@@ -50,9 +50,9 @@ class LocalController(ControllerAPI):
 
   def instantiate_op(self, op):
     if op.type == Operators.UNIX:
-      return LocalUnix(op.id, op.desc)
+      return LocalUnix(op.id, op.cfg)
     elif op.type == Operators.Fetcher:
-      the_cube = cubes[op.desc] #FIXME should be a name not an ID here?
+      the_cube = cubes[op.cfg['cube_name']] #FIXME should be a name not an ID here?
       return LocalFetcher(self, the_cube)
     else:
       raise "Unknown type " + op.type

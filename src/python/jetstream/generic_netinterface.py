@@ -179,6 +179,16 @@ class JSClient():
       # print "reading another %d bytes" % unpacked_len
       buf = self.sock.recv(unpacked_len)
       return buf
+    return None
     
+  def ctrl_rpc(self, req, expectResponse):
+    buf = self.do_rpc(req, expectResponse)
+    if expectResponse:
+      resp = ControlMessage()
+      resp.ParseFromString(buf)
+      return resp
+    else:
+      return None
+
   def close(self):
     self.sock.close()
