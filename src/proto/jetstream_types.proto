@@ -182,7 +182,8 @@ message ControlMessage {
 * notational convenience, and not enforced or used in the code.
 */ 
 message DataplaneMessage {
-  enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; }
+  enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; 
+  NO_MORE_DATA = 6; }
   required DataplaneType type  = 1;
 
   optional Error error_msg = 2;

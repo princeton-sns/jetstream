@@ -19,7 +19,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, conf.heartbeat_time),
     webInterface (conf.webinterface_port, *this),
-
+    operator_cleanup(*iosrv),
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
@@ -441,9 +441,11 @@ Node::stop_operator(operator_id_t name) {
 //  to the operator table
   shared_ptr<DataPlaneOperator> op = operators[name];
   if (op) { //operator still around
-    op->stop();
+    operator_cleanup.stop_on_strand(op);
     int delCount = operators.erase(name);
     assert(delCount > 0);
+    operator_cleanup.cleanup(op);
+  
     return true;
 // TODO: should unload code at some point. Presumably when no more operators
 // of that type are running? Can we push that into operatorloader?
