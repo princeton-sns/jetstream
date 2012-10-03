@@ -20,6 +20,7 @@ class MysqlDimensionDouble: public MysqlDimensionFlat {
 
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
+  protected:
     virtual vector<string> get_default_value() const;
 };
 
