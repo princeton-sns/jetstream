@@ -1,7 +1,7 @@
 #ifndef DIMENSION_FACTORY_M77OYEG0
 #define DIMENSION_FACTORY_M77OYEG0
 #include "mysql/dimension.h"
-#include "mysql/dimension_time.h"
+#include "mysql/dimension_time_hierarchy.h"
 #include "mysql/dimension_int.h"
 #include "mysql/dimension_string.h"
 #include "mysql/dimension_double.h"
@@ -26,7 +26,7 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
   static boost::shared_ptr<jetstream::cube::MysqlDimension> create(jetstream::CubeSchema_Dimension _schema)
   {
     if(_schema.type() == jetstream::Element_ElementType_TIME){
-      return boost::make_shared<MysqlDimensionTime>(_schema);
+      return boost::make_shared<MysqlDimensionTimeHierarchy>(_schema);
     }
     else if(_schema.type() == jetstream::Element_ElementType_INT32) {
       return boost::make_shared<MysqlDimensionInt>(_schema);
