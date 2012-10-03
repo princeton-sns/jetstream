@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/asio.hpp>
+
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
@@ -71,7 +73,7 @@ class DataPlaneOperator : public TupleReceiver {
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
     
  public:
-  DataPlaneOperator ():tuplesEmitted(0)  {}
+  DataPlaneOperator ():node(0),tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
 
   
@@ -111,12 +113,32 @@ class DataPlaneOperator : public TupleReceiver {
 
   /**
    * An operator should stop processing tuples before this returns.
-   * This function must not block.
+   * This function must not block for long periods.
+   * Once this method returns, the operator ID is no longer valid
    */
   virtual void stop () {};
 };
 
 typedef DataPlaneOperator *maker_t();
+
+
+class OperatorCleanup {
+  
+  public:
+    OperatorCleanup(boost::asio::io_service& io):iosrv(io),cleanup_strand(iosrv) {}
+  
+    void stop_on_strand(boost::shared_ptr<DataPlaneOperator> op) {
+       cleanup_strand.post( boost::bind(&DataPlaneOperator::stop, op) );
+
+    }
+    void cleanup(boost::shared_ptr<DataPlaneOperator> op);
+    void cleanup_cb(boost::shared_ptr<DataPlaneOperator> op);
+
+  private:
+   boost::asio::io_service & iosrv;
+   boost::asio::strand cleanup_strand;
+};
+
 }
 
 #endif /* _dataplaneoperator_H_ */

@@ -37,12 +37,24 @@ DataPlaneOperator::no_more_tuples () {
 
   if (dest != NULL) {
     dest->no_more_tuples();
-    dest.reset(); //trigger destruction.
+    dest.reset(); //trigger destruction if no more pointers.
   }
   if (node != NULL) {
     node->stop_operator(operID); 
   }
 }
 
+
+void
+OperatorCleanup::cleanup(boost::shared_ptr<DataPlaneOperator> op) {
+  iosrv.post( boost::bind(&OperatorCleanup::cleanup_cb, this, op) );
+}
+
+void
+OperatorCleanup::cleanup_cb(boost::shared_ptr<DataPlaneOperator> op) {
+  op.reset();
+  //do nothing, quietly invokes destructor for op
+  //this runs in the ioserv thread pool.
+}
 
 const string DataPlaneOperator::my_type_name("base operator");

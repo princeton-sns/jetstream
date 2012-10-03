@@ -73,7 +73,11 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
       }
       break;
     }
-    default:
+  case DataplaneMessage::NO_MORE_DATA:
+    LOG(INFO) << "got no-more-data signal, will tear down connection";
+    break;
+    
+  default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
         " from " << c->get_remote_endpoint() << " for existing dataplane connection";
   }
@@ -179,9 +183,22 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   //TODO: could we merge multiple tuples here?
 
   boost::system::error_code err;
+  LOG(INFO) << "RemoteDestAdaptor sending tuple";
   conn->send_msg(d, err);
 }
+
+
+void
+RemoteDestAdaptor::no_more_tuples () {
+
+  DataplaneMessage d;
+  d.set_type(DataplaneMessage::NO_MORE_DATA);
   
+  boost::system::error_code err;
+  LOG(INFO) << "no more tuples in RemoteDestAdaptor";
+//  conn->send_msg(d, err);
+}
+
 
 string
 RemoteDestAdaptor::long_description() {
