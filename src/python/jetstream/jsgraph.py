@@ -106,10 +106,16 @@ class JSGraph(object):
     return True
 
 
-  def lca_sources (self):
+  def reset_nodes (self):
+    """Clears any node state of prior graph algorithm runs."""
+    for node in self.nodes.values():
+      node.reset()
+      
+    
+  def get_sources_lca (self):
     """Returns the least-common ancestor (or descendant, more accurately) of the source
     nodes in the graph. Assumes the graph is (reducible to) a tree."""
-    
+
     # Start with all sources and repeatedly compute the LCA of pairs until one LCA
     # remains. Since LCA(x,x) = x, use a set to track the LCAs.
     lcas = Set(self.sources)
@@ -117,6 +123,8 @@ class JSGraph(object):
     while len(lcas) >= 2:
       lcaPairs.append((lcas.pop(), lcas.pop()))
     while len(lcaPairs) > 0:
+      # Clear the node state from prior runs
+      self.reset_nodes()
       # Compute the LCAs of the pairs, starting at the root (aka sink) of the tree
       self.lca_recurse(self.sink, lcaPairs, lcas)
       # All pairs should be processed and removed by the above call
@@ -128,8 +136,6 @@ class JSGraph(object):
 
 
   def lca_recurse (self, u, lcaPairs, lcas):
-    # Clear any prior state
-    u.reset()
     uf_make_set(u)
     u.ancestor = u
     # JetStream graphs are directed towards the root, so use the reverse adjacency list.
