@@ -88,10 +88,12 @@ TEST(Node, HandleAlter_2_Ops)
   shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
   ASSERT_TRUE(dest != NULL);
   
-  //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
-  
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  int tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  
   ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
   string s = rec->tuples[0]->e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
@@ -289,15 +291,26 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
 
   //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  int tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
   
   data_msg.Clear();
   data_msg.set_type(DataplaneMessage::NO_MORE_DATA);
   data_conn.send_msg(data_msg);
-
+  
+  tries = 0;
+  while (data_conn.is_connected() && tries++ < 20) {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    data_conn.send_msg(data_msg);
+  }
+  
+  ASSERT_FALSE( data_conn.is_connected());
   
   
 }
@@ -355,7 +368,6 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
 
   //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
   int tries = 0;
   while (rec->tuples.size() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
