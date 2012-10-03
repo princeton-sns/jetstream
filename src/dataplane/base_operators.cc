@@ -36,6 +36,8 @@ void
 FileRead::stop() {
   running = false;
   LOG(INFO) << "stopping file read operator";
+  
+  assert (loopThread->get_id()!=boost::this_thread::get_id());
   loopThread->join();
 }
 
@@ -70,6 +72,7 @@ FileRead::operator()() {
     emit(t);
   }
   running = false;
+  no_more_tuples();
 }
 
 std::string
@@ -80,7 +83,7 @@ FileRead::long_description() {
 }
 
 void
-SendK::configure(std::map<std::string,std::string> &config) {
+SendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {
@@ -116,8 +119,10 @@ void
 SendK::stop() {
   running = false;
   LOG(INFO) << "Stopping SendK operator";
-  if (running)
+  if (running) {
+    assert (loopThread->get_id()!=boost::this_thread::get_id());
     loopThread->join();
+  }
 }
 
 
@@ -128,6 +133,7 @@ SendK::operator()() {
   for (u_int i = 0; i < k; i++) {
     emit(t);
   }
+  no_more_tuples();
 }
 
 

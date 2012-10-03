@@ -75,8 +75,8 @@ GENERIC_CLNAME
 class StringGrep: public DataPlaneOperator {
  public:
   StringGrep() : fieldID (0) {}
-  virtual void configure(std::map<std::string,std::string> &config);
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void configure (std::map<std::string,std::string> &config);
+  virtual void process (boost::shared_ptr<Tuple> t);
   virtual std::string long_description();
 
  protected:
@@ -127,6 +127,8 @@ class DummyReceiver: public DataPlaneOperator {
       return buf.str();
   }
   
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
   virtual ~DummyReceiver();
 
 GENERIC_CLNAME
@@ -139,8 +141,8 @@ GENERIC_CLNAME
 class ExtendOperator: public DataPlaneOperator {
  public:
   std::vector< Element > new_data;
-  virtual void process(boost::shared_ptr<Tuple> t);
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void configure (std::map<std::string,std::string> &config);
 
   
   virtual ~ExtendOperator();

@@ -19,7 +19,8 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, conf.heartbeat_time),
     webInterface (conf.webinterface_port, *this),
-
+    dataConnMgr(*iosrv),
+    operator_cleanup(*iosrv),
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
@@ -372,8 +373,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       }
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
-      shared_ptr<TupleReceiver> xceiver(
-          new RemoteDestAdaptor(*connMgr, edge) );
+      shared_ptr<RemoteDestAdaptor> xceiver(
+          new RemoteDestAdaptor(dataConnMgr, *connMgr, edge) );
+      dataConnMgr.register_new_adaptor(xceiver);
       srcOperator->set_dest(xceiver);
     } 
     else {
@@ -419,6 +421,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   d->id() = name;
+  d->set_node(this);
   d->configure(cfg);
    //TODO logging
   
@@ -440,9 +443,11 @@ Node::stop_operator(operator_id_t name) {
 //  to the operator table
   shared_ptr<DataPlaneOperator> op = operators[name];
   if (op) { //operator still around
-    op->stop();
+    operator_cleanup.stop_on_strand(op);
     int delCount = operators.erase(name);
     assert(delCount > 0);
+    operator_cleanup.cleanup(op);
+  
     return true;
 // TODO: should unload code at some point. Presumably when no more operators
 // of that type are running? Can we push that into operatorloader?

@@ -115,24 +115,6 @@ TEST(Node,WebIfaceStartStop)
 
 }
 
-/*
-class NodeTestThread {
-  public:
-    NodeConfig& cfg;
-    shared_ptr<Node> n;
-    NodeTestThread(NodeConfig& c): cfg(c) {
-      boost::system::error_code error;
-      n = shared_ptr<Node>(new Node(cfg, error));
-      EXPECT_TRUE(error == 0);
-      return;
-    }
-    void operator()() {
-      n->run();
-    }
-    
-};*/
-
-
 class NodeNetTest : public ::testing::Test {
 
  public:
@@ -311,6 +293,13 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
+  
+  data_msg.Clear();
+  data_msg.set_type(DataplaneMessage::NO_MORE_DATA);
+  data_conn.send_msg(data_msg);
+
+  
+  
 }
 
 
@@ -363,11 +352,14 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   data_conn.send_msg(data_msg);
   
   cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
+  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
 
   //TODO better way to wait here?
   boost::this_thread::sleep(boost::posix_time::seconds(2));
+  int tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
 }
 
@@ -437,7 +429,8 @@ TEST(NodeIntegration, DataplaneConn) {
   ControlMessage r;
   nodes[1]->handle_alter(r, topo);  //starting on node 0, ordering it to send to node 1
   
-  while (nodes[1]->operator_count() == 0)
+  int tries = 0;
+  while (nodes[1]->operator_count() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 

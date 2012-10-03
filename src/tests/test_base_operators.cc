@@ -149,7 +149,7 @@ TEST(Operator,ParseOperator) {
   ASSERT_EQ(1, parse.emitted_count());
   ASSERT_EQ((size_t)1, rec->tuples.size());
   boost::shared_ptr<Tuple> result = rec->tuples[0];
-  ASSERT_EQ((size_t)4, result->e_size());
+  ASSERT_EQ(4, result->e_size());
   ASSERT_EQ(1, result->e(0).i_val());
   ASSERT_EQ(string("foo"), result->e(1).s_val());
   ASSERT_EQ(7, result->e(2).i_val());

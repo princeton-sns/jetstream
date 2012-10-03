@@ -73,7 +73,11 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
       }
       break;
     }
-    default:
+  case DataplaneMessage::NO_MORE_DATA:
+    LOG(INFO) << "got no-more-data signal, will tear down connection";
+    break;
+    
+  default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
         " from " << c->get_remote_endpoint() << " for existing dataplane connection";
   }
@@ -99,15 +103,15 @@ DataplaneConnManager::close() {
 }
   
 
-RemoteDestAdaptor::RemoteDestAdaptor (ConnectionManager& cm,
-                                          const Edge & e) 
-  : chainIsReady(false) {
+RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm, ConnectionManager &cm,
+                                          const Edge &e)
+  : mgr(dcm), chainIsReady(false) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();      
   destOpId.computation_id = e.computation();
   destOpId.task_id = e.dest();
-                                          
+  
   cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
 }
@@ -179,9 +183,23 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   //TODO: could we merge multiple tuples here?
 
   boost::system::error_code err;
+  LOG(INFO) << "RemoteDestAdaptor sending tuple";
   conn->send_msg(d, err);
 }
+
+
+void
+RemoteDestAdaptor::no_more_tuples () {
+
+  DataplaneMessage d;
+  d.set_type(DataplaneMessage::NO_MORE_DATA);
   
+  boost::system::error_code err;
+  LOG(INFO) << "no more tuples in RemoteDestAdaptor";
+  
+//  conn->send_msg(d, err);
+}
+
 
 string
 RemoteDestAdaptor::long_description() {
@@ -190,6 +208,23 @@ RemoteDestAdaptor::long_description() {
        (chainIsReady ? " (ready)" : " (unready)");
     return buf.str();
 }
+
+
+void
+DataplaneConnManager::deferred_cleanup(operator_id_t id) {
+  shared_ptr<RemoteDestAdaptor> a = adaptors[id];
+  assert(a);
+  
+  if (!a->conn->is_connected()) {
+    adaptors.erase(id);
+  } else {
+    LOG(FATAL) << "need to handle deferred cleanup of an in-use rda";
+   //should set this up on a timer
+  
+  }
+
+}
+
 
 
 const std::string RemoteDestAdaptor::generic_name("Remote connection");

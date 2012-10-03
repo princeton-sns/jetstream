@@ -14,44 +14,54 @@
 namespace jetstream {
 
 /**
-*  A class to represent a cube in memory. 
+*  A class to represent a cube in memory.
 */
 
 class DataCube : public TupleReceiver {
-  
-public:
-  static unsigned int const LEAF_LEVEL;
 
+  public:
+    static unsigned int const LEAF_LEVEL;
   virtual void process(boost::shared_ptr<Tuple> t) { insert_entry(*t); }  //inserts a tuple
-  
-  DataCube(jetstream::CubeSchema _schema, std::string _name) : 
-    schema(_schema), name(_name) {};
-    
-  virtual ~DataCube() {}
+  virtual void no_more_tuples() {};
 
-  virtual bool insert_entry(jetstream::Tuple const &t) = 0;
-  virtual bool insert_partial_aggregate(jetstream::Tuple const&t) = 0;
-  
-  virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const= 0;
+    DataCube(jetstream::CubeSchema _schema, std::string _name) :
+      schema(_schema), name(_name), is_frozen(false) {};
 
-  virtual cube::CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max, bool final = true, std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
-  
- // virtual cube::CubeIterator rollup(jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<unsigned int> const &levels, bool final = true) = 0;
-  
-  virtual jetstream::cube::CubeIterator end() const = 0;
+    virtual ~DataCube() {}
 
-  virtual size_t num_leaf_cells() const = 0;
-  
-  virtual void create() = 0;
-  virtual void destroy() = 0;
-  
-  Tuple empty_tuple() {
-    Tuple t;
-    for (int i=0; i < schema.dimensions_size(); ++i) {
-      t.add_e();
+    virtual bool insert_entry(jetstream::Tuple const &t) = 0;
+    virtual bool insert_partial_aggregate(jetstream::Tuple const&t) = 0;
+
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const= 0;
+
+    virtual cube::CubeIterator
+    slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max,
+                bool final = true, std::list<std::string> const &sort = std::list<std::string>(),
+                size_t limit = 0) const = 0;
+
+    virtual cube::CubeIterator rollup_slice_query(std::list<unsigned int> const &levels,
+                                            jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true,
+                                            std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
+
+    virtual void
+    do_rollup(std::list<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max) = 0;
+
+    virtual jetstream::cube::CubeIterator end() const = 0;
+
+    virtual size_t num_leaf_cells() const = 0;
+
+    virtual void create() = 0;
+    virtual void destroy() = 0;
+
+    Tuple empty_tuple() {
+      Tuple t;
+
+      for (int i=0; i < schema.dimensions_size(); ++i) {
+        t.add_e();
+      }
+
+      return t;
     }
-    return t;
-  }
   
   const jetstream::CubeSchema& get_schema() { return schema; }
   virtual std::string id_as_str() { return name; }
@@ -73,16 +83,15 @@ public:
   
 
 //TODO: should have an entry here for the aggregation/update function.
-  
-protected:
-  jetstream::CubeSchema schema;
-  std::string name;
-  bool is_frozen;
+
+  protected:
+    jetstream::CubeSchema schema;
+    std::string name;
+    bool is_frozen;
 //TODO should figure out how to implement this
 
 private:
   static const std::string my_tyepename;
-  
 };
 
 }

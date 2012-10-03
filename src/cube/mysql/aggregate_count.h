@@ -38,6 +38,8 @@ class MysqlAggregateCount: public MysqlAggregate {
     void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
+    
+    virtual string get_select_clause_for_rollup() const;
 
 };
 
