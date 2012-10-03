@@ -114,7 +114,10 @@ class DataPlaneOperator : public TupleReceiver {
   /**
    * An operator should stop processing tuples before this returns.
    * This function must not block for long periods.
-   * Once this method returns, the operator ID is no longer valid
+   * Once this method returns, the operator ID is no longer valid.
+   * This method will be invoked by the io service threads, or by some other thread.
+   * OPERATOR CODE SHOULD NOT CALL THIS ON A THREAD THEY MANAGE, because boost
+   * doesn't let you join with yourself.
    */
   virtual void stop () {};
 };
@@ -122,11 +125,15 @@ class DataPlaneOperator : public TupleReceiver {
 typedef DataPlaneOperator *maker_t();
 
 
+/* Group together the code for cleaning up operators. Could potentially fold this
+back into Node
+*/
 class OperatorCleanup {
   
   public:
     OperatorCleanup(boost::asio::io_service& io):iosrv(io),cleanup_strand(iosrv) {}
-  
+
+      //called to invoke the stop method, BEFORE purging operator ID
     void stop_on_strand(boost::shared_ptr<DataPlaneOperator> op) {
        cleanup_strand.post( boost::bind(&DataPlaneOperator::stop, op) );
 

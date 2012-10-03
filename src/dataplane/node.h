@@ -51,7 +51,6 @@ class Node {
             //don't interfere
   boost::condition_variable startStopCond;
   OperatorCleanup operator_cleanup;
-
             
   // I don't think we need this
   //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
