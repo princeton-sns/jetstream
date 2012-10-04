@@ -7,6 +7,7 @@
 #include "stdlib.h"
 
 #include <glog/logging.h>
+#include <boost/asio/ip/host_name.hpp>
 
 using namespace std;
 using namespace boost;
@@ -210,6 +211,33 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   }
 }
 
+void parse_with_types(Element * e, const string& s, char typecode) {
+
+ switch (typecode) {
+    case 'I':
+      {
+        int i;
+        istringstream(s) >> i;
+        e->set_i_val( i );
+        break;
+      }
+    case 'D':
+      {
+        double d;
+        istringstream(s) >> d;
+        e->set_d_val( d );
+        break;
+      }
+    case 'S':
+      {
+        e->set_s_val( s );
+        break;
+      }
+    default:
+      LOG(FATAL) << "should be impossible to have typecode " << typecode;
+  }
+}
+
 void
 GenericParse::process(const boost::shared_ptr<Tuple> t) {
 
@@ -230,30 +258,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
       string s = matchResults.str(fld);
       char typecode = field_types[fld-1];
       Element * e = t2->add_e();
-
-      switch (typecode) {
-        case 'I':
-          {
-            int i;
-            istringstream(s) >> i;
-            e->set_i_val( i );
-            break;
-          }
-        case 'D':
-          {
-            double d;
-            istringstream(s) >> d;
-            e->set_d_val( d );
-            break;
-          }
-        case 'S':
-          {
-            e->set_s_val( s );
-            break;
-          }
-        default:
-          LOG(FATAL) << "should be impossible to have typecode " << typecode;
-      }
+      parse_with_types(e, s, typecode);
     }
   }
   else {
@@ -267,9 +272,66 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   emit (t2);
 }
 
+
+
+
 DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
 }
+
+
+
+void
+ExtendOperator::process (boost::shared_ptr<Tuple> t) {
+  
+  //TODO: should we copy t first?
+  for (int i =0; i < new_data.size(); ++i) {
+    Element * e = t->add_e();
+    e->CopyFrom(new_data[i]);
+  }
+  emit(t);
+}
+
+void
+ExtendOperator::configure (std::map<std::string,std::string> &config) {
+
+
+  string field_types = boost::to_upper_copy(config["types"]);
+  static boost::regex re("[SDI]+");
+  
+  if (!regex_match(field_types, re)) {
+    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+    //should return failure here?
+  }
+  
+
+  string first_key = "0";
+  string last_key = ":";
+  map<string, string>::iterator it = config.find(first_key);
+  map<string, string>::iterator end = config.upper_bound(last_key);
+  
+  int i;
+  for (i =0;  i < field_types.size() && it != end; ++i, ++it) {
+    string s = it->second;
+    Element e;
+    if (s == "${HOSTNAME}") {
+      assert(field_types[i] == 'S');
+      e.set_s_val( boost::asio::ip::host_name());
+    }
+    else {
+      parse_with_types(&e, s, field_types[i]);
+    }
+    new_data.push_back(e);
+  }
+  if (i < field_types.size()) {
+    LOG(WARNING) << "too many type specifiers for operator";
+  }
+  if ( it != end ) {
+    LOG(WARNING) << "not enough type specifiers for operator";
+  }
+
+}
+
 
 
 const string FileRead::my_type_name("FileRead operator");

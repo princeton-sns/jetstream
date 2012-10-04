@@ -113,6 +113,10 @@ class GenericParse: public DataPlaneOperator {
   
  GENERIC_CLNAME
 };
+
+/** Use a typecode [char] to [parse a string into an element. Shared by GenericParse
+and by Extend */
+void parse_with_types(Element * e, const std::string& s, char typecode);
   
 class DummyReceiver: public DataPlaneOperator {
  public:
@@ -136,7 +140,14 @@ GENERIC_CLNAME
 
 
 /**
- Adds constant data to a tuple
+ * Adds constant data to a tuple.
+ *   Values should be named "0"..."9".
+ *    If you need to add more than ten values, use two ExtendOperators!
+ * Values should be parallel to a field, named types, with same syntax as
+ * for the GenericParse operator.
+ *  The value ${HOSTNAME} is special; it will be replaced with the host name at 
+ * configuration time. 
+ 
 */
 class ExtendOperator: public DataPlaneOperator {
  public:
@@ -145,7 +156,7 @@ class ExtendOperator: public DataPlaneOperator {
   virtual void configure (std::map<std::string,std::string> &config);
 
   
-  virtual ~ExtendOperator();
+  virtual ~ExtendOperator() {};
 
 GENERIC_CLNAME
 };

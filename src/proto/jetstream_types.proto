@@ -75,7 +75,7 @@ message CubeSchema {
 
   message Aggregate {
     required string name = 1;
-    required string type = 2;  // class name of aggregate type
+    required string type = 2;  // class name of aggregate type, e.g. 'average' or 'count', 
   }
   repeated Aggregate aggregates = 3;
 }

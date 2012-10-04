@@ -78,6 +78,9 @@ class DataPlaneOperator : public TupleReceiver {
 
   
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+
+  /** This will be called before configure
+  */
   void set_node (Node * n) { node = n; }
   boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   
