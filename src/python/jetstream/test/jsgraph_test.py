@@ -15,9 +15,9 @@ import unittest
 from jsgraph import *
 from jetstream_types_pb2 import *
 
-class TestJSGraph(unittest.TestCase):
+class TestJSGraph (unittest.TestCase):
 
-  def setUp(self):
+  def setUp (self):
     # Create a minimal topology as the basis for our tests: some sources connected to
     # a union operator connected to a sink cube
     self.numSources = 5
@@ -44,11 +44,11 @@ class TestJSGraph(unittest.TestCase):
     self.edges.append(edge)
     
     
-  def tearDown(self):
+  def tearDown (self):
     pass
 
 
-  def test_construct(self):
+  def test_construct (self):
     graph = JSGraph(self.operators, self.cubes, self.edges)
     # Create JSNode objects to ease comparisons
     jsnSink = JSNode(self.cubes[0].name, self.cubes[0])
@@ -74,14 +74,14 @@ class TestJSGraph(unittest.TestCase):
       self.assertTrue(jsnSource in graph.radjList[jsnUnion])
 
 
-  def test_lca_simple(self):
+  def test_lca_simple (self):
     graph = JSGraph(self.operators, self.cubes, self.edges)
     lca = graph.get_sources_lca()
     # The LCA of the sources should be the union operator
     self.assertEquals(lca, self.operators[-1])
 
 
-  def test_lca_harder(self):
+  def test_lca_harder (self):
     # Make the graph more complicated and find the LCA of the sources
     j = self.operators[-1].id.task + 1
     for i in range(4):

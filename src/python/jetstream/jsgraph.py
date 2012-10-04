@@ -9,10 +9,8 @@ from jetstream_types_pb2 import *
 
 logger = logging.getLogger('JetStream')
 
-def enum(**enums):
-      return type('Enum', (), enums)
-    
-class JSNode(object):
+
+class JSNode (object):
   """Internal representation of a node in a JetStream computation graph. JSNode objects
   should not be returned to an outside caller; return the underlying object instead."""
 
@@ -20,6 +18,7 @@ class JSNode(object):
   class Color:
     WHITE = 1
     BLACK = 2
+
   
   def __init__ (self, id, obj):
     self.id = id
@@ -54,7 +53,7 @@ class JSNode(object):
     return not result
 
 
-class JSGraph(object):
+class JSGraph (object):
   """A JetStream computation graph"""
 
   def __init__ (self, operators, cubes, edges):
@@ -96,7 +95,7 @@ class JSGraph(object):
         self.sink = node
     # There should be at least one source
     if len(self.sources) == 0:
-      logger.warn("One or more cycles found in computation graph (were they intended?)")
+      logger.warn("One or more cycles found in computation graph (was this intended?)")
 
     # To properly validate a computation graph, use the validate_* methods below
         
@@ -110,62 +109,65 @@ class JSGraph(object):
     """Clears any node state of prior graph algorithm runs."""
     for node in self.nodes.values():
       node.reset()
-      
-    
+
+
   def get_sources_lca (self):
     """Returns the least-common ancestor (or descendant, more accurately) of the source
     nodes in the graph. Assumes the graph is (reducible to) a tree."""
 
     # Start with all sources and repeatedly compute the LCA of pairs until one LCA
-    # remains. Since LCA(x,x) = x, use a set to track the LCAs.
+    # remains. Since LCA(x,x) = x, use a Set to track the LCAs.
     lcas = Set(self.sources)
-    lcaPairs = []
+    lcaPairs = {}
     while len(lcas) >= 2:
-      lcaPairs.append((lcas.pop(), lcas.pop()))
-    while len(lcaPairs) > 0:
-      # Clear the node state from prior runs
-      self.reset_nodes()
-      # Compute the LCAs of the pairs, starting at the root (aka sink) of the tree
-      self.lca_recurse(self.sink, lcaPairs, lcas)
-      # All pairs should be processed and removed by the above call
-      assert len(lcaPairs) == 0
-      while len(lcas) >= 2:
-        lcaPairs.append((lcas.pop(), lcas.pop()))
+      (u, v) = (lcas.pop(), lcas.pop())
+      # setdefault() returns the value if key exists and initializes otherwise
+      lcaPairs.setdefault(u, []).append(v)
+      lcaPairs.setdefault(v, []).append(u)
+    # Clear any prior node state
+    self.reset_nodes()
+    # Repeatedly compute LCAs pairs until one remains, starting at the root (aka sink)
+    # of the tree
+    self.compute_lcas(self.sink, lcaPairs, lcas, True)
     assert(len(lcas) == 1)
     return lcas.pop().object
 
 
-  def lca_recurse (self, u, lcaPairs, lcas):
+  def compute_lcas (self, u, lcaPairs, lcas, recurse):
     uf_make_set(u)
     u.ancestor = u
     # JetStream graphs are directed towards the root, so use the reverse adjacency list.
     if u in self.radjList:
       for v in self.radjList[u]:
-        self.lca_recurse(v, lcaPairs, lcas)
+        self.compute_lcas(v, lcaPairs, lcas, recurse)
         uf_union(u,v)
         uf_find(u).ancestor = u
     u.color = JSNode.Color.BLACK
-    # Iterate over a copy of the list so we can delete
-    for p in lcaPairs[:]:
-      # LCA(u,v) is uf_find(v).ancestor immediately after u is colored black, provided
-      # v is already black; otherwise it is uf_find(u).ancestor immediately after v is
-      # colored black.
-      if (p[0] == u) and (p[1].color == JSNode.Color.BLACK):
-        lcas.add(uf_find(p[1]).ancestor)
-        lcaPairs.remove(p)
-      if (p[1] == u) and (p[0].color == JSNode.Color.BLACK):
-        lcas.add(uf_find(p[0]).ancestor)
-        lcaPairs.remove(p)
+    if u in lcaPairs:
+      i = 0
+      while i < len(lcaPairs[u]):
+        v = lcaPairs[u][i]
+        # LCA(u,v) is uf_find(v).ancestor immediately after u is colored black, provided
+        # v is already black; otherwise it is uf_find(u).ancestor immediately after v is
+        # colored black.
+        if v.color == JSNode.Color.BLACK:
+          lcas.add(uf_find(v).ancestor)
+          # Find the LCA of LCAs, if asked to do so
+          if recurse and (len(lcas) >= 2):
+            (w, x) = (lcas.pop(), lcas.pop())
+            lcaPairs.setdefault(w, []).append(x)
+            lcaPairs.setdefault(x, []).append(w)
+        i += 1
 
 
 ##### Union-find implementation #####
 
-def uf_make_set(x):
+def uf_make_set (x):
   x.parent = x
   x.rank = 0
 
  
-def uf_union(x, y):
+def uf_union (x, y):
   xRoot = uf_find(x)
   yRoot = uf_find(y)
   if xRoot.rank > yRoot.rank:
@@ -177,7 +179,7 @@ def uf_union(x, y):
     xRoot.rank = xRoot.rank + 1
 
   
-def uf_find(x):
+def uf_find (x):
   if x.parent == x:
     return x
   else:
