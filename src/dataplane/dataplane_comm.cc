@@ -75,6 +75,8 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
     }
   case DataplaneMessage::NO_MORE_DATA:
     LOG(INFO) << "got no-more-data signal, will tear down connection";
+    c->close();
+    liveConns.erase(dest_op_id);
     break;
     
   default:
@@ -183,7 +185,7 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   //TODO: could we merge multiple tuples here?
 
   boost::system::error_code err;
-  LOG(INFO) << "RemoteDestAdaptor sending tuple";
+//  LOG(INFO) << "RemoteDestAdaptor sending tuple";
   conn->send_msg(d, err);
 }
 
@@ -195,9 +197,11 @@ RemoteDestAdaptor::no_more_tuples () {
   d.set_type(DataplaneMessage::NO_MORE_DATA);
   
   boost::system::error_code err;
-  LOG(INFO) << "no more tuples in RemoteDestAdaptor";
+//  LOG(INFO) << "no more tuples in RemoteDestAdaptor";
   
-//  conn->send_msg(d, err);
+  conn->send_msg(d, err);
+  
+  //TODO should clean self up.
 }
 
 
