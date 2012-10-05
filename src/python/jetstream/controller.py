@@ -25,6 +25,8 @@ from jsgraph import *
 from computation_state import *
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
+from query_planner import QueryPlanner
+
 
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
@@ -61,7 +63,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__ (self, addr)
-    self.workers = {}
+    self.workers = {} #maps (hostid, port) to CWorker
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
@@ -109,8 +111,7 @@ class Controller (ControllerAPI, JSServer):
 
 
   def get_nodes (self):
-    """Returns a list of Workers.
-     Return type is list of tuples, each of which is address, port"""
+    """Returns a list of Workers."""
     res = []
     res.extend(self.workers.values())
     return res
@@ -149,34 +150,6 @@ class Controller (ControllerAPI, JSServer):
     self.stateLock.release()
 
 
-  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
-  def validate_topo(self,altertopo):
-    """Validates a topology. Should return an empty string if valid, else an error message."""
-    
-    #Organization of this method is parallel to the altertopo structure.
-  # First verify top-level metadata. Then operators, then cubes.
-    if altertopo.computationID in self.computations:
-      return "computation ID %d already in use" % altertopo.computationID
-
-    if len(altertopo.toStart) == 0:
-      return "Topology includes no operators"
-
-#  Can't really do this verification -- breaks with UDFs
-#    for operator in altertopo.toStart:
-#      if not operator.op_typename in KNOWN_OP_TYPES:
-#        print "WARNING: unknown operator type KNOWN_OP_TYPES"
-      
-    for cube in altertopo.toCreate:
-      if not self.CUBE_NAME_PAT.match(cube.name):
-        return "invalid cube name %s" % cube.name
-      if len(cube.schema.aggregates) == 0:
-        return "cubes must have at least one aggregate per cell"
-      if len(cube.schema.dimensions) == 0:
-        return "cubes must have at least one dimension"
-
-    return ""
-    
-    
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
     
@@ -187,81 +160,31 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = errorMsg
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
-    err = self.validate_topo(altertopo)
+    if len(self.computations) == 0:
+      compID = 1
+    else:
+      compID = max(self.computations.keys()) + 1
+
+    planner = QueryPlanner(self.workers.keys())
+    err =  planner.take_raw(altertopo)
+    
     if len(err) > 0:
       print "Invalid topology:",err
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
-      
-    #TODO: The code below only deals with starting tasks.
-    #TODO: Make these todos bitbucket issues or move to assumption comments at top
 
-    # Build the computation graph so we can analyze/manipulate it
-    jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
-    # Set up the computation
-    compID = altertopo.computationID
-    comp = Computation(self, compID, jsGraph)
+    comp = planner.get_computation(compID, self.workers)
     self.computations[compID] = comp
 
-    assignments = {}
-    #TODO: Sid will consolidate with Computation data structure
-    taskLocations = {}
-    sources = jsGraph.get_sources()
-    sink = jsGraph.get_sink()
-    defaultEndpoint = self.get_one_node()
 
-    # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
-    # assign it to a default worker.
-    toPin = []
-    toPin.extend(altertopo.toStart)
-    toPin.extend(altertopo.toCreate)
-    for node in toPin:
-      endpoint = None
-      if node.site.address != '':
-        # Node is pinned to a specific worker
-        endpoint = (node.site.address, node.site.portno)
-      elif (node in sources) or (node == sink):
-        # Node is an unpinned source/sink; pin it to a default worker
-        endpoint = defaultEndpoint
-      else:
-        # Node will be placed later
-        continue
-      if endpoint not in assignments:
-        assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-      assignments[endpoint].add_node(node)
-      #TODO: Sid will consolidate with Computation data structure
-      nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
-      taskLocations[nodeId] = endpoint
-    
-    # Find the first global union node, aka the LCA of all sources.
-    union = jsGraph.get_sources_lca()
-    # All nodes from union to sink should be at one site
-    nodeId = union.id.task if isinstance(union, TaskMeta) else union.name
-    endpoint = taskLocations[nodeId] if nodeId in taskLocations else defaultEndpoint
-    if endpoint not in assignments:
-      assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-    toPlace = jsGraph.get_descendants(union)
-    for node in toPlace:
-      assignments[endpoint].add_node(node)
-    # All nodes from source to union should be at one site, for each source
-    for source in sources:
-      nodeId = source.id.task if isinstance(source, TaskMeta) else source.name
-      assert(nodeId in taskLocations)
-      endpoint = taskLocations[nodeId]
-      toPlace = jsGraph.get_descendants(source, union)
-      for node in toPlace:
-        assignments[endpoint].add_node(node)
-
-    # Finalize the worker assignments
-    for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, assignment)
-    
-    comp.add_edges(altertopo.edges)
-    
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    comp.start()
+    for worker in comp.workerAssignments.keys():
+      req = comp.get_worker_pb(worker)            
+      h = self.connect_to(worker)
+      h.send_pb(req)   #send without waiting for response; we'll get those in the main
+          # network message handler    
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):

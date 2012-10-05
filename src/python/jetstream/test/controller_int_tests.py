@@ -10,6 +10,8 @@ from controller import *
 from worker import *
 from computation_state import *
 from generic_netinterface import JSClient
+from operator_graph import Operators
+
 
 from jetstream_types_pb2 import *
 
@@ -91,13 +93,18 @@ class TestController(unittest.TestCase):
     req.type = ControlMessage.ALTER
     req.alter.computationID = 17
     newOp = req.alter.toStart.add()
-    newOp.op_typename = "cat /etc/shells"
+    newOp.op_typename = Operators.UNIX
+    cfg = newOp.config.add()
+    cfg.opt_name = "cmd"
+    cfg.val = "cat /etc/shells"
     newOp.id.computationID = req.alter.computationID
     newOp.id.task = 1
     # Bind this operator to the second worker
     workerEndpoint = worker2.controllerConn.getsockname()
     newOp.site.address = workerEndpoint[0]
     newOp.site.portno = workerEndpoint[1]
+    
+    print req
     
     buf = self.client.do_rpc(req, True)
     req = ControlMessage()

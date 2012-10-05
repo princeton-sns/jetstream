@@ -76,6 +76,7 @@ class LocalUnix(Operator):
   def __init__(self, id, desc):
     self.id = id
     self.desc = desc
+    self.cmd = desc['cmd']
     self.t = None
     self.dests = []
   
@@ -91,7 +92,7 @@ class LocalUnix(Operator):
     self.t.start()
 
   def run_cmd(self):
-    p = subprocess.Popen(self.desc, stdout= subprocess.PIPE, shell=True)
+    p = subprocess.Popen(self.cmd, stdout= subprocess.PIPE, shell=True)
     # TODO create stderr slurper
     while p.returncode is None:
       for ln in p.stdout.readlines():
