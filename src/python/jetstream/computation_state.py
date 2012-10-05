@@ -134,6 +134,7 @@ class Computation (object):
       
 
   def add_edges(self, edgeList):
+    print "adding",len(edgeList),"edges"
     for edge in edgeList:
       if edge.src not in self.taskLocations:
         print "unknown source %s" % str(edge.src)

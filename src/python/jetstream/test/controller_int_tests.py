@@ -104,7 +104,6 @@ class TestController(unittest.TestCase):
     newOp.site.address = workerEndpoint[0]
     newOp.site.portno = workerEndpoint[1]
     
-    print req
     
     buf = self.client.do_rpc(req, True)
     req = ControlMessage()

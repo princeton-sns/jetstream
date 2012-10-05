@@ -183,6 +183,9 @@ class Controller (ControllerAPI, JSServer):
     for worker in comp.workerAssignments.keys():
       req = comp.get_worker_pb(worker)            
       h = self.connect_to(worker)
+      print worker, req
+
+      
       h.send_pb(req)   #send without waiting for response; we'll get those in the main
           # network message handler    
 
