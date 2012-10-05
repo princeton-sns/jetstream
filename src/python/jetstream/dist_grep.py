@@ -28,20 +28,25 @@ def main():
 
   serv_addr = "localhost"
   serv_port = 3456
-
   
   ### Define the graph abstractly, without a computation
   g = jsapi.OperatorGraph()
   reader = jsapi.FileRead(g, file_to_grep)
   grepper = jsapi.StringGrep(g, pattern)
+  host_extend = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]
   
   cube = g.cube("local_results")
-  cube.add_dim("match", Element.STRING)
+  cube.add_dim("log_line", Element.STRING)
+  cube.add_dim("hostname", Element.STRING)
   cube.add_agg("count", jsapi.Cube.COUNT)
   cube.set_overwrite(True)  #fresh results
 
   g.connect(reader,grepper)
-  g.connect(grepper, cube)
+  g.connect(grepper, host_extend)
+  
+  //TODO should do a clone here.
+  
+  g.connect(host_extend, cube)
   
   #### Finished building in memory, now to join
   server = RemoteController()
@@ -49,7 +54,6 @@ def main():
   n = server.get_a_node()
   assert isinstance(n, NodeID)
   nodes = server.all_nodes()
-  
   
   cube.instantiate_on(n)
 
