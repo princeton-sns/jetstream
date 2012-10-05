@@ -1,7 +1,7 @@
 #
 # A JetStream controller.
 #
-# Note on threading: Built-in Python structures such as dict and list are themselves
+# Note on thread-safety: Built-in Python structures like dict and list are themselves
 # thread-safe (at least in CPython with the GIL), but access to the contents of the
 # structures is not. For example, updating the list of workers is safe, but modifying
 # the state of a worker is not (see liveness thread vs. handling heartbeat).
@@ -21,6 +21,7 @@ import time
 
 from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
+from jsgraph import *
 from computation_state import *
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
@@ -193,40 +194,66 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = err
       return
       
-    #TODO: The code below only deals with starting tasks. We also assume the client topology looks
-    #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
+    #TODO: The code below only deals with starting tasks.
+    #TODO: Make these todos bitbucket issues or move to assumption comments at top
 
-    # Find the first global union point, or the LCA of all sources.
-    #taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
-
+    # Build the computation graph so we can analyze/manipulate it
+    jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
     # Set up the computation
     compID = altertopo.computationID
-    comp = Computation(self, compID)
+    comp = Computation(self, compID, jsGraph)
     self.computations[compID] = comp
 
-    # Assign pinned operators to specified workers. For now, assign unpinned operators to a default worker.
     assignments = {}
+    #TODO: Sid will consolidate with Computation data structure
+    taskLocations = {}
+    sources = jsGraph.get_sources()
+    sink = jsGraph.get_sink()
     defaultEndpoint = self.get_one_node()
-    for operator in altertopo.toStart:
-      assert(operator.id.computationID == compID)
-      endpoint = defaultEndpoint
-      if operator.site.address != '':
-        # Operator is pinned, so overwrite the target worker address
-        endpoint = (operator.site.address, operator.site.portno)
+
+    # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
+    # assign it to a default worker.
+    toPin = []
+    toPin.extend(altertopo.toStart)
+    toPin.extend(altertopo.toCreate)
+    for node in toPin:
+      endpoint = None
+      if node.site.address != '':
+        # Node is pinned to a specific worker
+        endpoint = (node.site.address, node.site.portno)
+      elif (node in sources) or (node == sink):
+        # Node is an unpinned source/sink; pin it to a default worker
+        endpoint = defaultEndpoint
+      else:
+        # Node will be placed later
+        continue
       if endpoint not in assignments:
         assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-      assignments[endpoint].operators.append(operator)
+      assignments[endpoint].add_node(node)
+      #TODO: Sid will consolidate with Computation data structure
+      nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
+      taskLocations[nodeId] = endpoint
+    
+    # Find the first global union node, aka the LCA of all sources.
+    union = jsGraph.get_sources_lca()
+    # All nodes from union to sink should be at one site
+    nodeId = union.id.task if isinstance(union, TaskMeta) else union.name
+    endpoint = taskLocations[nodeId] if nodeId in taskLocations else defaultEndpoint
+    if endpoint not in assignments:
+      assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
+    toPlace = jsGraph.get_descendants(union)
+    for node in toPlace:
+      assignments[endpoint].add_node(node)
+    # All nodes from source to union should be at one site, for each source
+    for source in sources:
+      nodeId = source.id.task if isinstance(source, TaskMeta) else source.name
+      assert(nodeId in taskLocations)
+      endpoint = taskLocations[nodeId]
+      toPlace = jsGraph.get_descendants(source, union)
+      for node in toPlace:
+        assignments[endpoint].add_node(node)
 
-    # Repeat for cubes (temporary)
-    for cube in altertopo.toCreate:
-      endpoint = defaultEndpoint
-      if cube.site.address != '':
-        # Cube is pinned, so overwrite the target worker address
-        endpoint = (cube.site.address, cube.site.portno)
-      if endpoint not in assignments:
-        assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-      assignments[endpoint].cubes.append(cube)
-
+    # Finalize the worker assignments
     for endpoint,assignment in assignments.items():
       comp.assign_worker(endpoint, assignment)
     
@@ -247,14 +274,6 @@ class Controller (ControllerAPI, JSServer):
     # Let the computation know which parts of the assignment were started/created
     actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
     self.computations[compID].update_worker(workerEndpoint, actualAssignment)
-
-
-  #TODO: Move this to within operator graph abstraction.
-  def findSourcesLCA (self, tasks, edges):
-    #TODO: For now just assert that the sources point to the same parent and return this parent
-    #taskIdToTask = {}
-    #for task in tasks:
-    return -1
 
 
   def process_message (self, buf, handler):

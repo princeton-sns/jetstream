@@ -21,6 +21,7 @@ class JSNode (object):
 
   
   def __init__ (self, id, obj):
+    # ID may be any hashable type (integer, string, etc.)
     self.id = id
     self.object = obj
     # Declare (and reset) fields used by graph algorithms
@@ -35,13 +36,14 @@ class JSNode (object):
 
 
   def __hash__ (self):
-    return hash(self.id) ^ id(self.object)
+    return hash(self.id)
 
 
   def __eq__ (self, other):
     if isinstance(other, JSNode):
-      if (self.id != other.id) or (self.object != other.object):
+      if (self.id != other.id):
         return False
+      assert(self.object == other.object)
       return True
     return NotImplemented
 
@@ -59,8 +61,9 @@ class JSGraph (object):
   def __init__ (self, operators, cubes, edges):
     # Map of node ID -> JSNode
     self.nodes = {}
-    # List of source nodes (no incoming edge) and final sink node
-    self.sources = []
+    # Map of node ID -> JSNode for sources (nodes with no incoming edge)
+    self.sources = {}
+    # Sink node (there should only be one)
     self.sink = None
     # Map of node -> [outgoing neighbor]
     self.adjList = {}
@@ -87,7 +90,7 @@ class JSGraph (object):
     # Determine the source nodes and sink node
     for node in self.nodes.values():
       if node not in self.radjList:
-        self.sources.append(node)
+        self.sources[node.id] = node
       if node not in self.adjList:
         # There should only be one sink
         if self.sink != None:
@@ -100,16 +103,44 @@ class JSGraph (object):
     # To properly validate a computation graph, use the validate_* methods below
         
 
-  def validate_tree (self):
+  def validate (self):
     #TODO: Ascertain connectivity, tree-like structure (condense parallel paths and cycles)
     return True
 
 
+  def get_sources (self):
+    return [node.object for node in self.sources.values()]
+
+
+  def get_sink (self):
+    return self.sink.object
+
+    
   def reset_nodes (self):
     """Clears any node state of prior graph algorithm runs."""
     for node in self.nodes.values():
       node.reset()
 
+
+  #TODO: Use colors to mark visited vertices and avoid redundant exploration
+  def get_descendants (self, startObj, endObj=None):
+    nodeId = startObj.id.task if isinstance(startObj, TaskMeta) else startObj.name
+    start = self.nodes[nodeId]
+    end = None
+    if endObj != None:
+      nodeId = endObj.id.task if isinstance(endObj, TaskMeta) else endObj.name
+      end = self.nodes[nodeId]
+    self.reset_nodes()
+    descendantObjs = [start.object]
+    if start in self.adjList:
+      toExplore = self.adjList[start]
+      while len(toExplore) > 0:
+        next = toExplore.pop()
+        descendantObjs.append(next.object)
+        if (next != end) and (next in self.adjList):
+          toExplore.extend(self.adjList[next])
+    return descendantObjs
+      
 
   def get_sources_lca (self):
     """Returns the least-common ancestor (or descendant, more accurately) of the source
@@ -117,7 +148,7 @@ class JSGraph (object):
 
     # Start with all sources and repeatedly compute the LCA of pairs until one LCA
     # remains. Since LCA(x,x) = x, use a Set to track the LCAs.
-    lcas = Set(self.sources)
+    lcas = Set(self.sources.values())
     lcaPairs = {}
     while len(lcas) >= 2:
       (u, v) = (lcas.pop(), lcas.pop())

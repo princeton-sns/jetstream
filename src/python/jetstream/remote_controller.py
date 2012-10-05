@@ -1,5 +1,3 @@
-
-
 from generic_netinterface import JSClient
 
 from jetstream_types_pb2 import *

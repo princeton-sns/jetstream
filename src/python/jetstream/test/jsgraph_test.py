@@ -67,7 +67,7 @@ class TestJSGraph (unittest.TestCase):
     # Test the sources
     for i in range(self.numSources):
       jsnSource = JSNode(self.operators[i].id.task, self.operators[i])
-      self.assertTrue(jsnSource in graph.sources)
+      self.assertTrue(jsnSource in graph.sources.values())
       self.assertTrue(jsnSource in graph.adjList)
       self.assertEquals(len(graph.adjList[jsnSource]), 1)
       self.assertEquals(graph.adjList[jsnSource][0], jsnUnion)
