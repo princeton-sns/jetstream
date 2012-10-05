@@ -214,3 +214,20 @@ def FileRead(graph, file):
 def StringGrep(graph, pattern):
    cfg = {"pattern":pattern}
    return graph.operator("StringGrep", cfg)  
+   
+   
+def ExtendOperator(graph, type_str, fld_vals_list):
+    cfg = {"types": type_str}
+    assert len(fld_vals_list) == len(type_str) and len(type_str) < 11
+    i = 0
+    for x in fld_vals_list:
+      cfg[str(i)] = str(x)
+    return graph.operator("ExtendOperator", cfg)
+    
+    
+def NoOp(graph, file):
+   cfg = {}
+   return graph.operator("ExtendOperator", cfg)  
+   
+    
+    

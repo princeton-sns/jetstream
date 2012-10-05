@@ -10,6 +10,11 @@ void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          operator_id_t dest_op_id,
                                          shared_ptr<DataPlaneOperator> dest) {
+  
+  if (liveConns.find(dest_op_id) != liveConns.end()) {
+    //TODO this can probably happen if the previous connection died. Can we check for that?
+    LOG(FATAL) << "trying to connect remote conn to " << dest_op_id << "but there already is such a connection";
+  }
   liveConns[dest_op_id] = c;
 
   boost::system::error_code error;
@@ -33,6 +38,11 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
                                           operator_id_t future_op) {
+  if (liveConns.find(future_op) != liveConns.end()) {
+    //TODO this can probably happen if the previous connection died. Can we check for that?
+    LOG(FATAL) << "trying to connect remote conn to " << future_op << "but there already is such a connection";
+  }
+
   pendingConns[future_op] = c;
 }
 
@@ -41,10 +51,10 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
                                         shared_ptr<DataPlaneOperator> dest) {
-  shared_ptr<ClientConnection> c = pendingConns[op_id];
-  pendingConns.erase(op_id);
-  if (c != NULL)
-    enable_connection(c, op_id, dest);
+  map<operator_id_t, shared_ptr<ClientConnection> >::iterator pending_conn = liveConns.find(op_id);
+  if (pending_conn != liveConns.end()) {
+    enable_connection(pending_conn->second, op_id, dest);
+  }
 }
 
 void

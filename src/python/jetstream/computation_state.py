@@ -91,6 +91,22 @@ class CWorker (object):
 
 class Computation (object):
   """Controller's view of a computation"""
+  
+"""stages of computation compilation:
+
+There's the raw OperatorGraph from the client.  Call this the original plan.
+
+There's turning multi-node location specifiers ("on all nodes") into actual node IDs. The client can do this.  Call the result an expanded plan.
+
+This can be optimized. This involves both replacing groups of operators with equivalent but simpler groups, and also converting logical operators into physical operators (sometimes adding operators)
+
+There's placement.  Call the result a placed plan.  This can still include logical operators that don't map exactly to physical operators.
+
+Last, there's putting in assorted plumbing. Call the results a concrete computation plan.  This must only have concrete physical operators. It will be cut up and sent to the relevant dataplane nodes for execution.
+
+Validation can happen at several points. Typechecking and suchlike can happen on the expanded plan.
+"""  
+  
 
   def __init__ (self, controller, compID): #, opGraph=None):
     # Save the controller interface so we can communicate with workers
