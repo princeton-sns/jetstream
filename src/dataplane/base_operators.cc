@@ -273,19 +273,16 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
 }
 
 
-
-
 DummyReceiver::~DummyReceiver() {
   LOG(WARNING) << "destructing dummy receiver";
 }
-
 
 
 void
 ExtendOperator::process (boost::shared_ptr<Tuple> t) {
   
   //TODO: should we copy t first?
-  for (int i =0; i < new_data.size(); ++i) {
+  for (u_int i = 0; i < new_data.size(); ++i) {
     Element * e = t->add_e();
     e->CopyFrom(new_data[i]);
   }
@@ -295,7 +292,6 @@ ExtendOperator::process (boost::shared_ptr<Tuple> t) {
 void
 ExtendOperator::configure (std::map<std::string,std::string> &config) {
 
-
   string field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
   
@@ -303,15 +299,14 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
     LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
     //should return failure here?
   }
-  
 
   string first_key = "0";
   string last_key = ":";
   map<string, string>::iterator it = config.find(first_key);
   map<string, string>::iterator end = config.upper_bound(last_key);
   
-  int i;
-  for (i =0;  i < field_types.size() && it != end; ++i, ++it) {
+  u_int i;
+  for (i = 0;  i < field_types.size() && it != end; ++i, ++it) {
     string s = it->second;
     Element e;
     if (s == "${HOSTNAME}") {
