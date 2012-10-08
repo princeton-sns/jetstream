@@ -46,6 +46,8 @@ LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
 }
 
 
+// Note: this method only cancels timers, it does not wait for them to complete their last
+// notification. 
 void
 LivenessManager::stop_all_notifications ()
 {
@@ -53,9 +55,9 @@ LivenessManager::stop_all_notifications ()
        iter != connections.end(); ++iter) {
     iter->second->stop_notify ();
   }
- // wait until dtor for this -- otherwise threads may still be touching connections,
- // and the pointers will dangle.
-//  connections.clear ();
+  // Wait until the destructor for this, since canceled timers may asynchronously call
+  // the handler one last time (see stop_notify()).
+  // connections.clear ();
 }
 
 

@@ -47,6 +47,14 @@ class WorkerAssignment (object):
     return not result
 
 
+  def add_node (self, node):
+    if isinstance(node, TaskMeta):
+      self.operators.append(node)
+    else:
+      assert(isinstance(node, CubeMeta))
+      self.cubes.append(node)
+
+
 class CWorker (object):
   """Controller's view of a worker node"""
 
@@ -90,13 +98,12 @@ class CWorker (object):
 
 
 class Computation (object):
-  """Controller's view of a computation"""
-
-  def __init__ (self, controller, compID): #, opGraph=None):
+  """Controller's view of a running computation"""
+  
+  def __init__ (self, compID, jsGraph):
     # Save the controller interface so we can communicate with workers
-    self.controller = controller
     self.compID = compID
-#    self.opGraph = opGraph   #unused
+    self.jsGraph = jsGraph
     # Maps a worker endpoint to an assignment
     self.workerAssignments = {} #worker ID to WorkerAssignment object
     self.taskLocations = {} #maps operator ID or cube name to host,port pair
@@ -126,20 +133,13 @@ class Computation (object):
       
 
   def add_edges(self, edgeList):
+    print "adding",len(edgeList),"edges"
     for edge in edgeList:
       if edge.src not in self.taskLocations:
         print "unknown source %s" % str(edge.src)
         raise UserException("Edge from nonexistent source")
       dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
       self.outEdges[edge.src] = dest
-
-  def start (self):
-    # Start each worker's assignment
-    for worker in self.workerAssignments.keys():
-      req = self.get_worker_pb(worker)            
-      h = self.controller.connect_to(worker)
-      h.send_pb(req)   #send without waiting for response; we'll get those in the main
-          # network message handler
 
 
   def get_worker_pb(self, workerID):
@@ -176,6 +176,7 @@ class Computation (object):
           pb_e.dest_addr.portno = dest_host[1]
           
     return req
+
 
   def stop (self):
     # Stop each worker's assignment

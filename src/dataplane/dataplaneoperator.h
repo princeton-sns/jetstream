@@ -59,7 +59,8 @@ class TupleReceiver {
 
 typedef std::map<std::string,std::string> operator_config_t;
 
-
+typedef std::string operator_err_t;
+const operator_err_t NO_ERR = "";
 
 class DataPlaneOperator : public TupleReceiver {
  private:
@@ -78,6 +79,9 @@ class DataPlaneOperator : public TupleReceiver {
 
   
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+
+  /** This will be called before configure
+  */
   void set_node (Node * n) { node = n; }
   boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   
@@ -91,7 +95,8 @@ class DataPlaneOperator : public TupleReceiver {
     /** This method will be called on every operator, before start() and before
   * any tuples will be received. This method must not block or emit tuples
   */ 
-  virtual void configure (std::map<std::string, std::string> &) {};
+  virtual operator_err_t configure (std::map<std::string, std::string> &)
+      {return NO_ERR;}
 
   /**
    * An operator must not start emitting tuples until start() has been called or
@@ -114,7 +119,10 @@ class DataPlaneOperator : public TupleReceiver {
   /**
    * An operator should stop processing tuples before this returns.
    * This function must not block for long periods.
-   * Once this method returns, the operator ID is no longer valid
+   * Once this method returns, the operator ID is no longer valid.
+   * This method will be invoked by the io service threads, or by some other thread.
+   * OPERATOR CODE SHOULD NOT CALL THIS ON A THREAD THEY MANAGE, because boost
+   * doesn't let you join with yourself.
    */
   virtual void stop () {};
 };
@@ -122,11 +130,15 @@ class DataPlaneOperator : public TupleReceiver {
 typedef DataPlaneOperator *maker_t();
 
 
+/* Group together the code for cleaning up operators. Could potentially fold this
+back into Node
+*/
 class OperatorCleanup {
   
   public:
     OperatorCleanup(boost::asio::io_service& io):iosrv(io),cleanup_strand(iosrv) {}
-  
+
+      //called to invoke the stop method, BEFORE purging operator ID
     void stop_on_strand(boost::shared_ptr<DataPlaneOperator> op) {
        cleanup_strand.post( boost::bind(&DataPlaneOperator::stop, op) );
 

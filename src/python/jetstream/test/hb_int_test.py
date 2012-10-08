@@ -19,7 +19,7 @@ from generic_netinterface import JSClient
 from jetstream_types_pb2 import *
 
 
-class TestController(unittest.TestCase):
+class TestHbIntegration(unittest.TestCase):
 
   def setUp(self):
     self.controller = Controller(('localhost', 0))

@@ -2,6 +2,7 @@
 #include "simple_net.h"
 
 using namespace jetstream;
+using namespace ::std;
 
 /*
 Awkward -- no good way to manage storage for the io service
@@ -50,9 +51,10 @@ SimpleNet::get_data_msg()
   return h;
 }
 
-void
+boost::system::error_code
 SimpleNet::send_msg(google::protobuf::MessageLite& m)
 {
+  boost::system::error_code err;
   int sz = m.ByteSize();
   u_int32_t len_nbo = htonl (sz);
   int nbytes = sz + HEADER_LEN;
@@ -61,7 +63,11 @@ SimpleNet::send_msg(google::protobuf::MessageLite& m)
 
   memcpy(msg, &len_nbo, HEADER_LEN);
   m.SerializeToArray((msg + HEADER_LEN), sz);
-
-  sock.send(boost::asio::buffer(msg, nbytes));
+  sock.send(boost::asio::buffer(msg, nbytes), 0, err);
   delete msg;
+  if (err) {
+//    cout << "failed to send: " << err.message() << " (" << err.value() << ")"<< endl;
+    sock.close();
+  }
+  return err;
 }

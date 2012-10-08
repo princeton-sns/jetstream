@@ -12,68 +12,34 @@
 
 namespace  jetstream {
   
-/**
- * Instances of this class is responsible for managing incoming data on the
- * dataplane. Each IncomingConnAdaptor is the start of an operator chain
- */
-class DataplaneConnManager {
 
- private:
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pendingConns;
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > liveConns;
-  
-  void got_data_cb (operator_id_t dest_id,
-                    boost::shared_ptr<DataPlaneOperator> dest,
-                    const DataplaneMessage &msg,
-                    const boost::system::error_code &error);
-  
-  
-  void operator= (const DataplaneConnManager &) 
-    { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
-  DataplaneConnManager (const DataplaneConnManager &) 
-    { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
-  
- public:
-  DataplaneConnManager () {}
- 
- 
-    // called to attach incoming connection c to existing operator dest
-  void enable_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t dest_op_id,
-                          boost::shared_ptr<DataPlaneOperator> dest);
-                     
-
-    // called to attach income connection c to an operator that doesn't yet exist
-  void pending_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t future_op);
-
-    // called when an operator is created
-  void created_operator (operator_id_t opid,
-                         boost::shared_ptr<DataPlaneOperator> dest);
-                         
-  void close();
-};
-
-
+class DataplaneConnManager;
 
 class RemoteDestAdaptor : public TupleReceiver {
+  friend class DataplaneConnManager;
+
 
  private:
+  DataplaneConnManager& mgr;
+ 
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
   bool chainIsReady;
 //  bool stopping;
-  operator_id_t destOpId;
+  std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
+  Edge dest_as_edge;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
   
   void conn_ready_cb (const DataplaneMessage &msg,
                       const boost::system::error_code &error);
+
+  bool wait_for_chain_ready ();
    
-  static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
+  msec_t wait_for_conn; // Note this is a wide area wait.
   
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
@@ -81,14 +47,17 @@ class RemoteDestAdaptor : public TupleReceiver {
 //  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) :
 //      conn (c), chainIsReady(false), stopping(false) {}
 
-  RemoteDestAdaptor (ConnectionManager &cm, const jetstream::Edge&);
-  virtual ~RemoteDestAdaptor() {}
+  RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
+                     const jetstream::Edge&,
+                     msec_t wait_for_conn);
+  virtual ~RemoteDestAdaptor() {
+    LOG(INFO) << "destructing RemoteDestAdaptor";
+ }
 
   virtual void process (boost::shared_ptr<Tuple> t);
   
   virtual void no_more_tuples();
 
-  
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
   virtual std::string id_as_str() {return long_description();}
@@ -96,6 +65,82 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   private:
    static const std::string generic_name;
+};
+  
+
+/**
+ * Instances of this class are responsible for managing incoming data on the
+ * dataplane. 
+ * They are also responsible for managing the lifetimes of the RemoteDestAdaptors
+ * that handle OUTGOING traffic.
+ */
+class DataplaneConnManager {
+
+ private:
+  std::map<std::string, std::vector<boost::shared_ptr<ClientConnection> > > pendingConns;
+  
+    /** Maps from remote endpoint to the local client-connection associated with it.
+    * Note that the connection-to-destination mapping is implicit in the callback
+    * closure and is not stored explicitly.
+    */
+  std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<ClientConnection> > liveConns;
+  
+  
+  void got_data_cb (boost::shared_ptr<ClientConnection> c,
+                    boost::shared_ptr<TupleReceiver> dest,
+                    const DataplaneMessage &msg,
+                    const boost::system::error_code &error);
+  
+  
+  void operator= (const DataplaneConnManager &) 
+    { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
+  DataplaneConnManager (const DataplaneConnManager & d):iosrv(d.iosrv),strand(d.strand)
+    { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
+  
+ public:
+  DataplaneConnManager (boost::asio::io_service& io):iosrv(io), strand(iosrv) {}
+ 
+ 
+    // called to attach incoming connection c to existing operator dest
+  void enable_connection (boost::shared_ptr<ClientConnection> c,
+                          boost::shared_ptr<TupleReceiver> dest);
+                     
+
+    // called to attach income connection c to an operator that doesn't yet exist
+  void pending_connection (boost::shared_ptr<ClientConnection> c,
+                          std::string future_op);
+
+    // called when an operator is created
+  void created_operator (boost::shared_ptr<TupleReceiver> dest);
+                         
+  void close();
+  
+  ///////////////  Handles outgoing connections ////////////
+  
+ public:
+    void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
+       adaptors[p->dest_as_str] = p;
+    }
+  
+/*    //currently dead code
+   void cleanup(string id) {
+      strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
+    }
+  */
+
+/*  Currently dead code.  */
+    void deferred_cleanup(std::string);
+ 
+  private:
+    boost::asio::io_service & iosrv;
+    boost::asio::strand strand;
+  /**
+  * Maps from a destination operator ID to an RDA for it.
+  * This 
+  */
+    std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
+  
+  
 };
 
 

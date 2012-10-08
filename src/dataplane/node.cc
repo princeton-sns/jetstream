@@ -19,6 +19,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, conf.heartbeat_time),
     webInterface (conf.webinterface_port, *this),
+    dataConnMgr(*iosrv),
     operator_cleanup(*iosrv),
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
@@ -76,7 +77,6 @@ Node::~Node ()
 void
 Node::start ()
 {
-
   LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
@@ -102,17 +102,11 @@ Node::stop ()
     return;
   }
 
-  
-
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
-  for (u_int i = 0; i < controllers.size(); ++i) {
-    controllers[i]->close();
-  }
   
   iosrv->stop();
   LOG(INFO) << "io service stopped" << endl;
-  
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
 
@@ -127,8 +121,8 @@ Node::stop ()
   // Probably unwise here since we may have multiple Nodes in a unit test.
   //  google::protobuf::ShutdownProtobufLibrary();
 
-  // Wait for all threads in pool to exit; this only happens when the io service
-  //  is stopped.
+  // Wait for all threads in pool to exit; this only happens after the io service
+  // is stopped.
   while (threads.size() > 0 ) {
     threads.back()->join();
     threads.pop_back();
@@ -136,6 +130,12 @@ Node::stop ()
   }
 
   operators.empty(); //remove pointers, AFTER the threads stop.
+
+  // Close liveness connections AFTER joining all io service threads, since this
+  // guarantees no thread will try to send a notification.
+  for (u_int i = 0; i < controllers.size(); ++i) {
+    controllers[i]->close();
+  }
   
   startStopCond.notify_all();
 
@@ -209,7 +209,7 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
   boost::system::error_code e;
   
   // Need to convert the connected socket to a client_connection
-  LOG(INFO) << "Incoming dataplane connection received ok";
+  LOG(INFO) << "Incoming dataplane connection from " << sock->get_remote_endpoint();
   
   boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
@@ -235,33 +235,38 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
     {
       const Edge& e = msg.chain_link();
       //TODO can sanity-check that e is for us here.
+      std::string dest_as_str;
+      shared_ptr<TupleReceiver> dest;
       if (e.has_dest()) {
-      
         operator_id_t dest_operator_id (e.computation(), e.dest());
-        shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
-        
-        LOG(INFO) << "Chain request for operator " << dest_operator_id.to_string();
-	// Operator exists so we can report "ready"
-        if (dest) { 
-          // Note that it's important to put the connection into receive mode
-          // before sending the READY.
-         
-          dataConnMgr.enable_connection(c, dest_operator_id, dest);
-
-          //TODO do we log the error or ignore it?
-        }
-        else {
-          LOG(INFO) << "Chain request for operator that isn't ready yet";
-          dataConnMgr.pending_connection(c, dest_operator_id);
-        }
-      }
-      else {
-        LOG(WARNING) << "Got remote chain connect without a dest";
+        dest_as_str = dest_operator_id.to_string();
+        dest = get_operator(dest_operator_id);
+      } else if (e.has_cube_name()) {
+        dest_as_str = e.cube_name();
+        dest = cubeMgr.get_cube(dest_as_str);
+      }  else {
+        LOG(WARNING) << "Got remote chain connect without a dest operator or cube";
         DataplaneMessage response;
         response.set_type(DataplaneMessage::ERROR);
         response.mutable_error_msg()->set_msg("got connect with no dest");
         c->send_msg(response, send_error);
       }
+
+// Operator exists so we can report "ready"
+      if (dest) { 
+        // Note that it's important to put the connection into receive mode
+        // before sending the READY.
+        LOG(INFO) << "Chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
+       
+        dataConnMgr.enable_connection(c, dest);
+
+        //TODO do we log the error or ignore it?
+      }
+      else {
+        LOG(INFO) << "Chain request for " << dest_as_str<< " that isn't ready yet";
+        
+        dataConnMgr.pending_connection(c, dest_as_str);
+      }      
     }
     break;
   default:
@@ -309,13 +314,27 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     // Record the outcome of creating the operator in the response message
-    if (create_operator(cmd, id, config) != NULL) {
+    
+
+    operator_err_t err = create_operator(cmd, id, config);
+    if (err == NO_ERR) {
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
       started_task->set_op_typename(task.op_typename());
-      operators_to_start.push_back(id);
-    } else {
+      operators_to_start.push_back(id);    
+    }
+    else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
+      
+      //teardown started operators
+      for (int j=0; j < operators_to_start.size(); ++j) {
+        //note we don't call stop(), since operators didn't start()
+          operators.erase(operators_to_start[i]);
+      }
+      response.set_type(ControlMessage::ERROR);
+      Error * err_msg = response.mutable_error_msg();
+      err_msg->set_msg(err);
+      return response;
     }
   }
 
@@ -333,7 +352,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     }
   }
 
-  // Stop operators if need be
+  // Stop operators if requested
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
     LOG(INFO) << "Stopping " << id << " due to server request";
@@ -342,7 +361,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
   }
   
-  // Remove cubes if specified.
+  // Remove cubes if requested
   for (int i=0; i < topo.cubestostop_size(); ++i) {
     string id = topo.cubestostop(i);
     LOG(INFO) << "Closing cube " << id << " due to server request";
@@ -372,8 +391,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       }
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
-      shared_ptr<TupleReceiver> xceiver(
-          new RemoteDestAdaptor(*connMgr, edge) );
+      shared_ptr<RemoteDestAdaptor> xceiver(
+          new RemoteDestAdaptor(dataConnMgr, *connMgr, edge, config.data_conn_wait) );
+      dataConnMgr.register_new_adaptor(xceiver);
       srcOperator->set_dest(xceiver);
     } 
     else {
@@ -395,10 +415,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     const operator_id_t& name = *iter;
     shared_ptr<DataPlaneOperator> op = get_operator(name);
     op->start();
-    dataConnMgr.created_operator(name, op);
-
+    dataConnMgr.created_operator(op);
   }
-
+  
+  for (int i=0; i < topo.tocreate_size(); ++i) {
+    const CubeMeta &task = topo.tocreate(i);
+    shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
+    dataConnMgr.created_operator(c);
+  }
   return response;
 }
 
@@ -414,24 +438,23 @@ Node::get_operator (operator_id_t name) {
   }
 }
 
-shared_ptr<DataPlaneOperator>
+operator_err_t
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
+  if (d == NULL) {
+    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+    return operator_err_t("Loader failed to create operator of type " + op_typename);
+  }
+  
   d->id() = name;
   d->set_node(this);
-  d->configure(cfg);
-   //TODO logging
-  
-  if (d.get() != NULL) {
+  operator_err_t err = d->configure(cfg);
+  if (err == NO_ERR) {
     LOG(INFO) << "starting operator " << name << " of type " << op_typename;
+    operators[name] = d;
   }
-  else 
-  {
-    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
-  }
-  operators[name] = d;
-  return d;
+  return err;
 }
 
 bool 

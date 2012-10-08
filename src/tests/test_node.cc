@@ -54,7 +54,8 @@ TEST(Node, OperatorCreateDestroy)
 
   operator_id_t id(1,2);
   operator_config_t oper_cfg;
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id, oper_cfg);
+  node.create_operator("test",id, oper_cfg);
+  shared_ptr<DataPlaneOperator> op = node.get_operator(id);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   
@@ -88,10 +89,12 @@ TEST(Node, HandleAlter_2_Ops)
   shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
   ASSERT_TRUE(dest != NULL);
   
-  //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
-  
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  int tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  
   ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
   string s = rec->tuples[0]->e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
@@ -124,7 +127,6 @@ class NodeNetTest : public ::testing::Test {
   asio::io_service io_service;
   ip::tcp::socket cli_socket;
   SimpleNet synch_net;
-  thread testThread;
 
   // Include a superfluous io_service initializer to cause a compile error if the
   // order of initialization above is switched
@@ -159,8 +161,6 @@ class NodeNetTest : public ::testing::Test {
     assert(n);
     cout << "stopping node" << endl;
     n->stop();
-    testThread.join();
-    cout << "test runner thread stopped OK" << endl;
   }
 
 };
@@ -289,15 +289,26 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
 
   //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  int tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
   
   data_msg.Clear();
   data_msg.set_type(DataplaneMessage::NO_MORE_DATA);
   data_conn.send_msg(data_msg);
-
+  
+  tries = 0;
+  while (data_conn.is_connected() && tries++ < 20) {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    data_conn.send_msg(data_msg);
+  }
+  
+  ASSERT_FALSE( data_conn.is_connected());
   
   
 }
@@ -355,7 +366,6 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
 
   //TODO better way to wait here?
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
   int tries = 0;
   while (rec->tuples.size() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -437,25 +447,27 @@ TEST(NodeIntegration, DataplaneConn) {
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
   cout << "created receiver" << endl;
 
-  // Wait for the chain to be ready and the sending operator's data to flow through. 
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
-  
+  // Wait for the chain to be ready and the sending operator's data to flow through.   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  
+  
+  tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  
   u_int k;
   stringstream(kStr) >> k;
   // EXPECT_* records the failure but allows the cleanup code below to execute
   EXPECT_EQ(k, rec->tuples.size());
-
+  cout << "done with test; tearing down" << endl;
   // Close sockets to avoid badness related to io_service destruction
-  sockets[0]->shutdown(tcp::socket::shutdown_both, err);
-  sockets[0]->close();
-  sockets[1]->shutdown(tcp::socket::shutdown_both, err);
-  sockets[1]->close();
+  for (int i =0; i < 2; ++i) {
+    sockets[0]->shutdown(tcp::socket::shutdown_both, err);
+    sockets[0]->close();
+  }
 
   nodes[0]->stop();
   nodes[1]->stop();
-//  testThreads[0].join();
-//  testThreads[1].join();
 }
 
 TEST(Node,Ctor) {

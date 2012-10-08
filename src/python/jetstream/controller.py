@@ -1,7 +1,7 @@
 #
 # A JetStream controller.
 #
-# Note on threading: Built-in Python structures such as dict and list are themselves
+# Note on thread-safety: Built-in Python structures like dict and list are themselves
 # thread-safe (at least in CPython with the GIL), but access to the contents of the
 # structures is not. For example, updating the list of workers is safe, but modifying
 # the state of a worker is not (see liveness thread vs. handling heartbeat).
@@ -21,9 +21,12 @@ import time
 
 from jetstream_types_pb2 import *
 from controller_api import ControllerAPI
+from jsgraph import *
 from computation_state import *
 from generic_netinterface import JSServer
 from server_http_interface import start_web_interface
+from query_planner import QueryPlanner
+
 
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
@@ -60,7 +63,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__ (self, addr)
-    self.workers = {}
+    self.workers = {} #maps (hostid, port) to CWorker
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
@@ -108,8 +111,7 @@ class Controller (ControllerAPI, JSServer):
 
 
   def get_nodes (self):
-    """Returns a list of Workers.
-     Return type is list of tuples, each of which is address, port"""
+    """Returns a list of Workers."""
     res = []
     res.extend(self.workers.values())
     return res
@@ -148,34 +150,6 @@ class Controller (ControllerAPI, JSServer):
     self.stateLock.release()
 
 
-  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
-  def validate_topo(self,altertopo):
-    """Validates a topology. Should return an empty string if valid, else an error message."""
-    
-    #Organization of this method is parallel to the altertopo structure.
-  # First verify top-level metadata. Then operators, then cubes.
-    if altertopo.computationID in self.computations:
-      return "computation ID %d already in use" % altertopo.computationID
-
-    if len(altertopo.toStart) == 0:
-      return "Topology includes no operators"
-
-#  Can't really do this verification -- breaks with UDFs
-#    for operator in altertopo.toStart:
-#      if not operator.op_typename in KNOWN_OP_TYPES:
-#        print "WARNING: unknown operator type KNOWN_OP_TYPES"
-      
-    for cube in altertopo.toCreate:
-      if not self.CUBE_NAME_PAT.match(cube.name):
-        return "invalid cube name %s" % cube.name
-      if len(cube.schema.aggregates) == 0:
-        return "cubes must have at least one aggregate per cell"
-      if len(cube.schema.dimensions) == 0:
-        return "cubes must have at least one dimension"
-
-    return ""
-    
-    
   def handle_alter (self, response, altertopo):
     response.type = ControlMessage.OK
     
@@ -186,55 +160,32 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = errorMsg
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
-    err = self.validate_topo(altertopo)
+    if len(self.computations) == 0:
+      compID = 1
+    else:
+      compID = max(self.computations.keys()) + 1
+
+    planner = QueryPlanner(self.workers.keys())
+    err =  planner.take_raw(altertopo)
+    
     if len(err) > 0:
       print "Invalid topology:",err
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
-      
-    #TODO: The code below only deals with starting tasks. We also assume the client topology looks
-    #like an in-tree from the stream sources to a global union point, followed by an arbitrary graph.
 
-    # Find the first global union point, or the LCA of all sources.
-    #taskID = self.findSourcesLCA(altertopo.toStart, altertopo.edges)
-
-    # Set up the computation
-    compID = altertopo.computationID
-    comp = Computation(self, compID)
+    comp = planner.get_computation(compID, self.workers)
     self.computations[compID] = comp
 
-    # Assign pinned operators to specified workers. For now, assign unpinned operators to a default worker.
-    assignments = {}
-    defaultEndpoint = self.get_one_node()
-    for operator in altertopo.toStart:
-      assert(operator.id.computationID == compID)
-      endpoint = defaultEndpoint
-      if operator.site.address != '':
-        # Operator is pinned, so overwrite the target worker address
-        endpoint = (operator.site.address, operator.site.portno)
-      if endpoint not in assignments:
-        assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-      assignments[endpoint].operators.append(operator)
-
-    # Repeat for cubes (temporary)
-    for cube in altertopo.toCreate:
-      endpoint = defaultEndpoint
-      if cube.site.address != '':
-        # Cube is pinned, so overwrite the target worker address
-        endpoint = (cube.site.address, cube.site.portno)
-      if endpoint not in assignments:
-        assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
-      assignments[endpoint].cubes.append(cube)
-
-    for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, assignment)
-    
-    comp.add_edges(altertopo.edges)
-    
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    comp.start()
+    for worker in comp.workerAssignments.keys():
+      req = comp.get_worker_pb(worker)            
+      h = self.connect_to(worker)
+      #print worker, req
+      # Send without waiting for response; we'll hear back in the main network message
+      # handler
+      h.send_pb(req)
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):
@@ -247,14 +198,6 @@ class Controller (ControllerAPI, JSServer):
     # Let the computation know which parts of the assignment were started/created
     actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
     self.computations[compID].update_worker(workerEndpoint, actualAssignment)
-
-
-  #TODO: Move this to within operator graph abstraction.
-  def findSourcesLCA (self, tasks, edges):
-    #TODO: For now just assert that the sources point to the same parent and return this parent
-    #taskIdToTask = {}
-    #for task in tasks:
-    return -1
 
 
   def process_message (self, buf, handler):

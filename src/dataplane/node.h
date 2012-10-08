@@ -27,9 +27,10 @@ class NodeConfig {
   port_t webinterface_port;     // Host byte order
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
+  msec_t data_conn_wait;      //wait for a dataplane connection to respond. Should probably be minutes, not seconds?
   NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0), webinterface_port (0),
-    heartbeat_time (0), thread_pool_size (1)
+    heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000)
     {}
 };
 
@@ -51,7 +52,6 @@ class Node {
             //don't interfere
   boost::condition_variable startStopCond;
   OperatorCleanup operator_cleanup;
-
             
   // I don't think we need this
   //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
@@ -91,8 +91,8 @@ class Node {
 
   boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
   
-  boost::shared_ptr<DataPlaneOperator>
-    create_operator (std::string op_typename, operator_id_t, operator_config_t);
+  operator_err_t
+    create_operator (std::string op_typename, operator_id_t, operator_config_t) ;
     
   bool stop_operator (operator_id_t name);
   
