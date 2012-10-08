@@ -91,8 +91,8 @@ class Node {
 
   boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
   
-  boost::shared_ptr<DataPlaneOperator>
-    create_operator (std::string op_typename, operator_id_t, operator_config_t);
+  operator_err_t
+    create_operator (std::string op_typename, operator_id_t, operator_config_t) ;
     
   bool stop_operator (operator_id_t name);
   

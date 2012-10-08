@@ -314,12 +314,16 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       config[cfg_param.opt_name()] = cfg_param.val();
     }
     // Record the outcome of creating the operator in the response message
-    if (create_operator(cmd, id, config) != NULL) {
+    
+
+    operator_err_t err = create_operator(cmd, id, config);
+    if (err == NO_ERR) {
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
       started_task->set_op_typename(task.op_typename());
-      operators_to_start.push_back(id);
-    } else {
+      operators_to_start.push_back(id);    
+    }
+    else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
     }
   }
@@ -424,24 +428,23 @@ Node::get_operator (operator_id_t name) {
   }
 }
 
-shared_ptr<DataPlaneOperator>
+operator_err_t
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
+  if (d == NULL) {
+    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+    return operator_err_t("Loader failed to create operator of type " + op_typename);
+  }
+  
   d->id() = name;
   d->set_node(this);
-  d->configure(cfg);
-   //TODO logging
-  
-  if (d.get() != NULL) {
+  operator_err_t err = d->configure(cfg);
+  if (err == NO_ERR) {
     LOG(INFO) << "starting operator " << name << " of type " << op_typename;
+    operators[name] = d;
   }
-  else 
-  {
-    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
-  }
-  operators[name] = d;
-  return d;
+  return err;
 }
 
 bool 
