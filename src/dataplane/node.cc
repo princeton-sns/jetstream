@@ -77,7 +77,6 @@ Node::~Node ()
 void
 Node::start ()
 {
-
   LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
@@ -105,9 +104,6 @@ Node::stop ()
 
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
-  for (u_int i = 0; i < controllers.size(); ++i) {
-    controllers[i]->close();
-  }
   
   iosrv->stop();
   LOG(INFO) << "io service stopped" << endl;
@@ -125,8 +121,8 @@ Node::stop ()
   // Probably unwise here since we may have multiple Nodes in a unit test.
   //  google::protobuf::ShutdownProtobufLibrary();
 
-  // Wait for all threads in pool to exit; this only happens when the io service
-  //  is stopped.
+  // Wait for all threads in pool to exit; this only happens after the io service
+  // is stopped.
   while (threads.size() > 0 ) {
     threads.back()->join();
     threads.pop_back();
@@ -134,6 +130,12 @@ Node::stop ()
   }
 
   operators.empty(); //remove pointers, AFTER the threads stop.
+
+  // Close liveness connections AFTER joining all io service threads, since this
+  // guarantees no thread will try to send a notification.
+  for (u_int i = 0; i < controllers.size(); ++i) {
+    controllers[i]->close();
+  }
   
   startStopCond.notify_all();
 
