@@ -35,6 +35,8 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   void conn_ready_cb (const DataplaneMessage &msg,
                       const boost::system::error_code &error);
+
+  bool wait_for_chain_ready ();
    
   static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
   
@@ -53,7 +55,6 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   virtual void no_more_tuples();
 
-  
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
   virtual std::string id_as_str() {return long_description();}

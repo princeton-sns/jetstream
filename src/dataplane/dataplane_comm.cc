@@ -132,7 +132,7 @@ void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
   conn = c;
-  
+
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
   
@@ -170,23 +170,10 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   
 void
-RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) 
-{
-  {
-    unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
-    while (!chainIsReady) {
-      LOG(WARNING) << "trying to send data through closed conn. Should block";
-   
-      system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
-      bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
-      
-//      if (stopping)
-//         return;
-      if (!conn_established) {
-        LOG(WARNING) << "timeout on dataplane connection. Aborting for this tuple. Should queue/retry instead?";
-        return;
-      } 
-    }
+RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection. Aborting data message send. Should queue/retry instead?";
+    return;
   }
 
   DataplaneMessage d;
@@ -195,23 +182,43 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   //TODO: could we merge multiple tuples here?
 
   boost::system::error_code err;
-//  LOG(INFO) << "RemoteDestAdaptor sending tuple";
   conn->send_msg(d, err);
 }
 
 
 void
 RemoteDestAdaptor::no_more_tuples () {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection. Aborting no-more-data message send. Should queue/retry instead?";
+    return;
+  }
 
   DataplaneMessage d;
   d.set_type(DataplaneMessage::NO_MORE_DATA);
   
   boost::system::error_code err;
-//  LOG(INFO) << "no more tuples in RemoteDestAdaptor";
-  
   conn->send_msg(d, err);
   
   //TODO should clean self up.
+}
+
+
+bool
+RemoteDestAdaptor::wait_for_chain_ready() {
+  unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
+  while (!chainIsReady) {
+    LOG(WARNING) << "trying to send data through closed conn. Should block";
+    
+    system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
+    bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
+    
+    //      if (stopping)
+    //         return;
+    if (!conn_established) {
+      return false;
+    } 
+  }
+  return true;
 }
 
 
@@ -240,5 +247,5 @@ DataplaneConnManager::deferred_cleanup(operator_id_t id) {
 }
 
 
-
 const std::string RemoteDestAdaptor::generic_name("Remote connection");
+
