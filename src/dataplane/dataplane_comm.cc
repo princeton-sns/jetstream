@@ -4,6 +4,7 @@
 using namespace jetstream;
 using namespace std;
 using namespace boost;
+using namespace boost::asio::ip;
 
 
 void
@@ -11,15 +12,15 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          operator_id_t dest_op_id,
                                          shared_ptr<TupleReceiver> dest) {
   
-  if (liveConns.find(dest_op_id) != liveConns.end()) {
+  if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
     LOG(FATAL) << "trying to connect remote conn to " << dest_op_id << "but there already is such a connection";
   }
-  liveConns[dest_op_id] = c;
+  liveConns[c->get_remote_endpoint()] = c;
 
   boost::system::error_code error;
   c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
-			this, dest_op_id, dest,  _1, _2), error);
+			this, c, dest,  _1, _2), error);
 
   DataplaneMessage response;
   if (!error) {
@@ -47,18 +48,18 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 }
 
 
-// Calle
+// Called whenever an operator is created.
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
                                         shared_ptr<TupleReceiver> dest) {
-  map<operator_id_t, shared_ptr<ClientConnection> >::iterator pending_conn = liveConns.find(op_id);
-  if (pending_conn != liveConns.end()) {
+  map<operator_id_t, shared_ptr<ClientConnection> >::iterator pending_conn = pendingConns.find(op_id);
+  if (pending_conn != pendingConns.end()) {
     enable_connection(pending_conn->second, op_id, dest);
   }
 }
 
 void
-DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
+DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
                                    shared_ptr<TupleReceiver> dest,
                                    const DataplaneMessage &msg,
                                    const boost::system::error_code &error) {
@@ -70,7 +71,6 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
   if (!dest)
     LOG(FATAL) << "got data but no operator to receive it";
 
-  shared_ptr<ClientConnection> c = liveConns[dest_op_id];
   assert(c);
 
   switch (msg.type ()) {
@@ -84,9 +84,12 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
       break;
     }
   case DataplaneMessage::NO_MORE_DATA:
-    LOG(INFO) << "got no-more-data signal, will tear down connection";
-    c->close();
-    liveConns.erase(dest_op_id);
+    {
+      LOG(INFO) << "got no-more-data signal, will tear down connection";
+      tcp::endpoint e = c->get_remote_endpoint();
+      c->close();
+      liveConns.erase(e);
+    }
     break;
     
   default:
@@ -97,7 +100,7 @@ DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
   // Wait for the next data message
   boost::system::error_code e;
   c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
-  			this, dest_op_id, dest, _1, _2), e);
+  			this, c, dest, _1, _2), e);
 }
   
   
@@ -109,8 +112,11 @@ DataplaneConnManager::close() {
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
     iter->second->close();
   }
-  for (iter = liveConns.begin(); iter != liveConns.end(); iter++) {
-    iter->second->close();
+
+  std::map<tcp::endpoint, boost::shared_ptr<ClientConnection> >::iterator live_iter;
+
+  for (live_iter = liveConns.begin(); live_iter != liveConns.end(); live_iter++) {
+    live_iter->second->close();
   }
 }
   

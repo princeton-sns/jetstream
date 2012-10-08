@@ -75,9 +75,15 @@ class DataplaneConnManager {
 
  private:
   std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pendingConns;
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > liveConns;
   
-  void got_data_cb (operator_id_t dest_id,
+    /** Maps from remote endpoint to the local client-connection associated with it.
+    * Note that the connection-to-destination mapping is implicit in the callback
+    * closure and is not stored explicitly.
+    */
+  std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<ClientConnection> > liveConns;
+  
+  
+  void got_data_cb (boost::shared_ptr<ClientConnection> c,
                     boost::shared_ptr<TupleReceiver> dest,
                     const DataplaneMessage &msg,
                     const boost::system::error_code &error);
