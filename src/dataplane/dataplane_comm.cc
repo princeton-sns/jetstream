@@ -39,12 +39,12 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
                                           string future_op) {
-  if (pendingConns.find(future_op) != pendingConns.end()) {
+/*  if (pendingConns.find(future_op) != pendingConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
     LOG(FATAL) << "trying to connect remote conn to " << future_op << "but there already is such a connection";
-  }
+  }*/
 
-  pendingConns[future_op] = c;
+  pendingConns[future_op].push_back(c);
 }
 
 
@@ -52,9 +52,12 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
   string op_id = dest->id_as_str();
-  map<string, shared_ptr<ClientConnection> >::iterator pending_conn = pendingConns.find(op_id);
+  map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
   if (pending_conn != pendingConns.end()) {
-    enable_connection(pending_conn->second, dest);
+    vector<shared_ptr<ClientConnection> > & conns = pending_conn->second;
+    for (int i=0; i < conns.size(); ++i)
+      enable_connection(conns[i], dest);
+    pendingConns.erase(pending_conn);
   }
 }
 
@@ -107,10 +110,12 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::close() {
   //TODO: gracefully stop connections
-  std::map<std::string, boost::shared_ptr<ClientConnection> >::iterator iter;
+  std::map<std::string, vector< boost::shared_ptr<ClientConnection> > >::iterator iter;
 
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
-    iter->second->close();
+    vector<shared_ptr<ClientConnection> > & conns = iter->second;
+    for (int i=0; i < conns.size(); ++i)
+      conns[i]->close();
   }
 
   std::map<tcp::endpoint, boost::shared_ptr<ClientConnection> >::iterator live_iter;

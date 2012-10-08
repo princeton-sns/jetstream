@@ -74,7 +74,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 class DataplaneConnManager {
 
  private:
-  std::map<std::string, boost::shared_ptr<ClientConnection> > pendingConns;
+  std::map<std::string, std::vector<boost::shared_ptr<ClientConnection> > > pendingConns;
   
     /** Maps from remote endpoint to the local client-connection associated with it.
     * Note that the connection-to-destination mapping is implicit in the callback
