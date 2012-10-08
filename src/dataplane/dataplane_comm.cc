@@ -120,9 +120,18 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm, ConnectionManag
   : mgr(dcm), chainIsReady(false) {
                                           
   remoteAddr = e.dest_addr().address();
-  int32_t portno = e.dest_addr().portno();      
-  destOpId.computation_id = e.computation();
-  destOpId.task_id = e.dest();
+  int32_t portno = e.dest_addr().portno();
+  
+  dest_as_edge.CopyFrom(e);
+  if (dest_as_edge.has_dest()) {
+    operator_id_t destOpId;
+    destOpId.computation_id = e.computation();
+    destOpId.task_id = e.dest();
+    dest_as_str = destOpId.to_string();
+  }
+  else {
+    dest_as_str = dest_as_edge.cube_name();
+  }
   
   cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
@@ -137,9 +146,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
   
   Edge * edge = data_msg.mutable_chain_link();
-  edge->set_computation(destOpId.computation_id);
-  edge->set_dest(destOpId.task_id);
-  edge->set_src(0);
+  edge->CopyFrom(dest_as_edge);
   
   boost::system::error_code err;
   conn->recv_data_msg(boost::bind( &RemoteDestAdaptor::conn_ready_cb, 
@@ -218,14 +225,14 @@ RemoteDestAdaptor::no_more_tuples () {
 string
 RemoteDestAdaptor::long_description() {
     std::ostringstream buf;
-    buf << destOpId << " on " << remoteAddr <<
+    buf << dest_as_str << " on " << remoteAddr <<
        (chainIsReady ? " (ready)" : " (unready)");
     return buf.str();
 }
 
 
 void
-DataplaneConnManager::deferred_cleanup(operator_id_t id) {
+DataplaneConnManager::deferred_cleanup(string id) {
   shared_ptr<RemoteDestAdaptor> a = adaptors[id];
   assert(a);
   

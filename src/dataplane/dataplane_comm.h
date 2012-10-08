@@ -27,8 +27,9 @@ class RemoteDestAdaptor : public TupleReceiver {
   boost::mutex mutex;
   bool chainIsReady;
 //  bool stopping;
-  operator_id_t destOpId;
+  std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
+  Edge dest_as_edge;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -109,19 +110,26 @@ class DataplaneConnManager {
   
  public:
     void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
-       adaptors[p->destOpId] = p;
+       adaptors[p->dest_as_str] = p;
     }
   
-    void cleanup(operator_id_t id) {
+/*    //currently dead code
+   void cleanup(string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
-  
-    void deferred_cleanup(operator_id_t);
-  
+  */
+
+/*  Currently dead code.  */
+    void deferred_cleanup(std::string);
+ 
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
-    std::map<operator_id_t, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
+  /**
+  * Maps from a destination operator ID to an RDA for it.
+  * This 
+  */
+    std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   
   
 };
