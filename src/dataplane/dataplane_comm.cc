@@ -55,7 +55,7 @@ DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
   map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
   if (pending_conn != pendingConns.end()) {
     vector<shared_ptr<ClientConnection> > & conns = pending_conn->second;
-    for (int i=0; i < conns.size(); ++i)
+    for (u_int i = 0; i < conns.size(); ++i)
       enable_connection(conns[i], dest);
     pendingConns.erase(pending_conn);
   }
@@ -115,7 +115,7 @@ DataplaneConnManager::close() {
 
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
     vector<shared_ptr<ClientConnection> > & conns = iter->second;
-    for (int i=0; i < conns.size(); ++i)
+    for (u_int i = 0; i < conns.size(); ++i)
       conns[i]->close();
   }
 
