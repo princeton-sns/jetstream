@@ -1,0 +1,61 @@
+This document describes how to program JetStream.
+Written by Ariel Rabkin, asrabkin@gmail.com
+
+OVERVIEW
+
+JetStream is designed to do wide-area analytics. Our assumption is that you have some distributed data set, such as log files from a globally distributed system. JetStream enables you to efficiently analyze this data. Unlike MapReduce or similar systems, JetStream is designed to cope well with limited bandwidth, and will give approximate answers if bandwidth does not allow exact computation.
+
+The basic unit of work in JetStream is the computation. A computation is a process that converts raw data into a final answer. Computations can be either one-shot, meaning they will exit on their own once they are complete, or else continuous (also called "standing") These computations will run until explicitly stopped.
+
+[Examples of each should go here?]
+
+In JetStream, all data is stored as tuples, which in turn are grouped into streams. A tuple is a list of ordered values. For example, an ordered pair is a tuple with two elements. A stream of tuples is an ordered list of tuples (usually with a large and indefinite number of tuples), all of which share a schema. For instance, in a weather analysis program, you might have a tuple stream consisting of (city name, date, maximum temperature) tuples. 
+
+A JetStream computation involves two sub-entities; cubes and operators. A cube is standard data structure used in online analytics processing. A later section of this document describes cubes in detail; for now, think of it as a generalization of a database table. An operator is a program fragment that transforms data.  Operators process data a tuple at a time. For example, we have operators that, given a tuple, do regular expression filtering on a given string field in the tuple. 
+
+
+
+CUBES
+
+It stores a set of related aggregate values for a given data set.  For example, in our weather example, you might define a data cube that stores, for each city and each day, the high, low, and average temperature. You can then perform a variety of operations on this data cube.
+
+More formally, a cube maps from a set of so-called dimension values to a cell. In our running example, city name and date would be dimension values. A cell is a set of so-called aggregate values that summarize the data with those dimension values. For example, you might store the maximum, minimum, and average temperature for that city and that date.
+
+Whereas operators process data a tuple at a time, cubes let you aggregate data in several ways.
+
+SLICE: You can ask for a set of values from a 
+
+DICE:
+
+ROLLUP:  Computes some aggregate function over a set of cells. For example, you can query for the average or maximum temperature over several cities and over an arbitrary period of time.
+
+
+
+
+PROGRAMMING MODEL
+
+A JetStream computation is a directed acyclic graph consisting of cubes and operators. Operators exclusively live in chains -- lists of sequential operators each feeding into the next. Chains start at either specialized data input operators, or else at data cubes. Chains terminate in either data cubes or specialized data output operators.
+
+Note that this is unlike traditional database operators: whereas a database operator works on relations, and can take several relations as input, ours process tuples, and have one input and one output stream.
+
+You define a computation by writing Python code. This code should create an instance of OperatorGraph and then start adding cubes, operators, and edges. Once you have an operator graph, you submit it to the controller, which will deploy it to the cluster. The distributed grep example (dist_grep.py) illustrates this process.
+
+
+
+CUSTOM OPERATORS
+
+It is sometimes necessary to define custom operators. These are called user-defined functions, or UDFs. There are two ways to do this. If you can recompile the client, it's usually simpler to just add them to the JetStream source and modify OperatorLoader to initialize them correctly. If not, the system is able to dynamically load your UDF.
+
+
+[Directions here]
+
+
+
+CREDITS:
+
+JetStream was developed by:
+Matvey Arye
+Ariel Rabkin
+Siddhartha Sen
+Michael J. Freedman
+Vivek Pai,  all of Princeton University.
