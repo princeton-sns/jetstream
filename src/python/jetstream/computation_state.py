@@ -98,27 +98,11 @@ class CWorker (object):
 
 
 class Computation (object):
-  """Controller's view of a computation"""
-  
-"""stages of computation compilation:
-
-There's the raw OperatorGraph from the client.  Call this the original plan.
-
-There's turning multi-node location specifiers ("on all nodes") into actual node IDs. The client can do this.  Call the result an expanded plan.
-
-This can be optimized. This involves both replacing groups of operators with equivalent but simpler groups, and also converting logical operators into physical operators (sometimes adding operators)
-
-There's placement.  Call the result a placed plan.  This can still include logical operators that don't map exactly to physical operators.
-
-Last, there's putting in assorted plumbing. Call the results a concrete computation plan.  This must only have concrete physical operators. It will be cut up and sent to the relevant dataplane nodes for execution.
-
-Validation can happen at several points. Typechecking and suchlike can happen on the expanded plan.
-"""  
+  """Controller's view of a running computation"""
   
 
-  def __init__ (self, controller, compID, jsGraph):
+  def __init__ (self, compID, jsGraph):
     # Save the controller interface so we can communicate with workers
-    self.controller = controller
     self.compID = compID
     self.jsGraph = jsGraph
     # Maps a worker endpoint to an assignment
@@ -150,21 +134,13 @@ Validation can happen at several points. Typechecking and suchlike can happen on
       
 
   def add_edges(self, edgeList):
+    print "adding",len(edgeList),"edges"
     for edge in edgeList:
       if edge.src not in self.taskLocations:
         print "unknown source %s" % str(edge.src)
         raise UserException("Edge from nonexistent source")
       dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
       self.outEdges[edge.src] = dest
-
-
-  def start (self):
-    # Start each worker's assignment
-    for worker in self.workerAssignments.keys():
-      req = self.get_worker_pb(worker)            
-      h = self.controller.connect_to(worker)
-      h.send_pb(req)   #send without waiting for response; we'll get those in the main
-          # network message handler
 
 
   def get_worker_pb(self, workerID):

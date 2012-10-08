@@ -454,12 +454,12 @@ TEST(NodeIntegration, DataplaneConn) {
   stringstream(kStr) >> k;
   // EXPECT_* records the failure but allows the cleanup code below to execute
   EXPECT_EQ(k, rec->tuples.size());
-
+  cout << "done with test; tearing down" << endl;
   // Close sockets to avoid badness related to io_service destruction
-  sockets[0]->shutdown(tcp::socket::shutdown_both, err);
-  sockets[0]->close();
-  sockets[1]->shutdown(tcp::socket::shutdown_both, err);
-  sockets[1]->close();
+  for (int i =0; i < 2; ++i) {
+    sockets[0]->shutdown(tcp::socket::shutdown_both, err);
+    sockets[0]->close();
+  }
 
   nodes[0]->stop();
   nodes[1]->stop();

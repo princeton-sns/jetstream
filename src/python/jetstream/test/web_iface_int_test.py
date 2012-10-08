@@ -66,8 +66,7 @@ class TestWebIntegration(unittest.TestCase):
     edge.src = 2
     edge.computation = compID
     edge.cube_name = newCube.name
-    
-    #print str(req)
+
     buf = self.client.do_rpc(req, True)
     resp = ControlMessage()
     resp.ParseFromString(buf)

@@ -27,8 +27,9 @@ class RemoteDestAdaptor : public TupleReceiver {
   boost::mutex mutex;
   bool chainIsReady;
 //  bool stopping;
-  operator_id_t destOpId;
+  std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
+  Edge dest_as_edge;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -38,7 +39,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   bool wait_for_chain_ready ();
    
-  static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
+  msec_t wait_for_conn; // Note this is a wide area wait.
   
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
@@ -46,7 +47,9 @@ class RemoteDestAdaptor : public TupleReceiver {
 //  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) :
 //      conn (c), chainIsReady(false), stopping(false) {}
 
-  RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm, const jetstream::Edge&);
+  RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
+                     const jetstream::Edge&,
+                     msec_t wait_for_conn);
   virtual ~RemoteDestAdaptor() {
     LOG(INFO) << "destructing RemoteDestAdaptor";
  }
@@ -67,16 +70,24 @@ class RemoteDestAdaptor : public TupleReceiver {
 
 /**
  * Instances of this class are responsible for managing incoming data on the
- * dataplane. Each IncomingConnAdaptor is the start of an operator chain
+ * dataplane. 
+ * They are also responsible for managing the lifetimes of the RemoteDestAdaptors
+ * that handle OUTGOING traffic.
  */
 class DataplaneConnManager {
 
  private:
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pendingConns;
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > liveConns;
+  std::map<std::string, std::vector<boost::shared_ptr<ClientConnection> > > pendingConns;
   
-  void got_data_cb (operator_id_t dest_id,
-                    boost::shared_ptr<DataPlaneOperator> dest,
+    /** Maps from remote endpoint to the local client-connection associated with it.
+    * Note that the connection-to-destination mapping is implicit in the callback
+    * closure and is not stored explicitly.
+    */
+  std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<ClientConnection> > liveConns;
+  
+  
+  void got_data_cb (boost::shared_ptr<ClientConnection> c,
+                    boost::shared_ptr<TupleReceiver> dest,
                     const DataplaneMessage &msg,
                     const boost::system::error_code &error);
   
@@ -92,17 +103,15 @@ class DataplaneConnManager {
  
     // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t dest_op_id,
-                          boost::shared_ptr<DataPlaneOperator> dest);
+                          boost::shared_ptr<TupleReceiver> dest);
                      
 
     // called to attach income connection c to an operator that doesn't yet exist
   void pending_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t future_op);
+                          std::string future_op);
 
     // called when an operator is created
-  void created_operator (operator_id_t opid,
-                         boost::shared_ptr<DataPlaneOperator> dest);
+  void created_operator (boost::shared_ptr<TupleReceiver> dest);
                          
   void close();
   
@@ -110,19 +119,26 @@ class DataplaneConnManager {
   
  public:
     void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
-       adaptors[p->destOpId] = p;
+       adaptors[p->dest_as_str] = p;
     }
   
-    void cleanup(operator_id_t id) {
+/*    //currently dead code
+   void cleanup(string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
-  
-    void deferred_cleanup(operator_id_t);
-  
+  */
+
+/*  Currently dead code.  */
+    void deferred_cleanup(std::string);
+ 
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
-    std::map<operator_id_t, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
+  /**
+  * Maps from a destination operator ID to an RDA for it.
+  * This 
+  */
+    std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   
   
 };

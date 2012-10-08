@@ -119,7 +119,7 @@ SendK::process(boost::shared_ptr<Tuple> t) {
 void
 SendK::stop() {
   running = false;
-  LOG(INFO) << "Stopping SendK operator";
+  LOG(INFO) << "Stopping SendK operator " << id();
   if (running) {
     assert (loopThread->get_id()!=boost::this_thread::get_id());
     loopThread->join();
@@ -209,6 +209,8 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
     return;
   }
+  //TODO could check re.max_size() against field_types.length()
+
 }
 
 void parse_with_types(Element * e, const string& s, char typecode) {
@@ -274,7 +276,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
 
 
 DummyReceiver::~DummyReceiver() {
-  LOG(WARNING) << "destructing dummy receiver";
+  VLOG(1) << "destructing dummy receiver";
 }
 
 

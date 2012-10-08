@@ -67,7 +67,11 @@ class Worker(JSServer):
     for task in altertopo.toStart:
       if task.op_typename != "":
         #TODO: Why is TaskID unhashable?
-        self.tasks[task.id.task] = LocalUnix(task.id.task, task.op_typename)
+        config = {}
+        for cfg in task.config:
+          config[cfg.opt_name] = cfg.val
+          
+        self.tasks[task.id.task] = LocalUnix(task.id.task, config)
         self.tasks[task.id.task].start()
     for taskId in altertopo.taskToStop:
       if taskId.task in self.tasks:
