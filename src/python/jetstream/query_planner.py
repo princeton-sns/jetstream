@@ -8,27 +8,33 @@ from computation_state import *
 from jetstream_types_pb2 import *
 
 class QueryPlanner (object):
-  """stages of computation compilation:
+  """Stages of computation compilation:
 
-There's the raw AlterTopo from the client.  Call this the original plan.
+  There's the raw AlterTopo from the client.  Call this the original plan.
 
-There's turning multi-node location specifiers ("on all nodes") into actual node IDs. The client can do this.  Call the result an expanded plan.
+  There's turning multi-node location specifiers (e.g. "on all nodes") into actual
+  node IDs. The client can do this.  Call the result an expanded plan.
 
-This can be optimized. This involves both replacing groups of operators with equivalent but simpler groups, and also converting logical operators into physical operators (sometimes adding operators)
+  This plan can be optimized. This involves replacing groups of operators with
+  equivalent groups, pushing operators back (towards sources) for partial aggregation,
+  converting logical operators into physical operators (sometimes adding operators),
+  and others.  Call the result an optmized plan.
 
-There's placement.  Call the result a placed plan.  This can still include logical operators that don't map exactly to physical operators.
+  There's placement.  Call the result a placed plan.  This can still include logical
+  operators that don't map exactly to physical operators.
 
-Last, there's putting in assorted plumbing. Call the results a concrete computation plan.  This must only have concrete physical operators. It will be cut up and sent to the relevant dataplane nodes for execution.
+  Last, there's putting in assorted plumbing.  Call the result a concrete computation
+  plan.  This must only have concrete physical operators. It will be cut up and sent
+  to the relevant dataplane nodes for execution according to above placement.
 
-Validation can happen at several points. Typechecking and suchlike can happen on the expanded plan.
-"""  
+  Validation can happen at several points. Typechecking and suchlike can happen on the
+  expanded plan.
+  """  
 
   def __init__(self,all_nodes):
     self.node_list = all_nodes
     return
     
-
-
     
   def take_raw(self,altertopo):
     """Takes the client's plan, validates, and fills in host names.
@@ -81,8 +87,6 @@ Validation can happen at several points. Typechecking and suchlike can happen on
     jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
     # Set up the computation
     comp = Computation(compID, jsGraph)
-
-    print altertopo
     
     assignments = {}
     #TODO: Sid will consolidate with Computation data structure
@@ -110,12 +114,10 @@ Validation can happen at several points. Typechecking and suchlike can happen on
       if endpoint not in assignments:
         assignments[endpoint] = workers[endpoint].create_assignment(compID)
       
-      assignments[endpoint].add_node(node)
+      assignments[endpoint].add_node(graph_node)
       #TODO: Sid will consolidate with Computation data structure
-      nodeId = graph_node.id.task if isinstance(node, TaskMeta) else node.name
-      print "assigning %s to %s:%d" % (str(nodeId), endpoint[0], endpoint[1])  
+      nodeId = graph_node.id.task if isinstance(graph_node, TaskMeta) else graph_node.name
       taskLocations[nodeId] = endpoint
-    
     
     # Find the first global union node, aka the LCA of all sources.
     union = jsGraph.get_sources_lca()
@@ -126,7 +128,10 @@ Validation can happen at several points. Typechecking and suchlike can happen on
       assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
     toPlace = jsGraph.get_descendants(union)
     for node in toPlace:
-      assignments[endpoint].add_node(node)
+      nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
+      if nodeId not in taskLocations:
+        assignments[endpoint].add_node(node)
+        taskLocations[nodeId] = endpoint
     # All nodes from source to union should be at one site, for each source
     for source in sources:
       nodeId = source.id.task if isinstance(source, TaskMeta) else source.name
@@ -134,11 +139,10 @@ Validation can happen at several points. Typechecking and suchlike can happen on
       endpoint = taskLocations[nodeId]
       toPlace = jsGraph.get_descendants(source, union)
       for node in toPlace:
-        print "%s: adding %s to %s:%d" % (str(source), str(node), endpoint[0], endpoint[1]) 
-        assignments[endpoint].add_node(node)
-
-
-    print "total of %d assignments" % len(assignments)
+        nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
+        if nodeId not in taskLocations:
+          assignments[endpoint].add_node(node)
+          taskLocations[nodeId] = endpoint
     
     # Finalize the worker assignments
     for endpoint,assignment in assignments.items():
