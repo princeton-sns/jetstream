@@ -19,6 +19,7 @@ class Aggregate {
   protected:
     string name;
     string type;
+    vector<size_t> tuple_indexes;
 };
 
 } /* cube */

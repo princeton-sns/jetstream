@@ -19,6 +19,8 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
 
 
     MysqlDimensionTimeHierarchy(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema) {};
+    
+    virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
 
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;
@@ -26,6 +28,8 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
     vector<string> get_column_names() const ;
 
     vector<string> get_column_types() const ;
+    
+    virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const;
 
     void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const&t, int &tuple_index, int &field_index) const ;
 

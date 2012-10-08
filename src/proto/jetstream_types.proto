@@ -70,12 +70,14 @@ message CubeSchema {
   message Dimension {
     required string name = 1;
     required Element.ElementType type = 2;
+    repeated int32 tuple_indexes = 3;
   }
   repeated Dimension dimensions = 2;
 
   message Aggregate {
     required string name = 1;
     required string type = 2;  // class name of aggregate type
+    repeated int32 tuple_indexes = 3;
   }
   repeated Aggregate aggregates = 3;
 }

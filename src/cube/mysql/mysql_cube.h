@@ -35,14 +35,32 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     virtual bool insert_entry(jetstream::Tuple const &t);
     virtual bool insert_partial_aggregate(jetstream::Tuple const &t);
+
+
+   virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
+  
+   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
+       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
+       std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list);
+/*
+    virtual size_t 
+      insert_tuple(jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
+    virtual size_t 
+      update_batched_tuple(size_t pos, jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
+*/
     // virtual bool insert_full_aggregate(jetstream::Tuple t);
 
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple const &t) const;
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple const &t) const ;
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const;
 
-    virtual CubeIterator slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
-    virtual CubeIterator rollup_slice_query(std::list<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
+    virtual CubeIterator 
+      slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, 
+        list<string> const &sort = list<string>(), size_t limit = 0) const;
+    virtual CubeIterator 
+      rollup_slice_query(std::list<unsigned int> const &levels, jetstream::Tuple const &min, 
+        jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
+    
     virtual CubeIterator end() const;
 
     virtual size_t num_leaf_cells() const;
@@ -69,6 +87,10 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     }
 
   protected:
+    /*
+    void insert_one(jetstream::Tuple const &t);
+    size_t insert_batch(jetstream::Tuple const &t);
+    void flush_batch();*/
 
     string get_sort_clause(list<string> const &sort) const;
     string get_limit_clause(size_t limit) const;
@@ -80,11 +102,14 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     void execute_sql(string const &sql) const;
     boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql) const;
 
-    string get_insert_entry_prepared_sql();
-    string get_insert_partial_aggregate_prepared_sql();
+    string get_insert_prepared_sql(size_t batch);
+    string get_select_cell_prepared_sql(size_t num_cells);
 
-    boost::shared_ptr<sql::PreparedStatement> get_insert_entry_prepared_statement();
-    boost::shared_ptr<sql::PreparedStatement> get_insert_partial_aggregate_prepared_statement();
+    boost::shared_ptr<sql::PreparedStatement> get_insert_prepared_statement(size_t batch);
+    boost::shared_ptr<sql::PreparedStatement> get_select_cell_prepared_statement(size_t batch, std::string unique_key="");
+    boost::shared_ptr<sql::PreparedStatement> get_lock_prepared_statement(string table_name);
+    boost::shared_ptr<sql::PreparedStatement> get_unlock_prepared_statement();
+    boost::shared_ptr<sql::PreparedStatement> create_prepared_statement(std::string sql);
     boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final, bool rollup=false) const;
 
   private:
@@ -99,14 +124,14 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     size_t batch;
 
-    size_t insertEntryCurrentBatch;
-    size_t insertPartialAggregateCurrentBatch;
+    size_t insertCurrentBatch;
+    bool assumeOnlyWriter;
 
-    size_t numFieldsPerInsertEntryBatch;
-    size_t numFieldsPerPartialAggregateBatch;
+    size_t numFieldsPerBatch;
 
-    boost::shared_ptr<sql::PreparedStatement> insertEntryStatement;
-    boost::shared_ptr<sql::PreparedStatement> insertPartialAggregateStatement;
+    std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > preparedStatementCache;
+    std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > insertStatement;
+    boost::shared_ptr<sql::PreparedStatement> insertOneStatement;
 
     boost::shared_ptr<sql::ResultSet> slice_result_set;
     bool slice_final;

@@ -22,7 +22,10 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
   db_user(db_user),
   db_pass(db_pass),
   db_name(db_name),
-  batch(batch) {
+  batch(batch),
+  insertCurrentBatch(0),
+  assumeOnlyWriter(true)
+  {
 
   init_connection();
   LOG(INFO) << "creating cube "<<db_name<< "."<< name <<
@@ -36,7 +39,16 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
 void
 jetstream::cube::MysqlCube::init_connection() {
   sql::Driver * driver = sql::mysql::get_driver_instance();
-  shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
+
+  sql::ConnectOptionsMap options; 
+  options.insert( std::make_pair( "hostName", db_host)); 
+  options.insert( std::make_pair( "userName", db_user)); 
+  options.insert( std::make_pair( "password", db_pass)); 
+  options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) ); 
+
+
+  //shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
+  shared_ptr<sql::Connection> con(driver->connect(options));
   connection = con;
   connection->setSchema(db_name);
 
@@ -176,8 +188,28 @@ vector<string> jetstream::cube::MysqlCube::get_aggregate_column_types() const {
   return cols;
 }
 
+string jetstream::cube::MysqlCube::get_select_cell_prepared_sql(size_t num_cells) {
+  vector<string> where_clauses;
 
-string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql() {
+  for(size_t i=0; i<dimensions.size(); i++) {
+    string where = dimensions[i]->get_where_clause_exact_prepared();
+    where_clauses.push_back(where);
+  }
+
+  string single_cell_where ="("+ boost::algorithm::join(where_clauses, " AND ")+")";
+
+  string sql = "SELECT * FROM `"+get_table_name()+"` WHERE ";
+
+  assert(num_cells > 0);
+  for(size_t i=0; i < (num_cells-1); i++) {
+    sql += single_cell_where+" OR ";
+  }
+
+  sql += single_cell_where;
+  return sql;
+}
+
+string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
   vector<string> column_names;
   vector<string> column_values;
   vector<string> updates;
@@ -194,7 +226,7 @@ string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql() {
 
   for(size_t i=0; i<aggregates.size(); i++) {
     vector<string> names = aggregates[i]->get_column_names();
-    updates.push_back(aggregates[i]->get_update_with_new_entry_sql());
+    updates.push_back(aggregates[i]->get_update_on_insert_sql());
 
     for (size_t j = 0; j < names.size(); j++) {
       column_names.push_back("`"+names[j]+"`");
@@ -202,12 +234,15 @@ string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql() {
     }
   }
 
+
+
   string sql = "INSERT INTO `"+get_table_name()+"`";
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
   sql += " VALUES ";
   string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
-  numFieldsPerInsertEntryBatch = column_values.size();
+  numFieldsPerBatch = column_values.size();
 
+  assert(batch > 0);
   for(size_t i=0; i < (batch-1); i++) {
     sql += vals+", ";
   }
@@ -217,81 +252,66 @@ string jetstream::cube::MysqlCube::get_insert_entry_prepared_sql() {
   return sql;
 }
 
-string jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_sql() {
-  vector<string> column_names;
-  vector<string> column_values;
-  vector<string> updates;
-
-  for(size_t i=0; i<dimensions.size(); i++) {
-    vector<string> names = dimensions[i]->get_column_names();
-
-    for (size_t j = 0; j < names.size(); j++) {
-      column_names.push_back("`"+names[j]+"`");
-      column_values.push_back("?");
-
-    }
+boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(std::string sql) {
+  try {
+    shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(sql));
+    return stmnt;
   }
-
-  for(size_t i=0; i<aggregates.size(); i++) {
-    vector<string> names = aggregates[i]->get_column_names();
-    updates.push_back(aggregates[i]->get_update_with_partial_aggregate_sql());
-
-    for (size_t j = 0; j < names.size(); j++) {
-      column_names.push_back("`"+names[j]+"`");
-      column_values.push_back("?");
-    }
+  catch (sql::SQLException &e) {
+    LOG(WARNING) << "couldn't execute sql statement; " << e.what();
+    LOG(WARNING) << "statement was " << sql;
+    boost::shared_ptr<sql::PreparedStatement> p;
+    return p;
   }
-
-  string sql = "INSERT INTO `"+get_table_name()+"`";
-  sql += " ("+boost::algorithm::join(column_names, ", ")+")";
-  sql += " VALUES ";
-  string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
-  numFieldsPerPartialAggregateBatch = column_values.size();
-
-  for(size_t i=0; i < (batch-1); i++) {
-    sql += vals+", ";
-  }
-
-  sql += vals+" ";
-  sql += "ON DUPLICATE KEY UPDATE "+boost::algorithm::join(updates, ", ");
-  return sql;
 }
 
-boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert_entry_prepared_statement() {
-  if(!insertEntryStatement) {
-    string stmt_as_text = get_insert_entry_prepared_sql();
+boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_lock_prepared_statement(string table_name) {
+  string key = "Lock|"+ table_name;
 
-    try {
-      shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(stmt_as_text));
-      insertEntryStatement = stmnt;
-      insertEntryCurrentBatch = 0;
-    }
-    catch (sql::SQLException &e) {
-      LOG(WARNING) << "couldn't execute sql statement; " << e.what();
-      LOG(WARNING) << "statement was " << stmt_as_text;
-      boost::shared_ptr<sql::PreparedStatement> p;
-      return p;
-    }
+  if(preparedStatementCache.count(key) == 0) {
+    string sql= "LOCK TABLES `"+table_name+"` WRITE" ;
+    preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return insertEntryStatement;
+  return preparedStatementCache[key];
 }
 
-boost::shared_ptr<sql::PreparedStatement> jetstream::cube::MysqlCube::get_insert_partial_aggregate_prepared_statement() {
+boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_unlock_prepared_statement() {
+  string key = "unlock";
 
-  if(!insertPartialAggregateStatement) {
-    shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(get_insert_partial_aggregate_prepared_sql()));
-    insertPartialAggregateStatement = stmnt;
-    insertPartialAggregateCurrentBatch = 0;
+  if(preparedStatementCache.count(key) == 0) {
+    string sql= "UNLOCK TABLES";
+    preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return insertPartialAggregateStatement;
+  return preparedStatementCache[key];
+}
+
+boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_select_cell_prepared_statement(size_t batch, std::string unique_key) {
+  string key = "selectCell|"+boost::lexical_cast<string>(batch)+"|"+unique_key;
+
+  if(preparedStatementCache.count(key) == 0) {
+    string sql= get_select_cell_prepared_sql(batch);
+    preparedStatementCache[key] = create_prepared_statement(sql); 
+  }
+
+  return preparedStatementCache[key];
+}
+boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_statement(size_t batch) {
+  string key = "insert_prepared_statement|"+boost::lexical_cast<string>(batch);
+
+  if(preparedStatementCache.count(key) == 0) {
+    string sql= get_insert_prepared_sql(batch);
+    preparedStatementCache[key] = create_prepared_statement(sql); 
+  }
+
+  return preparedStatementCache[key];
 }
 
 bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t) {
-  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_entry_prepared_statement();
+  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_prepared_statement(batch);
   int tuple_index = 0;
-  int field_index = (insertEntryCurrentBatch*numFieldsPerInsertEntryBatch)+1;
+  int field_index = (insertCurrentBatch*numFieldsPerBatch)+1;
 
   for(size_t i=0; i<dimensions.size(); i++) {
     dimensions[i]->set_value_for_insert(pstmt, t, tuple_index, field_index);
@@ -301,21 +321,21 @@ bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t) {
     aggregates[i]->set_value_for_insert_entry(pstmt, t, tuple_index, field_index);
   }
 
-  ++insertEntryCurrentBatch;
+  ++insertCurrentBatch;
 
   //TODO error handling
-  if (insertEntryCurrentBatch >= batch) {
+  if (insertCurrentBatch >= batch) {
     pstmt->execute();
-    insertEntryCurrentBatch = 0;
+    insertCurrentBatch = 0;
   }
 
   return true;
 }
 
 bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple const &t) {
-  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_partial_aggregate_prepared_statement();
+  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_prepared_statement(batch);
   int tuple_index = 0;
-  int field_index = (insertPartialAggregateCurrentBatch*numFieldsPerPartialAggregateBatch)+1;
+  int field_index = (insertCurrentBatch*numFieldsPerBatch)+1;
 
   for(size_t i=0; i<dimensions.size(); i++) {
     dimensions[i]->set_value_for_insert(pstmt, t, tuple_index, field_index);
@@ -325,15 +345,103 @@ bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple const
     aggregates[i]->set_value_for_insert_partial_aggregate(pstmt, t, tuple_index, field_index);
   }
 
-  ++insertPartialAggregateCurrentBatch;
+  ++insertCurrentBatch;
 
   //TODO error handling
-  if (insertPartialAggregateCurrentBatch >= batch) {
+  if (insertCurrentBatch >= batch) {
     pstmt->execute();
-    insertPartialAggregateCurrentBatch = 0;
+    insertCurrentBatch = 0;
   }
 
   return true;
+}
+
+void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple) {
+
+  int field_index = 1;
+
+  boost::shared_ptr<sql::PreparedStatement> lock_stmt;
+  boost::shared_ptr<sql::PreparedStatement> old_value_stmt;
+  boost::shared_ptr<sql::PreparedStatement> insert_stmt; 
+  boost::shared_ptr<sql::PreparedStatement> new_value_stmt;
+  boost::shared_ptr<sql::PreparedStatement> unlock_stmt;
+
+  if(!assumeOnlyWriter) {
+    lock_stmt = get_lock_prepared_statement(get_table_name());
+    unlock_stmt = get_unlock_prepared_statement();
+  }
+
+  if(need_old_value)
+  {
+    old_value_stmt = get_select_cell_prepared_statement(1, "old_value");
+    field_index = 1;
+    for(size_t i=0; i<dimensions.size(); i++) {
+      dimensions[i]->set_value_for_insert_tuple(old_value_stmt, t, field_index);
+    }
+  }
+  
+  insert_stmt = get_insert_prepared_statement(1);
+  field_index = 1;
+  for(size_t i=0; i<dimensions.size(); i++) {
+    dimensions[i]->set_value_for_insert_tuple(insert_stmt, t, field_index);
+  }
+
+  for(size_t i=0; i<aggregates.size(); i++) {
+    aggregates[i]->set_value_for_insert_tuple(insert_stmt, t, field_index);
+  }
+
+  if(need_new_value)
+  {
+    field_index = 1;
+    new_value_stmt = get_select_cell_prepared_statement(1, "new_value");
+    for(size_t i=0; i<dimensions.size(); i++) {
+      dimensions[i]->set_value_for_insert_tuple(new_value_stmt, t, field_index);
+    }
+  }
+
+  if(!assumeOnlyWriter) {
+    lock_stmt->execute();
+  }
+
+  boost::shared_ptr<sql::ResultSet> old_value_results;
+  if(need_old_value)
+  {
+    old_value_results.reset(old_value_stmt->executeQuery());
+  }
+
+  insert_stmt->execute();
+
+  boost::shared_ptr<sql::ResultSet> new_value_results;
+  if(need_new_value)
+  {
+    new_value_results.reset(new_value_stmt->executeQuery());
+  }
+  
+  if(!assumeOnlyWriter) {
+    unlock_stmt->execute();
+  }
+
+
+  if(need_old_value && old_value_results->first())
+  {
+    old_tuple = make_tuple_from_result_set(old_value_results, false);
+  }
+  else
+  {
+    old_tuple.reset();
+  }
+  
+  if(need_new_value && new_value_results->first())
+    new_tuple = make_tuple_from_result_set(new_value_results, false);
+  else
+    new_tuple.reset();
+}
+
+
+void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
+       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
+       std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list) {
+
 }
 
 boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value_final(jetstream::Tuple const &t) const {
@@ -370,7 +478,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
   return make_tuple_from_result_set(res, final);
 }
 
-boost::shared_ptr<jetstream::Tuple> 
+boost::shared_ptr<jetstream::Tuple>
 jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final, bool rollup) const {
   boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
 
@@ -378,6 +486,7 @@ jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::Re
 
   for(size_t i=0; i<dimensions.size(); i++) {
     dimensions[i]->populate_tuple(result, res, column_index);
+
     if(rollup) {
       jetstream::Element *elem = result->add_e();
       elem->set_i_val(res->getInt(column_index));
