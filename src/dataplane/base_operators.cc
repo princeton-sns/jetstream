@@ -119,7 +119,7 @@ SendK::process(boost::shared_ptr<Tuple> t) {
 void
 SendK::stop() {
   running = false;
-  LOG(INFO) << "Stopping SendK operator";
+  LOG(INFO) << "Stopping SendK operator " << id();
   if (running) {
     assert (loopThread->get_id()!=boost::this_thread::get_id());
     loopThread->join();

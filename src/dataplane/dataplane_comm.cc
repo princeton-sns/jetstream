@@ -13,8 +13,8 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
   
   if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
-    LOG(FATAL) << "trying to connect remote conn from "<< c->get_remote_endpoint() <<" to " << dest->id_as_str()
-       <<  "but there already is a connection";
+    LOG(FATAL) << "Trying to connect remote conn from "<< c->get_remote_endpoint()
+               << " to " << dest->id_as_str() << "but there already is a connection";
   }
   liveConns[c->get_remote_endpoint()] = c;
 
@@ -24,12 +24,12 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 
   DataplaneMessage response;
   if (!error) {
-    LOG(INFO) << "created dataplane connection into " << dest->id_as_str();
+    LOG(INFO) << "Created dataplane connection into " << dest->id_as_str();
     response.set_type(DataplaneMessage::CHAIN_READY);
     // XXX This should include an Edge
   }
   else {
-    LOG(WARNING) << " couldn't enable receive-data callback; "<< error;
+    LOG(WARNING) << "Couldn't enable receive-data callback; "<< error;
   }
   
   c->send_msg(response, error);
@@ -88,7 +88,8 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
     }
   case DataplaneMessage::NO_MORE_DATA:
     {
-      LOG(INFO) << "got no-more-data signal, will tear down connection";
+      LOG(INFO) << "got no-more-data signal from " << c->get_remote_endpoint()
+                << ", will tear down connection into " << dest->id_as_str();
       tcp::endpoint e = c->get_remote_endpoint();
       c->close();
       liveConns.erase(e);
@@ -96,8 +97,8 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
     break;
     
   default:
-      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() << 
-        " from " << c->get_remote_endpoint() << " for existing dataplane connection";
+      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
+                   << c->get_remote_endpoint() << " for existing dataplane connection";
   }
 
   // Wait for the next data message
@@ -127,8 +128,8 @@ DataplaneConnManager::close() {
   
 
 RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm, ConnectionManager &cm,
-                                          const Edge &e)
-  : mgr(dcm), chainIsReady(false) {
+                                          const Edge &e, msec_t wait)
+  : mgr(dcm), chainIsReady(false), wait_for_conn(wait) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
@@ -170,7 +171,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
   if (msg.type() == DataplaneMessage::CHAIN_READY) {
-    LOG(INFO) << "got ready back";
+    LOG(INFO) << "got ready back from " << dest_as_str;
     {
       unique_lock<boost::mutex> lock(mutex);
       // Indicate the chain is ready before calling notify to avoid a race condition
@@ -181,8 +182,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     chainReadyCond.notify_all();  
   } 
   else {
-    LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString() <<
-       "\nError code is " << error;  
+    LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString()
+                 << std::endl << "Error code is " << error;
   }
 }
 
@@ -193,7 +194,8 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
   {
     unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
     while (!chainIsReady) {
-      LOG(WARNING) << "trying to send data through closed conn. Should block";
+      LOG(WARNING) << "trying to send data to "<< dest_as_str << " on "
+                   << remoteAddr << " through closed conn. Should block";
    
       system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);
       bool conn_established = chainReadyCond.timed_wait(lock, wait_until);
@@ -201,7 +203,8 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t)
 //      if (stopping)
 //         return;
       if (!conn_established) {
-        LOG(WARNING) << "timeout on dataplane connection. Aborting for this tuple. Should queue/retry instead?";
+        LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
+                     << ". Aborting for this tuple. Should queue/retry instead?";
         return;
       } 
     }
@@ -237,7 +240,7 @@ string
 RemoteDestAdaptor::long_description() {
     std::ostringstream buf;
     buf << dest_as_str << " on " << remoteAddr <<
-       (chainIsReady ? " (ready)" : " (unready)");
+       (chainIsReady ? " (ready)" : " (waiting for dest)");
     return buf.str();
 }
 

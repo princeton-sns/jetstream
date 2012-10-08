@@ -210,7 +210,7 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
   boost::system::error_code e;
   
   // Need to convert the connected socket to a client_connection
-  LOG(INFO) << "Incoming dataplane connection received ok";
+  LOG(INFO) << "Incoming dataplane connection from " << sock->get_remote_endpoint();
   
   boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
@@ -253,19 +253,18 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         c->send_msg(response, send_error);
       }
 
-
-      LOG(INFO) << "Chain request for " << dest_as_str;
 // Operator exists so we can report "ready"
       if (dest) { 
         // Note that it's important to put the connection into receive mode
         // before sending the READY.
+        LOG(INFO) << "Chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
        
         dataConnMgr.enable_connection(c, dest);
 
         //TODO do we log the error or ignore it?
       }
       else {
-        LOG(INFO) << "Chain request for operator that isn't ready yet";
+        LOG(INFO) << "Chain request for " << dest_as_str<< " that isn't ready yet";
         
         dataConnMgr.pending_connection(c, dest_as_str);
       }      
@@ -380,7 +379,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
       shared_ptr<RemoteDestAdaptor> xceiver(
-          new RemoteDestAdaptor(dataConnMgr, *connMgr, edge) );
+          new RemoteDestAdaptor(dataConnMgr, *connMgr, edge, config.data_conn_wait) );
       dataConnMgr.register_new_adaptor(xceiver);
       srcOperator->set_dest(xceiver);
     } 

@@ -37,7 +37,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   void conn_ready_cb (const DataplaneMessage &msg,
                       const boost::system::error_code &error);
    
-  static const msec_t wait_for_conn = 5000; // Note this is a wide area wait.
+  msec_t wait_for_conn; // Note this is a wide area wait.
   
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
@@ -45,7 +45,9 @@ class RemoteDestAdaptor : public TupleReceiver {
 //  RemoteDestAdaptor (boost::shared_ptr<ClientConnection> c) :
 //      conn (c), chainIsReady(false), stopping(false) {}
 
-  RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm, const jetstream::Edge&);
+  RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
+                     const jetstream::Edge&,
+                     msec_t wait_for_conn);
   virtual ~RemoteDestAdaptor() {
     LOG(INFO) << "destructing RemoteDestAdaptor";
  }

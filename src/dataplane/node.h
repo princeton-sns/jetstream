@@ -27,9 +27,10 @@ class NodeConfig {
   port_t webinterface_port;     // Host byte order
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
+  msec_t data_conn_wait;      //wait for a dataplane connection to respond. Should probably be minutes, not seconds?
   NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0), webinterface_port (0),
-    heartbeat_time (0), thread_pool_size (1)
+    heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000)
     {}
 };
 
