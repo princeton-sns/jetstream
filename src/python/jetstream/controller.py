@@ -177,17 +177,15 @@ class Controller (ControllerAPI, JSServer):
     comp = planner.get_computation(compID, self.workers)
     self.computations[compID] = comp
 
-
     # Start the computation
     logger.info("Starting computation %d" % (compID))
     for worker in comp.workerAssignments.keys():
       req = comp.get_worker_pb(worker)            
       h = self.connect_to(worker)
-      print worker, req
-
-      
-      h.send_pb(req)   #send without waiting for response; we'll get those in the main
-          # network message handler    
+      #print worker, req
+      # Send without waiting for response; we'll hear back in the main network message
+      # handler
+      h.send_pb(req)
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):

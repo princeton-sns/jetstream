@@ -71,12 +71,13 @@ class TestWebIntegration(unittest.TestCase):
     resp = ControlMessage()
     resp.ParseFromString(buf)
     self.assertEquals(resp.type, ControlMessage.OK)
-    self.assertTrue(compID in self.controller.computations)
+    self.assertEquals(len(self.controller.computations), 1)
     # Wait for the topology to start running on the worker
     time.sleep(2)
     workerList = self.controller.get_nodes()
     assert(len(workerList) == 1)
-    self.assertEquals(workerList[0].assignments[compID].state, WorkerAssignment.RUNNING)
+    assert(len(workerList[0].assignments) == 1)
+    self.assertEquals(workerList[0].assignments.values()[0].state, WorkerAssignment.RUNNING)
 
     # GET the web interface page and make sure both the operator and cube appear
     getResp = urllib2.urlopen("http://localhost:8081/").read()

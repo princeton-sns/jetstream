@@ -100,7 +100,6 @@ class CWorker (object):
 class Computation (object):
   """Controller's view of a running computation"""
   
-
   def __init__ (self, compID, jsGraph):
     # Save the controller interface so we can communicate with workers
     self.compID = compID
