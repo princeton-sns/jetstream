@@ -15,13 +15,14 @@ using namespace boost;
 namespace jetstream {
 
 
-void
+operator_err_t
 FileRead::configure(map<string,string> &config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     LOG(WARNING) << "no file to read, bailing" << endl;
-    return;
+    return operator_err_t("option 'file' not specified");
   }
+  return NO_ERR;
 }
 
 void
@@ -83,19 +84,20 @@ FileRead::long_description() {
   return buf.str();
 }
 
-void
+operator_err_t
 SendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
     // stringstream overloads the '!' operator to check the fail or bad bit
     if (!(stringstream(config["k"]) >> k)) {
       LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return;
+      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.") ;
     }
   } else {
     // Send one tuple by default
     k = 1;
   }
   send_now = config["send_now"].length() > 0;
+  return NO_ERR;
 }
 
 void
@@ -138,17 +140,18 @@ SendK::operator()() {
 }
 
 
-void
+operator_err_t
 StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> fieldID;
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
-    return;
+    return operator_err_t("No regex specified (option 'pattern')");
   } else {
     LOG(INFO) << "starting grep operator " << id() << " with pattern " << pattern;
   }
   re.assign(pattern);
+  return NO_ERR;
 }
 
 
@@ -187,7 +190,7 @@ StringGrep::long_description() {
 }
 
 
-void
+operator_err_t
 GenericParse::configure(std::map<std::string,std::string> &config) {
   string pattern = config["pattern"];
   re.assign(pattern);
@@ -202,15 +205,16 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   static boost::regex re("[SDI]+");
   
   if (!regex_match(field_types, re)) {
-    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
   }
   
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
-    return;
+    return operator_err_t("no regexp pattern specified");
   }
   //TODO could check re.max_size() against field_types.length()
-
+  return NO_ERR;
 }
 
 void parse_with_types(Element * e, const string& s, char typecode) {
@@ -291,14 +295,15 @@ ExtendOperator::process (boost::shared_ptr<Tuple> t) {
   emit(t);
 }
 
-void
+operator_err_t
 ExtendOperator::configure (std::map<std::string,std::string> &config) {
 
   string field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
   
   if (!regex_match(field_types, re)) {
-    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
     //should return failure here?
   }
 
@@ -322,11 +327,13 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
   }
   if (i < field_types.size()) {
     LOG(WARNING) << "too many type specifiers for operator";
+    return operator_err_t("too many type specifiers for operator");
   }
   if ( it != end ) {
     LOG(WARNING) << "not enough type specifiers for operator";
+    return operator_err_t("not enough type specifiers for operator");
   }
-
+  return NO_ERR;
 }
 
 

@@ -59,7 +59,8 @@ class TupleReceiver {
 
 typedef std::map<std::string,std::string> operator_config_t;
 
-
+typedef std::string operator_err_t;
+const operator_err_t NO_ERR = "";
 
 class DataPlaneOperator : public TupleReceiver {
  private:
@@ -94,7 +95,8 @@ class DataPlaneOperator : public TupleReceiver {
     /** This method will be called on every operator, before start() and before
   * any tuples will be received. This method must not block or emit tuples
   */ 
-  virtual void configure (std::map<std::string, std::string> &) {};
+  virtual operator_err_t configure (std::map<std::string, std::string> &)
+      {return NO_ERR;}
 
   /**
    * An operator must not start emitting tuples until start() has been called or

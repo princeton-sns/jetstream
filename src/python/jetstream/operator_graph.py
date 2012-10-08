@@ -121,7 +121,9 @@ class Destination(object):
     return self._location is not None    
 
   def instantiate_on(self, n):
-   
+    """If n is a NodeID, will specify to place this destination on that node.
+    If n is a list of node IDs, will clone and place on each
+    """
     if isinstance(n, NodeID):
       self._location = n
       for p in self.preds:

@@ -27,7 +27,7 @@ class FileRead: public DataPlaneOperator {
   //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
   //for source operators?
   FileRead() : running(false) {}
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void stop();
   void operator()();  // A thread that will loop while reading the file
@@ -50,7 +50,7 @@ GENERIC_CLNAME
  */
 class SendK: public DataPlaneOperator {
  public:
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void stop();
   virtual void process(boost::shared_ptr<Tuple> t);
@@ -75,7 +75,7 @@ GENERIC_CLNAME
 class StringGrep: public DataPlaneOperator {
  public:
   StringGrep() : fieldID (0) {}
-  virtual void configure (std::map<std::string,std::string> &config);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual std::string long_description();
 
@@ -103,7 +103,7 @@ class StringGrep: public DataPlaneOperator {
 class GenericParse: public DataPlaneOperator {
 
  public:
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
  protected:
@@ -153,7 +153,7 @@ class ExtendOperator: public DataPlaneOperator {
  public:
   std::vector< Element > new_data;
   virtual void process (boost::shared_ptr<Tuple> t);
-  virtual void configure (std::map<std::string,std::string> &config);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
   
   virtual ~ExtendOperator() {};
