@@ -337,11 +337,30 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
 }
 
 
+void
+SampleOperator::process (boost::shared_ptr<Tuple> t) {
+  uint32_t v = gen();
+  if (v >= threshold) {
+    emit(t);
+  }
+}
+
+operator_err_t SampleOperator::configure (std::map<std::string,std::string> &config) {
+  double frac_to_drop = 0;
+  istringstream(config["fraction"]) >> frac_to_drop;
+  threshold = (frac_to_drop * UINT32_MAX);
+  int seed = 0;
+  istringstream(config["seed"]) >> seed;
+  gen.seed(seed);
+  return NO_ERR;
+}
+
 
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
+const string SampleOperator::my_type_name("Sample operator");
 
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");

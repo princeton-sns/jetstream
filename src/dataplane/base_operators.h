@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/random.hpp>
 
 
 #define GENERIC_CLNAME  private: \
@@ -157,6 +158,24 @@ class ExtendOperator: public DataPlaneOperator {
 
   
   virtual ~ExtendOperator() {};
+
+GENERIC_CLNAME
+};
+
+/***
+ * Given a data stream, allows some fraction of data through.
+ * Config options: seed [an int] and fraction [ a float], representing the fraction
+ * to drop.  (So fraction == 0 means 'allow all')
+ */
+class SampleOperator: public DataPlaneOperator {
+ public:
+  boost::random::mt19937 gen;
+  uint32_t threshold; //drop tuples if rand >= threshhold. So thresh = 0 means pass all
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+
+  
+  virtual ~SampleOperator() {};
 
 GENERIC_CLNAME
 };
