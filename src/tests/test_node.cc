@@ -126,7 +126,6 @@ class NodeNetTest : public ::testing::Test {
   asio::io_service io_service;
   ip::tcp::socket cli_socket;
   SimpleNet synch_net;
-  thread testThread;
 
   // Include a superfluous io_service initializer to cause a compile error if the
   // order of initialization above is switched
@@ -161,8 +160,6 @@ class NodeNetTest : public ::testing::Test {
     assert(n);
     cout << "stopping node" << endl;
     n->stop();
-    testThread.join();
-    cout << "test runner thread stopped OK" << endl;
   }
 
 };
@@ -466,8 +463,6 @@ TEST(NodeIntegration, DataplaneConn) {
 
   nodes[0]->stop();
   nodes[1]->stop();
-//  testThreads[0].join();
-//  testThreads[1].join();
 }
 
 TEST(Node,Ctor) {
