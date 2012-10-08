@@ -30,8 +30,8 @@ def main():
 
 
   if ':' in options.controller:
-    (serv_addr, srv_port) = options.controller.split(':')
-    srv_port = int(srv_port)
+    (serv_addr, serv_port) = options.controller.split(':')
+    serv_port = int(serv_port)
   else:
     serv_addr = options.controller
     serv_port = 3456
@@ -41,7 +41,7 @@ def main():
   g = jsapi.OperatorGraph()
   reader = jsapi.FileRead(g, file_to_grep)
   grepper = jsapi.StringGrep(g, pattern)
-  host_extend = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]
+  host_extend = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"])
   
   cube = g.cube("local_results")
   cube.add_dim("log_line", Element.STRING)

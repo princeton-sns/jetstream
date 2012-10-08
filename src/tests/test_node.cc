@@ -447,10 +447,14 @@ TEST(NodeIntegration, DataplaneConn) {
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
   cout << "created receiver" << endl;
 
-  // Wait for the chain to be ready and the sending operator's data to flow through. 
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
-  
+  // Wait for the chain to be ready and the sending operator's data to flow through.   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  
+  
+  tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  
   u_int k;
   stringstream(kStr) >> k;
   // EXPECT_* records the failure but allows the cleanup code below to execute

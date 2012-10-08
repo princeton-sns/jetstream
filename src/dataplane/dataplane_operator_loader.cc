@@ -52,20 +52,19 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
   return false;
 }
 
+#define REGISTER_OP(x) if (name.compare(#x) == 0) return new x()
+
 jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
-  if (name.compare("DummyReceiver") == 0) {
-    return new DummyReceiver();
-  } else if (name.compare("FileRead") == 0) {
-    return new FileRead();
-  } else if (name.compare("SendK") == 0) {
-    return new SendK();
-  } else if (name.compare("StringGrep") == 0) {
-    return new StringGrep();
-  } else if (name.compare("GenericParse") == 0) {
-    return new GenericParse();
-  }
+  REGISTER_OP(DummyReceiver);
+  REGISTER_OP(FileRead);
+  REGISTER_OP(SendK);
+  REGISTER_OP(StringGrep);
+  REGISTER_OP(GenericParse);
+  REGISTER_OP(ExtendOperator);
+  REGISTER_OP(SampleOperator);
+
   
   if(cache.count(name) < 1)
   {

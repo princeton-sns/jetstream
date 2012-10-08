@@ -325,6 +325,16 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     }
     else {
       respTopo->add_tasktostop()->CopyFrom(task.id());
+      
+      //teardown started operators
+      for (int j=0; j < operators_to_start.size(); ++j) {
+        //note we don't call stop(), since operators didn't start()
+          operators.erase(operators_to_start[i]);
+      }
+      response.set_type(ControlMessage::ERROR);
+      Error * err_msg = response.mutable_error_msg();
+      err_msg->set_msg(err);
+      return response;
     }
   }
 
@@ -342,7 +352,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     }
   }
 
-  // Stop operators if need be
+  // Stop operators if requested
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
     LOG(INFO) << "Stopping " << id << " due to server request";
@@ -351,7 +361,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
   }
   
-  // Remove cubes if specified.
+  // Remove cubes if requested
   for (int i=0; i < topo.cubestostop_size(); ++i) {
     string id = topo.cubestostop(i);
     LOG(INFO) << "Closing cube " << id << " due to server request";
