@@ -74,7 +74,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 class DataplaneConnManager {
 
  private:
-  std::map<operator_id_t, boost::shared_ptr<ClientConnection> > pendingConns;
+  std::map<std::string, boost::shared_ptr<ClientConnection> > pendingConns;
   
     /** Maps from remote endpoint to the local client-connection associated with it.
     * Note that the connection-to-destination mapping is implicit in the callback
@@ -100,17 +100,15 @@ class DataplaneConnManager {
  
     // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t dest_op_id,
                           boost::shared_ptr<TupleReceiver> dest);
                      
 
     // called to attach income connection c to an operator that doesn't yet exist
   void pending_connection (boost::shared_ptr<ClientConnection> c,
-                          operator_id_t future_op);
+                          std::string future_op);
 
     // called when an operator is created
-  void created_operator (operator_id_t opid,
-                         boost::shared_ptr<TupleReceiver> dest);
+  void created_operator (boost::shared_ptr<TupleReceiver> dest);
                          
   void close();
   

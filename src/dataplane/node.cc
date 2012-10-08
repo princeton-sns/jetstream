@@ -236,33 +236,39 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
     {
       const Edge& e = msg.chain_link();
       //TODO can sanity-check that e is for us here.
+      std::string dest_as_str;
+      shared_ptr<TupleReceiver> dest;
       if (e.has_dest()) {
-      
         operator_id_t dest_operator_id (e.computation(), e.dest());
-        shared_ptr<DataPlaneOperator> dest = get_operator(dest_operator_id);
-        
-        LOG(INFO) << "Chain request for operator " << dest_operator_id.to_string();
-	// Operator exists so we can report "ready"
-        if (dest) { 
-          // Note that it's important to put the connection into receive mode
-          // before sending the READY.
-         
-          dataConnMgr.enable_connection(c, dest_operator_id, dest);
-
-          //TODO do we log the error or ignore it?
-        }
-        else {
-          LOG(INFO) << "Chain request for operator that isn't ready yet";
-          dataConnMgr.pending_connection(c, dest_operator_id);
-        }
-      }
-      else {
-        LOG(WARNING) << "Got remote chain connect without a dest";
+        dest_as_str = dest_operator_id.to_string();
+        dest = get_operator(dest_operator_id);
+      } else if (e.has_cube_name()) {
+        dest_as_str = e.cube_name();
+        dest = cubeMgr.get_cube(dest_as_str);
+      }  else {
+        LOG(WARNING) << "Got remote chain connect without a dest operator or cube";
         DataplaneMessage response;
         response.set_type(DataplaneMessage::ERROR);
         response.mutable_error_msg()->set_msg("got connect with no dest");
         c->send_msg(response, send_error);
       }
+
+
+      LOG(INFO) << "Chain request for " << dest_as_str;
+// Operator exists so we can report "ready"
+      if (dest) { 
+        // Note that it's important to put the connection into receive mode
+        // before sending the READY.
+       
+        dataConnMgr.enable_connection(c, dest);
+
+        //TODO do we log the error or ignore it?
+      }
+      else {
+        LOG(INFO) << "Chain request for operator that isn't ready yet";
+        
+        dataConnMgr.pending_connection(c, dest_as_str);
+      }      
     }
     break;
   default:
@@ -397,10 +403,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     const operator_id_t& name = *iter;
     shared_ptr<DataPlaneOperator> op = get_operator(name);
     op->start();
-    dataConnMgr.created_operator(name, op);
-
+    dataConnMgr.created_operator(op);
   }
-
+  
+  for (int i=0; i < topo.tocreate_size(); ++i) {
+    const CubeMeta &task = topo.tocreate(i);
+    shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
+    dataConnMgr.created_operator(c);
+  }
   return response;
 }
 
