@@ -67,7 +67,9 @@ class RemoteDestAdaptor : public TupleReceiver {
 
 /**
  * Instances of this class are responsible for managing incoming data on the
- * dataplane. Each IncomingConnAdaptor is the start of an operator chain
+ * dataplane. 
+ * They are also responsible for managing the lifetimes of the RemoteDestAdaptors
+ * that handle OUTGOING traffic.
  */
 class DataplaneConnManager {
 
@@ -76,7 +78,7 @@ class DataplaneConnManager {
   std::map<operator_id_t, boost::shared_ptr<ClientConnection> > liveConns;
   
   void got_data_cb (operator_id_t dest_id,
-                    boost::shared_ptr<DataPlaneOperator> dest,
+                    boost::shared_ptr<TupleReceiver> dest,
                     const DataplaneMessage &msg,
                     const boost::system::error_code &error);
   
@@ -93,7 +95,7 @@ class DataplaneConnManager {
     // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
                           operator_id_t dest_op_id,
-                          boost::shared_ptr<DataPlaneOperator> dest);
+                          boost::shared_ptr<TupleReceiver> dest);
                      
 
     // called to attach income connection c to an operator that doesn't yet exist
@@ -102,7 +104,7 @@ class DataplaneConnManager {
 
     // called when an operator is created
   void created_operator (operator_id_t opid,
-                         boost::shared_ptr<DataPlaneOperator> dest);
+                         boost::shared_ptr<TupleReceiver> dest);
                          
   void close();
   

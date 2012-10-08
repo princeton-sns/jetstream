@@ -9,7 +9,7 @@ using namespace boost;
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          operator_id_t dest_op_id,
-                                         shared_ptr<DataPlaneOperator> dest) {
+                                         shared_ptr<TupleReceiver> dest) {
   
   if (liveConns.find(dest_op_id) != liveConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
@@ -23,7 +23,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 
   DataplaneMessage response;
   if (!error) {
-    LOG(INFO) << "created dataplane connection into " << dest->id();
+    LOG(INFO) << "created dataplane connection into " << dest->id_as_str();
     response.set_type(DataplaneMessage::CHAIN_READY);
     // XXX This should include an Edge
   }
@@ -38,7 +38,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
                                           operator_id_t future_op) {
-  if (liveConns.find(future_op) != liveConns.end()) {
+  if (pendingConns.find(future_op) != pendingConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
     LOG(FATAL) << "trying to connect remote conn to " << future_op << "but there already is such a connection";
   }
@@ -50,7 +50,7 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 // Calle
 void
 DataplaneConnManager::created_operator (operator_id_t op_id,
-                                        shared_ptr<DataPlaneOperator> dest) {
+                                        shared_ptr<TupleReceiver> dest) {
   map<operator_id_t, shared_ptr<ClientConnection> >::iterator pending_conn = liveConns.find(op_id);
   if (pending_conn != liveConns.end()) {
     enable_connection(pending_conn->second, op_id, dest);
@@ -59,7 +59,7 @@ DataplaneConnManager::created_operator (operator_id_t op_id,
 
 void
 DataplaneConnManager::got_data_cb (operator_id_t dest_op_id,
-                                   shared_ptr<DataPlaneOperator> dest,
+                                   shared_ptr<TupleReceiver> dest,
                                    const DataplaneMessage &msg,
                                    const boost::system::error_code &error) {
   if (error) {

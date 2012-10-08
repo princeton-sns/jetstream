@@ -1,3 +1,5 @@
 JetStream is confidential and proprietary software. Copyright is held by Princeton University and the authors. Use, reproduction, or distribution without prior authorization is prohibited.
 
+NOTE: We currently use a GPLed library, the Mysql connector. As a result, it is not possible to distribute JetStream except under GPL. Our other dependencies are all permissive licenses.
+
 Contact Michael Freedman with any questions.
