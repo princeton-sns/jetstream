@@ -95,7 +95,13 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
       liveConns.erase(e);
     }
     break;
-    
+  case DataplaneMessage::TS_ECHO:
+    {
+      LOG(INFO)  << "got ts echo; responding";
+      boost::system::error_code err;
+      c->send_msg(msg, err); // just echo back what we got
+    }
+    break;
   default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
                    << c->get_remote_endpoint() << " for existing dataplane connection";

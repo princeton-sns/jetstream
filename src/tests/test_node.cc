@@ -371,6 +371,16 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
+  
+  DataplaneMessage echo;
+  echo.set_type(DataplaneMessage::TS_ECHO);
+  echo.set_timestamp(1);
+  data_conn.send_msg(echo);
+  cout << "sent ping" << endl;
+  resp = data_conn.get_data_msg();
+  cout << "got response" << endl;
+  ASSERT_EQ(echo.Utf8DebugString(), resp->Utf8DebugString());
+  
 }
 
 
