@@ -9,9 +9,13 @@ namespace cube {
 
 class MysqlDimensionString: public MysqlDimensionFlat {
   public:
-    MysqlDimensionString(jetstream::CubeSchema_Dimension _schema) : MysqlDimensionFlat(_schema) {};
+    MysqlDimensionString() : MysqlDimensionFlat() {};
 
+    virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
+    
     vector<string> get_column_types() const ;
+    
+    virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const;
 
     void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const ;
 

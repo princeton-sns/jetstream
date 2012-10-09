@@ -18,15 +18,20 @@ namespace cube {
  */
 class MysqlAggregateAvg: public MysqlAggregate {
   public:
-    MysqlAggregateAvg(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema) {};
+    MysqlAggregateAvg() : MysqlAggregate() {};
 
     vector<string> get_column_types() const;
 
     vector<string> get_column_names() const;
-    string get_update_with_new_entry_sql() const;
+    string get_update_on_insert_sql() const;
 
-    string get_update_with_partial_aggregate_sql() const;
-
+    virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const;
+    virtual size_t number_tuple_elements() const;
+    
+    virtual void set_value_for_insert_tuple(
+      shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
+      int &field_index) const;
+    
     void set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const;
 
     void set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const;
@@ -36,6 +41,16 @@ class MysqlAggregateAvg: public MysqlAggregate {
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
     
     virtual string get_select_clause_for_rollup() const;
+
+  protected:
+    virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
+    void merge_sum(jetstream::Element * into, jetstream::Element * const update) const;
+    
+    virtual void set_value(
+      shared_ptr<sql::PreparedStatement> pstmt,int &field_index, jetstream::Element *const sum) const;
+    
+    virtual void set_value(
+      shared_ptr<sql::PreparedStatement> pstmt,int &field_index, jetstream::Element *const sum, jetstream::Element *const count) const;
 };
 
 } /* cube */

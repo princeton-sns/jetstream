@@ -185,7 +185,7 @@ TEST(Operator, ExtendOperator) {
   ASSERT_EQ(3, result->e_size());
   ASSERT_EQ(2, result->e(0).i_val()); //should preserve existing element[s]
   ASSERT_EQ(1, result->e(1).i_val()); //should preserve existing element[s]
-  ASSERT_GT(result->e(2).s_val().length(), 2);
+  ASSERT_GT(result->e(2).s_val().length(), 2U);
   ASSERT_EQ( boost::asio::ip::host_name(), result->e(2).s_val());
 //  cout << "host name is "<< result->e(2).s_val() << endl;
   cout << "done" << endl;

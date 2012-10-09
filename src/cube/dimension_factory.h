@@ -26,16 +26,24 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
   static boost::shared_ptr<jetstream::cube::MysqlDimension> create(jetstream::CubeSchema_Dimension _schema)
   {
     if(_schema.type() == jetstream::Element_ElementType_TIME){
-      return boost::make_shared<MysqlDimensionTimeHierarchy>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeHierarchy>();
+      obj->init(_schema);
+      return obj;
     }
     else if(_schema.type() == jetstream::Element_ElementType_INT32) {
-      return boost::make_shared<MysqlDimensionInt>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionInt>();
+      obj->init(_schema);
+      return obj;
     }
     else if(_schema.type() == jetstream::Element_ElementType_DOUBLE) {
-      return boost::make_shared<MysqlDimensionDouble>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionDouble>();
+      obj->init(_schema);
+      return obj;
     }
     else if(_schema.type() == jetstream::Element_ElementType_STRING) {
-      return boost::make_shared<MysqlDimensionString>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionString>();
+      obj->init(_schema);
+      return obj;
     }
     else
     {

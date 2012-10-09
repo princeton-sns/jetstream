@@ -10,12 +10,20 @@ namespace cube {
 
 class MysqlAggregate : public Aggregate {
   public:
-    MysqlAggregate(jetstream::CubeSchema_Aggregate _schema) : Aggregate(_schema) {};
+    MysqlAggregate() : Aggregate() {};
 
+    virtual void set_value_for_insert_tuple(
+      shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
+      int &field_index) const = 0;
+    
+    virtual void make_full_tuple(jetstream::Tuple &t) const;
+    virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const =0;
+    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
+    //deprecated
     virtual void set_value_for_insert_entry(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
       int &tuple_index, int &field_index) const = 0;
-
+    //deprecated
     virtual void set_value_for_insert_partial_aggregate(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
       int &tuple_index, int &field_index) const = 0;
@@ -25,8 +33,7 @@ class MysqlAggregate : public Aggregate {
     virtual vector<string> get_column_types() const = 0;
     virtual vector<string> get_column_names() const;
 
-    virtual string  get_update_with_new_entry_sql() const = 0;
-    virtual string  get_update_with_partial_aggregate_sql() const = 0;
+    virtual string  get_update_on_insert_sql() const = 0;
 
     virtual void populate_tuple_final(
       boost::shared_ptr<jetstream::Tuple> t,
@@ -37,6 +44,10 @@ class MysqlAggregate : public Aggregate {
       boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const =0;
 
     virtual string get_select_clause_for_rollup() const = 0;
+
+  protected:
+    virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const = 0;
+
 };
     
 

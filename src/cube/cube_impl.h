@@ -15,6 +15,10 @@
 namespace jetstream {
 namespace cube {
 
+/* functions placed here or lower in the type hierarchy rely on the type of CubeDimension
+ * and CubeAggregate. This allows more generic code to operate on DataCubes of any Dimension
+ * and Aggregate type. While, specific code need to Instantiate specific Impl types */
+
 template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=jetstream::cube::Aggregate>
 class DataCubeImpl : public DataCube {
   public:
@@ -52,6 +56,22 @@ class DataCubeImpl : public DataCube {
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
     std::map<string, size_t> dimensionMap;
+  
+    virtual DimensionKey get_dimension_key(Tuple const &t) const {
+      string key="";
+      for(size_t i=0; i<dimensions.size();++i) {
+        key+=dimensions[i]->get_key(t)+"|";
+      }
+      return key; 
+    }
+
+    
+    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {
+      for(size_t i=0; i<aggregates.size();++i) {
+        aggregates[i]->merge_tuple_into(into, update);
+      }
+
+    }
 };
 
 }
