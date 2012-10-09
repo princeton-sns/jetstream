@@ -10,6 +10,7 @@
 #include "node.h"
 #include "base_operators.h"
 #include "simple_net.h"
+#include "experiment_operators.h"
 
 
 using namespace std;

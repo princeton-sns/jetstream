@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include "experiment_operators.h"
 
 using namespace jetstream;
 using namespace boost;
