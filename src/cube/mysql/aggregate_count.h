@@ -16,7 +16,7 @@ namespace cube {
  */
 class MysqlAggregateCount: public MysqlAggregate {
   public:
-    MysqlAggregateCount(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema) {};
+    MysqlAggregateCount() : MysqlAggregate() {};
 
     vector<string> get_column_types() const;
 

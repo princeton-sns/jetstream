@@ -524,10 +524,12 @@ TEST(Cube,Attach) {
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_type(Element_ElementType_STRING);
   dim->set_name("text");
+  dim->add_tuple_indexes(0);
 
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
   agg->set_name("count");
   agg->set_type("count");
+  agg->add_tuple_indexes(1);
   cube_meta->set_name("test_cube");
   cube_meta->set_overwrite_old(true);
 

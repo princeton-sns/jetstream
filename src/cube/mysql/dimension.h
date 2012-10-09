@@ -11,7 +11,7 @@ namespace cube {
   
 class MysqlDimension: public Dimension{
   public:
-    MysqlDimension(jetstream::CubeSchema_Dimension _schema) : Dimension(_schema){};
+    MysqlDimension() : Dimension(){};
 
     virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const = 0;
 

@@ -14,11 +14,13 @@ using namespace boost;
 
 class Dimension {
 public:
-  Dimension (jetstream::CubeSchema_Dimension schema_dimension);
+  Dimension ();
+  void init(jetstream::CubeSchema_Dimension schema_dimension);
   virtual ~Dimension (){};
 
   string get_name() const;
   virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const = 0;
+  virtual size_t tuple_element_count();
 
 protected:
   string name;

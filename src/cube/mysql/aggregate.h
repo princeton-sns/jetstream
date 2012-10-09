@@ -10,7 +10,7 @@ namespace cube {
 
 class MysqlAggregate : public Aggregate {
   public:
-    MysqlAggregate(jetstream::CubeSchema_Aggregate _schema) : Aggregate(_schema) {};
+    MysqlAggregate() : Aggregate() {};
 
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
@@ -18,7 +18,6 @@ class MysqlAggregate : public Aggregate {
     
     virtual void make_full_tuple(jetstream::Tuple &t) const;
     virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const =0;
-    virtual size_t number_tuple_elements() const =0;
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
     //deprecated
     virtual void set_value_for_insert_entry(

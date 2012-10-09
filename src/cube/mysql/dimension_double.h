@@ -11,7 +11,7 @@ class MysqlDimensionDouble: public MysqlDimensionFlat {
   public:
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
     
-    MysqlDimensionDouble(jetstream::CubeSchema_Dimension _schema) : MysqlDimensionFlat(_schema) {};
+    MysqlDimensionDouble() : MysqlDimensionFlat() {};
 
     vector<string> get_column_types() const ;
 

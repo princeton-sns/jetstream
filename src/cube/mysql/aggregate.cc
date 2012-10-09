@@ -15,10 +15,6 @@ vector<string>  MysqlAggregate::get_column_names() const {
 }
 
 void MysqlAggregate::make_full_tuple(jetstream::Tuple &t) const {
-  if(tuple_indexes.size() != number_tuple_elements())
-  {
-    LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
-  }
   for(size_t i = 0; i<number_tuple_elements(); ++i)
   {
     while(t.e_size()-1 < (int)tuple_indexes[i])

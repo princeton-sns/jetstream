@@ -18,7 +18,7 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
     static unsigned int const LEVEL_SECOND;
 
 
-    MysqlDimensionTimeHierarchy(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema) {};
+    MysqlDimensionTimeHierarchy() : MysqlDimension() {};
     
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
 

@@ -16,6 +16,9 @@ const std::string jetstream::DataCube::my_tyepename("data cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) 
 {
+  boost::shared_ptr<jetstream::Tuple> new_tuple;
+  boost::shared_ptr<jetstream::Tuple> old_tuple;
+  save_tuple(*t, false, false, new_tuple, old_tuple);
  /* DimensionKey key = get_dimension_key(*t);
   std::map<DimensionKey, TupleProcessing>::iterator res = batch.find(key);
   

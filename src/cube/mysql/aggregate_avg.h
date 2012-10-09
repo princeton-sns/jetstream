@@ -18,7 +18,7 @@ namespace cube {
  */
 class MysqlAggregateAvg: public MysqlAggregate {
   public:
-    MysqlAggregateAvg(jetstream::CubeSchema_Aggregate _schema) : MysqlAggregate(_schema) {};
+    MysqlAggregateAvg() : MysqlAggregate() {};
 
     vector<string> get_column_types() const;
 
@@ -26,7 +26,7 @@ class MysqlAggregateAvg: public MysqlAggregate {
     string get_update_on_insert_sql() const;
 
     virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const;
-    size_t number_tuple_elements() const;
+    virtual size_t number_tuple_elements() const;
     
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,

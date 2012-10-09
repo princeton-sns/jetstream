@@ -327,7 +327,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       respTopo->add_tasktostop()->CopyFrom(task.id());
       
       //teardown started operators
-      for (int j=0; j < operators_to_start.size(); ++j) {
+      for (size_t j=0; j < operators_to_start.size(); ++j) {
         //note we don't call stop(), since operators didn't start()
           operators.erase(operators_to_start[i]);
       }
