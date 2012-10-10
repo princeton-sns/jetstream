@@ -153,6 +153,7 @@ void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
   conn = c;
+  //TODO CHECK FOR NULL CONN!!
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
@@ -161,8 +162,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   edge->CopyFrom(dest_as_edge);
   
   boost::system::error_code err;
-  conn->recv_data_msg(boost::bind( &RemoteDestAdaptor::conn_ready_cb, 
-           this, _1, _2), err);
+  conn->recv_data_msg(boost::bind(&RemoteDestAdaptor::conn_ready_cb, 
+				  this, _1, _2), err);
   conn->send_msg(data_msg, err);
 }
 

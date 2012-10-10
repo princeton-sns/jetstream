@@ -91,6 +91,10 @@ class CWorker (object):
     return self.state
 
 
+  def get_dataplane_ep (self):
+    return (self.lastHB.dataplane_addr.address, self.lastHB.dataplane_addr.portno)
+  
+  
   def create_assignment (self, compID):
     assert compID not in self.assignments
     self.assignments[compID] = WorkerAssignment(compID)
@@ -112,13 +116,13 @@ class Computation (object):
           # right now dest is just an operator ID but might become an optional list.
 
 
-  def assign_worker (self, endpoint, assignment):
+  def assign_worker (self, workerId, endpoint, assignment):
     assert(endpoint not in self.workerAssignments)
     for task in assignment.operators:
       self.taskLocations[task.id.task] = endpoint
     for cube in assignment.cubes:
       self.taskLocations[str(cube.name)] = endpoint
-    self.workerAssignments[endpoint] = assignment
+    self.workerAssignments[workerId] = assignment
 
 
   def update_worker (self, endpoint, actualAssignment):

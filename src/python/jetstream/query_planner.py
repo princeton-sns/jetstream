@@ -31,12 +31,12 @@ class QueryPlanner (object):
   expanded plan.
   """  
 
-  def __init__(self,all_nodes):
+  def __init__ (self, all_nodes):
     self.node_list = all_nodes
     return
     
     
-  def take_raw(self,altertopo):
+  def take_raw (self, altertopo):
     """Takes the client's plan, validates, and fills in host names.
      For now, we only allow real host names from the client, so this is purely a validation phase.
      Returns a string on error.
@@ -50,7 +50,7 @@ class QueryPlanner (object):
   
   
   CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
-  def validate_raw_topo(self,altertopo):
+  def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
     
     #Organization of this method is parallel to the altertopo structure.
@@ -74,13 +74,12 @@ class QueryPlanner (object):
     return ""
 
 
-  def overwrite_operator_comp_ids(self, compID):
+  def overwrite_operator_comp_ids (self, compID):
     for operatorMeta in self.alter.toStart:
       operatorMeta.id.computationID = compID
     
     
-  def get_computation(self, compID, workers):
-
+  def get_computation (self, compID, workers):
     altertopo = self.alter
     self.overwrite_operator_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
@@ -105,6 +104,10 @@ class QueryPlanner (object):
       if graph_node.site.address != '':
         # Node is pinned to a specific worker
         endpoint = (graph_node.site.address, graph_node.site.portno)
+        # But if the worker doesn't exist, revert to the default worker
+        if endpoint not in workers:
+          logger.warning("Node was pinned to a worker, but that worker does not exist")
+          endpoint = defaultEndpoint
       elif (graph_node in sources) or (graph_node == sink):
         # Node is an unpinned source/sink; pin it to a default worker
         endpoint = defaultEndpoint
@@ -146,7 +149,7 @@ class QueryPlanner (object):
     
     # Finalize the worker assignments
     for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, assignment)
+      comp.assign_worker(endpoint, workers[endpoint].get_dataplane_ep(), assignment)
     
     comp.add_edges(altertopo.edges)
     return comp    

@@ -8,16 +8,16 @@
 #include "dataplane_comm.h"
 #include "jetstream_types.pb.h"
 
-
 using namespace jetstream;
 using namespace std;
 using namespace boost;
+
 
 Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   : config (conf),
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
-    livenessMgr (iosrv, conf.heartbeat_time),
+    livenessMgr (iosrv, config),
     webInterface (conf.webinterface_port, *this),
     dataConnMgr(*iosrv),
     operator_cleanup(*iosrv),
@@ -49,14 +49,15 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 
   listeningSock = shared_ptr<ServerConnection>
     (new ServerConnection(iosrv, listen_port, error));
-
   if (error) {
     LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
     return;
   }
+  // Update the listener port in the config in case the user specified 0. The config
+  // is used by other modules, e.g. the liveness manager.
+  config.dataplane_myport = listeningSock->get_local_endpoint().port();
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
-
   if (error) {
     LOG(ERROR) << "Error accepting server socket: " << error.message() << endl;
     return;

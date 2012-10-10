@@ -44,7 +44,6 @@ def main():
   if options.config_file is not None:
     config = ConfigParser.ConfigParser()
     config.read(options.config_file)
-    
 
   serv = get_server_on_this_node()
   start_web_interface(serv)
