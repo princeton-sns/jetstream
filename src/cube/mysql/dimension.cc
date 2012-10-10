@@ -1,11 +1,22 @@
 #include "dimension.h"
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 using namespace jetstream::cube;
 
 
 
-string MysqlDimension::get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional) const {
+string MysqlDimension::get_where_clause_exact_prepared() const {
+  vector<string> sql;
+  vector<string> col_names = get_column_names();
+  for(vector<string>::iterator col_name = col_names.begin(); col_name != col_names.end(); ++col_name)
+  {
+    sql.push_back("`"+*col_name+"` = ? ");
+  }
+  return boost::algorithm::join(sql, " AND ");
+}
+
+  string MysqlDimension::get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional) const {
   return get_where_clause(t, tuple_index, " = ", is_optional);
 }
 

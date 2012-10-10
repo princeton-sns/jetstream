@@ -12,6 +12,24 @@ unsigned int const MysqlDimensionTimeHierarchy::LEVEL_HOUR = 4;
 unsigned int const MysqlDimensionTimeHierarchy::LEVEL_MINUTE = 5;
 unsigned int const MysqlDimensionTimeHierarchy::LEVEL_SECOND = 6;
 
+jetstream::DataCube::DimensionKey MysqlDimensionTimeHierarchy::get_key(Tuple const &t) const
+{
+  assert(tuple_indexes.size() == 1);
+  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+
+  if(e->has_d_val()) {
+    struct tm temptm;
+    char timestring[30];
+    time_t clock = e->t_val();
+    localtime_r(&clock, &temptm);
+    strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
+    return timestring;
+  }
+
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+}
+
+
 vector<string> MysqlDimensionTimeHierarchy::get_column_names() const {
   vector<string> decl;
   decl.push_back(get_base_column_name()+"_year");
@@ -33,6 +51,29 @@ vector<string> MysqlDimensionTimeHierarchy::get_column_types() const {
   decl.push_back("TINYINT"); //M
   decl.push_back("TINYINT");  //S
   return decl;
+}
+
+void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
+  if(tuple_indexes.size() != 1)
+    LOG(FATAL) << "Wrong number of tuple indexes for field "<< name;
+
+  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+
+  if(e->has_t_val()) {
+    struct tm temptm;
+    time_t clock = e->t_val();
+    localtime_r(&clock, &temptm);
+    pstmt->setInt(field_index, temptm.tm_year);
+    pstmt->setInt(field_index+1, temptm.tm_mon);
+    pstmt->setInt(field_index+2, temptm.tm_mday);
+    pstmt->setInt(field_index+3, temptm.tm_hour);
+    pstmt->setInt(field_index+4, temptm.tm_min);
+    pstmt->setInt(field_index+5, temptm.tm_sec);
+    field_index += 6;
+    return;
+  }
+
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
 void MysqlDimensionTimeHierarchy::set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const&t, int &tuple_index, int &field_index) const {

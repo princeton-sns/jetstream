@@ -18,11 +18,16 @@ struct AggregateFactory {
 template<>
 struct AggregateFactory<jetstream::cube::MysqlAggregate> {
   static boost::shared_ptr<jetstream::cube::MysqlAggregate> create(jetstream::CubeSchema_Aggregate _schema) {
+
     if(_schema.type() == "count") {
-      return boost::make_shared<MysqlAggregateCount>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateCount>();
+      obj->init(_schema);
+      return obj;
     }
     else if(_schema.type() == "avg") {
-      return boost::make_shared<MysqlAggregateAvg>(_schema);
+      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateAvg>();
+      obj->init(_schema);
+      return obj;
     }
     else {
       LOG(FATAL) << "Don't have right aggregate";

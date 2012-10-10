@@ -15,13 +15,14 @@ using namespace boost;
 namespace jetstream {
 
 
-void
+operator_err_t
 FileRead::configure(map<string,string> &config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     LOG(WARNING) << "no file to read, bailing" << endl;
-    return;
+    return operator_err_t("option 'file' not specified");
   }
+  return NO_ERR;
 }
 
 void
@@ -83,72 +84,18 @@ FileRead::long_description() {
   return buf.str();
 }
 
-void
-SendK::configure (std::map<std::string,std::string> &config) {
-  if (config["k"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["k"]) >> k)) {
-      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return;
-    }
-  } else {
-    // Send one tuple by default
-    k = 1;
-  }
-  send_now = config["send_now"].length() > 0;
-}
-
-void
-SendK::start() {
-  if (send_now) {
-    (*this)();
-  }
-  else {
-    running = true;
-    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-  }
-}
-
-
-void
-SendK::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a SendK";
-} 
-
-
-void
-SendK::stop() {
-  running = false;
-  LOG(INFO) << "Stopping SendK operator " << id();
-  if (running) {
-    assert (loopThread->get_id()!=boost::this_thread::get_id());
-    loopThread->join();
-  }
-}
-
-
-void
-SendK::operator()() {
-  boost::shared_ptr<Tuple> t(new Tuple);
-  t->add_e()->set_s_val("foo");
-  for (u_int i = 0; i < k; i++) {
-    emit(t);
-  }
-  no_more_tuples();
-}
-
-
-void
+operator_err_t
 StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> fieldID;
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
-    return;
+    return operator_err_t("No regex specified (option 'pattern')");
   } else {
     LOG(INFO) << "starting grep operator " << id() << " with pattern " << pattern;
   }
   re.assign(pattern);
+  return NO_ERR;
 }
 
 
@@ -187,7 +134,7 @@ StringGrep::long_description() {
 }
 
 
-void
+operator_err_t
 GenericParse::configure(std::map<std::string,std::string> &config) {
   string pattern = config["pattern"];
   re.assign(pattern);
@@ -202,15 +149,16 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   static boost::regex re("[SDI]+");
   
   if (!regex_match(field_types, re)) {
-    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
   }
   
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
-    return;
+    return operator_err_t("no regexp pattern specified");
   }
   //TODO could check re.max_size() against field_types.length()
-
+  return NO_ERR;
 }
 
 void parse_with_types(Element * e, const string& s, char typecode) {
@@ -274,12 +222,6 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   emit (t2);
 }
 
-
-DummyReceiver::~DummyReceiver() {
-  VLOG(1) << "destructing dummy receiver";
-}
-
-
 void
 ExtendOperator::process (boost::shared_ptr<Tuple> t) {
   
@@ -291,14 +233,15 @@ ExtendOperator::process (boost::shared_ptr<Tuple> t) {
   emit(t);
 }
 
-void
+operator_err_t
 ExtendOperator::configure (std::map<std::string,std::string> &config) {
 
   string field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
   
   if (!regex_match(field_types, re)) {
-    LOG(WARNING) << "Invalid types for regex fields; got" << field_types;
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
     //should return failure here?
   }
 
@@ -322,22 +265,39 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
   }
   if (i < field_types.size()) {
     LOG(WARNING) << "too many type specifiers for operator";
+    return operator_err_t("too many type specifiers for operator");
   }
   if ( it != end ) {
     LOG(WARNING) << "not enough type specifiers for operator";
+    return operator_err_t("not enough type specifiers for operator");
   }
-
+  return NO_ERR;
 }
 
+
+void
+SampleOperator::process (boost::shared_ptr<Tuple> t) {
+  uint32_t v = gen();
+  if (v >= threshold) {
+    emit(t);
+  }
+}
+
+operator_err_t SampleOperator::configure (std::map<std::string,std::string> &config) {
+  double frac_to_drop = 0;
+  istringstream(config["fraction"]) >> frac_to_drop;
+  threshold = (frac_to_drop * UINT32_MAX);
+  int seed = 0;
+  istringstream(config["seed"]) >> seed;
+  gen.seed(seed);
+  return NO_ERR;
+}
 
 
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
-
-
-const string DummyReceiver::my_type_name("DummyReceiver operator");
-const string SendK::my_type_name("SendK operator");
+const string SampleOperator::my_type_name("Sample operator");
 
 }

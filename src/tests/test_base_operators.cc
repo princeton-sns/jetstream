@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include "experiment_operators.h"
 
 using namespace jetstream;
 using namespace boost;
@@ -185,9 +186,34 @@ TEST(Operator, ExtendOperator) {
   ASSERT_EQ(3, result->e_size());
   ASSERT_EQ(2, result->e(0).i_val()); //should preserve existing element[s]
   ASSERT_EQ(1, result->e(1).i_val()); //should preserve existing element[s]
-  ASSERT_GT(result->e(2).s_val().length(), 2);
+  ASSERT_GT(result->e(2).s_val().length(), 2U);
   ASSERT_EQ( boost::asio::ip::host_name(), result->e(2).s_val());
 //  cout << "host name is "<< result->e(2).s_val() << endl;
   cout << "done" << endl;
 
+}
+
+
+TEST(Operator, SampleOperator) {
+
+  SampleOperator op;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  operator_config_t cfg;
+  cfg["fraction"] = "0.6";
+  cfg["seed"] = "4";
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(rec);
+  
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 2);
+  for (int i = 0; i < 1000; ++i) {
+    op.process(t);
+    t->mutable_e(0)->set_i_val(i);
+  }
+  ASSERT_GT((size_t)420, rec->tuples.size());
+  ASSERT_LT((size_t)380, rec->tuples.size());
+
+  
+  cout << "done; " << rec->tuples.size() << " tuples received"<<endl;
 }

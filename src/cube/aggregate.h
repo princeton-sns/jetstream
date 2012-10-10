@@ -13,12 +13,15 @@ using namespace boost;
 
 class Aggregate {
   public:
-    Aggregate (jetstream::CubeSchema_Aggregate schema_dimension);
+    Aggregate ();
+    void init(jetstream::CubeSchema_Aggregate schema_dimension);
     virtual ~Aggregate () {};
 
   protected:
+    virtual size_t number_tuple_elements() const;
     string name;
     string type;
+    vector<size_t> tuple_indexes;
 };
 
 } /* cube */

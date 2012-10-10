@@ -11,8 +11,9 @@ namespace cube {
   
 class MysqlDimension: public Dimension{
   public:
-    MysqlDimension(jetstream::CubeSchema_Dimension _schema) : Dimension(_schema){};
+    MysqlDimension() : Dimension(){};
 
+    virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const = 0;
 
     virtual void set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const = 0;
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const = 0;
@@ -20,6 +21,7 @@ class MysqlDimension: public Dimension{
 
     //TODO: right now this creates a full sql string. Maybe change to string with placehholders and preparedStatement?
     virtual string get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true) const;
+    virtual string get_where_clause_exact_prepared() const;
     virtual string get_where_clause_greater_than_eq(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true) const;
     virtual string get_where_clause_less_than_eq(jetstream::Tuple const &t, int &tuple_index, bool is_optional = true) const;
     virtual string get_select_clause_for_rollup(unsigned int const level) const = 0;

@@ -70,12 +70,14 @@ message CubeSchema {
   message Dimension {
     required string name = 1;
     required Element.ElementType type = 2;
+    repeated int32 tuple_indexes = 3;
   }
   repeated Dimension dimensions = 2;
 
   message Aggregate {
     required string name = 1;
     required string type = 2;  // class name of aggregate type, e.g. 'average' or 'count', 
+    repeated int32 tuple_indexes = 3;
   }
   repeated Aggregate aggregates = 3;
 }
@@ -182,10 +184,11 @@ message ControlMessage {
 */ 
 message DataplaneMessage {
   enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; 
-  NO_MORE_DATA = 6; }
+  NO_MORE_DATA = 6; TS_ECHO = 7;}
   required DataplaneType type  = 1;
 
   optional Error error_msg = 2;
   optional Edge chain_link = 3;
   repeated Tuple data = 4;  // Streaming data on the data plane
+  optional sfixed64 timestamp = 7;
 }

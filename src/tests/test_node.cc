@@ -10,6 +10,7 @@
 #include "node.h"
 #include "base_operators.h"
 #include "simple_net.h"
+#include "experiment_operators.h"
 
 
 using namespace std;
@@ -54,7 +55,8 @@ TEST(Node, OperatorCreateDestroy)
 
   operator_id_t id(1,2);
   operator_config_t oper_cfg;
-  shared_ptr<DataPlaneOperator> op = node.create_operator("test",id, oper_cfg);
+  node.create_operator("test",id, oper_cfg);
+  shared_ptr<DataPlaneOperator> op = node.get_operator(id);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   
@@ -370,6 +372,16 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
   ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
+  
+  DataplaneMessage echo;
+  echo.set_type(DataplaneMessage::TS_ECHO);
+  echo.set_timestamp(1);
+  data_conn.send_msg(echo);
+  cout << "sent ping" << endl;
+  resp = data_conn.get_data_msg();
+  cout << "got response" << endl;
+  ASSERT_EQ(echo.Utf8DebugString(), resp->Utf8DebugString());
+  
 }
 
 
@@ -446,10 +458,14 @@ TEST(NodeIntegration, DataplaneConn) {
   shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
   cout << "created receiver" << endl;
 
-  // Wait for the chain to be ready and the sending operator's data to flow through. 
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
-  
+  // Wait for the chain to be ready and the sending operator's data to flow through.   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  
+  
+  tries = 0;
+  while (rec->tuples.size() == 0 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  
   u_int k;
   stringstream(kStr) >> k;
   // EXPECT_* records the failure but allows the cleanup code below to execute

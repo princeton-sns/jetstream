@@ -13,7 +13,7 @@ using namespace std;
 */
 class TestOperator: public jetstream::DataPlaneOperator {
  public:
-  virtual void configure(std::map<std::string, std::string> &) {}
+  virtual operator_err_t configure(std::map<std::string, std::string> &) {return NO_ERR;}
   
   virtual void start() {
     cout << "test operator 2" << endl;

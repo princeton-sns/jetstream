@@ -7,12 +7,7 @@
 #include <boost/regex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
-
-
-#define GENERIC_CLNAME  private: \
-   const static std::string my_type_name; \
- public: \
-   virtual const std::string& typename_as_str() {return my_type_name;}
+#include <boost/random.hpp>
 
 
 namespace jetstream {
@@ -27,7 +22,7 @@ class FileRead: public DataPlaneOperator {
   //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
   //for source operators?
   FileRead() : running(false) {}
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void stop();
   void operator()();  // A thread that will loop while reading the file
@@ -46,28 +41,6 @@ GENERIC_CLNAME
 
 
 /***
- * Operator for emitting a specified number of generic tuples.
- */
-class SendK: public DataPlaneOperator {
- public:
-  virtual void configure(std::map<std::string,std::string> &config);
-  virtual void start();
-  virtual void stop();
-  virtual void process(boost::shared_ptr<Tuple> t);
-  void operator()();  // A thread that will loop while reading the file    
-
-    
- protected:
-  u_int k; //name of file to read
-  boost::shared_ptr<boost::thread> loopThread;
-  volatile bool running;
-  volatile bool send_now;
-  
-GENERIC_CLNAME
-};  
-  
-
-/***
  * Operator for filtering strings. Expects one parameter, a string named 'pattern'
  * containing a regular expression. Assumes each received tuple has a first element
  * that is a string, and re-emits the tuple if the string matches 'pattern'.
@@ -75,7 +48,7 @@ GENERIC_CLNAME
 class StringGrep: public DataPlaneOperator {
  public:
   StringGrep() : fieldID (0) {}
-  virtual void configure (std::map<std::string,std::string> &config);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual std::string long_description();
 
@@ -103,7 +76,7 @@ class StringGrep: public DataPlaneOperator {
 class GenericParse: public DataPlaneOperator {
 
  public:
-  virtual void configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void process(boost::shared_ptr<Tuple> t);
 
  protected:
@@ -118,26 +91,6 @@ class GenericParse: public DataPlaneOperator {
 and by Extend */
 void parse_with_types(Element * e, const std::string& s, char typecode);
   
-class DummyReceiver: public DataPlaneOperator {
- public:
-  std::vector< boost::shared_ptr<Tuple> > tuples;
-  virtual void process(boost::shared_ptr<Tuple> t) {
-    tuples.push_back(t);
-  }
-  
-  virtual std::string long_description() {
-      std::ostringstream buf;
-      buf << tuples.size() << " stored tuples.";
-      return buf.str();
-  }
-  
-  virtual void no_more_tuples() {} //don't exit at end; keep data available
-  
-  virtual ~DummyReceiver();
-
-GENERIC_CLNAME
-};
-
 
 /**
  * Adds constant data to a tuple.
@@ -153,10 +106,28 @@ class ExtendOperator: public DataPlaneOperator {
  public:
   std::vector< Element > new_data;
   virtual void process (boost::shared_ptr<Tuple> t);
-  virtual void configure (std::map<std::string,std::string> &config);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
   
   virtual ~ExtendOperator() {};
+
+GENERIC_CLNAME
+};
+
+/***
+ * Given a data stream, allows some fraction of data through.
+ * Config options: seed [an int] and fraction [ a float], representing the fraction
+ * to drop.  (So fraction == 0 means 'allow all')
+ */
+class SampleOperator: public DataPlaneOperator {
+ public:
+  boost::random::mt19937 gen;
+  uint32_t threshold; //drop tuples if rand >= threshhold. So thresh = 0 means pass all
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+
+  
+  virtual ~SampleOperator() {};
 
 GENERIC_CLNAME
 };

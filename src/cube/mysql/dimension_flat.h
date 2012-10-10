@@ -8,7 +8,7 @@ namespace cube {
   
 class MysqlDimensionFlat: public MysqlDimension{
   public:
-    MysqlDimensionFlat(jetstream::CubeSchema_Dimension _schema) : MysqlDimension(_schema){};
+    MysqlDimensionFlat() : MysqlDimension(){};
 
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;

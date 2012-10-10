@@ -19,52 +19,128 @@ class CubeTest : public ::testing::Test {
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
       dim->set_type(Element_ElementType_TIME);
+      dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
       dim->set_name("url");
       dim->set_type(Element_ElementType_STRING);
+      dim->add_tuple_indexes(1);
 
       dim = sc->add_dimensions();
       dim->set_name("response_code");
       dim->set_type(Element_ElementType_INT32);
+      dim->add_tuple_indexes(2);
 
       jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
       agg->set_name("count");
       agg->set_type("count");
+      agg->add_tuple_indexes(4);
 
       agg = sc->add_aggregates();
       agg->set_name("avg_size");
       agg->set_type("avg");
-
+      agg->add_tuple_indexes(3);
+      agg->add_tuple_indexes(5);
     }
-    
+
     jetstream::CubeSchema * sc;
 };
 
+/*TEST_F(CubeTest, MultiStatementTest) {
+ * shows that you can't do multi-statements in prepared statements
+ * later found this fact in the mysql manual
+ *
+  sql::Driver * driver = sql::mysql::get_driver_instance();
 
-TEST_F(CubeTest, MysqlTest) {
+  string db_host="localhost";
+               string db_user="root";
+               string db_pass="";
+               string db_name="test_cube";
+  sql::ConnectOptionsMap options;
+  options.insert( std::make_pair( "hostName", db_host));
+  options.insert( std::make_pair( "userName", db_user));
+  options.insert( std::make_pair( "password", db_pass));
+  options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) );
 
 
+  //shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
+  shared_ptr<sql::Connection> connection(driver->connect(options));
+  connection->setSchema(db_name);
 
+  shared_ptr<sql::Statement> stmnt(connection->createStatement());
+
+  string sql = "select 1; select 2";
+    try {
+    stmnt->execute(sql);
+  }
+  catch (sql::SQLException &e) {
+    LOG(WARNING) << "in test: couldn't execute sql statement; " << e.what() <<
+                 "\nStatement was " << sql;
+  }
+
+  try {
+      connection->prepareStatement(sql);
+    }
+    catch (sql::SQLException &e) {
+      LOG(WARNING) << "in test ps: couldn't execute sql statement; " << e.what();
+      LOG(WARNING) << "statement was " << sql;
+    }
+}*/
+
+void insert_tuple(jetstream::Tuple & t, time_t time, string url, int rc, int sum, int count) {
+  t.clear_e();
+  jetstream::Element *e = t.add_e();
+  e->set_t_val(time);
+  e=t.add_e();
+  e->set_s_val(url);
+  e=t.add_e();
+  e->set_i_val(rc);
+  e=t.add_e();
+  e->set_i_val(sum);
+  e=t.add_e();
+  e->set_i_val(count);
+  e=t.add_e();
+  e->set_i_val(count);
+}
+
+void check_tuple(boost::shared_ptr<jetstream::Tuple> const & answer, time_t time, string url, int rc, int sum, int count) {
+  ASSERT_EQ(time, answer->e(0).t_val());
+  ASSERT_STREQ(url.c_str(), answer->e(1).s_val().c_str());
+  ASSERT_EQ(rc, answer->e(2).i_val());
+  ASSERT_EQ(count, answer->e(3).i_val());
+  ASSERT_EQ(sum, answer->e(4).i_val());
+  ASSERT_EQ(sum, answer->e(4).d_val());
+  ASSERT_EQ(count, answer->e(5).i_val());
+}
+
+TEST_F(CubeTest, SaveTupleTest) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
-  vector<std::string> test_strings = cube->get_dimension_column_types();
- 
-  /*ASSERT_STREQ("DATETIME",test_strings[0].c_str());
-  ASSERT_STREQ("VARCHAR(255)",test_strings[1].c_str());
-  ASSERT_STREQ("INT",test_strings[2].c_str());
-
-
-  test_strings = cube->get_aggregate_column_types();
-  ASSERT_STREQ("INT",test_strings[0].c_str());
-  ASSERT_STREQ("INT",test_strings[1].c_str());
-  ASSERT_STREQ("INT",test_strings[2].c_str());
-
-  ASSERT_STREQ("CREATE TABLE IF NOT EXISTS `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
-*/
   cube->destroy();
   cube->create();
 
-  ASSERT_EQ(0U, cube->num_leaf_cells());
+  jetstream::Tuple t;
+  time_t time_entered = time(NULL);
+  insert_tuple(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  boost::shared_ptr<jetstream::Tuple> new_tuple;
+  boost::shared_ptr<jetstream::Tuple> old_tuple;
+  cube->save_tuple(t, false, false, new_tuple, old_tuple);
+  ASSERT_FALSE(new_tuple);
+  ASSERT_FALSE(old_tuple);
+  cube->save_tuple(t, true, true, new_tuple, old_tuple);
+  ASSERT_TRUE(new_tuple);
+  ASSERT_TRUE(old_tuple);
+  check_tuple(old_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  cube->save_tuple(t, false, false, new_tuple, old_tuple);
+  ASSERT_FALSE(new_tuple);
+  ASSERT_FALSE(old_tuple);
+}
+
+TEST_F(CubeTest, SavePartialTupleTest) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  cube->destroy();
+  cube->create();
 
   jetstream::Tuple t;
   jetstream::Element *e = t.add_e();
@@ -76,10 +152,48 @@ TEST_F(CubeTest, MysqlTest) {
   e->set_i_val(200);
   e=t.add_e();
   e->set_i_val(50);
- 
-  cube->insert_entry(t);
+  boost::shared_ptr<jetstream::Tuple> new_tuple;
+  boost::shared_ptr<jetstream::Tuple> old_tuple;
+  cube->save_tuple(t, true, false, new_tuple, old_tuple);
+  ASSERT_FALSE(old_tuple);
+  ASSERT_TRUE(new_tuple);
+  check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+}
+
+TEST_F(CubeTest, MysqlTest) {
+
+
+
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  vector<std::string> test_strings = cube->get_dimension_column_types();
+
+  /*ASSERT_STREQ("DATETIME",test_strings[0].c_str());
+  ASSERT_STREQ("VARCHAR(255)",test_strings[1].c_str());
+  ASSERT_STREQ("INT",test_strings[2].c_str());
+
+
+  test_strings = cube->get_aggregate_column_types();
+  ASSERT_STREQ("INT",test_strings[0].c_str());
+  ASSERT_STREQ("INT",test_strings[1].c_str());
+  ASSERT_STREQ("INT",test_strings[2].c_str());
+
+  ASSERT_STREQ("CREATE TABLE IF NOT EXISTS `web_requests` (`time` DATETIME NOT NULL,`url` VARCHAR(255) NOT NULL,`response_code` INT NOT NULL,`count` INT DEFAULT NULL,`avg_size_sum` INT DEFAULT NULL,`avg_size_count` INT DEFAULT NULL,PRIMARY KEY (`time`, `url`, `response_code`)) ENGINE=MyISAM", cube->create_sql().c_str());
+  */
+  cube->destroy();
+  cube->create();
+
+  ASSERT_EQ(0U, cube->num_leaf_cells());
+
+  jetstream::Tuple t;
+  time_t time_entered = time(NULL);
+  insert_tuple(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  boost::shared_ptr<jetstream::Tuple> new_tuple;
+  boost::shared_ptr<jetstream::Tuple> old_tuple;
+  cube->save_tuple(t, false, false, new_tuple, old_tuple);
   ASSERT_EQ(1U, cube->num_leaf_cells());
 
+  jetstream::Element *e;
   jetstream::Tuple query;
   e = query.add_e();
   e->set_t_val(time_entered);
@@ -95,7 +209,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(1, answer->e(3).i_val());
   ASSERT_EQ(50, answer->e(4).i_val());
   ASSERT_EQ(50, answer->e(4).d_val());
-  
+
   answer = cube->get_cell_value_partial(query);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
@@ -108,7 +222,7 @@ TEST_F(CubeTest, MysqlTest) {
 
   e = t.mutable_e(3);
   e->set_i_val(100);
-  cube->insert_entry(t);
+  cube->save_tuple(t, false, false, new_tuple, old_tuple);
   ASSERT_EQ(1U, cube->num_leaf_cells());
 
   answer = cube->get_cell_value_final(query);
@@ -126,7 +240,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(2, answer->e(3).i_val());
   ASSERT_EQ(150, answer->e(4).i_val());
   ASSERT_EQ(2, answer->e(5).i_val());
-  
+
   MysqlCube * cube_batch = new MysqlCube(*sc, "web_requests", true);
   cube_batch->set_batch(2);
 
@@ -245,7 +359,7 @@ TEST_F(CubeTest, MysqlTestIt) {
   e=max.add_e(); //time
   e=max.add_e(); //url
   e=max.add_e(); //rc
- 
+
   CubeIterator it = cube->slice_query(max, max, true);
 
   ASSERT_EQ((size_t)2, it.numCells());
@@ -268,7 +382,7 @@ TEST_F(CubeTest, MysqlTestIt) {
   ptrTup = *it;
   ASSERT_FALSE(ptrTup);
   ASSERT_TRUE(it == cube->end());
-  
+
   /*it = cube->slice_query(max, max, true);
   std::copy(
         it, cube->end()
@@ -287,7 +401,7 @@ TEST_F(CubeTest, MysqlTestIt) {
   e=min.add_e(); //url
   e=min.add_e(); //rc
   e->set_i_val(250);
-  
+
   it = cube->slice_query(min, max, true);
   ASSERT_EQ((size_t)1, it.numCells());
 
@@ -308,7 +422,7 @@ TEST_F(CubeTest, MysqlTestIt) {
   e=min.add_e(); //url
   e=min.add_e(); //rc
   e->set_i_val(100);
-  
+
   it = cube->slice_query(min, max, true);
   ASSERT_EQ((size_t)0, it.numCells());
   ptrTup = *it;
@@ -351,6 +465,7 @@ TEST_F(CubeTest, MysqlTestSort) {
 
     cube->insert_partial_aggregate(t);
   }
+
   jetstream::Tuple max;
   e=max.add_e(); //time
   e=max.add_e(); //url
@@ -366,7 +481,7 @@ TEST_F(CubeTest, MysqlTestSort) {
   ptrTup = *it;
   ASSERT_TRUE(ptrTup);
   ASSERT_EQ(100, ptrTup->e(2).i_val());
-  
+
   it = cube->slice_query(max, max, true, sort, 1);
   ASSERT_EQ((size_t)1, it.numCells());
   ptrTup = *it;
@@ -375,7 +490,7 @@ TEST_F(CubeTest, MysqlTestSort) {
 
   sort.clear();
   sort.push_back("-response_code");
-  
+
   it = cube->slice_query(max, max, true, sort);
   ASSERT_EQ((size_t)5, it.numCells());
   ptrTup = *it;
@@ -400,19 +515,21 @@ TEST(Cube,Attach) {
 
   AlterTopo topo;
   topo.set_computationid(compID);
-  
+
   jetstream::CubeMeta * cube_meta = topo.add_tocreate();
   cube_meta->set_name("text");
 
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
-  
+
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_type(Element_ElementType_STRING);
-  dim->set_name("text");  
-  
+  dim->set_name("text");
+  dim->add_tuple_indexes(0);
+
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
   agg->set_name("count");
   agg->set_type("count");
+  agg->add_tuple_indexes(1);
   cube_meta->set_name("test_cube");
   cube_meta->set_overwrite_old(true);
 
@@ -422,26 +539,26 @@ TEST(Cube,Attach) {
   TaskMeta_DictEntry* op_cfg = task->add_config();
   op_cfg->set_opt_name("k");
   op_cfg->set_val("2");
-  
+
   op_cfg = task->add_config();
   op_cfg->set_opt_name("send_now");
   op_cfg->set_val("true");
-  
+
   TaskID* id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(1);
-  
+
   Edge * e = topo.add_edges();
   e->set_src(1);
   e->set_cube_name("test_cube");
   e->set_computation(compID);
-  
+
 //  cout << topo.Utf8DebugString();
-  
+
   ControlMessage r;
   node.handle_alter(r, topo);
   cout << "alter sent; data should be present" << endl;
-  
+
   shared_ptr<DataCube> cube = node.get_cube("test_cube");
   ASSERT_TRUE( cube );
   ASSERT_EQ(1U, cube->num_leaf_cells());
@@ -456,7 +573,7 @@ TEST(Cube,Attach) {
   ASSERT_EQ(2, total_count);
   cout << "done"<< endl;
   node.stop();
- 
+
 }
 
 TEST_F(CubeTest, MysqlTestFlatRollup) {
@@ -500,7 +617,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   e=empty.add_e(); //time
   e=empty.add_e(); //url
   e=empty.add_e(); //rc
- 
+
   list<unsigned int> levels;
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
   levels.push_back(1);
@@ -547,7 +664,7 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   jetstream::Element *e;
 
   //make it even on the minute
-  time_t time_entered = time(NULL); 
+  time_t time_entered = time(NULL);
   struct tm temptm;
   localtime_r(&time_entered, &temptm);
   temptm.tm_sec=0;
@@ -582,13 +699,13 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   e=empty.add_e(); //time
   e=empty.add_e(); //url
   e=empty.add_e(); //rc
-  
+
   jetstream::Tuple max;
   e=max.add_e(); //time
   e->set_t_val(time_entered+1);
   e=max.add_e(); //url
   e=max.add_e(); //rc
- 
+
   list<unsigned int> levels;
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
   levels.push_back(1);
@@ -608,13 +725,13 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   ASSERT_EQ(100, ptrTup->e(6).i_val());
   ASSERT_EQ(5, ptrTup->e(7).i_val());
 
-  levels.clear(); 
+  levels.clear();
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
   levels.push_back(1);
   levels.push_back(0);
 
-   max.clear_e();
-   e=max.add_e(); //time
+  max.clear_e();
+  e=max.add_e(); //time
   e->set_t_val(time_entered);
   e=max.add_e(); //url
   e=max.add_e(); //rc
