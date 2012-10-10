@@ -12,7 +12,9 @@
 #include "dataplaneoperator.h"
 #include <string>
 #include <iostream>
-#include <boost/thread/thread.hpp>
+// #include <boost/thread/thread.hpp>
+#include <boost/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 namespace jetstream {
@@ -33,11 +35,50 @@ class DummyReceiver: public DataPlaneOperator {
   
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   
-  virtual ~DummyReceiver();
+  virtual ~DummyReceiver() {}
 
 GENERIC_CLNAME
 };
 
+
+class RateRecordReceiver: public DataPlaneOperator {
+
+ protected:
+  volatile bool running;
+
+  boost::mutex mutex;
+  
+  boost::posix_time::ptime window_start;
+  
+  long tuples_in_window;
+  long bytes_in_window;
+
+  double bytes_per_sec;
+  double tuples_per_sec;
+
+  boost::shared_ptr<boost::thread> loopThread;
+
+
+ public:
+   RateRecordReceiver():
+     running(false), tuples_in_window(0),bytes_in_window(0) {}
+ 
+  virtual void process(boost::shared_ptr<Tuple> t);
+  
+  virtual std::string long_description();
+  
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
+  virtual ~RateRecordReceiver() {}
+
+  virtual void start();
+  virtual void stop();
+  void operator()();  // A thread that will loop while reading the file    
+
+
+
+GENERIC_CLNAME
+};
 
 
 /***
@@ -60,6 +101,9 @@ class SendK: public DataPlaneOperator {
   
 GENERIC_CLNAME
 };  
+
+
+
   
 }
 

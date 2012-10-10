@@ -5,13 +5,10 @@
 using namespace std;
 using namespace boost;
 
+using namespace boost::posix_time;
+
+
 namespace jetstream {
-
-
-DummyReceiver::~DummyReceiver() {
-  VLOG(1) << "destructing dummy receiver";
-}
-
 
 
 operator_err_t
@@ -70,9 +67,67 @@ SendK::operator()() {
 }
 
 
+void
+RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
+  {
+    boost::lock_guard<boost::mutex> lock (mutex);
+    tuples_in_window ++;
+    bytes_in_window += t->ByteSize();
+  }
+  if (dest)
+    emit(t);//pass forward
+}
+  
+std::string
+RateRecordReceiver::long_description() {
+  boost::lock_guard<boost::mutex> lock (mutex);
+
+  ostringstream out;
+  out << bytes_per_sec << " bytes per second, " << tuples_per_sec << " tuples";
+  return out.str();
+}
+  
+void
+RateRecordReceiver::start() {
+  running = true;
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+}
+
+void
+RateRecordReceiver::stop() {
+  running = false;
+  LOG(INFO) << "Stopping RateRecordReceiver operator " << id();
+  if (running) {
+    assert (loopThread->get_id()!=boost::this_thread::get_id());
+    loopThread->join();
+  }
+}
+
+
+void
+RateRecordReceiver::operator()() {
+  window_start = microsec_clock::local_time();
+  while (running)  {
+  //sleep
+    boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+    ptime wake_time = microsec_clock::local_time();
+    {
+      boost::lock_guard<boost::mutex> lock (mutex);
+      
+      tuples_per_sec = (tuples_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
+      bytes_per_sec = (bytes_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
+      tuples_in_window = bytes_in_window = 0;
+      
+      window_start = wake_time;
+    }
+  }
+}
+
+
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
+const string RateRecordReceiver::my_type_name("Rate recorder");
 
 
 }
