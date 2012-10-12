@@ -106,7 +106,109 @@ class TestOpIntegration(unittest.TestCase):
 
  
   def test_operator_chain(self):
-    pass
+    # Must use at least 2 workers
+    numWorkers = 5
+    webPort = 8081
+    workerProcs = []
+    for i in range(numWorkers):
+      # Create a worker 
+      jsnode_cmd = "../../jsnoded -a localhost:%d -w %d --start -C ../../config/datanode.conf" % (self.controller.address[1], webPort)
+      webPort += 1
+      print "starting",jsnode_cmd
+      workerProcs.append(subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid))
+    # Give the workers time to register with the controller
+    time.sleep(3)
+    
+    # Get the list of workers
+    req = ControlMessage()
+    req.type = ControlMessage.GET_NODE_LIST_REQ
+    buf = self.client.do_rpc(req, True)
+    resp = ControlMessage()
+    resp.ParseFromString(buf)
+    workersEp = resp.nodes
+    assert(len(workersEp) == numWorkers)
+  
+    # Issue a query that runs an operator on each worker: send some tuples from a
+    # source, filter them through the remaining workers and collect at the end.
+    req = ControlMessage()
+    assignedOps = []
+    compID = 17
+    # Make this number unique so we can check it later
+    numTuples = 193
+    for i in range(len(workersEp)):
+      req.type = ControlMessage.ALTER
+      req.alter.computationID = compID
+      task = req.alter.toStart.add()
+      task.id.computationID = compID
+      task.id.task = i + 1  # start task numbers at 1
+      # Pin the operator to the current worker
+      task.site.address = workersEp[i].address
+      task.site.portno = workersEp[i].portno
+  
+      if i == 0:
+        # Send some tuples from the first worker
+        task.op_typename = "SendK"
+        opCfg = task.config.add()
+        opCfg.opt_name = "k"
+        opCfg.val = str(numTuples)
+      elif i == len(workersEp) - 1:
+        # Collect tuples at the last worker
+        task.op_typename = "DummyReceiver"
+      else:
+        # Insert no-op filters in between
+        task.op_typename = "StringGrep"
+        opCfg = task.config.add()
+        opCfg.opt_name = "pattern"
+        opCfg.val = ".*"
+        opCfg2 = task.config.add()
+        opCfg2.opt_name = "id"
+        opCfg2.val = "0"
+  
+      assignedOps.append(task)
+  
+      if i > 0:
+        # Create an edge from the previous operator to this one
+        e = req.alter.edges.add()
+        e.src = task.id.task - 1
+        e.dest = task.id.task
+        e.computation = compID
+  
+    # Deploy the query
+    buf = self.client.do_rpc(req, True)
+    resp = ControlMessage()
+    resp.ParseFromString(buf)
+    assert(resp.type == ControlMessage.OK)
+    # The controller overwrites the computation ID, so get it again
+    assert(len(self.controller.computations) == 1)
+    compID = self.controller.computations.keys()[0]
+    time.sleep(1)
+
+    # Make sure the operators were started, one per worker
+    webPort = 8081
+    for i in range(len(workersEp)):
+      # GET the web interface of each worker
+      url = "http://" + workersEp[i].address + ":" + str(webPort) + "/"
+      getResp = urllib2.urlopen(url).read()
+      print getResp
+      # Figure out which operator is on this worker based on identifying information
+      for op in assignedOps[:]:
+        opName = op.op_typename
+        opId = "(" + str(compID) + "," + str(op.id.task) + ")"
+        #print "SEARCHING FOR " + opName + " AND " + str(opId)
+        if (opName in getResp) and (opId in getResp):
+          assignedOps.remove(op)
+          # If this is the final receiver, check the received tuple count
+          if opName == "DummyReceiver":
+            assert(str(numTuples) in getResp)
+          break
+      webPort += 1
+    # We should have matched all operators, one per worker
+    print "length at end is " + str(len(assignedOps))
+    assert(len(assignedOps) == 0)
+
+    # Cleanup
+    for proc in workerProcs:
+      os.killpg(proc.pid, signal.SIGTERM)
 
 
 if __name__ == '__main__':

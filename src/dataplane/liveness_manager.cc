@@ -16,8 +16,8 @@ using namespace jetstream;
 mutex _lm_mutex;
 
 LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
-				  msec_t heartbeat)
-  : iosrv (srv), heartbeat_time (heartbeat)
+				  NodeConfig &conf)
+  : iosrv (srv), config (conf)
 {
 }
 
@@ -37,7 +37,7 @@ LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
   LOG(INFO) << "Starting notifications to " << fourtuple << endl;
 
   shared_ptr<ConnectionNotification> notif 
-    (new ConnectionNotification (iosrv, c, heartbeat_time));
+    (new ConnectionNotification (iosrv, c, config));
 
   connections[fourtuple] = notif;
 
@@ -63,9 +63,9 @@ LivenessManager::stop_all_notifications ()
 
 LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_ptr<boost::asio::io_service> srv,
 								 boost::shared_ptr<ClientConnection> c,
-								 msec_t heartbeat)
-  : iosrv (srv), conn (c), heartbeat_time (heartbeat), 
-    waiting (false), timer (*iosrv)
+								 NodeConfig &conf)
+  : iosrv (srv), conn (c), config(conf), 
+    should_exit (false), timer (*iosrv)
 {
   assert (conn);
 }
@@ -81,14 +81,18 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 		 << ": error " << error.message() << endl;
     return;
   }
-    
-  waiting = false;
 
   ControlMessage req;
   req.set_type(ControlMessage::HEARTBEAT);
   Heartbeat *h = req.mutable_heartbeat();
   h->set_cpuload_pct(0);
   h->set_freemem_mb(1000);
+  NodeID *ep = h->mutable_dataplane_addr();
+  // Assume the dataplane endpoint uses the same local address as the liveness
+  // connection, but a different port specified in the config
+  ep->set_address(conn->get_local_endpoint().address().to_string());
+  assert(config.dataplane_myport != 0);
+  ep->set_portno(config.dataplane_myport);
   
   boost::system::error_code send_error;
   conn->send_msg(req, send_error);
@@ -109,16 +113,15 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
-  if (!is_connected() || waiting) {
+  if (!is_connected() || should_exit) {
     LOG(WARNING) << "Stopping wait_to_notify on " 
 		 <<  conn_debug_str()
 		 << ". Connected " << is_connected ()
-		 << "; Waiting " << waiting << endl;
+		 << "; Should-exit: " << should_exit << endl;
     return;
   }
 
-  waiting = true;
-  timer.expires_from_now(posix_time::milliseconds(heartbeat_time));
+  timer.expires_from_now(posix_time::milliseconds(config.heartbeat_time));
   timer.async_wait(bind(&LivenessManager::ConnectionNotification::send_notification, 
 			this, _1));
 }
@@ -128,13 +131,19 @@ void
 LivenessManager::ConnectionNotification::stop_notify ()
 {
   boost::system::error_code e;
+  
   // This immediately schedules our handler with an error code, but not synchronously.
   // Since the handler will just bail anyway, don't wait and reset 'waiting' here.
   timer.cancel(e);
-  waiting = false;
+  should_exit = true;
 }
+
 
 LivenessManager::ConnectionNotification::~ConnectionNotification()
 {
-  stop_notify();
+  // The timer should have been canceled by now, and there should be no possibility
+  // of our handler being invoked.
+
+  // This doesn't guarantee the above, but checks it with good probability.
+  assert(should_exit);
 }

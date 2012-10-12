@@ -2,6 +2,7 @@
 #define _liveness_manager_H_
 
 #include "js_utils.h"
+#include "node_config.h"
 #include "connection.h"
 
 namespace jetstream {
@@ -9,14 +10,14 @@ namespace jetstream {
 class LivenessManager {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
-  msec_t heartbeat_time;
+  NodeConfig &config;
 
   class ConnectionNotification {
    private:
     boost::shared_ptr<boost::asio::io_service> iosrv;
     boost::shared_ptr<ClientConnection> conn;
-    msec_t heartbeat_time;
-    bool waiting;
+    NodeConfig &config;
+    bool should_exit;
     boost::asio::deadline_timer timer;
 
     void wait_to_notify ();
@@ -24,7 +25,7 @@ class LivenessManager {
    public:
     ConnectionNotification (boost::shared_ptr<boost::asio::io_service> srv,
 			    boost::shared_ptr<ClientConnection> c,
-			    msec_t heartbeat);
+			    NodeConfig& conf);
 
     ~ConnectionNotification();
 
@@ -46,7 +47,7 @@ class LivenessManager {
 
  public:
   LivenessManager (boost::shared_ptr<boost::asio::io_service> srv,
-		   msec_t heartbeat);
+		   NodeConfig& conf);
 
   void start_notifications (boost::shared_ptr<ClientConnection> c);
   void stop_all_notifications ();

@@ -11,13 +11,17 @@ void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          shared_ptr<TupleReceiver> dest) {
   
-  if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
-    //TODO this can probably happen if the previous connection died. Can we check for that?
-    LOG(FATAL) << "Trying to connect remote conn from "<< c->get_remote_endpoint()
-               << " to " << dest->id_as_str() << "but there already is a connection";
-  }
-  liveConns[c->get_remote_endpoint()] = c;
+  {   //CRITICAL SECTION
+    lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
+    if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
+      //TODO this can probably happen if the previous connection died. Can we check for that?
+      LOG(FATAL) << "Trying to connect remote conn from "<< c->get_remote_endpoint()
+                 << " to " << dest->id_as_str() << "but there already is a connection";
+    }
+    liveConns[c->get_remote_endpoint()] = c;
+  }
+  
   boost::system::error_code error;
   c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
 			this, c, dest,  _1, _2), error);
@@ -43,6 +47,7 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
     //TODO this can probably happen if the previous connection died. Can we check for that?
     LOG(FATAL) << "trying to connect remote conn to " << future_op << "but there already is such a connection";
   }*/
+  lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
   pendingConns[future_op].push_back(c);
 }
@@ -51,13 +56,17 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 // Called whenever an operator is created.
 void
 DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
-  string op_id = dest->id_as_str();
-  map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
-  if (pending_conn != pendingConns.end()) {
-    vector<shared_ptr<ClientConnection> > & conns = pending_conn->second;
-    for (u_int i = 0; i < conns.size(); ++i)
-      enable_connection(conns[i], dest);
-    pendingConns.erase(pending_conn);
+
+  {   //CRITICAL SECTION
+    lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
+    string op_id = dest->id_as_str();
+    map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
+    if (pending_conn != pendingConns.end()) {
+      vector<shared_ptr<ClientConnection> > & conns = pending_conn->second;
+      for (u_int i = 0; i < conns.size(); ++i)
+        enable_connection(conns[i], dest);
+      pendingConns.erase(pending_conn);
+    }
   }
 }
 
@@ -95,7 +104,13 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
       liveConns.erase(e);
     }
     break;
-    
+  case DataplaneMessage::TS_ECHO:
+    {
+      LOG(INFO)  << "got ts echo; responding";
+      boost::system::error_code err;
+      c->send_msg(msg, err); // just echo back what we got
+    }
+    break;
   default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
                    << c->get_remote_endpoint() << " for existing dataplane connection";
@@ -110,6 +125,8 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
   
 void
 DataplaneConnManager::close() {
+  lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
+
   //TODO: gracefully stop connections
   std::map<std::string, vector< boost::shared_ptr<ClientConnection> > >::iterator iter;
 
@@ -153,6 +170,7 @@ void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
   conn = c;
+  //TODO CHECK FOR NULL CONN!!
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
@@ -161,8 +179,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   edge->CopyFrom(dest_as_edge);
   
   boost::system::error_code err;
-  conn->recv_data_msg(boost::bind( &RemoteDestAdaptor::conn_ready_cb, 
-           this, _1, _2), err);
+  conn->recv_data_msg(boost::bind(&RemoteDestAdaptor::conn_ready_cb, 
+				  this, _1, _2), err);
   conn->send_msg(data_msg, err);
 }
 
@@ -255,6 +273,8 @@ RemoteDestAdaptor::long_description() {
 
 void
 DataplaneConnManager::deferred_cleanup(string id) {
+  lock_guard<boost::recursive_mutex> lock (outgoingMapMutex);
+ 
   shared_ptr<RemoteDestAdaptor> a = adaptors[id];
   assert(a);
   
@@ -263,9 +283,7 @@ DataplaneConnManager::deferred_cleanup(string id) {
   } else {
     LOG(FATAL) << "need to handle deferred cleanup of an in-use rda";
    //should set this up on a timer
-  
   }
-
 }
 
 

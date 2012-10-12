@@ -13,6 +13,13 @@
 
 //#include "node.h"
 
+
+#define GENERIC_CLNAME  private: \
+   const static std::string my_type_name; \
+ public: \
+   virtual const std::string& typename_as_str() {return my_type_name;}
+
+
 namespace jetstream {
 
 class Node;
@@ -67,7 +74,6 @@ class DataPlaneOperator : public TupleReceiver {
   operator_id_t operID; // note that id() returns a reference, letting us set this
   boost::shared_ptr<TupleReceiver> dest;
   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
-  const static std::string my_type_name;
   int tuplesEmitted;
 
  protected:
@@ -89,7 +95,6 @@ class DataPlaneOperator : public TupleReceiver {
   /** A variety of (self-explanatory) debugging aids and metadata */
   operator_id_t & id() {return operID;}
   virtual std::string id_as_str() { return operID.to_string(); }
-  virtual const std::string& typename_as_str() { return my_type_name; }
   int emitted_count() { return tuplesEmitted;}
   
     /** This method will be called on every operator, before start() and before
@@ -125,6 +130,8 @@ class DataPlaneOperator : public TupleReceiver {
    * doesn't let you join with yourself.
    */
   virtual void stop () {};
+  
+  GENERIC_CLNAME
 };
 
 typedef DataPlaneOperator *maker_t();

@@ -84,6 +84,8 @@ class DataplaneConnManager {
     * closure and is not stored explicitly.
     */
   std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<ClientConnection> > liveConns;
+
+  boost::recursive_mutex incomingMapMutex;
   
   
   void got_data_cb (boost::shared_ptr<ClientConnection> c,
@@ -119,6 +121,7 @@ class DataplaneConnManager {
   
  public:
     void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
+       boost::lock_guard<boost::recursive_mutex> lock (outgoingMapMutex);
        adaptors[p->dest_as_str] = p;
     }
   
@@ -134,6 +137,8 @@ class DataplaneConnManager {
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
+    boost::recursive_mutex outgoingMapMutex;
+  
   /**
   * Maps from a destination operator ID to an RDA for it.
   * This 

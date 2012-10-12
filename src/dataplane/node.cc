@@ -8,16 +8,16 @@
 #include "dataplane_comm.h"
 #include "jetstream_types.pb.h"
 
-
 using namespace jetstream;
 using namespace std;
 using namespace boost;
+
 
 Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   : config (conf),
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
-    livenessMgr (iosrv, conf.heartbeat_time),
+    livenessMgr (iosrv, config),
     webInterface (conf.webinterface_port, *this),
     dataConnMgr(*iosrv),
     operator_cleanup(*iosrv),
@@ -49,14 +49,15 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 
   listeningSock = shared_ptr<ServerConnection>
     (new ServerConnection(iosrv, listen_port, error));
-
   if (error) {
     LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
     return;
   }
+  // Update the listener port in the config in case the user specified 0. The config
+  // is used by other modules, e.g. the liveness manager.
+  config.dataplane_myport = listeningSock->get_local_endpoint().port();
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
-
   if (error) {
     LOG(ERROR) << "Error accepting server socket: " << error.message() << endl;
     return;
@@ -77,6 +78,10 @@ Node::~Node ()
 void
 Node::start ()
 {
+  if(threads.size() > 0) {
+    LOG(WARNING) << "duplicate Node::start; suppressing";
+  }
+
   LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
@@ -84,8 +89,6 @@ Node::start ()
   }
   
   webInterface.start();
-
-//  iosrv->run();
 
 //  VLOG(1) << "Finished node::run" << endl;
 //  LOG(INFO) << "Finished node::run" << endl;

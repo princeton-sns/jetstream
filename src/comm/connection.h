@@ -58,6 +58,7 @@ class ServerConnection {
   void close ();
 };
 
+
 /**
  *  Represents a connection, either pending or already created. If and only if
  *   the connection is fully initialized, connSock will be defined.

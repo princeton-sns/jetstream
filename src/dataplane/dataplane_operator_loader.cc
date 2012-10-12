@@ -1,6 +1,8 @@
 #include "dataplane_operator_loader.h"
 #include "dataplaneoperator.h"
 #include "base_operators.h"
+#include "experiment_operators.h"
+
 
 #include <iostream>
 #include <dlfcn.h>
@@ -57,13 +59,15 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
 jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
-  REGISTER_OP(DummyReceiver);
   REGISTER_OP(FileRead);
-  REGISTER_OP(SendK);
   REGISTER_OP(StringGrep);
   REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(SampleOperator);
+
+  REGISTER_OP(DummyReceiver);
+  REGISTER_OP(SendK);
+  REGISTER_OP(RateRecordReceiver);
 
   
   if(cache.count(name) < 1)
