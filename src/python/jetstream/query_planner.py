@@ -4,6 +4,7 @@ import types
 
 from jsgraph import *
 from computation_state import *
+from worker_assign import WorkerAssignment
 
 from jetstream_types_pb2 import *
 
@@ -71,6 +72,9 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "cubes must have at least one dimension"
 
+
+# TODO check that both endpoints of each edge are defined by the computation
+
     return ""
 
 
@@ -79,17 +83,19 @@ class QueryPlanner (object):
       operatorMeta.id.computationID = compID
     
     
-  def get_computation (self, compID, workers):
+  def get_assignments (self, compID):
+    """ Creates a set of assignments for this computation.
+  Takes the computation ID and a list of worker addresses (as host,port pairs).
+     Returns a map from worker address to WorkerAssignment
+    """
     altertopo = self.alter
     self.overwrite_operator_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
     jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
     # Set up the computation
-    comp = Computation(compID, jsGraph)
     
-    assignments = {}
-    #TODO: Sid will consolidate with Computation data structure
-    taskLocations = {}
+    assignments = {}  #maps node ID [host/port pair] to a WorkerAssignment
+    taskLocations = {}  #task ID [int or string] to host/port pair
     sources = jsGraph.get_sources()
     sink = jsGraph.get_sink()
     defaultEndpoint = self.node_list[0]
@@ -105,7 +111,7 @@ class QueryPlanner (object):
         # Node is pinned to a specific worker
         endpoint = (graph_node.site.address, graph_node.site.portno)
         # But if the worker doesn't exist, revert to the default worker
-        if endpoint not in workers:
+        if endpoint not in self.node_list:
           logger.warning("Node was pinned to a worker, but that worker does not exist")
           endpoint = defaultEndpoint
       elif (graph_node in sources) or (graph_node == sink):
@@ -114,8 +120,9 @@ class QueryPlanner (object):
       else:
         # Node will be placed later
         continue
+        
       if endpoint not in assignments:
-        assignments[endpoint] = workers[endpoint].create_assignment(compID)
+        assignments[endpoint] = WorkerAssignment(compID)
       
       assignments[endpoint].add_node(graph_node)
       #TODO: Sid will consolidate with Computation data structure
@@ -147,10 +154,44 @@ class QueryPlanner (object):
           assignments[endpoint].add_node(node)
           taskLocations[nodeId] = endpoint
     
-    # Finalize the worker assignments
-    for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, workers[endpoint].get_dataplane_ep(), assignment)
+    for edge in altertopo.edges:
+      src_host = taskLocations[edge.src]
+      destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+      dest_host = taskLocations[destID]
+      if dest_host != src_host:
+        pb_e.dest_addr.address = dest_host[0]
+        pb_e.dest_addr.portno = dest_host[1]
     
-    comp.add_edges(altertopo.edges)
-    return comp    
+      assignments[src_host].add_edge(edge)
+      #     for edge in edgeList:
+#       if edge.src not in self.taskLocations:
+#         print "unknown source %s" % str(edge.src)
+#         raise UserException("Edge from nonexistent source")
+#       dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+#       self.outEdges[] = dest
+
+#     for operator in self.workerAssignments[workerID].operators:
+#       tid = operator.id.task
+#       if tid in self.outEdges: #operator has a link to next
+#         destID = self.outEdges[tid]
+#         pb_e = req.alter.edges.add()
+#         pb_e.src = tid
+#         pb_e.computation = self.compID
+#         
+#         dest_host = self.taskLocations[destID]
+#   
+#         if type(destID) == types.StringType:
+#           pb_e.cube_name = destID
+#         elif type(destID) == types.IntType:
+#           pb_e.dest = destID
+#         else:
+#           print "no such task: %s of type %s" % (str(destID), str(type(destID)))
+#           assert False           
+#   
+#         if dest_host != workerID:
+#           pb_e.dest_addr.address = dest_host[0]
+#           pb_e.dest_addr.portno = dest_host[1]
+    
+#    comp.add_edges(altertopo.edges)
+    return assignments    
         

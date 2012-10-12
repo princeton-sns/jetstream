@@ -112,7 +112,10 @@ class Controller (ControllerAPI, JSServer):
   def get_nodes (self):
     """Returns a list of Workers."""
     res = []
+    self.stateLock.acquire()
     res.extend(self.workers.values())
+    self.stateLock.release()
+
     return res
 
     
@@ -159,10 +162,7 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = errorMsg
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
-    if len(self.computations) == 0:
-      compID = 1
-    else:
-      compID = max(self.computations.keys()) + 1
+    compID,comp = assign_comp_id()
 
     planner = QueryPlanner(self.workers.keys())
     err =  planner.take_raw(altertopo)
@@ -173,19 +173,24 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = err
       return
 
-    comp = planner.get_computation(compID, self.workers)
-    self.computations[compID] = comp
-
+    assignments = planner.get_computation(compID, self.workers)
+    
+    # Finalize the worker assignments
+    # TODO should this be AFTER we hear back from workers?
+    for endpoint,assignment in assignments.items():
+      comp.assign_worker(endpoint, workers[endpoint].get_dataplane_ep(), assignment)
+    
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    for worker in comp.workerAssignments.keys():
-      req = comp.get_worker_pb(worker)            
-      h = self.connect_to(worker)
+    for workerAddr,assignment in comp.workerAssignments.keys():
+      req = assignment.get_pb()            
+      h = self.connect_to(workerAddr)
       #print worker, req
       # Send without waiting for response; we'll hear back in the main network message
       # handler
       h.send_pb(req)
 
+  # TODO should construct response to client with computation ID
 
   def handle_alter_response (self, altertopo, workerEndpoint):
     #TODO: As above, the code below only deals with starting tasks
@@ -228,6 +233,20 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = "unknown error"
 
     handler.send_pb(response)
+
+
+  def assign_comp_id():
+  #TODO locking
+    self.stateLock.acquire()
+  
+    if len(self.computations) == 0:
+      compID = 1
+    else:
+      compID = max(self.computations.keys()) + 1
+      comp = Computation(compID)
+      self.computations[compID] = comp
+    self.stateLock.release()
+    return compID,comp
 
 
 if __name__ == '__main__':
