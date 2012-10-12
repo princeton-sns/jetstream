@@ -9,9 +9,13 @@
 #include "cube_iterator.h"
 #include "subscriber.h"
 
-
+#include <boost/scoped_ptr.hpp>
 #include "jetstream_types.pb.h"
 
+namespace jetstream {
+class DataCube;
+}
+#include "tuple_batch.h"
 
 namespace jetstream {
 
@@ -21,11 +25,9 @@ namespace jetstream {
 
 class TupleProcessing {
   public: 
-  TupleProcessing(boost::shared_ptr<Tuple> t): t(t), batch(true), need_old_value(false), need_new_value(true) {};
+  TupleProcessing(boost::shared_ptr<Tuple> t): t(t) {};
   boost::shared_ptr<Tuple> t;
-  bool batch;
-  bool need_old_value;
-  bool need_new_value;
+  size_t pos;
   std::list<operator_id_t> insert;
   std::list<operator_id_t> update;
 };
@@ -35,19 +37,20 @@ class DataCube : public TupleReceiver {
   public:
     typedef std::string DimensionKey;
     static unsigned int const LEAF_LEVEL;
-  virtual void process(boost::shared_ptr<Tuple> t);
+    virtual void process(boost::shared_ptr<Tuple> t);
   virtual void no_more_tuples() {};
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name) :
-      schema(_schema), name(_name), is_frozen(false) {};
+    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1);
 
     virtual ~DataCube() {}
 
-   virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple)=0;
+   virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, 
+       boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple)=0;
   
    virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
        std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
-       std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list)=0;
+       std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, 
+       std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
 
 
     virtual bool insert_entry(jetstream::Tuple const &t) = 0;
@@ -124,15 +127,18 @@ class DataCube : public TupleReceiver {
 
 //TODO: should have an entry here for the aggregation/update function.
 
+    virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
+
+    void save_callback(DimensionKey key, boost::shared_ptr<jetstream::Tuple> update, boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple);
   protected:
     jetstream::CubeSchema schema;
     std::string name;
     bool is_frozen;
 
-    virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     std::map<DimensionKey, TupleProcessing> batch;
+    boost::scoped_ptr<cube::TupleBatch> tupleBatcher;
 //TODO should figure out how to implement this
 
 private:

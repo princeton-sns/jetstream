@@ -9,7 +9,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionInt::get_key(Tuple const &t) con
   assert(tuple_indexes.size() == 1);
   jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
 
-  if(e->has_d_val()) {
+  if(e->has_i_val()) {
     return boost::lexical_cast<string>(e->i_val());
   }
 

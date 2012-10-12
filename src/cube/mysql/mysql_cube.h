@@ -41,7 +41,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
   
    virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
        std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
-       std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list);
+       std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list);
 /*
     virtual size_t 
       insert_tuple(jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
