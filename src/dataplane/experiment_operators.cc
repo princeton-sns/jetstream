@@ -67,6 +67,76 @@ SendK::operator()() {
 }
 
 
+operator_err_t
+ContinuousSendK::configure (std::map<std::string,std::string> &config) {
+  if (config["k"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["k"]) >> k)) {
+      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
+      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.");
+    }
+  } else {
+    // Send one tuple by default
+    k = 1;
+  }
+
+  if (config["period"].length() > 0) {
+    if (!(stringstream(config["period"]) >> period)) {
+      LOG(WARNING) << "invalid send period (msecs): " << config["period"] << endl;
+      return operator_err_t("Invalid send period (msecs) '" + config["period"] + "' is not a number.");
+    }
+  } else {
+    // Wait one second by default
+    period = 1000;
+  }
+  
+  send_now = config["send_now"].length() > 0;
+  return NO_ERR;
+}
+
+void
+ContinuousSendK::start() {
+  if (send_now) {
+    (*this)();
+  }
+  else {
+    running = true;
+    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  }
+}
+
+
+void
+ContinuousSendK::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a ContinuousSendK";
+} 
+
+
+void
+ContinuousSendK::stop() {
+  running = false;
+  LOG(INFO) << "Stopping ContinuousSendK operator " << id();
+  if (running) {
+    assert (loopThread->get_id()!=boost::this_thread::get_id());
+    loopThread->join();
+  }
+}
+
+
+void
+ContinuousSendK::operator()() {
+  while (running) {
+    boost::shared_ptr<Tuple> t(new Tuple);
+    t->add_e()->set_s_val("foo");
+    for (u_int i = 0; i < k; i++) {
+      emit(t);
+    }
+    boost::this_thread::sleep(boost::posix_time::milliseconds(period));
+  }
+  no_more_tuples();
+}
+
+
 void
 RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
   {
@@ -127,6 +197,7 @@ RateRecordReceiver::operator()() {
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
+const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");
 
 

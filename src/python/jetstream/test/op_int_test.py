@@ -146,11 +146,16 @@ class TestOpIntegration(unittest.TestCase):
       task.site.portno = workersEp[i].portno
   
       if i == 0:
-        # Send some tuples from the first worker
-        task.op_typename = "SendK"
+        # Send some tuples from the first worker; use a continuous sender so the chain
+        # doesn't get torn down.
+        task.op_typename = "ContinuousSendK"
         opCfg = task.config.add()
         opCfg.opt_name = "k"
         opCfg.val = str(numTuples)
+        opCfg = task.config.add()
+        opCfg.opt_name = "period"
+        # Use a large period so we only have to check for one batch of tuples
+        opCfg.val = str(10000)
       elif i == len(workersEp) - 1:
         # Collect tuples at the last worker
         task.op_typename = "DummyReceiver"

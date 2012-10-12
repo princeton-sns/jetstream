@@ -37,6 +37,7 @@ class DummyReceiver: public DataPlaneOperator {
   
   virtual ~DummyReceiver() {}
 
+
 GENERIC_CLNAME
 };
 
@@ -76,7 +77,6 @@ class RateRecordReceiver: public DataPlaneOperator {
   void operator()();  // A thread that will loop while reading the file    
 
 
-
 GENERIC_CLNAME
 };
 
@@ -94,15 +94,38 @@ class SendK: public DataPlaneOperator {
 
     
  protected:
-  u_int k; //name of file to read
+  u_int k;  // Number of tuples to send
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
   volatile bool send_now;
   
+
 GENERIC_CLNAME
 };  
 
 
+/***
+ * Operator for periodically emitting a specified number of generic tuples.
+ */
+class ContinuousSendK: public DataPlaneOperator {
+ public:
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void start();
+  virtual void stop();
+  virtual void process(boost::shared_ptr<Tuple> t);
+  void operator()();  // A thread that will loop while reading the file    
+
+    
+ protected:
+  u_int k;        // Number of tuples to send
+  msec_t period;  // Time to wait before sending next k tuples
+  boost::shared_ptr<boost::thread> loopThread;
+  volatile bool running;
+  volatile bool send_now;
+  
+
+GENERIC_CLNAME
+};  
 
   
 }
