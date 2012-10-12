@@ -65,7 +65,7 @@ LivenessManager::ConnectionNotification::ConnectionNotification (boost::shared_p
 								 boost::shared_ptr<ClientConnection> c,
 								 NodeConfig &conf)
   : iosrv (srv), conn (c), config(conf), 
-    waiting (false), timer (*iosrv)
+    should_exit (false), timer (*iosrv)
 {
   assert (conn);
 }
@@ -81,8 +81,6 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 		 << ": error " << error.message() << endl;
     return;
   }
-    
-  waiting = false;
 
   ControlMessage req;
   req.set_type(ControlMessage::HEARTBEAT);
@@ -115,15 +113,14 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 void
 LivenessManager::ConnectionNotification::wait_to_notify ()
 {
-  if (!is_connected() || waiting) {
+  if (!is_connected() || should_exit) {
     LOG(WARNING) << "Stopping wait_to_notify on " 
 		 <<  conn_debug_str()
 		 << ". Connected " << is_connected ()
-		 << "; Waiting " << waiting << endl;
+		 << "; Should-exit: " << should_exit << endl;
     return;
   }
 
-  waiting = true;
   timer.expires_from_now(posix_time::milliseconds(config.heartbeat_time));
   timer.async_wait(bind(&LivenessManager::ConnectionNotification::send_notification, 
 			this, _1));
@@ -134,10 +131,11 @@ void
 LivenessManager::ConnectionNotification::stop_notify ()
 {
   boost::system::error_code e;
+  
   // This immediately schedules our handler with an error code, but not synchronously.
   // Since the handler will just bail anyway, don't wait and reset 'waiting' here.
   timer.cancel(e);
-  waiting = false;
+  should_exit = true;
 }
 
 
@@ -147,5 +145,5 @@ LivenessManager::ConnectionNotification::~ConnectionNotification()
   // of our handler being invoked.
 
   // This doesn't guarantee the above, but checks it with good probability.
-  assert(!waiting);
+  assert(should_exit);
 }

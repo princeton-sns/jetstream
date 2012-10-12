@@ -214,12 +214,6 @@ TEST_F(NodeNetTest, NetStart)
   ASSERT_TRUE(found_response);
 }
 
-TEST_F(NodeNetTest, Print)
-{
-  DataplaneMessage data_msg;
-  ostringstream s;
-  s <<"raw message is:" << data_msg.Utf8DebugString() <<endl;
-}
 
 shared_ptr<DataPlaneOperator> 
 add_dummy_receiver(Node& n, operator_id_t dest_id)
