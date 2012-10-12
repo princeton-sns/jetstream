@@ -8,7 +8,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionString::get_key(Tuple const &t) 
   assert(tuple_indexes.size() == 1);
   jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
 
-  if(e->has_d_val()) {
+  if(e->has_s_val()) {
     return e->s_val();
   }
 

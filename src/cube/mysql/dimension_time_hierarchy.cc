@@ -17,7 +17,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionTimeHierarchy::get_key(Tuple con
   assert(tuple_indexes.size() == 1);
   jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
 
-  if(e->has_d_val()) {
+  if(e->has_t_val()) {
     struct tm temptm;
     char timestring[30];
     time_t clock = e->t_val();

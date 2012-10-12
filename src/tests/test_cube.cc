@@ -2,6 +2,7 @@
 #include "node.h"
 
 #include "mysql_cube.h"
+#include "queue_subscriber.h"
 #include "cube_iterator_impl.h"
 
 #include <gtest/gtest.h>
@@ -158,6 +159,58 @@ TEST_F(CubeTest, SavePartialTupleTest) {
   ASSERT_FALSE(old_tuple);
   ASSERT_TRUE(new_tuple);
   check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+}
+
+
+TEST_F(CubeTest, SaveTupleBatchTest) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  cube->destroy();
+  cube->create();
+
+  boost::shared_ptr<jetstream::Tuple> t1 = boost::make_shared<jetstream::Tuple>();
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+
+  time_t time_entered = time(NULL);
+  insert_tuple(*t1, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+
+  std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
+  tuple_store.push_back(t1);
+  tuple_store.push_back(t2);
+
+  vector<bool> all_true;
+  all_true.push_back(true);
+  all_true.push_back(true);
+  vector<bool> all_false;
+  all_false.push_back(false);
+  all_false.push_back(false);
+  
+  std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list;
+  std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list;
+
+  cube->save_tuple_batch(tuple_store, all_true, all_false, new_tuple_list, old_tuple_list);
+  ASSERT_EQ(2U, new_tuple_list.size());
+  ASSERT_EQ(0U, old_tuple_list.size());
+  check_tuple((new_tuple_list.front()), time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  check_tuple((new_tuple_list.back()), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+}
+
+TEST_F(CubeTest, SubscriberTest) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  cube->process(t);
+  
+  ASSERT_EQ(1U, sub->insert_q.size());
+
+
 }
 
 TEST_F(CubeTest, MysqlTest) {
