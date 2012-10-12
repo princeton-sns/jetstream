@@ -78,6 +78,7 @@ Node::~Node ()
 void
 Node::start ()
 {
+  // Use created threads as a marker for an already-started node
   if(threads.size() > 0) {
     LOG(WARNING) << "duplicate Node::start; suppressing";
   }
@@ -99,8 +100,9 @@ void
 Node::stop ()
 {
   unique_lock<boost::mutex> lock(threadpoolLock);
-  
-  if (iosrv->stopped()) {  //use the io serv as a marker for already-stopped
+ 
+  // Use the io service status as a marker for an already-stopped node
+  if (iosrv->stopped()) {
     VLOG(1) << "Node was stopped twice; suppressing";
     return;
   }

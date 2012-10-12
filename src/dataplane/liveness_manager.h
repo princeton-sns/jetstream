@@ -17,7 +17,7 @@ class LivenessManager {
     boost::shared_ptr<boost::asio::io_service> iosrv;
     boost::shared_ptr<ClientConnection> conn;
     NodeConfig &config;
-    bool should_exit;
+    bool shouldExit;
     boost::asio::deadline_timer timer;
 
     void wait_to_notify ();
