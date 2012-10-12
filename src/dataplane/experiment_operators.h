@@ -94,7 +94,7 @@ class SendK: public DataPlaneOperator {
 
     
  protected:
-  u_int k; //name of file to read
+  long k; //name of file to read
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
   volatile bool send_now;
