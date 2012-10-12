@@ -162,7 +162,7 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = errorMsg
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
-    compID,comp = assign_comp_id()
+    compID,comp = self.assign_comp_id()
 
     planner = QueryPlanner(self.workers.keys())
     err =  planner.take_raw(altertopo)
@@ -173,18 +173,18 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = err
       return
 
-    assignments = planner.get_computation(compID, self.workers)
+    assignments = planner.get_assignments(compID)
     
     # Finalize the worker assignments
     # TODO should this be AFTER we hear back from workers?
     for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, workers[endpoint].get_dataplane_ep(), assignment)
+      comp.assign_worker(endpoint, self.workers[endpoint].get_dataplane_ep(), assignment)
     
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    for workerAddr,assignment in comp.workerAssignments.keys():
+    for endpoint,assignment in assignments.items():
       req = assignment.get_pb()            
-      h = self.connect_to(workerAddr)
+      h = self.connect_to(endpoint)
       #print worker, req
       # Send without waiting for response; we'll hear back in the main network message
       # handler
@@ -235,7 +235,7 @@ class Controller (ControllerAPI, JSServer):
     handler.send_pb(response)
 
 
-  def assign_comp_id():
+  def assign_comp_id(self):
   #TODO locking
     self.stateLock.acquire()
   
@@ -243,8 +243,10 @@ class Controller (ControllerAPI, JSServer):
       compID = 1
     else:
       compID = max(self.computations.keys()) + 1
-      comp = Computation(compID)
-      self.computations[compID] = comp
+
+    comp = Computation(compID)
+    self.computations[compID] = comp
+
     self.stateLock.release()
     return compID,comp
 
