@@ -94,7 +94,7 @@ class SendK: public DataPlaneOperator {
 
     
  protected:
-  u_int k;  // Number of tuples to send
+  u_long k;  // Number of tuples to send
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
   volatile bool send_now;
@@ -117,7 +117,7 @@ class ContinuousSendK: public DataPlaneOperator {
 
     
  protected:
-  u_int k;        // Number of tuples to send
+  u_long k;       // Number of tuples to send
   msec_t period;  // Time to wait before sending next k tuples
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;

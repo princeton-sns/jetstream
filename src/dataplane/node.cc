@@ -78,6 +78,10 @@ Node::~Node ()
 void
 Node::start ()
 {
+  if(threads.size() > 0) {
+    LOG(WARNING) << "duplicate Node::start; suppressing";
+  }
+
   LOG(INFO) << "starting thread pool with " <<config.thread_pool_size << " threads";
   for (u_int i=0; i < config.thread_pool_size; i++) {
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
@@ -85,8 +89,6 @@ Node::start ()
   }
   
   webInterface.start();
-
-//  iosrv->run();
 
 //  VLOG(1) << "Finished node::run" << endl;
 //  LOG(INFO) << "Finished node::run" << endl;

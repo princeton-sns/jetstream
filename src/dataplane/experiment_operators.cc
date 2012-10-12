@@ -144,7 +144,7 @@ RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
     tuples_in_window ++;
     bytes_in_window += t->ByteSize();
   }
-  if (dest)
+  if (get_dest() != NULL)
     emit(t);//pass forward
 }
   
