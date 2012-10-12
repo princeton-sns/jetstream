@@ -383,6 +383,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     operator_id_t src (edge.computation(), edge.src());
     shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
     
+    if (!srcOperator) {
+      LOG(WARNING) << "unknown source operator " << src;
+      
+      Error * err_msg = response.mutable_error_msg();
+      err_msg->set_msg("unknown source operator " + src.to_string());
+
+      continue;
+    }
     assert(srcOperator);
 
     //TODO check if src doesn't exist

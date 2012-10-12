@@ -52,6 +52,7 @@ OperatorCleanup::cleanup(boost::shared_ptr<DataPlaneOperator> op) {
 
 void
 OperatorCleanup::cleanup_cb(boost::shared_ptr<DataPlaneOperator> op) {
+  LOG(INFO) << "destroying operator " << op->id();
   op.reset();
   //do nothing, quietly invokes destructor for op
   //this runs in the ioserv thread pool.

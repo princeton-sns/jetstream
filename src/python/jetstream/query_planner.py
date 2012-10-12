@@ -81,7 +81,9 @@ class QueryPlanner (object):
   def overwrite_operator_comp_ids (self, compID):
     for operatorMeta in self.alter.toStart:
       operatorMeta.id.computationID = compID
-    
+
+    for edge in self.alter.edges:
+      edge.computation = compID
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.

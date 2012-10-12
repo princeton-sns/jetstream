@@ -173,11 +173,11 @@ class Cube(Destination):
       self.desc['aggs'] = []
 
 
-  def add_dim(self, dim_name, dim_type):
-    self.desc['dims'].append(  (dim_name, dim_type) )
+  def add_dim(self, dim_name, dim_type, offset):
+    self.desc['dims'].append(  (dim_name, dim_type, offset) )
 
-  def add_agg(self, a_name, a_type):
-    self.desc['aggs'].append(  (a_name, a_type) )
+  def add_agg(self, a_name, a_type, offset):
+    self.desc['aggs'].append(  (a_name, a_type, offset) )
     
   def set_overwrite(self, overwrite):
     assert(type(overwrite) == types.BooleanType)
@@ -189,14 +189,16 @@ class Cube(Destination):
     if self._location is not None:
       c_meta.site.CopyFrom(self._location)
     
-    for (name,type) in self.desc['dims']:    
+    for (name,type, offset) in self.desc['dims']:    
       d = c_meta.schema.dimensions.add()
       d.name = name
       d.type = type
-    for (name,type) in self.desc['aggs']:    
+      d.tuple_indexes.append(offset)
+    for (name,type, offset) in self.desc['aggs']:    
       d = c_meta.schema.aggregates.add()
       d.name = name
       d.type = type
+      d.tuple_indexes.append(offset)
     if 'overwrite' in  self.desc:
       c_meta.overwrite_old = self.desc['overwrite'] 
      
