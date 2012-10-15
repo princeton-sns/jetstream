@@ -52,12 +52,7 @@ class DataCubeImpl : public DataCube {
       return dimensions.at(pos);
     }
 
-    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {
-      for(size_t i=0; i<aggregates.size(); ++i) {
-        aggregates[i]->merge_tuple_into(into, update);
-      }
 
-    }
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
@@ -73,6 +68,11 @@ class DataCubeImpl : public DataCube {
       return key;
     }
 
+    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {
+      for(size_t i=0; i<aggregates.size(); ++i) {
+        aggregates[i]->merge_tuple_into(into, update);
+      }
+    }
 
 
 };

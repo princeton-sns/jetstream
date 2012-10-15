@@ -74,6 +74,7 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   }
 
   LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch<<" count: "<<batch.count(key) <<" pos: " << tp.pos << " can batch:" << can_batch;
+
   if(!in_batch) {
     tp.pos = tupleBatcher->insert_tuple(t, can_batch, need_new_value, need_old_value);
   }
@@ -100,3 +101,41 @@ void DataCube::save_callback(DimensionKey key, boost::shared_ptr<jetstream::Tupl
   batch.erase(key);
   LOG(INFO) << "In Save Callback:" <<key << "cnt: "<< batch.count(key);
 }
+
+
+void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
+  assert(sub->has_cube());
+  subscribers[sub->id()] = sub;
+}
+
+bool DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
+  return remove_subscriber(sub->id());
+}
+
+bool DataCube::remove_subscriber(operator_id_t id) {
+  if(subscribers.erase(id))
+    return true;
+
+  return false;
+}
+
+Tuple DataCube::empty_tuple() {
+  Tuple t;
+
+  for (int i=0; i < schema.dimensions_size(); ++i) {
+    t.add_e();
+  }
+
+  return t;
+}
+
+const jetstream::CubeSchema& DataCube::get_schema() {
+  return schema;
+}
+std::string DataCube::id_as_str() {
+  return name;
+}
+const std::string& DataCube::typename_as_str() {
+  return my_tyepename;
+}
+

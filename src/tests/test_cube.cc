@@ -225,7 +225,7 @@ TEST_F(CubeTest, SubscriberTest) {
   ASSERT_EQ(1U, sub->update_q.size());
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
 }
-
+/* method now protected
 TEST_F(CubeTest, MergeTupleIntoTest) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   
@@ -240,7 +240,9 @@ TEST_F(CubeTest, MergeTupleIntoTest) {
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
 
 
-}
+} */
+
+
 TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
