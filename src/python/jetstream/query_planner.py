@@ -161,8 +161,8 @@ class QueryPlanner (object):
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
       dest_host = taskLocations[destID]
       if dest_host != src_host:
-        pb_e.dest_addr.address = dest_host[0]
-        pb_e.dest_addr.portno = dest_host[1]
+        edge.dest_addr.address = dest_host[0]
+        edge.dest_addr.portno = dest_host[1]
     
       assignments[src_host].add_edge(edge)
       #     for edge in edgeList:

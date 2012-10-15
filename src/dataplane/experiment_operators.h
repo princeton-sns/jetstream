@@ -94,7 +94,7 @@ class SendK: public DataPlaneOperator {
 
     
  protected:
-  u_long k;  // Number of tuples to send
+  u_int64_t k;  // Number of tuples to send
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
   volatile bool send_now;
