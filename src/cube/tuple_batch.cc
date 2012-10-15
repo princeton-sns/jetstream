@@ -30,17 +30,14 @@ TupleBatch::update_batched_tuple(size_t pos, boost::shared_ptr<jetstream::Tuple>
   if(batch)
   {
     boost::shared_ptr<jetstream::Tuple> orig = get_stored_tuple(pos);
-    DataCube *cube = get_cube();
-    cube->merge_tuple_into(*orig, *t);
     batch_set(orig, need_new_value_store[pos], need_old_value_store[pos], pos);
     return pos;
   }
   else
   {
     boost::shared_ptr<jetstream::Tuple> orig = remove_tuple(pos);
-    DataCube* cube = get_cube();
-    cube->merge_tuple_into(*orig, *t);
     save_tuple(orig, need_new_value_store[pos], need_old_value_store[batch]);
+    remove_tuple(pos);
     return  TupleBatch::INVALID_POSITION; 
   }
    

@@ -40,7 +40,7 @@ void MysqlAggregateCount::set_value_for_insert_tuple(shared_ptr<sql::PreparedSta
   {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }
-  if(t.e_size()-1 > (int) tuple_indexes[0])
+  if(t.e_size()-1 >= (int) tuple_indexes[0])
   {
     jetstream::Element * const e_count = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
     if(e_count->has_i_val()) {

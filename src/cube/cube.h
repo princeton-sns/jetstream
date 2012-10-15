@@ -26,6 +26,7 @@ namespace jetstream {
 class TupleProcessing {
   public: 
   TupleProcessing(boost::shared_ptr<Tuple> t): t(t) {};
+  TupleProcessing() {};
   boost::shared_ptr<Tuple> t;
   size_t pos;
   std::list<operator_id_t> insert;
