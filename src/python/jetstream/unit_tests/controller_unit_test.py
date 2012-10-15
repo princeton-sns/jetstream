@@ -103,8 +103,8 @@ class TestQueryPlanner(unittest.TestCase):
     op_graph = jsapi.OperatorGraph()
     reader = jsapi.FileRead(op_graph, "file name")
     cube = op_graph.cube("local_results")
-    cube.add_dim("hostname", Element.STRING)
-    cube.add_agg("count", jsapi.Cube.COUNT)
+    cube.add_dim("hostname", Element.STRING, 0)
+    cube.add_agg("count", jsapi.Cube.COUNT, 1)
     cube.set_overwrite(True)  #fresh results
   
     op_graph.connect(reader, cube)

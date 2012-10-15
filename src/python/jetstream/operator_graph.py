@@ -130,6 +130,9 @@ class Destination(object):
         if not p.is_placed():
           p.instantiate_on(n)
     else:
+      #n should be a list
+      assert len(n) > 0
+      assert isinstance(n[0], NodeID) 
       headcopies = self.graph.clone_back_from(self, len(n) -1 )
       for site,copy in zip(n[1:], headcopies):
         copy.instantiate_on(site)
@@ -208,12 +211,11 @@ class Cube(Destination):
     else:
       return self.name
 
-
+########## Useful operators
 def FileRead(graph, file):
    cfg = {"file":file}
    return graph.operator("FileRead", cfg)  
    
-
 
 def StringGrep(graph, pattern):
    cfg = {"pattern":pattern}
@@ -234,4 +236,12 @@ def NoOp(graph, file):
    return graph.operator("ExtendOperator", cfg)  
    
     
-    
+####### Test operators
+def SendK(graph, k):
+   cfg = {"k":str(k)}
+   return graph.operator("SendK", cfg)  
+
+
+def RateRecord(graph):
+   cfg = {}
+   return graph.operator("RateRecordReceiver", cfg)         
