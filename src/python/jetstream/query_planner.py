@@ -157,15 +157,18 @@ class QueryPlanner (object):
         nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
         if nodeId not in taskLocations:
           assignments[endpoint].add_node(node)
-          taskLocations[nodeId] = self.workers[endpoint]
+          taskLocations[nodeId] = endpoint
     
     for edge in altertopo.edges:
       src_host = taskLocations[edge.src]
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
       dest_host = taskLocations[destID]
-      if dest_host != src_host:  #comparison done using dataplane addresses
-        edge.dest_addr.address = dest_host[0]
-        edge.dest_addr.portno = dest_host[1]
+      # If the unique source/dest ids of the edge are different, this is a remote edge
+      if dest_host != src_host:
+        # Use the dataplane endpoint of the destination
+        dest_ep = self.workers[dest_host]
+        edge.dest_addr.address = dest_ep[0]
+        edge.dest_addr.portno = dest_ep[1]
     
       assignments[src_host].add_edge(edge)
 
