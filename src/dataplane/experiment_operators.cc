@@ -63,6 +63,7 @@ SendK::operator()() {
   for (u_int i = 0; i < k; i++) {
     emit(t);
   }
+  LOG(INFO) << "SendK " << id() << " done with " << k << " tuples";
   no_more_tuples();
 }
 
@@ -180,16 +181,22 @@ RateRecordReceiver::operator()() {
   while (running)  {
   //sleep
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+    long tuples_in_win = 0;
     ptime wake_time = microsec_clock::local_time();
     {
       boost::lock_guard<boost::mutex> lock (mutex);
       
       tuples_per_sec = (tuples_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
       bytes_per_sec = (bytes_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
+      tuples_in_win = tuples_in_window;
       tuples_in_window = bytes_in_window = 0;
       
       window_start = wake_time;
     }
+    LOG(INFO) << tuples_in_win << " tuples this period. "<< bytes_per_sec <<
+       " bytes per second, " << tuples_per_sec << " tuples per sec";
+    
+
   }
 }
 
