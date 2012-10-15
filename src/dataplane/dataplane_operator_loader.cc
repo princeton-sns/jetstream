@@ -67,6 +67,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
 
   REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
+  REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
 
   

@@ -44,6 +44,9 @@ class TestController(unittest.TestCase):
     req.type = ControlMessage.HEARTBEAT
     req.heartbeat.freemem_mb = 3900
     req.heartbeat.cpuload_pct = 90
+    addr = self.client.sock.getsockname()
+    req.heartbeat.dataplane_addr.address = addr[0]
+    req.heartbeat.dataplane_addr.portno = addr[1]
     buf = self.client.do_rpc(req, False)
     # Since no response is expected, sleep a little to give the controller time to process message
     time.sleep(1)

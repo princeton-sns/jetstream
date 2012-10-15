@@ -1,0 +1,28 @@
+This document describes the synchroniztion and concurrency-control mechanisms in the Jetstream source code.
+
+As a general policy, prefer recursive_mutex over raw mutexes. (This avoids deadlocks when a thread tries to re-acquire a lock it already holds.)
+
+DATA PLANE:
+
+The data plane uses two mechanisms for concurrency control: locks and strands. 
+Some critical data structures are surrounded by mutexes.
+
+Node.threadpoolLock should be held before starting or stopping node worker threads.
+
+CubeManager.mapMutex should be held before adding or removing a cube.
+
+DataplaneConnManager:
+	The data structures for the incoming connections are protected by incomingMapMutex.
+
+	Outgoing connections are protected by the outgoingMapMutex
+
+
+
+We also use strands to maintain ordering of events.
+
+[details here]
+
+
+CONTROL PLANE:
+
+[details here.]

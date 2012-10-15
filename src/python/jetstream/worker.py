@@ -109,6 +109,11 @@ class Worker(JSServer):
       req.type = ControlMessage.HEARTBEAT
       req.heartbeat.freemem_mb = 100
       req.heartbeat.cpuload_pct = 100 #TODO: find real values here
+
+      addr = self.controllerConn.getsockname()
+      req.heartbeat.dataplane_addr.address = addr[0]
+      req.heartbeat.dataplane_addr.portno = addr[1]
+
       self.controllerConn.send_pb(req)
       time.sleep(self.hbInterval)
 

@@ -78,6 +78,7 @@ Node::~Node ()
 void
 Node::start ()
 {
+  // Use created threads as a marker for an already-started node
   if(threads.size() > 0) {
     LOG(WARNING) << "duplicate Node::start; suppressing";
   }
@@ -99,8 +100,9 @@ void
 Node::stop ()
 {
   unique_lock<boost::mutex> lock(threadpoolLock);
-  
-  if (iosrv->stopped()) {  //use the io serv as a marker for already-stopped
+ 
+  // Use the io service status as a marker for an already-stopped node
+  if (iosrv->stopped()) {
     VLOG(1) << "Node was stopped twice; suppressing";
     return;
   }
@@ -381,6 +383,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     operator_id_t src (edge.computation(), edge.src());
     shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
     
+    if (!srcOperator) {
+      LOG(WARNING) << "unknown source operator " << src;
+      
+      Error * err_msg = response.mutable_error_msg();
+      err_msg->set_msg("unknown source operator " + src.to_string());
+
+      continue;
+    }
     assert(srcOperator);
 
     //TODO check if src doesn't exist

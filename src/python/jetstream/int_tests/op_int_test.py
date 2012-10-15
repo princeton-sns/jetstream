@@ -47,7 +47,7 @@ class TestOpIntegration(unittest.TestCase):
     req.type = ControlMessage.ALTER
     req.alter.computationID = compID
     newTask = req.alter.toStart.add()
-    newTask.op_typename = "SendK"
+    newTask.op_typename = "DummyReceiver"
     newTask.id.computationID = req.alter.computationID
     newTask.id.task = 2
     
@@ -106,10 +106,11 @@ class TestOpIntegration(unittest.TestCase):
 
  
   def test_operator_chain(self):
-    # Must use at least 2 workers
+    # Use at least 2 workers
     numWorkers = 5
-    webPort = 8081
+    webPortMin = 8082
     workerProcs = []
+    webPort = webPortMin
     for i in range(numWorkers):
       # Create a worker 
       jsnode_cmd = "../../jsnoded -a localhost:%d -w %d --start -C ../../config/datanode.conf" % (self.controller.address[1], webPort)
@@ -146,11 +147,16 @@ class TestOpIntegration(unittest.TestCase):
       task.site.portno = workersEp[i].portno
   
       if i == 0:
-        # Send some tuples from the first worker
-        task.op_typename = "SendK"
+        # Send some tuples from the first worker; use a continuous sender so the chain
+        # doesn't get torn down.
+        task.op_typename = "ContinuousSendK"
         opCfg = task.config.add()
         opCfg.opt_name = "k"
         opCfg.val = str(numTuples)
+        opCfg = task.config.add()
+        opCfg.opt_name = "period"
+        # Use a large period so we only have to check for one batch of tuples
+        opCfg.val = str(10000)
       elif i == len(workersEp) - 1:
         # Collect tuples at the last worker
         task.op_typename = "DummyReceiver"
@@ -181,10 +187,10 @@ class TestOpIntegration(unittest.TestCase):
     # The controller overwrites the computation ID, so get it again
     assert(len(self.controller.computations) == 1)
     compID = self.controller.computations.keys()[0]
-    time.sleep(1)
+    time.sleep(2)
 
     # Make sure the operators were started, one per worker
-    webPort = 8081
+    webPort = webPortMin
     for i in range(len(workersEp)):
       # GET the web interface of each worker
       url = "http://" + workersEp[i].address + ":" + str(webPort) + "/"

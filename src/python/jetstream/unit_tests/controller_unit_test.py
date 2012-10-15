@@ -6,8 +6,11 @@ from computation_state import *
 from query_planner import QueryPlanner
 
 from generic_netinterface import JSClient
+import operator_graph as jsapi
+
 
 from jetstream_types_pb2 import *
+
 
 class TestQueryPlanner(unittest.TestCase):
 
@@ -41,7 +44,7 @@ class TestQueryPlanner(unittest.TestCase):
     new_cube.name = "name with space"
     
     err = planner.validate_raw_topo(alter)
-    
+    print "\nError message texts:"
     self.assertTrue( len(err) > 0) #error should be because name is invalid
     print err
     self.assertTrue( "invalid cube name" in err)
@@ -61,7 +64,7 @@ class TestQueryPlanner(unittest.TestCase):
 
     err = planner.validate_raw_topo(alter)
     
-    self.assertTrue( len(err) > 0) #error should be because no aggregates
+    self.assertTrue( len(err) > 0) #error should be because no dimensions
     print err
     self.assertTrue( "dimension" in err)
     
@@ -71,9 +74,56 @@ class TestQueryPlanner(unittest.TestCase):
     dim.type = Element.INT32
     err = planner.validate_raw_topo(alter)
     
-    self.assertEquals( len(err), 0) #error should be because no aggregates
+    self.assertEquals( len(err), 0) 
     
+  def test_1node_plan(self):
+
+    dummy_node = ("host",123)
+    planner = QueryPlanner([dummy_node])
+
+    op_graph = jsapi.OperatorGraph()
+    reader = jsapi.FileRead(op_graph, "file name")
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER    
+    op_graph.add_to_PB(req.alter)
+
+    err = planner.take_raw(req.alter)
+    self.assertEquals( len(err), 0)
     
+    plan = planner.get_assignments(1)
+    self.assertTrue(dummy_node in plan)
+    self.assertEquals(len(plan), 1)
+    self.assertEquals(  len(plan[dummy_node].operators), 1)
+
+  def test_2node_plan(self):
+
+    dummy_node = ("host",123)
+    planner = QueryPlanner([dummy_node])
+
+    op_graph = jsapi.OperatorGraph()
+    reader = jsapi.FileRead(op_graph, "file name")
+    cube = op_graph.cube("local_results")
+    cube.add_dim("hostname", Element.STRING, 0)
+    cube.add_agg("count", jsapi.Cube.COUNT, 1)
+    cube.set_overwrite(True)  #fresh results
+  
+    op_graph.connect(reader, cube)
+    
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER    
+    op_graph.add_to_PB(req.alter)
+
+    err = planner.take_raw(req.alter)
+    self.assertEquals( len(err), 0)
+    
+    plan = planner.get_assignments(1)
+    self.assertTrue(dummy_node in plan)
+    self.assertEquals(len(plan), 1)
+    self.assertEquals(  len(plan[dummy_node].operators), 1)
+    self.assertEquals(  len(plan[dummy_node].cubes), 1)
+        
+    pb_to_node = plan[dummy_node].get_pb()
+    self.assertEquals(  len(pb_to_node.alter.edges), 1)
 
 if __name__ == '__main__':
   unittest.main()

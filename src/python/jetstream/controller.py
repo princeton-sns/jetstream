@@ -62,7 +62,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__ (self, addr)
-    self.workers = {} #maps (hostid, port) to CWorker
+    self.workers = {}  # maps (hostid, port) to CWorker
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
@@ -112,7 +112,10 @@ class Controller (ControllerAPI, JSServer):
   def get_nodes (self):
     """Returns a list of Workers."""
     res = []
+    self.stateLock.acquire()
     res.extend(self.workers.values())
+    self.stateLock.release()
+
     return res
 
     
@@ -159,13 +162,10 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = errorMsg
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
-    if len(self.computations) == 0:
-      compID = 1
-    else:
-      compID = max(self.computations.keys()) + 1
+    compID,comp = self.assign_comp_id()
 
-    planner = QueryPlanner(self.workers.keys())
-    err =  planner.take_raw(altertopo)
+    planner = QueryPlanner(self.workers)
+    err = planner.take_raw(altertopo)
     
     if len(err) > 0:
       print "Invalid topology:",err
@@ -173,19 +173,25 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = err
       return
 
-    comp = planner.get_computation(compID, self.workers)
-    self.computations[compID] = comp
-
+    assignments = planner.get_assignments(compID)
+    
+    # Finalize the worker assignments
+    # TODO should this be AFTER we hear back from workers?
+    for endpoint,assignment in assignments.items():
+      comp.assign_worker(endpoint, self.workers[endpoint].get_dataplane_ep(), assignment)
+      self.workers[endpoint].add_assignment(assignment)
+    
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    for worker in comp.workerAssignments.keys():
-      req = comp.get_worker_pb(worker)            
-      h = self.connect_to(worker)
+    for endpoint,assignment in assignments.items():
+      req = assignment.get_pb()            
+      h = self.connect_to(endpoint)
       #print worker, req
       # Send without waiting for response; we'll hear back in the main network message
       # handler
       h.send_pb(req)
 
+  # TODO should construct response to client with computation ID
 
   def handle_alter_response (self, altertopo, workerEndpoint):
     #TODO: As above, the code below only deals with starting tasks
@@ -228,6 +234,22 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = "unknown error"
 
     handler.send_pb(response)
+
+
+  def assign_comp_id(self):
+  #TODO locking
+    self.stateLock.acquire()
+  
+    if len(self.computations) == 0:
+      compID = 1
+    else:
+      compID = max(self.computations.keys()) + 1
+
+    comp = Computation(compID)
+    self.computations[compID] = comp
+
+    self.stateLock.release()
+    return compID,comp
 
 
 if __name__ == '__main__':

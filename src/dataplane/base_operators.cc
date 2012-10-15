@@ -286,7 +286,7 @@ SampleOperator::process (boost::shared_ptr<Tuple> t) {
 operator_err_t SampleOperator::configure (std::map<std::string,std::string> &config) {
   double frac_to_drop = 0;
   istringstream(config["fraction"]) >> frac_to_drop;
-  threshold = (frac_to_drop * UINT32_MAX);
+  threshold = frac_to_drop * numeric_limits<uint32_t>::max();
   int seed = 0;
   istringstream(config["seed"]) >> seed;
   gen.seed(seed);
