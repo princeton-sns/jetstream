@@ -54,8 +54,8 @@ class QueryPlanner (object):
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
     
-    #Organization of this method is parallel to the altertopo structure.
-  # First verify top-level metadata. Then operators, then cubes.
+    # Organization of this method is parallel to the altertopo structure.
+    # First verify top-level metadata. Then operators, then cubes.
     if len(altertopo.toStart) == 0:
       return "Topology includes no operators"
 
@@ -72,8 +72,7 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "cubes must have at least one dimension"
 
-
-# TODO check that both endpoints of each edge are defined by the computation
+    # TODO check that both endpoints of each edge are defined by the computation
 
     return ""
 
@@ -84,12 +83,14 @@ class QueryPlanner (object):
 
     for edge in self.alter.edges:
       edge.computation = compID
+
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.
-  Takes the computation ID and a list of worker addresses (as host,port pairs).
-     Returns a map from worker address to WorkerAssignment
+    Takes the computation ID and a list of worker addresses (as host,port pairs).
+    Returns a map from worker address to WorkerAssignment
     """
+    
     altertopo = self.alter
     self.overwrite_operator_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
@@ -137,7 +138,7 @@ class QueryPlanner (object):
     nodeId = union.id.task if isinstance(union, TaskMeta) else union.name
     endpoint = taskLocations[nodeId] if nodeId in taskLocations else defaultEndpoint
     if endpoint not in assignments:
-      assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
+      assignments[endpoint] = WorkerAssignment(compID)
     toPlace = jsGraph.get_descendants(union)
     for node in toPlace:
       nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
@@ -161,8 +162,8 @@ class QueryPlanner (object):
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
       dest_host = taskLocations[destID]
       if dest_host != src_host:
-        pb_e.dest_addr.address = dest_host[0]
-        pb_e.dest_addr.portno = dest_host[1]
+        edge.dest_addr.address = dest_host[0]
+        edge.dest_addr.portno = dest_host[1]
     
       assignments[src_host].add_edge(edge)
       #     for edge in edgeList:

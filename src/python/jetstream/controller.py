@@ -165,7 +165,7 @@ class Controller (ControllerAPI, JSServer):
     compID,comp = self.assign_comp_id()
 
     planner = QueryPlanner(self.workers.keys())
-    err =  planner.take_raw(altertopo)
+    err = planner.take_raw(altertopo)
     
     if len(err) > 0:
       print "Invalid topology:",err
