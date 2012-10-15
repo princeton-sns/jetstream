@@ -38,7 +38,6 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
     tp.t = t;
   }
 
-  LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch<<" count: "<<batch.count(key) <<" pos: " << tp.pos;
 
   bool can_batch = true;
   bool need_new_value = false;
@@ -74,6 +73,7 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
     }
   }
 
+  LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch<<" count: "<<batch.count(key) <<" pos: " << tp.pos << " can batch:" << can_batch;
   if(!in_batch) {
     tp.pos = tupleBatcher->insert_tuple(t, can_batch, need_new_value, need_old_value);
   }
