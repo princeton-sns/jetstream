@@ -33,7 +33,9 @@ class QueryPlanner (object):
   """  
 
   def __init__ (self, aliveWorkers):
-    self.workers = aliveWorkers  # maps (hostid, port) to CWorker
+    assert len(aliveWorkers)==0 or \
+      isinstance(aliveWorkers, types.DictType)  #should be a list of host/port pairs
+    self.workers = aliveWorkers  
     return
     
     
@@ -155,46 +157,17 @@ class QueryPlanner (object):
         nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
         if nodeId not in taskLocations:
           assignments[endpoint].add_node(node)
-          taskLocations[nodeId] = endpoint
+          taskLocations[nodeId] = self.workers[endpoint]
     
     for edge in altertopo.edges:
       src_host = taskLocations[edge.src]
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
-      dest_host = self.workers[taskLocations[destID]].get_dataplane_ep()
-      if dest_host != src_host:
+      dest_host = taskLocations[destID]
+      if dest_host != src_host:  #comparison done using dataplane addresses
         edge.dest_addr.address = dest_host[0]
         edge.dest_addr.portno = dest_host[1]
     
       assignments[src_host].add_edge(edge)
-      #     for edge in edgeList:
-#       if edge.src not in self.taskLocations:
-#         print "unknown source %s" % str(edge.src)
-#         raise UserException("Edge from nonexistent source")
-#       dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
-#       self.outEdges[] = dest
 
-#     for operator in self.workerAssignments[workerID].operators:
-#       tid = operator.id.task
-#       if tid in self.outEdges: #operator has a link to next
-#         destID = self.outEdges[tid]
-#         pb_e = req.alter.edges.add()
-#         pb_e.src = tid
-#         pb_e.computation = self.compID
-#         
-#         dest_host = self.taskLocations[destID]
-#   
-#         if type(destID) == types.StringType:
-#           pb_e.cube_name = destID
-#         elif type(destID) == types.IntType:
-#           pb_e.dest = destID
-#         else:
-#           print "no such task: %s of type %s" % (str(destID), str(type(destID)))
-#           assert False           
-#   
-#         if dest_host != workerID:
-#           pb_e.dest_addr.address = dest_host[0]
-#           pb_e.dest_addr.portno = dest_host[1]
-    
-#    comp.add_edges(altertopo.edges)
     return assignments    
         

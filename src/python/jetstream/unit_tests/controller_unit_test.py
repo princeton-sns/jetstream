@@ -28,7 +28,7 @@ class TestQueryPlanner(unittest.TestCase):
     alter = AlterTopo()
     alter.computationID = compID
 
-    planner = QueryPlanner([])
+    planner = QueryPlanner({})
     # No operators
     err = planner.validate_raw_topo(alter)
     self.assertTrue( len(err) > 0) #error should be because topo is empty
@@ -79,7 +79,7 @@ class TestQueryPlanner(unittest.TestCase):
   def test_1node_plan(self):
 
     dummy_node = ("host",123)
-    planner = QueryPlanner([dummy_node])
+    planner = QueryPlanner( {dummy_node:dummy_node} )
 
     op_graph = jsapi.OperatorGraph()
     reader = jsapi.FileRead(op_graph, "file name")
@@ -98,7 +98,7 @@ class TestQueryPlanner(unittest.TestCase):
   def test_2node_plan(self):
 
     dummy_node = ("host",123)
-    planner = QueryPlanner([dummy_node])
+    planner = QueryPlanner( {dummy_node:dummy_node})
 
     op_graph = jsapi.OperatorGraph()
     reader = jsapi.FileRead(op_graph, "file name")

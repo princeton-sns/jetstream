@@ -164,7 +164,8 @@ class Controller (ControllerAPI, JSServer):
 
     compID,comp = self.assign_comp_id()
 
-    planner = QueryPlanner(self.workers)
+    worker_locations = dict([ (h, w.get_dataplane_ep() ) for (h,w) in self.workers.items() ])
+    planner = QueryPlanner(worker_locations)  #these should be the dataplane addresses
     err = planner.take_raw(altertopo)
     
     if len(err) > 0:
