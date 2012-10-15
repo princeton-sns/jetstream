@@ -137,6 +137,8 @@ friend class ClientConnection;
   boost::shared_ptr<boost::asio::io_service> get_iosrv () { return iosrv; }
 
   // FIXME sock->remote/local can through exceptions.  Can with error code instead?
+  //TODO: This is throwing during some of our integration tests, since we often
+  //just terminate the jsnoded daemon (no way to call Node::stop() gracefully)
   boost::asio::ip::tcp::endpoint get_remote_endpoint () const 
   { return sock->remote_endpoint(); }
   boost::asio::ip::tcp::endpoint get_local_endpoint () const 

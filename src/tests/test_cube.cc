@@ -91,17 +91,17 @@ class CubeTest : public ::testing::Test {
 void insert_tuple(jetstream::Tuple & t, time_t time, string url, int rc, int sum, int count) {
   t.clear_e();
   jetstream::Element *e = t.add_e();
-  e->set_t_val(time);
+  e->set_t_val(time);  //0
   e=t.add_e();
-  e->set_s_val(url);
+  e->set_s_val(url);  //1
   e=t.add_e();
-  e->set_i_val(rc);
+  e->set_i_val(rc);  //2
   e=t.add_e();
-  e->set_i_val(sum);
+  e->set_i_val(sum);  //3
   e=t.add_e();
-  e->set_i_val(count);
+  e->set_i_val(count);  //4
   e=t.add_e();
-  e->set_i_val(count);
+  e->set_i_val(count);  //5
 }
 
 void check_tuple(boost::shared_ptr<jetstream::Tuple> const & answer, time_t time, string url, int rc, int sum, int count) {
@@ -111,6 +111,15 @@ void check_tuple(boost::shared_ptr<jetstream::Tuple> const & answer, time_t time
   ASSERT_EQ(count, answer->e(3).i_val());
   ASSERT_EQ(sum, answer->e(4).i_val());
   ASSERT_EQ(sum, answer->e(4).d_val());
+  ASSERT_EQ(count, answer->e(5).i_val());
+}
+
+void check_tuple_input(boost::shared_ptr<jetstream::Tuple> const & answer, time_t time, string url, int rc, int sum, int count) {
+  ASSERT_EQ(time, answer->e(0).t_val());
+  ASSERT_STREQ(url.c_str(), answer->e(1).s_val().c_str());
+  ASSERT_EQ(rc, answer->e(2).i_val());
+  ASSERT_EQ(sum, answer->e(3).i_val());
+  ASSERT_EQ(count, answer->e(4).i_val());
   ASSERT_EQ(count, answer->e(5).i_val());
 }
 
@@ -209,13 +218,168 @@ TEST_F(CubeTest, SubscriberTest) {
   cube->process(t);
   
   ASSERT_EQ(1U, sub->insert_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
+  sub->returnAction = Subscriber::SEND_UPDATE;
+  cube->process(t);
+  ASSERT_EQ(1U, sub->update_q.size());
+  check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+}
+/* method now protected
+TEST_F(CubeTest, MergeTupleIntoTest) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  cube->merge_tuple_into(*t,*t2);
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+
+} */
+
+
+TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  cube->process(t); 
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  cube->process(t);
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->process(t2); 
+  ASSERT_EQ(2U, sub->insert_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+}
+
+TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  sub->returnAction = Subscriber::SEND_UPDATE;
+  cube->process(t); 
+  ASSERT_EQ(0U, sub->insert_q.size());
+  ASSERT_EQ(0U, sub->update_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  cube->process(t);
+  ASSERT_EQ(0U, sub->insert_q.size());
+  ASSERT_EQ(0U, sub->update_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->process(t2); 
+  ASSERT_EQ(0U, sub->insert_q.size());
+  ASSERT_EQ(2U, sub->update_q.size());
+  check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  check_tuple(sub->update_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  
 
 }
 
+
+
+TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  cube->process(t); 
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  sub->returnAction = Subscriber::SEND_UPDATE;
+  cube->process(t);
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->process(t2); 
+  ASSERT_EQ(1U, sub->insert_q.size());
+  ASSERT_EQ(1U, sub->update_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+}
+
+TEST_F(CubeTest, SubscriberNoBatch) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  sub->returnAction = Subscriber::SEND_NO_BATCH;
+  cube->process(t); 
+  ASSERT_EQ(1U, sub->insert_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
+}
+
+TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+
+  cube->process(t); 
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  sub->returnAction = Subscriber::SEND_NO_BATCH;
+  cube->process(t);
+  ASSERT_EQ(1U, sub->insert_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+
+  sub->returnAction = Subscriber::SEND;
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->process(t2); 
+  ASSERT_EQ(1U, sub->insert_q.size());
+  boost::shared_ptr<jetstream::Tuple> t3 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t3, time_entered, "http:\\\\www.example.com", 202, 50, 1);
+  cube->process(t3);
+  ASSERT_EQ(3U, sub->insert_q.size());
+  check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 202, 50, 1);
+}
+
 TEST_F(CubeTest, MysqlTest) {
-
-
 
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   vector<std::string> test_strings = cube->get_dimension_column_types();

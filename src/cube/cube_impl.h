@@ -22,8 +22,8 @@ namespace cube {
 template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=jetstream::cube::Aggregate>
 class DataCubeImpl : public DataCube {
   public:
-  
-  DataCubeImpl(jetstream::CubeSchema _schema, std::string n, size_t batch=1): DataCube(_schema, n, batch) {
+
+    DataCubeImpl(jetstream::CubeSchema _schema, std::string n, size_t batch=1): DataCube(_schema, n, batch) {
       build(_schema);
     }
 
@@ -33,6 +33,7 @@ class DataCubeImpl : public DataCube {
 //      name = _schema.name();
       shared_ptr<CubeDimension> ptr_dim;
       shared_ptr<CubeAggregate> ptr_agg;
+
       for (int i = 0; i < _schema.dimensions_size(); i++) {
         ptr_dim = DimensionFactory<CubeDimension>::create(_schema.dimensions(i));
         //ptr_dim = make_shared<CubeDimension>(_schema.dimensions(i));
@@ -46,32 +47,34 @@ class DataCubeImpl : public DataCube {
       }
     }
 
-  boost::shared_ptr<CubeDimension> get_dimension(string name) const {
-    size_t pos = dimensionMap.find(name)->second;
-    return dimensions.at(pos);
-  }
+    boost::shared_ptr<CubeDimension> get_dimension(string name) const {
+      size_t pos = dimensionMap.find(name)->second;
+      return dimensions.at(pos);
+    }
 
 
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
     std::map<string, size_t> dimensionMap;
-  
+
     virtual DimensionKey get_dimension_key(Tuple const &t) const {
       string key="";
-      for(size_t i=0; i<dimensions.size();++i) {
+
+      for(size_t i=0; i<dimensions.size(); ++i) {
         key+=dimensions[i]->get_key(t)+"|";
       }
-      return key; 
+
+      return key;
     }
 
-    
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {
-      for(size_t i=0; i<aggregates.size();++i) {
+      for(size_t i=0; i<aggregates.size(); ++i) {
         aggregates[i]->merge_tuple_into(into, update);
       }
-
     }
+
+
 };
 
 }

@@ -32,8 +32,8 @@ class QueryPlanner (object):
   expanded plan.
   """  
 
-  def __init__ (self, all_nodes):
-    self.node_list = all_nodes
+  def __init__ (self, aliveWorkers):
+    self.workers = aliveWorkers  # maps (hostid, port) to CWorker
     return
     
     
@@ -54,8 +54,8 @@ class QueryPlanner (object):
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
     
-    #Organization of this method is parallel to the altertopo structure.
-  # First verify top-level metadata. Then operators, then cubes.
+    # Organization of this method is parallel to the altertopo structure.
+    # First verify top-level metadata. Then operators, then cubes.
     if len(altertopo.toStart) == 0:
       return "Topology includes no operators"
 
@@ -72,8 +72,7 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "cubes must have at least one dimension"
 
-
-# TODO check that both endpoints of each edge are defined by the computation
+    # TODO check that both endpoints of each edge are defined by the computation
 
     return ""
 
@@ -84,23 +83,25 @@ class QueryPlanner (object):
 
     for edge in self.alter.edges:
       edge.computation = compID
+
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.
-  Takes the computation ID and a list of worker addresses (as host,port pairs).
-     Returns a map from worker address to WorkerAssignment
+    Takes the computation ID and a list of worker addresses (as host,port pairs).
+    Returns a map from worker address to WorkerAssignment
     """
+    
     altertopo = self.alter
     self.overwrite_operator_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
     jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
     # Set up the computation
     
-    assignments = {}  #maps node ID [host/port pair] to a WorkerAssignment
-    taskLocations = {}  #task ID [int or string] to host/port pair
+    assignments = {}  # maps node ID [host/port pair] to a WorkerAssignment
+    taskLocations = {}  # task ID [int or string] to host/port pair
     sources = jsGraph.get_sources()
     sink = jsGraph.get_sink()
-    defaultEndpoint = self.node_list[0]
+    defaultEndpoint = self.workers.keys()[0]
 
     # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
     # assign it to a default worker.
@@ -113,7 +114,7 @@ class QueryPlanner (object):
         # Node is pinned to a specific worker
         endpoint = (graph_node.site.address, graph_node.site.portno)
         # But if the worker doesn't exist, revert to the default worker
-        if endpoint not in self.node_list:
+        if endpoint not in self.workers.keys():
           logger.warning("Node was pinned to a worker, but that worker does not exist")
           endpoint = defaultEndpoint
       elif (graph_node in sources) or (graph_node == sink):
@@ -137,7 +138,7 @@ class QueryPlanner (object):
     nodeId = union.id.task if isinstance(union, TaskMeta) else union.name
     endpoint = taskLocations[nodeId] if nodeId in taskLocations else defaultEndpoint
     if endpoint not in assignments:
-      assignments[endpoint] = self.workers[endpoint].create_assignment(compID)
+      assignments[endpoint] = WorkerAssignment(compID)
     toPlace = jsGraph.get_descendants(union)
     for node in toPlace:
       nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
@@ -159,7 +160,7 @@ class QueryPlanner (object):
     for edge in altertopo.edges:
       src_host = taskLocations[edge.src]
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
-      dest_host = taskLocations[destID]
+      dest_host = self.workers[taskLocations[destID]].get_dataplane_ep()
       if dest_host != src_host:
         edge.dest_addr.address = dest_host[0]
         edge.dest_addr.portno = dest_host[1]

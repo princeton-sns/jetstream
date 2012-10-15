@@ -52,7 +52,7 @@ void MysqlAggregateAvg::set_value_for_insert_tuple(shared_ptr<sql::PreparedState
   {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }
-  if(t.e_size()-1 > (int)tuple_indexes[1])
+  if(t.e_size()-1 >= (int)tuple_indexes[1])
   {
     jetstream::Element * const e_sum = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
     jetstream::Element * const e_count = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[1]);

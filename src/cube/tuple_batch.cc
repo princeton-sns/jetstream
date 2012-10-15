@@ -1,4 +1,5 @@
 #include "tuple_batch.h"
+#include <glog/logging.h>
 
 using namespace std;
 using namespace jetstream::cube;
@@ -30,16 +31,12 @@ TupleBatch::update_batched_tuple(size_t pos, boost::shared_ptr<jetstream::Tuple>
   if(batch)
   {
     boost::shared_ptr<jetstream::Tuple> orig = get_stored_tuple(pos);
-    DataCube *cube = get_cube();
-    cube->merge_tuple_into(*orig, *t);
     batch_set(orig, need_new_value_store[pos], need_old_value_store[pos], pos);
     return pos;
   }
   else
   {
     boost::shared_ptr<jetstream::Tuple> orig = remove_tuple(pos);
-    DataCube* cube = get_cube();
-    cube->merge_tuple_into(*orig, *t);
     save_tuple(orig, need_new_value_store[pos], need_old_value_store[batch]);
     return  TupleBatch::INVALID_POSITION; 
   }
@@ -51,6 +48,8 @@ void TupleBatch::save_tuple(boost::shared_ptr<jetstream::Tuple> t, bool need_new
    boost::shared_ptr<jetstream::Tuple> new_tuple;
    boost::shared_ptr<jetstream::Tuple> old_tuple;
    cube->save_tuple(*t,need_new_value, need_old_value, new_tuple, old_tuple);
+   DataCube::DimensionKey key = cube->get_dimension_key(*t);
+   cube->save_callback(key, t, new_tuple, old_tuple);
 }
 
 void TupleBatch::flush()
@@ -90,23 +89,27 @@ void TupleBatch::flush()
 
 size_t TupleBatch::batch_add(boost::shared_ptr<jetstream::Tuple> t, bool need_new_value, bool need_old_value)
 {
+  size_t pos;
   if(!holes.empty())
   {
-    int pos = holes.front();
+    pos = holes.front();
     holes.pop_front();
-    return batch_set(t, need_new_value, need_old_value, pos);
+    pos = batch_set(t, need_new_value, need_old_value, pos);
+  }
+  else
+  {
+    tuple_store.push_back(t);
+    need_new_value_store.push_back(need_new_value);
+    need_old_value_store.push_back(need_old_value);
+    pos = tuple_store.size()-1;
   }
   
-  tuple_store.push_back(t);
-  need_new_value_store.push_back(need_new_value);
-  need_old_value_store.push_back(need_old_value);
-  
-  if(tuple_store.size() >= batch)
+  if(holes.empty() && tuple_store.size() >= batch)
   {
     flush();
     return  TupleBatch::INVALID_POSITION;
   }
-  return tuple_store.size()-1;
+  return pos;
 }
 
 size_t TupleBatch::batch_set(boost::shared_ptr<jetstream::Tuple> t, bool need_new_value, bool need_old_value, size_t pos)
