@@ -32,8 +32,8 @@ class QueryPlanner (object):
   expanded plan.
   """  
 
-  def __init__ (self, all_nodes):
-    self.node_list = all_nodes
+  def __init__ (self, aliveWorkers):
+    self.workers = aliveWorkers  # maps (hostid, port) to CWorker
     return
     
     
@@ -97,11 +97,11 @@ class QueryPlanner (object):
     jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
     # Set up the computation
     
-    assignments = {}  #maps node ID [host/port pair] to a WorkerAssignment
-    taskLocations = {}  #task ID [int or string] to host/port pair
+    assignments = {}  # maps node ID [host/port pair] to a WorkerAssignment
+    taskLocations = {}  # task ID [int or string] to host/port pair
     sources = jsGraph.get_sources()
     sink = jsGraph.get_sink()
-    defaultEndpoint = self.node_list[0]
+    defaultEndpoint = self.workers.keys()[0]
 
     # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
     # assign it to a default worker.
@@ -114,7 +114,7 @@ class QueryPlanner (object):
         # Node is pinned to a specific worker
         endpoint = (graph_node.site.address, graph_node.site.portno)
         # But if the worker doesn't exist, revert to the default worker
-        if endpoint not in self.node_list:
+        if endpoint not in self.workers.keys():
           logger.warning("Node was pinned to a worker, but that worker does not exist")
           endpoint = defaultEndpoint
       elif (graph_node in sources) or (graph_node == sink):
@@ -160,7 +160,7 @@ class QueryPlanner (object):
     for edge in altertopo.edges:
       src_host = taskLocations[edge.src]
       destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
-      dest_host = taskLocations[destID]
+      dest_host = self.workers[taskLocations[destID]].get_dataplane_ep()
       if dest_host != src_host:
         edge.dest_addr.address = dest_host[0]
         edge.dest_addr.portno = dest_host[1]

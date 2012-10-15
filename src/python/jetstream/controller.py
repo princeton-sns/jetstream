@@ -62,7 +62,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__ (self, addr)
-    self.workers = {} #maps (hostid, port) to CWorker
+    self.workers = {}  # maps (hostid, port) to CWorker
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
@@ -164,7 +164,7 @@ class Controller (ControllerAPI, JSServer):
 
     compID,comp = self.assign_comp_id()
 
-    planner = QueryPlanner(self.workers.keys())
+    planner = QueryPlanner(self.workers)
     err = planner.take_raw(altertopo)
     
     if len(err) > 0:
@@ -179,6 +179,7 @@ class Controller (ControllerAPI, JSServer):
     # TODO should this be AFTER we hear back from workers?
     for endpoint,assignment in assignments.items():
       comp.assign_worker(endpoint, self.workers[endpoint].get_dataplane_ep(), assignment)
+      self.workers[endpoint].add_assignment(assignment)
     
     # Start the computation
     logger.info("Starting computation %d" % (compID))

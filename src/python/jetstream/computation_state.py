@@ -49,11 +49,17 @@ class CWorker (object):
   def get_dataplane_ep (self):
     return (self.lastHB.dataplane_addr.address, self.lastHB.dataplane_addr.portno)
   
-  
+
+  #TODO: unused after refactoring
   def create_assignment (self, compID):
     assert compID not in self.assignments
     self.assignments[compID] = WorkerAssignment(compID)
     return self.assignments[compID]
+
+
+  def add_assignment (self, wa):
+    assert wa.compID not in self.assignments
+    self.assignments[wa.compID] = wa
 
 
 class Computation (object):
