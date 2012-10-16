@@ -228,6 +228,7 @@ def ExtendOperator(graph, type_str, fld_vals_list):
     i = 0
     for x in fld_vals_list:
       cfg[str(i)] = str(x)
+      i += 1
     return graph.operator("ExtendOperator", cfg)
     
     
