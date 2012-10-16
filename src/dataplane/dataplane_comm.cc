@@ -100,7 +100,7 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
       LOG(INFO) << "got no-more-data signal from " << c->get_remote_endpoint()
                 << ", will tear down connection into " << dest->id_as_str();
       tcp::endpoint e = c->get_remote_endpoint();
-      c->close();
+      c->close_async(no_op_v);
       liveConns.erase(e);
     }
     break;
@@ -133,13 +133,13 @@ DataplaneConnManager::close() {
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
     vector<shared_ptr<ClientConnection> > & conns = iter->second;
     for (u_int i = 0; i < conns.size(); ++i)
-      conns[i]->close();
+      conns[i]->close_async(no_op_v);
   }
 
   std::map<tcp::endpoint, boost::shared_ptr<ClientConnection> >::iterator live_iter;
 
   for (live_iter = liveConns.begin(); live_iter != liveConns.end(); live_iter++) {
-    live_iter->second->close();
+    live_iter->second->close_async(no_op_v);
   }
 }
   
@@ -237,8 +237,18 @@ RemoteDestAdaptor::no_more_tuples () {
   
   boost::system::error_code err;
   conn->send_msg(d, err);
+  VLOG(1) << "sent last tuples from connection (total is " << conn->send_count() << "); waiting.";
+  
+//  boost::barrier b(2);
+//  conn->close_async(boost::bind(&boost::barrier::wait, &b));
+//  b.wait();
+//  VLOG(1) << "close finished; tearing down. Total of " << conn->send_count() << " tuples sent";
+  conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
+  //need to wait until the close actually happens before returning, to avoid
+  //destructing while the connection is in use.
   
   //TODO should clean self up.
+//  mgr.deferred_cleanup(remoteAddr); //do this synchronously
 }
 
 
@@ -276,6 +286,9 @@ DataplaneConnManager::deferred_cleanup(string id) {
   lock_guard<boost::recursive_mutex> lock (outgoingMapMutex);
  
   shared_ptr<RemoteDestAdaptor> a = adaptors[id];
+  if (!a) {
+    LOG(FATAL) << "No record of adaptor " << id;
+  }
   assert(a);
   
   if (!a->conn->is_connected()) {

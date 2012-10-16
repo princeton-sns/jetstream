@@ -39,6 +39,8 @@ class SerializedMessageIn {
 
 typedef boost::function<void (jetstream::SerializedMessageIn &msg,
 			      const boost::system::error_code &) > cb_raw_msg_t;
+  
+typedef boost::function<void ()> close_cb_t;
 
 /**
  * A ConnectedSocket represents the underlying socket for a connection,
@@ -62,6 +64,10 @@ friend class ClientConnection;
   boost::asio::strand sendStrand;
   boost::asio::strand recvStrand;
   cb_raw_msg_t recvcb;
+  close_cb_t closing_cb;
+  bool isClosing;
+  volatile int sendCount; //total number of send operations over lifetime.
+        //TODO should be atomic?
 
   /********* SENDING *********/
 
@@ -87,6 +93,13 @@ friend class ClientConnection;
 
   // Queue of scatter/gather IO pointers, each comprising a single 
   // serialized ProtoBuf message
+  /*  As per boost documentation:  The program must ensure that the stream 
+  performs no other write operations (such as async_write, the stream's 
+  async_write_some function, or any other composed operations that perform writes)
+   until this operation [async_write] completes.
+  
+ From  http://www.boost.org/doc/libs/1_45_0/doc/html/boost_asio/reference/async_write/overload1.html
+  */
   std::deque<boost::shared_ptr<SerializedMessageOut> > sendQueue;
 
   // Serialize access to following functions via same strand
@@ -115,18 +128,24 @@ friend class ClientConnection;
 
   // Close socket and return error to receive callback if set
   void fail (const boost::system::error_code &error);
+  void close_now ();
+  void close_on_strand (close_cb_t cb);
+
 
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
     : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-    sending (false), receiving (false) {
+    isClosing(false),sendCount(0),sending (false), receiving (false) {
     VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
   }
 
-  void close ();
+  void close(close_cb_t cb) {
+    sendStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
+  }
 
-  // Underlying use of async writes are thread safe
+
+  // Underlying use of async writes are NOT thread safe; we wrap them here
   void send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
 
@@ -149,6 +168,9 @@ friend class ClientConnection;
    * local addr | local port | remote addr | remote port 
    */
   std::string get_fourtuple () const;
+
+  int send_count() { return sendCount; }
+
 };
 
 }
