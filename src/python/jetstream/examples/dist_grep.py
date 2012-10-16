@@ -51,8 +51,6 @@ def main():
 
   g.connect(reader,grepper)
   g.connect(grepper, host_extend)
-  
-  
   g.connect(host_extend, cube)
   
   #### Finished building in memory, now to join

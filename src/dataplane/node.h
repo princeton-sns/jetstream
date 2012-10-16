@@ -32,8 +32,10 @@ class Node {
   DataplaneConnManager dataConnMgr;
   boost::shared_ptr<ServerConnection> listeningSock;
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
-  boost::mutex threadpoolLock; // a mutex to make sure concurrent starts/stops
+  mutable boost::mutex threadpoolLock; // a mutex to make sure concurrent thread starts/stops
             //don't interfere
+  mutable boost::mutex operatorTableLock; // protects list of operators
+  
   boost::condition_variable startStopCond;
   OperatorCleanup operator_cleanup;
             
@@ -69,8 +71,8 @@ class Node {
   void stop ();
   
   void join ()  {
-     boost::unique_lock<boost::mutex> lock(threadpoolLock);
-     startStopCond.wait(lock);
+    boost::unique_lock<boost::mutex> lock(threadpoolLock);
+    startStopCond.wait(lock);
   }
 
   boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
@@ -80,8 +82,10 @@ class Node {
     
   bool stop_operator (operator_id_t name);
   
-  int operator_count () const
-    {return operators.size(); }
+  int operator_count () const { 
+    boost::unique_lock<boost::mutex> lock(operatorTableLock);
+    return operators.size();
+  }
   
     
   boost::shared_ptr<DataCube>
