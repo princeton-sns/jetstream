@@ -26,7 +26,21 @@ class QueueSubscriber: public Subscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
-  private:
+};
+
+class UnionSubscriber: public Subscriber {
+  public:
+    UnionSubscriber(): Subscriber (){};
+    virtual ~UnionSubscriber() {};
+
+    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+
+    virtual void insert_callback(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value);
+
+    virtual void update_callback(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
+                                 boost::shared_ptr<jetstream::Tuple> const &old_value);
 
 };
 
