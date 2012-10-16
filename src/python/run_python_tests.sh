@@ -9,7 +9,7 @@ echo 'PYTHONPATH = ' $PYTHONPATH
 # SS: Can't get this to find the tests, also we should support 2.6 if possible
 #python -m unittest discover -p '*_test.py'
 
-for t in `find . -name op*_test.py`; do
+for t in `find . -name *_test.py`; do
   echo $t
   python $t
 done

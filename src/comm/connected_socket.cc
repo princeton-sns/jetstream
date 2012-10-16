@@ -41,7 +41,7 @@ ConnectedSocket::fail (const boost::system::error_code &error)
   LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
 
   sendQueue.clear();
-  close();
+  close_now();
 
   if (recvcb) {
     SerializedMessageIn bad_msg (0);
@@ -51,7 +51,7 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 
 
 void
-ConnectedSocket::close ()
+ConnectedSocket::close_now ()
 {
   if (sock->is_open()) {
     boost::system::error_code error;
@@ -61,6 +61,16 @@ ConnectedSocket::close ()
   }
 }
 
+
+void
+ConnectedSocket::close_on_strand(close_cb_t cb) {
+  isClosing = true;
+  closing_cb = cb;
+  if (!sending) {
+    close_now();
+    cb();
+  }
+}
 
 /******************** Sending messages ********************/
 
@@ -89,7 +99,12 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
 {
   if (!sock->is_open()) {
     error = make_error_code(boost::system::errc::connection_reset);
-    return; 
+    return;
+  }
+  if (isClosing) {
+    LOG(ERROR) << "attempt to send through closed socket"; //programmer error
+    error = make_error_code(boost::system::errc::connection_reset);
+    return;
   }
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
@@ -142,6 +157,8 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
 		       const boost::system::error_code &error,
 		       size_t bytes_transferred)
 {
+  sendCount++;
+
   sending = false;
 
   // XXX Check for specific errors?
@@ -153,6 +170,12 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
   VLOG(2) << "successfully sent "<< bytes_transferred << " bytes" <<endl;
   if (!sendQueue.empty())
     perform_queued_send();
+  else {
+    if (isClosing) {
+      close_now();
+      closing_cb();
+    }
+  }
 }
 
 

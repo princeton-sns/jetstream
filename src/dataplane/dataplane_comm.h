@@ -51,7 +51,7 @@ class RemoteDestAdaptor : public TupleReceiver {
                      const jetstream::Edge&,
                      msec_t wait_for_conn);
   virtual ~RemoteDestAdaptor() {
-    LOG(INFO) << "destructing RemoteDestAdaptor";
+    LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
  }
 
   virtual void process (boost::shared_ptr<Tuple> t);
@@ -76,6 +76,9 @@ class RemoteDestAdaptor : public TupleReceiver {
  */
 class DataplaneConnManager {
 
+/**
+Internally, we identify endpoints by a string consisting of an address:port pair
+*/
  private:
   std::map<std::string, std::vector<boost::shared_ptr<ClientConnection> > > pendingConns;
   
@@ -120,16 +123,22 @@ class DataplaneConnManager {
   ///////////////  Handles outgoing connections ////////////
   
  public:
+ /**
+ * RemoteDestAdaptors need to be torn down once there is no more data for them.
+ * For now, we just do this by blocking in RemoteDestAdaptor::no_more_tuples().
+ * The below code is mostly dead but we are keeping in case we decide we need
+ * a non-blocking solution.
+ */
     void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
        boost::lock_guard<boost::recursive_mutex> lock (outgoingMapMutex);
        adaptors[p->dest_as_str] = p;
     }
   
-/*    //currently dead code
-   void cleanup(string id) {
+    //currently dead code
+   void cleanup(std::string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
-  */
+  
 
 /*  Currently dead code.  */
     void deferred_cleanup(std::string);
@@ -138,10 +147,8 @@ class DataplaneConnManager {
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
     boost::recursive_mutex outgoingMapMutex;
-  
   /**
   * Maps from a destination operator ID to an RDA for it.
-  * This 
   */
     std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   

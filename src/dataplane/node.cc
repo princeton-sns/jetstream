@@ -139,7 +139,7 @@ Node::stop ()
   // Close liveness connections AFTER joining all io service threads, since this
   // guarantees no thread will try to send a notification.
   for (u_int i = 0; i < controllers.size(); ++i) {
-    controllers[i]->close();
+    controllers[i]->close_async(no_op_v);
   }
   
   startStopCond.notify_all();
@@ -440,7 +440,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 }
 
 boost::shared_ptr<DataPlaneOperator> 
-Node::get_operator (operator_id_t name) { 
+Node::get_operator (operator_id_t name) {
+  unique_lock<boost::mutex> lock(operatorTableLock);
+  
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
   iter = operators.find(name);
   if (iter != operators.end())
@@ -465,6 +467,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
     LOG(INFO) << "starting operator " << name << " of type " << op_typename;
+    unique_lock<boost::mutex> lock(operatorTableLock);
     operators[name] = d;
   }
   return err;
@@ -477,9 +480,13 @@ Node::stop_operator(operator_id_t name) {
 //  to the operator table
   shared_ptr<DataPlaneOperator> op = operators[name];
   if (op) { //operator still around
+  
     operator_cleanup.stop_on_strand(op);
-    int delCount = operators.erase(name);
-    assert(delCount > 0);
+    {
+      unique_lock<boost::mutex> lock(operatorTableLock);
+      int delCount = operators.erase(name);
+      assert(delCount > 0);
+    }
     operator_cleanup.cleanup(op);
   
     return true;

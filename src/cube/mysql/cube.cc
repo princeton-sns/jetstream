@@ -48,16 +48,23 @@ jetstream::cube::MysqlCube::init_connection() {
 
 
   //shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
-  shared_ptr<sql::Connection> con(driver->connect(options));
-  connection = con;
-  connection->setSchema(db_name);
+  try {
 
-  shared_ptr<sql::Statement> stmnt(connection->createStatement());
-  statement = stmnt;
+    shared_ptr<sql::Connection> con(driver->connect(options));
 
-  for (size_t i = 0; i < dimensions.size(); i++) {
-    dimensions[i]->set_connection(connection);
+    connection = con;
+    connection->setSchema(db_name);
+    shared_ptr<sql::Statement> stmnt(connection->createStatement());
+    statement = stmnt;
+
+    for (size_t i = 0; i < dimensions.size(); i++) {
+      dimensions[i]->set_connection(connection);
+    }
+  } catch (sql::SQLException &e) {
+    
+    LOG(FATAL) << e.what()<< "...perhaps the DB isn't running?";
   }
+
 }
 
 void

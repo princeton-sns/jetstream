@@ -41,7 +41,7 @@ def main():
   
   ### Define the graph abstractly, without a computation
   g = jsapi.OperatorGraph()
-  source = jsapi.SendK(g, 1000000)
+  source = jsapi.SendK(g, "1" + 10 * "0") #10 billion; fits into an int64 very easily
   sink = jsapi.RateRecord(g)
   
   g.connect(source,sink)

@@ -19,6 +19,8 @@ typedef boost::function<void (boost::system::error_code) > cb_err_t;
 typedef boost::function<void (boost::asio::ip::tcp::endpoint,
 			      const boost::system::error_code &) > cb_endpoint_t;
 
+inline void no_op_v() {}
+
 }
 
 #endif /* _JS_DEFS_H_ */
