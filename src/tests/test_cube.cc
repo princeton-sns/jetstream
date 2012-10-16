@@ -2,7 +2,7 @@
 #include "node.h"
 
 #include "mysql_cube.h"
-#include "queue_subscriber.h"
+#include "base_subscribers.h"
 #include "cube_iterator_impl.h"
 
 #include <gtest/gtest.h>

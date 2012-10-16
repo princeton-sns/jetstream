@@ -139,7 +139,7 @@ Node::stop ()
   // Close liveness connections AFTER joining all io service threads, since this
   // guarantees no thread will try to send a notification.
   for (u_int i = 0; i < controllers.size(); ++i) {
-    controllers[i]->close();
+    controllers[i]->close_async(no_op_v);
   }
   
   startStopCond.notify_all();

@@ -91,17 +91,19 @@ ClientConnection::timeout_cb (cb_err_t cb,
   
 
 void 
-ClientConnection::close ()
+ClientConnection::close_async (close_cb_t cb)
 {
   connected = false;
 
-  if (connSock)
-    connSock->close();
+  if (connSock) {
+    connSock->close ( cb);
+  }
   else if (sock->is_open()) {
     boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
     sock->close(error);
+    cb();
   }
 }
 
@@ -113,7 +115,7 @@ ClientConnection::send_msg (const ProtobufMessage &msg,
     error = asio::error::not_connected;
     return;
   }
-
+  
   connSock->send_msg(msg, error);
 }
 
