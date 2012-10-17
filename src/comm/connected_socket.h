@@ -66,9 +66,9 @@ friend class ClientConnection;
   cb_raw_msg_t recvcb;
   close_cb_t closing_cb;
   bool isClosing;
-  volatile int sendCount; //total number of send operations over lifetime.
+  volatile size_t sendCount; //total number of send operations over lifetime.
         //TODO should be atomic?
-
+  volatile size_t bytesQueued;
   /********* SENDING *********/
 
   class SerializedMessageOut {
@@ -169,7 +169,8 @@ friend class ClientConnection;
    */
   std::string get_fourtuple () const;
 
-  int send_count() { return sendCount; }
+  size_t send_count() { return sendCount; }
+  size_t bytes_queued() { return bytesQueued; }
 
 };
 

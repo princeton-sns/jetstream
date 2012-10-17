@@ -112,7 +112,9 @@ class ClientConnection {
   void recv_data_msg (cb_data_protomsg_t cb, boost::system::error_code &error);
   void recv_control_msg (cb_control_protomsg_t cb, boost::system::error_code &error);
 
-  int send_count() { return connSock->send_count(); }
+  size_t send_count() { return connSock->send_count(); }
+  size_t bytes_queued() { return connSock->bytes_queued(); }
+
 
 private:
   void close () {close_async(no_op_v);}

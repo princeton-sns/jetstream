@@ -57,6 +57,11 @@ class RemoteDestAdaptor : public TupleReceiver {
   virtual void process (boost::shared_ptr<Tuple> t);
   
   virtual void no_more_tuples();
+  
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(conn));
+  }
+
 
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();

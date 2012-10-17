@@ -60,7 +60,14 @@ void
 SendK::operator()() {
   boost::shared_ptr<Tuple> t(new Tuple);
   t->add_e()->set_s_val("foo");
+  
+  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
+  
+  
   for (u_int i = 0; i < k; i++) {
+    if (congested->is_congested()) {
+      boost::this_thread::yield();
+    }
     emit(t);
   }
   LOG(INFO) << "SendK " << id() << " done with " << k << " tuples";
