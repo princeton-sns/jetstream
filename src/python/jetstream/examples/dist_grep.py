@@ -63,8 +63,12 @@ def main():
   cube.instantiate_on(n)
   host_extend.instantiate_on(nodes)
 
+  result_reader = ClientDataReader()
+  net_addr = result_reader.prep_to_receive_data()
+  g.connect(cube, net_addr)
+
   server.deploy(g)
-    
+  result_reader.blocking_read(lambda x: print x )
 
 
 if __name__ == '__main__':

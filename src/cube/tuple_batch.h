@@ -16,33 +16,33 @@ namespace cube {
 class TupleBatch {
 
 public:
-  size_t static const INVALID_POSITION;
-
   TupleBatch(jetstream::DataCube * cube, size_t batch);
   virtual ~TupleBatch ();
 
-  size_t 
-    insert_tuple(boost::shared_ptr<jetstream::Tuple> t, bool batch, bool need_new_value, bool need_old_value);
-  size_t 
-    update_batched_tuple(size_t pos, boost::shared_ptr<jetstream::Tuple> t, bool batch);
+  void 
+    insert_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, bool batch);
+  void 
+    update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, bool batch);
 
   void flush();
+  bool is_full();
+  bool contains(jetstream::DimensionKey key);
+  boost::shared_ptr<jetstream::TupleProcessingInfo> get(DimensionKey key);
 private:
 
-  void save_tuple(boost::shared_ptr<jetstream::Tuple> t, bool need_new_value, bool need_old_value);
-  size_t batch_add(boost::shared_ptr<jetstream::Tuple> t, bool need_new_value, bool need_old_value);
-  size_t batch_set(boost::shared_ptr<jetstream::Tuple> t, bool need_new_value, bool need_old_value, size_t pos);
+  void save_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi);
+  void batch_add(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi);
+  void batch_set(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, size_t pos);
 
-  boost::shared_ptr<jetstream::Tuple> get_stored_tuple(size_t pos);
-  boost::shared_ptr<jetstream::Tuple> remove_tuple(size_t pos);
+  boost::shared_ptr<jetstream::TupleProcessingInfo> get_stored_tuple(size_t pos);
+  boost::shared_ptr<jetstream::TupleProcessingInfo> remove_tuple(size_t pos);
 
 
   jetstream::DataCube * get_cube();
   jetstream::DataCube * cube;
   size_t batch;
-  std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;  
-  std::vector<bool> need_new_value_store;  
-  std::vector<bool> need_old_value_store; 
+  std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> > tpi_store;  
+  std::map<DimensionKey, size_t> lookup;
   std::list<size_t> holes;
 };
 

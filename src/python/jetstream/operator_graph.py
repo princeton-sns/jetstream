@@ -126,9 +126,9 @@ class Destination(object):
     """
     if isinstance(n, NodeID):
       self._location = n
-      for p in self.preds:
-        if not p.is_placed():
-          p.instantiate_on(n)
+#      for p in self.preds:  
+#        if not p.is_placed():
+#          p.instantiate_on(n)
     else:
       #n should be a list
       assert len(n) > 0

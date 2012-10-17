@@ -14,6 +14,8 @@
 
 namespace jetstream {
 class DataCube;
+class TupleProcessingInfo;
+typedef std::string DimensionKey;
 }
 #include "tuple_batch.h"
 
@@ -24,11 +26,20 @@ namespace jetstream {
 */
 
 
+class TupleProcessingInfo {
+  public:
+    TupleProcessingInfo(boost::shared_ptr<Tuple> t, DimensionKey key): t(t), key(key), need_new_value(false), need_old_value(false) {};
+    boost::shared_ptr<Tuple> t;
+    DimensionKey key;
+    std::list<operator_id_t> insert;
+    std::list<operator_id_t> update;
+    bool need_new_value;
+    bool need_old_value;
+};
 
 class DataCube : public TupleReceiver {
-
   public:
-    typedef std::string DimensionKey;
+    typedef jetstream::DimensionKey DimensionKey;
 
     DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1);
     virtual ~DataCube() {}
@@ -88,7 +99,7 @@ class DataCube : public TupleReceiver {
     //only used by tuple batch
     virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
 
-    void save_callback(DimensionKey key, boost::shared_ptr<jetstream::Tuple> update,
+    void save_callback(jetstream::TupleProcessingInfo &tpi,
                        boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple);
 
     virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
@@ -99,15 +110,7 @@ class DataCube : public TupleReceiver {
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list,
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
   protected:
-    class TupleProcessing {
-      public:
-        TupleProcessing(boost::shared_ptr<Tuple> t): t(t) {};
-        TupleProcessing() {};
-        boost::shared_ptr<Tuple> t;
-        size_t pos;
-        std::list<operator_id_t> insert;
-        std::list<operator_id_t> update;
-    };
+
 
     jetstream::CubeSchema schema;
     std::string name;
@@ -115,9 +118,9 @@ class DataCube : public TupleReceiver {
 
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
-    std::map<DimensionKey, TupleProcessing> batch;
     boost::scoped_ptr<cube::TupleBatch> tupleBatcher;
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
+    boost::scoped_ptr<cube::TupleBatch> & get_tuple_batcher();
 
 
 //TODO should figure out how to implement this

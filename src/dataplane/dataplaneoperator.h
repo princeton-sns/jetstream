@@ -2,14 +2,17 @@
 #define _dataplaneoperator_H_
 
 #include <sys/types.h>
+#include <map>
+#include <iostream>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
 
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
-#include <map>
-#include <iostream>
+#include "congestion_monitor.h"
+
 
 //#include "node.h"
 
@@ -53,12 +56,18 @@ class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t) = 0;
   virtual void no_more_tuples() = 0;
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
+  }
+
+  
   
   virtual ~TupleReceiver() {}
   virtual const std::string& typename_as_str() = 0; //return a name for the type
   virtual std::string id_as_str() = 0;
     /** Return a longer description of the operator. Should NOT include the typename*/
   virtual std::string long_description() {return "";}
+
   
 
   
@@ -78,7 +87,8 @@ class DataPlaneOperator : public TupleReceiver {
 
  protected:
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
-    
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
+  
  public:
   DataPlaneOperator ():node(0),tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
