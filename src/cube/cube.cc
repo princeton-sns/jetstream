@@ -4,9 +4,11 @@
  */
 #include "cube.h"
 #include <glog/logging.h>
+#include <boost/shared_ptr.hpp>
 
 using namespace ::std;
 using namespace jetstream;
+using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
@@ -16,33 +18,34 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batc
 
 const std::string jetstream::DataCube::my_tyepename("data cube");
 
+boost::scoped_ptr<cube::TupleBatch> & DataCube::get_tuple_batcher()
+{
+  return tupleBatcher;
+}
+
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
-  //boost::shared_ptr<jetstream::Tuple> new_tuple;
-  //boost::shared_ptr<jetstream::Tuple> old_tuple;
-  //save_tuple(*t, false, false, new_tuple, old_tuple);
+  boost::scoped_ptr<cube::TupleBatch> & tupleBatcher = get_tuple_batcher();
   DimensionKey key = get_dimension_key(*t);
 
   bool in_batch = false;
 
-  if (batch.count(key)) {
+  if (tupleBatcher->contains(key)) {
     in_batch = true;
   }
 
-  TupleProcessing & tp = batch[key];
-
-  if(in_batch) {
-    merge_tuple_into(*(tp.t), *t);
+  shared_ptr<TupleProcessingInfo> tpi;
+  if(!in_batch)
+  {
+    tpi = make_shared<TupleProcessingInfo>(t, get_dimension_key(*t));
   }
-  else {
-    tp.t = t;
+  else
+  {
+    tpi = tupleBatcher->get(key);
+    merge_tuple_into(*(tpi->t), *t);
   }
-
 
   bool can_batch = true;
-  bool need_new_value = false;
-  bool need_old_value = false;
-
   for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
       it != subscribers.end(); ++it) {
     boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
@@ -50,56 +53,51 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
 
     if(act == cube::Subscriber::SEND) {
       if(!in_batch) {
-        tp.insert.push_back((*it).first);
-        need_new_value = true;
+        tpi->insert.push_back((*it).first);
+        tpi->need_new_value = true;
       }
     }
     else if(act == cube::Subscriber::SEND_NO_BATCH) {
       if(!in_batch) {
-        tp.insert.push_back((*it).first);
-
-        need_new_value = true;
+        tpi->insert.push_back((*it).first);
+        tpi->need_new_value = true;
       }
-
       can_batch = false;
     }
     else if(act == cube::Subscriber::SEND_UPDATE) {
       if(!in_batch) {
-        tp.update.push_back((*it).first);
+        tpi->update.push_back((*it).first);
 
-        need_new_value = true;
-        need_old_value = true;
+        tpi->need_new_value = true;
+        tpi->need_old_value = true;
       }
     }
   }
 
-  LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch<<" count: "<<batch.count(key) <<" pos: " << tp.pos << " can batch:" << can_batch;
+  LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch;
 
   if(!in_batch) {
-    tp.pos = tupleBatcher->insert_tuple(t, can_batch, need_new_value, need_old_value);
+    tupleBatcher->insert_tuple(tpi, can_batch);
   }
   else {
-    tupleBatcher->update_batched_tuple(tp.pos, t, can_batch);
+    tupleBatcher->update_batched_tuple(tpi, can_batch);
   }
+
+  if(tupleBatcher->is_full())
+    tupleBatcher->flush();
 }
 
-void DataCube::save_callback(DimensionKey key, boost::shared_ptr<jetstream::Tuple> update, boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple) {
-  std::map<DimensionKey, TupleProcessing>::iterator res = batch.find(key);
+void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple) {
 
-  if(res != batch.end()) {
-    TupleProcessing tp = res->second;
 
-    for( std::list<operator_id_t>::iterator it=tp.insert.begin(); it != tp.insert.end(); ++it) {
-      subscribers[*it]->insert_callback(update, new_tuple);
+    for( std::list<operator_id_t>::iterator it=tpi.insert.begin(); it != tpi.insert.end(); ++it) {
+      subscribers[*it]->insert_callback(tpi.t, new_tuple);
     }
 
-    for( std::list<operator_id_t>::iterator it=tp.update.begin(); it != tp.update.end(); ++it) {
-      subscribers[*it]->update_callback(update, new_tuple, old_tuple);
+    for( std::list<operator_id_t>::iterator it=tpi.update.begin(); it != tpi.update.end(); ++it) {
+      subscribers[*it]->update_callback(tpi.t, new_tuple, old_tuple);
     }
-  }
-
-  batch.erase(key);
-  LOG(INFO) << "In Save Callback:" <<key << "cnt: "<< batch.count(key);
+  LOG(INFO) << "End Save Callback:" <<tpi.key;
 }
 
 
