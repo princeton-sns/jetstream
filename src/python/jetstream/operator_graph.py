@@ -126,9 +126,9 @@ class Destination(object):
     """
     if isinstance(n, NodeID):
       self._location = n
-      for p in self.preds:
-        if not p.is_placed():
-          p.instantiate_on(n)
+#      for p in self.preds:  
+#        if not p.is_placed():
+#          p.instantiate_on(n)
     else:
       #n should be a list
       assert len(n) > 0
@@ -228,6 +228,7 @@ def ExtendOperator(graph, type_str, fld_vals_list):
     i = 0
     for x in fld_vals_list:
       cfg[str(i)] = str(x)
+      i += 1
     return graph.operator("ExtendOperator", cfg)
     
     

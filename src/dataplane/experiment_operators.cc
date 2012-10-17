@@ -60,7 +60,16 @@ void
 SendK::operator()() {
   boost::shared_ptr<Tuple> t(new Tuple);
   t->add_e()->set_s_val("foo");
+  
+  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
+  
+  
   for (u_int i = 0; i < k; i++) {
+    while (congested->is_congested()) {
+      boost::this_thread::yield();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+//      LOG(INFO) << "BLOCKING waiting for congestion";
+    }
     emit(t);
   }
   LOG(INFO) << "SendK " << id() << " done with " << k << " tuples";

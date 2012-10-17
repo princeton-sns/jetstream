@@ -125,6 +125,36 @@ class TestQueryPlanner(unittest.TestCase):
     pb_to_node = plan[dummy_node].get_pb()
     self.assertEquals(  len(pb_to_node.alter.edges), 1)
 
+  def test_external_edge_plan(self):
+    op_graph = jsapi.OperatorGraph()
+    reader = jsapi.FileRead(op_graph, "file name")
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER    
+    op_graph.add_to_PB(req.alter)
+    
+    MY_PORTNO = 1000
+    e = req.alter.edges.add()
+    e.src = req.alter.toStart[0].id.task
+    e.computation = 0
+    e.dest_addr.address= "myhost"
+    e.dest_addr.portno = MY_PORTNO
+
+    dummy_node = ("host",123)
+    planner = QueryPlanner( {dummy_node:dummy_node})
+    err = planner.take_raw(req.alter)
+    self.assertEquals( len(err), 0)    
+    plan = planner.get_assignments(1)
+    
+    self.assertTrue(dummy_node in plan)
+    self.assertEquals(len(plan), 1)
+    self.assertEquals(  len(plan[dummy_node].operators), 1)
+        
+    pb_to_node = plan[dummy_node].get_pb()
+    self.assertEquals(  len(pb_to_node.alter.edges), 1)
+    self.assertEquals( pb_to_node.alter.edges[0].dest_addr.portno, MY_PORTNO)
+
+
+
 if __name__ == '__main__':
   unittest.main()
   sys.exit(0)

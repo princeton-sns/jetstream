@@ -271,6 +271,12 @@ RemoteDestAdaptor::wait_for_chain_ready() {
   return true;
 }
 
+boost::shared_ptr<CongestionMonitor>
+RemoteDestAdaptor::congestion_monitor() {
+    return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(*this));
+  }
+
+
 
 string
 RemoteDestAdaptor::long_description() {
@@ -298,6 +304,7 @@ DataplaneConnManager::deferred_cleanup(string id) {
    //should set this up on a timer
   }
 }
+
 
 
 const std::string RemoteDestAdaptor::generic_name("Remote connection");

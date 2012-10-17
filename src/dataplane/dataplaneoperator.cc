@@ -32,6 +32,17 @@ DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
 }
 
 
+boost::shared_ptr<CongestionMonitor>
+DataPlaneOperator::congestion_monitor() {
+  if(dest)
+    return dest->congestion_monitor();
+  else {
+    //LOG(FATAL) << "Every chain-ending operator should have a congestion monitor";
+    return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
+  }
+}
+
+
 void
 DataPlaneOperator::no_more_tuples () {
 
