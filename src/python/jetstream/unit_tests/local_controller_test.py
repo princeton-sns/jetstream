@@ -38,7 +38,6 @@ class TestLocalController(unittest.TestCase):
     
     self.assertTrue(cube.is_placed())
     self.assertEquals(cube.location(), n)
-    self.assertEquals(op.location(), n)
     
     self.server.deploy(g)
     time.sleep(5)
