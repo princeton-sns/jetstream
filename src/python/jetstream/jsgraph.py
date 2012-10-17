@@ -77,6 +77,10 @@ class JSGraph (object):
 
     # Construct the forward and reverse adjacency lists
     for e in edges:
+      if not e.cube_name and not e.dest:
+        #pseudo-edge, so we ignore
+        continue
+
       src = self.nodes[e.src]
       if src not in self.adjList:
         self.adjList[src] = []

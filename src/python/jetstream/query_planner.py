@@ -92,7 +92,10 @@ class QueryPlanner (object):
     Takes the computation ID and a list of worker addresses (as host,port pairs).
     Returns a map from worker address to WorkerAssignment
     """
-    
+    if not self.alter:
+      print "Need to call take_raw before get_assignments    "
+      sys.exit(0)
+
     altertopo = self.alter
     self.overwrite_operator_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
@@ -161,14 +164,15 @@ class QueryPlanner (object):
     
     for edge in altertopo.edges:
       src_host = taskLocations[edge.src]
-      destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
-      dest_host = taskLocations[destID]
+      if edge.dest or edge.cube_name:
+        destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+        dest_host = taskLocations[destID]
       # If the unique source/dest ids of the edge are different, this is a remote edge
-      if dest_host != src_host:
-        # Use the dataplane endpoint of the destination
-        dest_ep = self.workers[dest_host]
-        edge.dest_addr.address = dest_ep[0]
-        edge.dest_addr.portno = dest_ep[1]
+        if dest_host != src_host:
+          # Use the dataplane endpoint of the destination
+          dest_ep = self.workers[dest_host]
+          edge.dest_addr.address = dest_ep[0]
+          edge.dest_addr.portno = dest_ep[1]
     
       assignments[src_host].add_edge(edge)
 
