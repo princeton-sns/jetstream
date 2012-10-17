@@ -136,7 +136,7 @@ friend class ClientConnection;
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
     : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-    isClosing(false),sendCount(0),sending (false), receiving (false) {
+    isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
     VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
   }
 

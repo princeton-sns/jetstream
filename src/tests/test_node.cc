@@ -455,13 +455,17 @@ TEST(NodeIntegration, DataplaneConn) {
   // Wait for the chain to be ready and the sending operator's data to flow through.   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   
-  
-  tries = 0;
-  while (rec->tuples.size() == 0 && tries++ < 20)
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  
   u_int k;
   stringstream(kStr) >> k;
+  
+  tries = 0;
+  while (rec->tuples.size() < k && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  
+  if(tries >= 20) {
+    cout << "GAVE UP WAITING FOR DATA"<<endl;
+  }
+  
   // EXPECT_* records the failure but allows the cleanup code below to execute
   EXPECT_EQ(k, rec->tuples.size());
   cout << "done with test; tearing down" << endl;

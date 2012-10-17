@@ -127,7 +127,6 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
   }
   else {
     sending = true;
-    bytesQueued -= msg->nbytes;
 
     VLOG(2) << "async send in perform_send" <<endl;
     // Keep hold of message until callback so not cleaned up until sent
@@ -149,6 +148,10 @@ ConnectedSocket::perform_queued_send ()
 
   sending = true;
   // Keep hold of message until callback so not cleaned up until sent
+
+  if (bytesQueued < msg->nbytes) {
+    LOG(FATAL) << "trying to substract "<< msg->nbytes << " from "<<bytesQueued;
+  }
   bytesQueued -= msg->nbytes;
 
   asio::async_write(*sock, 

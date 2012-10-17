@@ -15,6 +15,8 @@ namespace  jetstream {
 
 class DataplaneConnManager;
 
+
+
 class RemoteDestAdaptor : public TupleReceiver {
   friend class DataplaneConnManager;
 
@@ -25,7 +27,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
-  bool chainIsReady;
+  volatile bool chainIsReady;
 //  bool stopping;
   std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
@@ -58,10 +60,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   virtual void no_more_tuples();
   
-  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
-    return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(conn));
-  }
-
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
 
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
@@ -70,8 +69,33 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   private:
    static const std::string generic_name;
+  
+  class QueueCongestionMonitor: public CongestionMonitor {
+  private:
+    RemoteDestAdaptor& rda;
+
+
+  public:
+    static const int MAX_QUEUE_BYTES = 1E6;
+    virtual bool is_congested() {
+    /*
+      if (rda.chainIsReady) {
+        std::cout << "queue size " << rda.conn->bytes_queued() << std::endl;
+      } else
+        std::cout << "waiting for conn in monitor \n";
+        */
+      return !(rda.chainIsReady) || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
+    }
+  
+    QueueCongestionMonitor(RemoteDestAdaptor& o) : rda(o) {}
+
 };
   
+};
+  
+
+
+
 
 /**
  * Instances of this class are responsible for managing incoming data on the

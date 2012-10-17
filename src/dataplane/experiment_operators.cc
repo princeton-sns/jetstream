@@ -65,8 +65,10 @@ SendK::operator()() {
   
   
   for (u_int i = 0; i < k; i++) {
-    if (congested->is_congested()) {
+    while (congested->is_congested()) {
       boost::this_thread::yield();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+//      LOG(INFO) << "BLOCKING waiting for congestion";
     }
     emit(t);
   }
