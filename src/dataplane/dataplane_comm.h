@@ -87,7 +87,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   class QueueCongestionMonitor: public CongestionMonitor {
   
     private:
-      static const int MAX_QUEUE_BYTES = 1E6;
+      static const size_t MAX_QUEUE_BYTES = 1E6;
       RemoteDestAdaptor& rda;
 
     public:
