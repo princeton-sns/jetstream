@@ -36,7 +36,7 @@ class TestOpIntegration(unittest.TestCase):
 
   def test_operator(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
+    jsnode_cmd = "./jsnoded -a localhost:%d --start -C ./config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
     time.sleep(2)
@@ -68,7 +68,7 @@ class TestOpIntegration(unittest.TestCase):
 
   def test_multiple_operators(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
+    jsnode_cmd = "./jsnoded -a localhost:%d --start -C ./config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
     time.sleep(2)
@@ -113,7 +113,7 @@ class TestOpIntegration(unittest.TestCase):
     webPort = webPortMin
     for i in range(numWorkers):
       # Create a worker 
-      jsnode_cmd = "../../jsnoded -a localhost:%d -w %d --start -C ../../config/datanode.conf" % (self.controller.address[1], webPort)
+      jsnode_cmd = "./jsnoded -a localhost:%d -w %d --start -C ./config/datanode.conf" % (self.controller.address[1], webPort)
       webPort += 1
       print "starting",jsnode_cmd
       workerProcs.append(subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid))

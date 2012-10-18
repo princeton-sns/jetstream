@@ -12,7 +12,7 @@ import time
 
 
 from remote_controller import RemoteController
-import operator_graph as jsapi
+import query_graph as jsapi
 from jetstream_types_pb2 import *
 
 
@@ -40,7 +40,7 @@ def main():
   
   
   ### Define the graph abstractly, without a computation
-  g = jsapi.OperatorGraph()
+  g = jsapi.QueryGraph()
   source = jsapi.SendK(g, "1" + 10 * "0") #10 billion; fits into an int64 very easily
   sink = jsapi.RateRecord(g)
   

@@ -36,7 +36,7 @@ class TestWebIntegration(unittest.TestCase):
 
   def test_operator_cube(self):
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
-    jsnode_cmd = "../../jsnoded -a localhost:%d --start -C ../../config/datanode.conf" % (self.controller.address[1])
+    jsnode_cmd = "./jsnoded -a localhost:%d --start -C ./config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
     time.sleep(2)
@@ -57,10 +57,12 @@ class TestWebIntegration(unittest.TestCase):
     d = newCube.schema.dimensions.add()
     d.name = "text"
     d.type = Element.STRING
+    d.tuple_indexes.append(0)
     
     d = newCube.schema.aggregates.add()
     d.name = "count"
     d.type = "count"
+    d.tuple_indexes.append(1)
     
     edge = req.alter.edges.add()
     edge.src = 2

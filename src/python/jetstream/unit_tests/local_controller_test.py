@@ -4,7 +4,7 @@ import time
 import unittest
 
 from local_controller import LocalController
-from operator_graph import OperatorGraph,Operators
+from query_graph import QueryGraph,Operator
 from jetstream_types_pb2 import *
 
 
@@ -12,6 +12,7 @@ class TestLocalController(unittest.TestCase):
 
   def setUp(self):
     self.server = LocalController()
+
     
   def test_get_nodes(self):
     nodes = self.server.all_nodes()
@@ -29,9 +30,9 @@ class TestLocalController(unittest.TestCase):
   def test_op_graph(self):
     
     n = self.server.get_a_node()
-    g = OperatorGraph()
-    op = g.operator(Operators.UNIX, {"cmd":"cat /etc/shells"})
-    cube = g.cube("storeddata", {})
+    g = QueryGraph()
+    op = g.add_operator(Operator.OpType.UNIX, {"cmd":"cat /etc/shells"})
+    cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
     cube.instantiate_on(n)
     self.assertTrue( cube.get_name().endswith("/storeddata"))
@@ -47,38 +48,34 @@ class TestLocalController(unittest.TestCase):
 
 
   def test_clone_back(self):
-    g = OperatorGraph()
-    op = g.operator(Operators.UNIX, {"cmd":"cat /etc/shells"})
-    cube = g.cube("storeddata", {})
+    g = QueryGraph()
+    op = g.add_operator(Operator.OpType.UNIX, {"cmd":"cat /etc/shells"})
+    cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
-    self.assertEquals(g.opID, 3)
+    self.assertEquals(g.nID, 3)
     g.clone_back_from(cube, 1)
-    self.assertEquals(g.opID, 5)
+    self.assertEquals(g.nID, 5)
     self.assertEquals( len(cube.preds), 1)
     self.assertEquals( len(g.edges), 2)
 
     self.assertTrue( (1,2) in  g.edges)
     self.assertTrue( (3,4) in  g.edges  or  (4,3) in  g.edges)
-
     
 
   def test_multi_place(self):
     n = self.server.get_a_node()
     
     n2 = NodeID()
-    n2.portno =  123
+    n2.portno = 123
     n2.address = "dummy host"
     
-    g = OperatorGraph()
-    op = g.operator(Operators.UNIX,{"cmd":"cat /etc/shells"})
-    cube = g.cube("storeddata", {})
+    g = QueryGraph()
+    op = g.add_operator(Operator.OpType.UNIX,{"cmd":"cat /etc/shells"})
+    cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
     
     cube.instantiate_on([n, n2])
     
     
-  
-  
-
 if __name__ == '__main__':
     unittest.main()
