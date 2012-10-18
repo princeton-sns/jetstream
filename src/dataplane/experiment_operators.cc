@@ -150,7 +150,7 @@ ContinuousSendK::operator()() {
 void
 RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
   {
-    boost::lock_guard<boost::mutex> lock (mutex);
+//    boost::lock_guard<boost::mutex> lock (mutex);
     tuples_in_window ++;
     bytes_in_window += t->ByteSize();
   }
