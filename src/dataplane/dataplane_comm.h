@@ -22,7 +22,7 @@ class DataplaneConnManager;
 class RemoteDestAdaptor : public TupleReceiver {
   friend class DataplaneConnManager;
 
-  const static int SIZE_TO_SEND = 4096;
+  const static size_t SIZE_TO_SEND = 4096;
   const static int WAIT_FOR_DATA = 50; //ms;
 //  const static boost::posix_time::ptime WAIT_FOR_DATA =
 //    boost::posix_time::milliseconds(50);
