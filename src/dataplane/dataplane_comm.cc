@@ -11,7 +11,7 @@ void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          shared_ptr<TupleReceiver> dest) {
   
-  {   //CRITICAL SECTION
+  {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
     if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
@@ -57,7 +57,7 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 void
 DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
 
-  {   //CRITICAL SECTION
+  {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
     string op_id = dest->id_as_str();
     map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
@@ -169,8 +169,12 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm, ConnectionManag
 void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
+  if (error) {
+    LOG(WARNING) << "Dataplane connection failed: " << error.message();
+    return;
+  }
+
   conn = c;
-  //TODO CHECK FOR NULL CONN!!
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
@@ -209,7 +213,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 void
 RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) {
   if (!wait_for_chain_ready()) {
-    LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
+    LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
 		 << ". Aborting data message send. Should queue/retry instead?";
     return;
   }
@@ -271,11 +275,11 @@ RemoteDestAdaptor::wait_for_chain_ready() {
   return true;
 }
 
+
 boost::shared_ptr<CongestionMonitor>
 RemoteDestAdaptor::congestion_monitor() {
-    return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(*this));
-  }
-
+  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(*this));
+}
 
 
 string
@@ -297,7 +301,7 @@ DataplaneConnManager::deferred_cleanup(string id) {
   }
   assert(a);
   
-  if (!a->conn->is_connected()) {
+  if (!a->conn || !a->conn->is_connected()) {
     adaptors.erase(id);
   } else {
     LOG(FATAL) << "need to handle deferred cleanup of an in-use rda";
