@@ -67,8 +67,9 @@ friend class ClientConnection;
   close_cb_t closing_cb;
   bool isClosing;
   volatile size_t sendCount; //total number of send operations over lifetime.
-        //TODO should be atomic?
+  //TODO should be atomic?
   volatile size_t bytesQueued;
+
   /********* SENDING *********/
 
   class SerializedMessageOut {
@@ -91,15 +92,16 @@ friend class ClientConnection;
   // Only one outstanding async_write at a time
   bool sending;
 
-  // Queue of scatter/gather IO pointers, each comprising a single 
-  // serialized ProtoBuf message
-  /*  As per boost documentation:  The program must ensure that the stream 
-  performs no other write operations (such as async_write, the stream's 
-  async_write_some function, or any other composed operations that perform writes)
-   until this operation [async_write] completes.
-  
- From  http://www.boost.org/doc/libs/1_45_0/doc/html/boost_asio/reference/async_write/overload1.html
-  */
+  /**
+   * Queue of scatter/gather IO pointers, each comprising a single serialized 
+   * ProtoBuf message.
+   *
+   * As per boost documentation:  The program must ensure that the stream 
+   * performs no other write operations (such as async_write, the stream's 
+   * async_write_some function, or any other composed operations that perform writes)
+   * until this operation [async_write] completes.
+   * From  http://www.boost.org/doc/libs/1_45_0/doc/html/boost_asio/reference/async_write/overload1.html
+   */
   std::deque<boost::shared_ptr<SerializedMessageOut> > sendQueue;
 
   // Serialize access to following functions via same strand
@@ -155,13 +157,18 @@ friend class ClientConnection;
   
   boost::shared_ptr<boost::asio::io_service> get_iosrv () { return iosrv; }
 
-  // FIXME sock->remote/local can through exceptions.  Can with error code instead?
-  //TODO: This is throwing during some of our integration tests, since we often
-  //just terminate the jsnoded daemon (no way to call Node::stop() gracefully)
-  boost::asio::ip::tcp::endpoint get_remote_endpoint () const 
-  { return sock->remote_endpoint(); }
-  boost::asio::ip::tcp::endpoint get_local_endpoint () const 
-  { return sock->local_endpoint(); }
+  /**
+   * Returns the remote or local endpoint of the socket, if available. Otherwise
+   * (e.g., on error) returns a default-constructed endpoint.
+   */
+  boost::asio::ip::tcp::endpoint get_remote_endpoint () const {
+    boost::system::error_code ep_error;
+    return sock->remote_endpoint(ep_error); 
+  }
+  boost::asio::ip::tcp::endpoint get_local_endpoint () const { 
+    boost::system::error_code ep_error;
+    return sock->local_endpoint(ep_error);
+  }
 
   /**
    * Return socket four tuple in string:  
