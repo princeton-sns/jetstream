@@ -12,7 +12,7 @@ import time
 
 
 from remote_controller import RemoteController
-import operator_graph as jsapi
+import query_graph as jsapi
 from jetstream_types_pb2 import *
 
 
@@ -38,15 +38,15 @@ def main():
   
   
   ### Define the graph abstractly, without a computation
-  g = jsapi.OperatorGraph()
+  g = jsapi.QueryGraph()
   reader = jsapi.FileRead(g, file_to_grep)
   grepper = jsapi.StringGrep(g, pattern)
   host_extend = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"])
   
-  cube = g.cube("local_results")
+  cube = g.add_cube("local_results")
   cube.add_dim("log_line", Element.STRING, 0)
   cube.add_dim("hostname", Element.STRING, 1)
-  cube.add_agg("count", jsapi.Cube.COUNT, 2)
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
   cube.set_overwrite(True)  #fresh results
 
   g.connect(reader,grepper)

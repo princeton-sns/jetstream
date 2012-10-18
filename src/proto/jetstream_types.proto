@@ -59,7 +59,6 @@ message TaskMeta {
 
   //TODO: Determine minimal set of attributes client must specify for submitted operators.
   // optional int32 partialAggRatio
-  // optional boolean isUnion
 }
 
 
