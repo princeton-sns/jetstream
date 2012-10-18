@@ -5,6 +5,8 @@
 #include <set>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 #include "connection.h"
 #include "dataplaneoperator.h"
@@ -20,18 +22,25 @@ class DataplaneConnManager;
 class RemoteDestAdaptor : public TupleReceiver {
   friend class DataplaneConnManager;
 
-
+  const static size_t SIZE_TO_SEND = 4096;
+  const static int WAIT_FOR_DATA = 50; //ms;
+//  const static boost::posix_time::ptime WAIT_FOR_DATA =
+//    boost::posix_time::milliseconds(50);
  private:
   DataplaneConnManager& mgr;
- 
+  boost::asio::io_service & iosrv;
+
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
   volatile bool chainIsReady;
+  volatile size_t this_buf_size;
 //  bool stopping;
   std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
   Edge dest_as_edge;
+  DataplaneMessage msg;
+  boost::asio::deadline_timer timer;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -43,6 +52,9 @@ class RemoteDestAdaptor : public TupleReceiver {
    
   msec_t wait_for_conn; // Note this is a wide area wait.
   
+  void force_send(); //called by timer
+  void do_send_unlocked(); //does the send, no lock acquisition
+  
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
   //    using it and therefore won't have it enabled
@@ -50,9 +62,10 @@ class RemoteDestAdaptor : public TupleReceiver {
 //      conn (c), chainIsReady(false), stopping(false) {}
 
   RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
-                     const jetstream::Edge&,
+                       boost::asio::io_service & iosrv, const jetstream::Edge&,
                      msec_t wait_for_conn);
   virtual ~RemoteDestAdaptor() {
+    timer.cancel();
     LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
  }
 
@@ -70,27 +83,27 @@ class RemoteDestAdaptor : public TupleReceiver {
   private:
    static const std::string generic_name;
   
+  
   class QueueCongestionMonitor: public CongestionMonitor {
-  private:
-    RemoteDestAdaptor& rda;
-
-
-  public:
-    static const int MAX_QUEUE_BYTES = 1E6;
-    virtual bool is_congested() {
-    /*
-      if (rda.chainIsReady) {
-        std::cout << "queue size " << rda.conn->bytes_queued() << std::endl;
-      } else
-        std::cout << "waiting for conn in monitor \n";
-        */
-      return !(rda.chainIsReady) || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
-    }
   
-    QueueCongestionMonitor(RemoteDestAdaptor& o) : rda(o) {}
+    private:
+      static const size_t MAX_QUEUE_BYTES = 1E6;
+      RemoteDestAdaptor& rda;
 
-};
-  
+    public:
+      QueueCongestionMonitor(RemoteDestAdaptor& o) : rda(o) {}
+      virtual bool is_congested() {
+      /*
+        if (rda.chainIsReady) {
+          std::cout << "queue size " << rda.conn->bytes_queued() << std::endl;
+        } else
+          std::cout << "waiting for conn in monitor \n";
+          */
+        return !(rda.chainIsReady) || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
+      }
+    
+  };
+    
 };
   
 
@@ -163,13 +176,10 @@ Internally, we identify endpoints by a string consisting of an address:port pair
        adaptors[p->dest_as_str] = p;
     }
   
-    //currently dead code
    void cleanup(std::string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
   
-
-/*  Currently dead code.  */
     void deferred_cleanup(std::string);
  
   private:

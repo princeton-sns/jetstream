@@ -88,6 +88,7 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
+//      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
       shared_ptr<Tuple> data (new Tuple);
       for(int i=0; i < msg.data_size(); ++i) {
         data->MergeFrom (msg.data(i));
@@ -144,9 +145,13 @@ DataplaneConnManager::close() {
 }
   
 
-RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm, ConnectionManager &cm,
-                                          const Edge &e, msec_t wait)
-  : mgr(dcm), chainIsReady(false), wait_for_conn(wait) {
+RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
+                                      ConnectionManager &cm,
+                                      boost::asio::io_service & io,
+                                      const Edge &e,
+                                      msec_t wait)
+  : mgr(dcm), iosrv(io), chainIsReady(false), this_buf_size(0),
+    timer(io), wait_for_conn(wait) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
@@ -218,15 +223,44 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) {
     return;
   }
 
-  DataplaneMessage d;
-  d.set_type(DataplaneMessage::DATA);
-  d.add_data()->MergeFrom(*t);
-  //TODO: could we merge multiple tuples here?
-
-  boost::system::error_code err;
-  conn->send_msg(d, err);
+  {
+    unique_lock<boost::mutex> lock(mutex);
+    msg.set_type(DataplaneMessage::DATA);
+    
+    bool buffer_was_empty = (this_buf_size == 0);
+    this_buf_size += t->ByteSize();
+    msg.add_data()->MergeFrom(*t);
+    
+    if (this_buf_size < SIZE_TO_SEND) {
+      if (buffer_was_empty) {
+        timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
+        timer.async_wait(boost::bind(&RemoteDestAdaptor::force_send, this));
+      }
+      return;
+    } else
+      do_send_unlocked();
+  }
 }
 
+
+void
+RemoteDestAdaptor::force_send() {
+  unique_lock<boost::mutex> lock(mutex);
+  if (this_buf_size == 0)
+    return;
+  do_send_unlocked();
+}
+
+void
+RemoteDestAdaptor::do_send_unlocked() {
+
+  this_buf_size = 0;
+  timer.cancel();
+  
+  boost::system::error_code err;
+  conn->send_msg(msg, err);
+  msg.Clear();
+}
 
 void
 RemoteDestAdaptor::no_more_tuples () {
@@ -235,6 +269,8 @@ RemoteDestAdaptor::no_more_tuples () {
 		 << ". Aborting no-more-data message send. Should queue/retry instead?";
     return;
   }
+  
+  force_send();
 
   DataplaneMessage d;
   d.set_type(DataplaneMessage::NO_MORE_DATA);

@@ -405,7 +405,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     } 
     else if (edge.has_dest_addr()) {   //remote network operator
       shared_ptr<RemoteDestAdaptor> xceiver(
-          new RemoteDestAdaptor(dataConnMgr, *connMgr, edge, config.data_conn_wait) );
+          new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
       dataConnMgr.register_new_adaptor(xceiver);
       srcOperator->set_dest(xceiver);
     } 
