@@ -146,7 +146,8 @@ class Controller (ControllerAPI, JSServer):
     print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
     self.stateLock.acquire()
     if clientEndpoint not in self.workers:
-      logger.info("Added worker %s" % (str(clientEndpoint)))
+      logger.info("Added worker %s; dp addr %s:%d" % 
+          (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
     self.workers[clientEndpoint].receive_hb(hb)
     self.stateLock.release()

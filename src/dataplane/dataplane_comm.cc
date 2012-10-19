@@ -93,6 +93,7 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
       for(int i=0; i < msg.data_size(); ++i) {
         data->MergeFrom (msg.data(i));
         dest->process(data);
+        data->Clear();
       }
       break;
     }
