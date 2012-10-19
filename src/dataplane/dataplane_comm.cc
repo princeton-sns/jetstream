@@ -315,7 +315,8 @@ RemoteDestAdaptor::wait_for_chain_ready() {
 
 boost::shared_ptr<CongestionMonitor>
 RemoteDestAdaptor::congestion_monitor() {
-  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(*this));
+  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor
+      (*this, mgr.maxQueueSize()));
 }
 
 

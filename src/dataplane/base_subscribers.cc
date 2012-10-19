@@ -1,30 +1,42 @@
-#include "base_subscribers.h"
-#include <glog/logging.h>
+#include <string>
 
-using namespace std;
-using namespace jetstream::cube;
+#include "subscriber.h"
 
-jetstream::cube::Subscriber::Action QueueSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-  return returnAction;
+using namespace ::std;
+
+namespace jetstream {
+
+cube::Subscriber::Action
+TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+  return NO_SEND;
 }
 
-void QueueSubscriber::insert_callback(boost::shared_ptr<jetstream::Tuple> const &update, boost::shared_ptr<jetstream::Tuple> const &new_value) {
-  insert_q.push_back(new_value);
+void
+TimeBasedSubscriber::insert_callback(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value) {
+	; 
 }
 
-void QueueSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &update,boost::shared_ptr<jetstream::Tuple> const &new_value, boost::shared_ptr<jetstream::Tuple> const &old_value) {
-  update_q.push_back(new_value);
+void
+TimeBasedSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
+                                 boost::shared_ptr<jetstream::Tuple> const &old_value) {
+  ;
 }
 
-jetstream::cube::Subscriber::Action UnionSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-  return SEND;
+
+void TimeBasedSubscriber::operator()() {
+
+	 while (running)  {
+  //sleep
+    boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+	}
+
 }
 
-void UnionSubscriber::insert_callback(boost::shared_ptr<jetstream::Tuple> const &update, boost::shared_ptr<jetstream::Tuple> const &new_value) {
-  emit(update);
-}
 
-void UnionSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &update,boost::shared_ptr<jetstream::Tuple> const &new_value, boost::shared_ptr<jetstream::Tuple> const &old_value) {
-  LOG(FATAL)<<"Should never be used";  
-}
+const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 
+
+
+}

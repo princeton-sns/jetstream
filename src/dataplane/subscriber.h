@@ -38,6 +38,8 @@ class Subscriber: public jetstream::DataPlaneOperator {
 };
 
 } /* cube */
+
+
 } /* jetsream */
 
 #endif /* end of include guard: SUBSCRIBER_2FAEJ0UJ */

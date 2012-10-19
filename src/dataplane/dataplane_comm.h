@@ -6,11 +6,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <glog/logging.h>
 
 
 #include "connection.h"
 #include "dataplaneoperator.h"
-#include <glog/logging.h>
+#include "node_config.h"
+
 
 namespace  jetstream {
   
@@ -87,11 +89,12 @@ class RemoteDestAdaptor : public TupleReceiver {
   class QueueCongestionMonitor: public CongestionMonitor {
   
     private:
-      static const size_t MAX_QUEUE_BYTES = 1E6;
+      const size_t MAX_QUEUE_BYTES;
       RemoteDestAdaptor& rda;
 
     public:
-      QueueCongestionMonitor(RemoteDestAdaptor& o) : rda(o) {}
+      QueueCongestionMonitor(RemoteDestAdaptor& o, size_t queue) :
+          MAX_QUEUE_BYTES(queue), rda(o) {}
       virtual bool is_congested() {
       /*
         if (rda.chainIsReady) {
@@ -141,11 +144,12 @@ Internally, we identify endpoints by a string consisting of an address:port pair
   
   void operator= (const DataplaneConnManager &) 
     { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
-  DataplaneConnManager (const DataplaneConnManager & d):iosrv(d.iosrv),strand(d.strand)
+  DataplaneConnManager (const DataplaneConnManager & d):iosrv(d.iosrv),strand(d.strand),cfg(d.cfg)
     { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
   
  public:
-  DataplaneConnManager (boost::asio::io_service& io):iosrv(io), strand(iosrv) {}
+  DataplaneConnManager (boost::asio::io_service& io, const NodeConfig& c):
+      iosrv(io), strand(iosrv), cfg(c) {}
  
  
     // called to attach incoming connection c to existing operator dest
@@ -182,9 +186,12 @@ Internally, we identify endpoints by a string consisting of an address:port pair
   
     void deferred_cleanup(std::string);
  
+    size_t maxQueueSize() { return cfg.sendQueueSize; }
+ 
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
+    const NodeConfig& cfg;
     boost::recursive_mutex outgoingMapMutex;
   /**
   * Maps from a destination operator ID to an RDA for it.

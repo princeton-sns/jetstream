@@ -87,6 +87,7 @@ class Node {
     return operators.size();
   }
   
+  const NodeConfig& cfg() { return config;}
     
   boost::shared_ptr<DataCube>
     get_cube (const std::string &name) { return cubeMgr.get_cube(name); }
