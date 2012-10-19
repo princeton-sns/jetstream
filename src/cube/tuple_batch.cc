@@ -142,3 +142,8 @@ bool TupleBatch::is_full()
   return holes.empty() && tpi_store.size() >= batch;
 }
 
+size_t TupleBatch::size()
+{
+  assert(tpi_store.size() >= holes.size());
+  return tpi_store.size() - holes.size();
+}

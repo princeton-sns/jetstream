@@ -9,8 +9,9 @@
 #include "cube_iterator.h"
 #include "subscriber.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
+#include "js_executor.h"
 
 namespace jetstream {
 class DataCube;
@@ -41,13 +42,14 @@ class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1);
+    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, size_t num_threads=2);
     virtual ~DataCube() {}
 
     //main external functions
     virtual void create() = 0;
     virtual void destroy() = 0;
-    virtual void process(boost::shared_ptr<Tuple> t);
+    void process(boost::shared_ptr<Tuple> t);
+    size_t batch_size();
 
 
     //query functions
@@ -118,15 +120,28 @@ class DataCube : public TupleReceiver {
 
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
-    boost::scoped_ptr<cube::TupleBatch> tupleBatcher;
+    boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
-    boost::scoped_ptr<cube::TupleBatch> & get_tuple_batcher();
+    boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
 
 
 //TODO should figure out how to implement this
 
   private:
     static const std::string my_tyepename;
+
+
+    virtual void do_process(boost::shared_ptr<Tuple> t);
+    void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
+    void post_flush();
+
+    size_t elements_in_batch;
+    Executor exec;
+    shared_ptr<boost::asio::strand> flushStrand;
+    shared_ptr<boost::asio::strand> processStrand;
+    int outstanding_batches; //protected by processStrand;
+    
+
 };
 
 }

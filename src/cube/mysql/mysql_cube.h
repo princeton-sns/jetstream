@@ -32,6 +32,12 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
                string db_name="test_cube",
                size_t batch=1);
 
+    class ThreadConnection{
+      public:
+        boost::shared_ptr<sql::Connection> connection;
+        boost::shared_ptr<sql::Statement> statement;
+        std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > preparedStatementCache;
+    };
 
     virtual bool insert_entry(jetstream::Tuple const &t);
     virtual bool insert_partial_aggregate(jetstream::Tuple const &t);
@@ -80,17 +86,17 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     virtual void
     do_rollup(std::list<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max);
 
-    virtual ~MysqlCube() {
-      if(is_frozen) {
-        destroy();
-      }
-    }
+    virtual ~MysqlCube();
 
   protected:
     /*
     void insert_one(jetstream::Tuple const &t);
     size_t insert_batch(jetstream::Tuple const &t);
     void flush_batch();*/
+
+    boost::shared_ptr<ThreadConnection> get_thread_connection();
+    //void on_thread_exit(boost::thread::id tid);
+
 
     string get_sort_clause(list<string> const &sort) const;
     string get_limit_clause(size_t limit) const;
@@ -99,8 +105,8 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
 
     boost::shared_ptr<sql::Connection> get_connection() const;
-    void execute_sql(string const &sql) const;
-    boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql) const;
+    void execute_sql(string const &sql);
+    boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql);
 
     string get_insert_prepared_sql(size_t batch);
     string get_select_cell_prepared_sql(size_t num_cells);
@@ -119,8 +125,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     string db_pass;
     string db_name;
 
-    boost::shared_ptr<sql::Connection> connection;
-    boost::shared_ptr<sql::Statement> statement;
+    std::map<boost::thread::id, boost::shared_ptr<ThreadConnection> > connectionPool;
 
     size_t batch;
 
@@ -129,9 +134,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     size_t numFieldsPerBatch;
 
-    std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > preparedStatementCache;
-    std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > insertStatement;
-    boost::shared_ptr<sql::PreparedStatement> insertOneStatement;
 
     boost::shared_ptr<sql::ResultSet> slice_result_set;
     bool slice_final;

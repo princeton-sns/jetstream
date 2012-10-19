@@ -76,7 +76,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 
 
   public:
-    static const int MAX_QUEUE_BYTES = 1E6;
+    static const unsigned int MAX_QUEUE_BYTES = 1E6;
     virtual bool is_congested() {
     /*
       if (rda.chainIsReady) {
