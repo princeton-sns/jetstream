@@ -149,9 +149,11 @@ ContinuousSendK::operator()() {
 
 void
 RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
+  
   {
-    boost::lock_guard<boost::mutex> lock (mutex);
+//    boost::lock_guard<boost::mutex> lock (mutex);
     tuples_in_window ++;
+
     bytes_in_window += t->ByteSize();
   }
   if (get_dest() != NULL)
@@ -169,6 +171,9 @@ RateRecordReceiver::long_description() {
   
 void
 RateRecordReceiver::start() {
+  if (running) {
+    LOG(FATAL) << "Should only start() once";
+  }
   running = true;
   loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
@@ -195,10 +200,14 @@ RateRecordReceiver::operator()() {
     {
       boost::lock_guard<boost::mutex> lock (mutex);
       
-      tuples_per_sec = (tuples_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
-      bytes_per_sec = (bytes_in_window * 1000.0) / (wake_time - window_start).total_milliseconds();
+      long sleeptime = (wake_time - window_start).total_milliseconds();
+      tuples_per_sec = (tuples_in_window * 1000.0) / sleeptime;
+      bytes_per_sec = (bytes_in_window * 1000.0) / sleeptime;
+      
       tuples_in_win = tuples_in_window;
-      tuples_in_window = bytes_in_window = 0;
+      
+      tuples_in_window = 0;
+      bytes_in_window = 0;
       
       window_start = wake_time;
     }

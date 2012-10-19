@@ -60,18 +60,19 @@ class StringGrep: public DataPlaneOperator {
 };
 
 
-/**  Parses strings in tuples. 
- *  Takes three params: field_to_parse, pattern, types
+/***
+ * Parses strings in tuples. 
+ * Takes three params: field_to_parse, pattern, types
  * If 'field_to_parse' = x, then given a tuple (t0,t1...t_x,t_x+1,...), will 
- *  produce (t0,t1...t_y,t_y2,...,t_x+1, ...). In other words, the params before
+ * produce (t0,t1...t_y,t_y2,...,t_x+1, ...). In other words, the params before
  * and after 'field_to_parse' are kept, and the field to parse is expanded.
  *
- *  pattern should be a regex with groups in it. The types param should be a string
+ * pattern should be a regex with groups in it. The types param should be a string
  * with one char per regex group and corresponds to the type of the group elems.
  * [S = string, I = Int, D = double]
  *
- *  Behavior is un-specified if the regex doesn't match.
- *  NOTE THAT FIELDS ARE NUMBERED FROM ZERO
+ * Behavior is un-specified if the regex doesn't match.
+ * NOTE THAT FIELDS ARE NUMBERED FROM ZERO
  */
 class GenericParse: public DataPlaneOperator {
 

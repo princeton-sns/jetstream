@@ -3,35 +3,28 @@ import types
 from jetstream_types_pb2 import *
 
 
-# Enumeration of already-defined operators
-class Operators(object):
-
-  UNIX = "Unix"
-  Fetcher = "Fetcher"
-  
-
-class OperatorGraph(object):
+class QueryGraph(object):
 
   def __init__(self):
-    self.opID = 1  #should be the NEXT ID to hand out
-    self.edges = set([]) #pairs of opIDs
-    self.operators = {} # maps ID to value
-    self.cubes = {}  #id to value
+    self.nID = 1          # the NEXT ID to hand out
+    self.edges = set([])  # pairs of nIDs
+    self.operators = {}   # maps id -> value
+    self.cubes = {}       # maps id -> value
 
 
-  def operator(self, type, cfg):
+  def add_operator(self, type, cfg):
     """Add an operator to the graph"""
-    o = Operator(self, type, cfg, self.opID)
-    self.operators[self.opID] = o
-    self.opID += 1
+    o = Operator(self, type, cfg, self.nID)
+    self.operators[self.nID] = o
+    self.nID += 1
     return o  
     
-  def cube(self, name, desc = {}):
+  def add_cube(self, name, desc = {}):
     """Add a cube to the graph"""
-    o = Cube(self, name, desc, self.opID)
-    self.cubes[self.opID] = o
-    self.opID += 1
-    return o
+    c = Cube(self, name, desc, self.nID)
+    self.cubes[self.nID] = c
+    self.nID += 1
+    return c
 
     
   def add_to_PB(self, alter):
@@ -90,20 +83,20 @@ class OperatorGraph(object):
     if isinstance(dest,Operator):
       new_cfg = {}
       new_cfg.update(dest.cfg)
-      return self.operator(dest.type, new_cfg)
+      return self.add_operator(dest.type, new_cfg)
     elif isinstance(dest,Cube):
-      return self.cube(dest.name, dest.desc)
+      return self.add_cube(dest.name, dest.desc)
     else:
       raise "unexpected param to copy_dest"
 
       
-## These represent the abstract concept of an operator or cube, for building
-# the operator graphs. The concrete executable implementations are elsewhere.
+# This represents the abstract concept of an operator or cube, for building
+# the query graphs. The concrete executable implementations are elsewhere.
 class Destination(object):
   
   def __init__(self, graph, id):
     self.preds = set()
-    self.graph = graph  #keep link to parent OperatorGraph
+    self.graph = graph  #keep link to parent QueryGraph
     self.id = id
     self._location = None
 
@@ -140,6 +133,20 @@ class Destination(object):
 
 
 class Operator(Destination):
+
+  # Enumeration of already-defined operators
+  class OpType (object):
+    FILE_READ = "FileRead"
+    STRING_GREP = "StringGrep"
+    EXTEND = "ExtendOperator"
+    NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
+    SEND_K = "SendK"
+    RATE_RECEIVER = "RateRecordReceiver"
+
+    # Supported by Python local controller/worker only
+    UNIX = "Unix"
+    FETCHER = "Fetcher"
+
   
   def __init__(self, graph, type, cfg, id):
     super(Operator,self).__init__(graph, id)
@@ -161,9 +168,10 @@ class Operator(Destination):
      
 
 class Cube(Destination):
-  
-  STRING = "string"
-  COUNT = "count"
+
+  class AggType (object):
+    COUNT = "count"
+    
 
   def __init__(self, graph, name, desc, id):
     super(Cube,self).__init__(graph, id)
@@ -179,12 +187,15 @@ class Cube(Destination):
   def add_dim(self, dim_name, dim_type, offset):
     self.desc['dims'].append(  (dim_name, dim_type, offset) )
 
+
   def add_agg(self, a_name, a_type, offset):
     self.desc['aggs'].append(  (a_name, a_type, offset) )
+
     
   def set_overwrite(self, overwrite):
     assert(type(overwrite) == types.BooleanType)
     self.desc['overwrite'] = overwrite
+
 
   def add_to_PB(self, alter):
     c_meta = alter.toCreate.add()
@@ -204,6 +215,7 @@ class Cube(Destination):
       d.tuple_indexes.append(offset)
     if 'overwrite' in  self.desc:
       c_meta.overwrite_old = self.desc['overwrite'] 
+
      
   def get_name(self):
     if self._location is not None:
@@ -211,38 +223,41 @@ class Cube(Destination):
     else:
       return self.name
 
-########## Useful operators
+
+##### Useful operators #####
+    
 def FileRead(graph, file):
    cfg = {"file":file}
-   return graph.operator("FileRead", cfg)  
+   return graph.add_operator(Operator.OpType.FILE_READ, cfg)  
    
 
-def StringGrep(graph, pattern):
+def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern}
-   return graph.operator("StringGrep", cfg)  
+   return graph.add_operator(Operator.OpType.STRING_GREP, cfg)  
    
    
-def ExtendOperator(graph, type_str, fld_vals_list):
-    cfg = {"types": type_str}
-    assert len(fld_vals_list) == len(type_str) and len(type_str) < 11
+def ExtendOperator(graph, typeStr, fldValsList):
+    cfg = {"types": typeStr}
+    assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
     i = 0
-    for x in fld_vals_list:
+    for x in fldValsList:
       cfg[str(i)] = str(x)
       i += 1
-    return graph.operator("ExtendOperator", cfg)
+    return graph.add_operator(Operator.OpType.EXTEND, cfg)
     
     
 def NoOp(graph, file):
    cfg = {}
-   return graph.operator("ExtendOperator", cfg)  
+   return graph.add_operator(Operator.OpType.EXTEND, cfg)  
    
     
-####### Test operators
+##### Test operators #####
+ 
 def SendK(graph, k):
    cfg = {"k":str(k)}
-   return graph.operator("SendK", cfg)  
+   return graph.add_operator(Operator.OpType.SEND_K, cfg)  
 
 
 def RateRecord(graph):
    cfg = {}
-   return graph.operator("RateRecordReceiver", cfg)         
+   return graph.add_operator(Operator.OpType.RATE_RECEIVER, cfg)         

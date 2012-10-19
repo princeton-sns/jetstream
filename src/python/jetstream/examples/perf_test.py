@@ -12,7 +12,7 @@ import time
 
 
 from remote_controller import RemoteController
-import operator_graph as jsapi
+import query_graph as jsapi
 from jetstream_types_pb2 import *
 
 
@@ -28,8 +28,6 @@ def main():
   parser.add_option("-2", "--two-nodes", dest="USE_TWO_NODES", action="store_true", 
                   help="whether to use two nodes", default=False)
   (options, args) = parser.parse_args()
-  
-  
 
   if ':' in options.controller:
     (serv_addr, serv_port) = options.controller.split(':')
@@ -40,7 +38,7 @@ def main():
   
   
   ### Define the graph abstractly, without a computation
-  g = jsapi.OperatorGraph()
+  g = jsapi.QueryGraph()
   source = jsapi.SendK(g, "1" + 10 * "0") #10 billion; fits into an int64 very easily
   sink = jsapi.RateRecord(g)
   

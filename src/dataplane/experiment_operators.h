@@ -51,8 +51,8 @@ class RateRecordReceiver: public DataPlaneOperator {
   
   boost::posix_time::ptime window_start;
   
-  long tuples_in_window;
-  long bytes_in_window;
+  volatile long tuples_in_window;
+  volatile long bytes_in_window;
 
   double bytes_per_sec;
   double tuples_per_sec;

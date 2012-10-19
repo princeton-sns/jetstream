@@ -6,7 +6,7 @@ from computation_state import *
 from query_planner import QueryPlanner
 
 from generic_netinterface import JSClient
-import operator_graph as jsapi
+import query_graph as jsapi
 
 
 from jetstream_types_pb2 import *
@@ -81,11 +81,11 @@ class TestQueryPlanner(unittest.TestCase):
     dummy_node = ("host",123)
     planner = QueryPlanner( {dummy_node:dummy_node} )
 
-    op_graph = jsapi.OperatorGraph()
-    reader = jsapi.FileRead(op_graph, "file name")
+    qGraph = jsapi.QueryGraph()
+    reader = jsapi.FileRead(qGraph, "file name")
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    op_graph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter)
 
     err = planner.take_raw(req.alter)
     self.assertEquals( len(err), 0)
@@ -100,18 +100,18 @@ class TestQueryPlanner(unittest.TestCase):
     dummy_node = ("host",123)
     planner = QueryPlanner( {dummy_node:dummy_node})
 
-    op_graph = jsapi.OperatorGraph()
-    reader = jsapi.FileRead(op_graph, "file name")
-    cube = op_graph.cube("local_results")
+    qGraph = jsapi.QueryGraph()
+    reader = jsapi.FileRead(qGraph, "file name")
+    cube = qGraph.add_cube("local_results")
     cube.add_dim("hostname", Element.STRING, 0)
-    cube.add_agg("count", jsapi.Cube.COUNT, 1)
+    cube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
     cube.set_overwrite(True)  #fresh results
   
-    op_graph.connect(reader, cube)
+    qGraph.connect(reader, cube)
     
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    op_graph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter)
 
     err = planner.take_raw(req.alter)
     self.assertEquals( len(err), 0)
@@ -126,11 +126,11 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(  len(pb_to_node.alter.edges), 1)
 
   def test_external_edge_plan(self):
-    op_graph = jsapi.OperatorGraph()
-    reader = jsapi.FileRead(op_graph, "file name")
+    qGraph = jsapi.QueryGraph()
+    reader = jsapi.FileRead(qGraph, "file name")
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    op_graph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter)
     
     MY_PORTNO = 1000
     e = req.alter.edges.add()
