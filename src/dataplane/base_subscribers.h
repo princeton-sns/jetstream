@@ -1,6 +1,12 @@
 #ifndef Q_SUBSCRIBER_2FAEJ0UJ
 #define Q_SUBSCRIBER_2FAEJ0UJ
 
+#include <boost/shared_ptr.hpp>
+
+#include <boost/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+
 #include "subscriber.h"
 #include "dataplaneoperator.h"
 #include "jetstream_types.pb.h"
@@ -51,9 +57,9 @@ class UnionSubscriber: public Subscriber {
 class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
     bool running;
-    
-
-
+    boost::shared_ptr<boost::thread> loopThread;
+    int windowSizeMs;
+  
   public:
 
     TimeBasedSubscriber(): running(true) {};
@@ -72,7 +78,12 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
   
+    virtual operator_err_t configure(std::map<std::string,std::string> &config);
+    virtual void start();
     virtual void stop() {running = false; }
+
+    void operator()();  // A thread that will loop while reading the file
+
 
   private:
   
