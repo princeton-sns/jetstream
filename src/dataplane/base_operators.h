@@ -149,6 +149,21 @@ class Rearrange: public DataPlaneOperator {
 GENERIC_CLNAME
 };*/
 
+
+
+inline void extend_tuple(Tuple& t, int32_t i) {
+  t.add_e()->set_i_val(i);
+}
+inline void extend_tuple(Tuple& t, double d) {
+  t.add_e()->set_d_val(d);
+}
+inline void extend_tuple(Tuple& t, const std::string& s) {
+  t.add_e()->set_s_val(s);
+}
+inline void extend_tuple_time(Tuple& t, int32_t time) {
+  t.add_e()->set_t_val(time);
+}
+
 }
 
 #endif

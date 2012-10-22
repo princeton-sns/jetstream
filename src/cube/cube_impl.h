@@ -58,7 +58,7 @@ class DataCubeImpl : public DataCube {
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
     std::map<string, size_t> dimensionMap;
 
-    virtual DimensionKey get_dimension_key(Tuple const &t) const {
+    virtual DimensionKey get_dimension_key(const Tuple &t) const {
       string key="";
 
       for(size_t i=0; i<dimensions.size(); ++i) {

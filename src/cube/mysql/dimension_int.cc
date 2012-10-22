@@ -7,10 +7,10 @@ using namespace jetstream::cube;
 jetstream::DataCube::DimensionKey MysqlDimensionInt::get_key(Tuple const &t) const
 {
   assert(tuple_indexes.size() == 1);
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+  const jetstream::Element& e = t.e(tuple_indexes[0]);
 
-  if(e->has_i_val()) {
-    return boost::lexical_cast<string>(e->i_val());
+  if(e.has_i_val()) {
+    return boost::lexical_cast<string>(e.i_val());
   }
 
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;

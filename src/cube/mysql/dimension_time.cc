@@ -4,15 +4,15 @@ using namespace std;
 using namespace jetstream::cube;
 
 
-jetstream::DataCube::DimensionKey MysqlDimensionTime::get_key(Tuple const &t) const
+jetstream::DataCube::DimensionKey MysqlDimensionTime::get_key(const  Tuple &t) const
 {
   assert(tuple_indexes.size() == 1);
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+  const jetstream::Element &  e = t.e(tuple_indexes[0]);
 
-  if(e->has_t_val()) {
+  if(e.has_t_val()) {
     struct tm temptm;
     char timestring[30];
-    time_t clock = e->t_val();
+    time_t clock = e.t_val();
     localtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     return timestring;

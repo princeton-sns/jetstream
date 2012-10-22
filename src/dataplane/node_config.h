@@ -15,9 +15,10 @@ class NodeConfig {
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
   msec_t data_conn_wait;      //wait for a dataplane connection to respond. Should probably be minutes, not seconds?
+  size_t sendQueueSize; //max size of the send queue
   NodeConfig () 
     : controlplane_myport (0), dataplane_myport (0), webinterface_port (0),
-    heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000)
+    heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000),sendQueueSize(1E6)
     {}
 };
 

@@ -19,7 +19,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, config),
     webInterface (conf.webinterface_port, *this),
-    dataConnMgr(*iosrv),
+    dataConnMgr(*iosrv, config),
     operator_cleanup(*iosrv),
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
