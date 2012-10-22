@@ -46,6 +46,11 @@ class Executor {
        shared_ptr<boost::asio::strand> pStrand(new boost::asio::strand(*service));
        return pStrand;
     }
+    
+    shared_ptr<io_service> get_io_service() {
+      return service;
+    }
+  
   protected:
     thread_group pool;
     shared_ptr<io_service> service;

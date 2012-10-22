@@ -333,6 +333,7 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
 
 TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  cube->set_batch_timeout( boost::posix_time::seconds(10));
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
   cube->destroy();
@@ -430,7 +431,28 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   }
   ASSERT_EQ(3U, sub->insert_q.size());
   check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 202, 50, 1);
+
 }
+
+TEST_F(CubeTest, SubscriberBatchTimeout) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  cube->set_batch_timeout( boost::posix_time::seconds(1));
+  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+  
+  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  sub->returnAction = Subscriber::SEND;
+  cube->process(t);
+  boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+  ASSERT_EQ(0U, sub->insert_q.size());
+  boost::this_thread::sleep(boost::posix_time::milliseconds(800));
+  ASSERT_EQ(1U, sub->insert_q.size());
+}
+
 
 TEST_F(CubeTest, MysqlTest) {
 
