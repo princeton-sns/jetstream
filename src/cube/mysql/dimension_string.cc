@@ -3,13 +3,13 @@
 using namespace std;
 using namespace jetstream::cube;
 
-jetstream::DataCube::DimensionKey MysqlDimensionString::get_key(Tuple const &t) const
+jetstream::DataCube::DimensionKey MysqlDimensionString::get_key(const Tuple &t) const
 {
   assert(tuple_indexes.size() == 1);
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+  const jetstream::Element& e = t.e(tuple_indexes[0]);
 
-  if(e->has_s_val()) {
-    return e->s_val();
+  if(e.has_s_val()) {
+    return e.s_val();
   }
 
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;

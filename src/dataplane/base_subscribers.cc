@@ -53,6 +53,7 @@ TimeBasedSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &
 operator_err_t
 TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
  windowSizeMs = 1000;
+ return NO_ERR;
 }
 
 
