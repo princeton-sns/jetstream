@@ -48,21 +48,23 @@ class TestWebIntegration(unittest.TestCase):
     req.alter.computationID = compID
     
     newTask = req.alter.toStart.add()
-    newTask.op_typename = "SendK"
+    newTask.op_typename = "ContinuousSendK"
     newTask.id.computationID = req.alter.computationID
     newTask.id.task = 2
     
     newCube = req.alter.toCreate.add()
     newCube.name = "a_test_cube"
+    newCube.overwrite_old = True
+    
     d = newCube.schema.dimensions.add()
     d.name = "text"
     d.type = Element.STRING
     d.tuple_indexes.append(0)
     
-    d = newCube.schema.aggregates.add()
-    d.name = "count"
-    d.type = "count"
-    d.tuple_indexes.append(1)
+    a = newCube.schema.aggregates.add()
+    a.name = "count"
+    a.type = "count"
+    a.tuple_indexes.append(1)
     
     edge = req.alter.edges.add()
     edge.src = 2
@@ -83,6 +85,7 @@ class TestWebIntegration(unittest.TestCase):
 
     # GET the web interface page and make sure both the operator and cube appear
     getResp = urllib2.urlopen("http://localhost:8081/").read()
+    print getResp
     self.assertTrue(newTask.op_typename in getResp)
     self.assertTrue(newCube.name in getResp)
     print getResp

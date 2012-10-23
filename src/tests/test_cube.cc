@@ -54,9 +54,9 @@ class CubeTest : public ::testing::Test {
   sql::Driver * driver = sql::mysql::get_driver_instance();
 
   string db_host="localhost";
-               string db_user="root";
-               string db_pass="";
-               string db_name="test_cube";
+  string db_user="root";
+  string db_pass="";
+  string db_name="test_cube";
   sql::ConnectOptionsMap options;
   options.insert( std::make_pair( "hostName", db_host));
   options.insert( std::make_pair( "userName", db_user));
@@ -732,9 +732,11 @@ TEST(Cube,Attach) {
 
   AlterTopo topo;
   topo.set_computationid(compID);
+  string cubeName = "text_and_count";
 
   jetstream::CubeMeta * cube_meta = topo.add_tocreate();
-  cube_meta->set_name("text");
+  cube_meta->set_name(cubeName);
+  cube_meta->set_overwrite_old(true);
 
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
 
@@ -747,8 +749,6 @@ TEST(Cube,Attach) {
   agg->set_name("count");
   agg->set_type("count");
   agg->add_tuple_indexes(1);
-  cube_meta->set_name("test_cube");
-  cube_meta->set_overwrite_old(true);
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
@@ -767,7 +767,7 @@ TEST(Cube,Attach) {
 
   Edge * e = topo.add_edges();
   e->set_src(1);
-  e->set_cube_name("test_cube");
+  e->set_cube_name(cubeName);
   e->set_computation(compID);
 
 //  cout << topo.Utf8DebugString();
@@ -776,7 +776,7 @@ TEST(Cube,Attach) {
   node.handle_alter(r, topo);
   cout << "alter sent; data should be present" << endl;
 
-  shared_ptr<DataCube> cube = node.get_cube("test_cube");
+  shared_ptr<DataCube> cube = node.get_cube(cubeName);
   ASSERT_TRUE( cube );
   ASSERT_EQ(1U, cube->num_leaf_cells());
   Tuple empty = cube->empty_tuple();
