@@ -40,7 +40,7 @@ class TestJSGraph (unittest.TestCase):
     # Connect the union to the sink cube
     edge = Edge()
     edge.src = self.operators[-1].id.task
-    edge.cube_name = self.cubes[0].name
+    edge.dest_cube = self.cubes[0].name
     self.edges.append(edge)
     
     
@@ -123,7 +123,7 @@ class TestJSGraph (unittest.TestCase):
     # Connect union op 10 to the cube sink
     edge = Edge()
     edge.src = 10
-    edge.cube_name = self.cubes[0].name
+    edge.dest_cube = self.cubes[0].name
     self.edges.append(edge)
 
     graph = JSGraph(self.operators, self.cubes, self.edges)

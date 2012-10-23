@@ -165,7 +165,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
     dest_as_str = destOpId.to_string();
   }
   else {
-    dest_as_str = dest_as_edge.cube_name();
+    dest_as_str = dest_as_edge.dest_cube();
   }
   
   cm.create_connection(remoteAddr, portno, boost::bind(

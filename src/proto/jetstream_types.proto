@@ -55,8 +55,8 @@ message TaskMeta {
     required string opt_name = 1;
     required string val = 2;
   }
-  repeated DictEntry config = 4;    // list of key-value pairs. 
-
+  repeated DictEntry config = 4;    // list of key-value pairs.
+ 
   //TODO: Determine minimal set of attributes client must specify for submitted operators.
   // optional int32 partialAggRatio
 }
@@ -109,12 +109,18 @@ message Tuple {
 * Cubes are globally visible and are NOT tied to a computation.
 */
 message Edge {
-  required int32 src = 1;          // operator ID, local
-  required int32 computation = 4;  // which computation the edge is in
+  required int32 computation = 1;  // which computation the edge is in
 
-  optional int32 dest = 2;         // operator ID, local
-  optional string cube_name = 3;   // cube name, local or remote
-  optional NodeID dest_addr = 5;   // dest address if remote
+  // Source is either an operator or cube, not both
+  optional int32 src = 2;          // operator ID, local
+  optional string src_cube = 3;    // cube name, local or remote
+  //TODO: This may be needed if/when we support NATs
+  //optional NodeID src_addr = 4;  // source address if remote
+
+  // Destination is either an operator or cube, not both
+  optional int32 dest = 5;         // operator ID, local
+  optional string dest_cube = 6;   // cube name, local or remote
+  optional NodeID dest_addr = 7;   // dest address if remote
 }
 
 

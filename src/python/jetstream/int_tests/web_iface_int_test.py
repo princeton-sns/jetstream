@@ -69,7 +69,7 @@ class TestWebIntegration(unittest.TestCase):
     edge = req.alter.edges.add()
     edge.src = 2
     edge.computation = compID
-    edge.cube_name = newCube.name
+    edge.dest_cube = newCube.name
 
     buf = self.client.do_rpc(req, True)
     resp = ControlMessage()
@@ -85,7 +85,6 @@ class TestWebIntegration(unittest.TestCase):
 
     # GET the web interface page and make sure both the operator and cube appear
     getResp = urllib2.urlopen("http://localhost:8081/").read()
-    print getResp
     self.assertTrue(newTask.op_typename in getResp)
     self.assertTrue(newCube.name in getResp)
     print getResp
