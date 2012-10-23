@@ -26,6 +26,7 @@ public:
 
   void flush();
   bool is_full();
+  bool is_empty();
   size_t size();
   bool contains(jetstream::DimensionKey key);
   boost::shared_ptr<jetstream::TupleProcessingInfo> get(DimensionKey key);

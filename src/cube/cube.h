@@ -42,7 +42,7 @@ class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, size_t num_threads=2);
+    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, size_t num_threads=2, boost::posix_time::time_duration batch_timeout = boost::posix_time::millisec(100));
     virtual ~DataCube() {}
 
     //main external functions
@@ -50,6 +50,7 @@ class DataCube : public TupleReceiver {
     virtual void destroy() = 0;
     void process(boost::shared_ptr<Tuple> t);
     size_t batch_size();
+    void set_batch_timeout(boost::posix_time::time_duration batch_timeout);
 
 
     //query functions
@@ -112,8 +113,6 @@ class DataCube : public TupleReceiver {
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list,
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
   protected:
-
-
     jetstream::CubeSchema schema;
     std::string name;
     bool is_frozen;
@@ -123,6 +122,7 @@ class DataCube : public TupleReceiver {
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
     boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
+    boost::posix_time::time_duration batch_timeout;
 
 
 //TODO should figure out how to implement this
@@ -132,14 +132,18 @@ class DataCube : public TupleReceiver {
 
 
     virtual void do_process(boost::shared_ptr<Tuple> t);
+    void queue_flush();
     void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();
+    void start_batch_timeout();
+    void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher);
 
     size_t elements_in_batch;
     Executor exec;
     shared_ptr<boost::asio::strand> flushStrand;
     shared_ptr<boost::asio::strand> processStrand;
     int outstanding_batches; //protected by processStrand;
+    boost::asio::deadline_timer batch_timeout_timer;
     
 
 };
