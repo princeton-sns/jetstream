@@ -67,6 +67,13 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   if (config.find("start_ts") != config.end())
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
   
+  if (config.find("ts_field") != config.end())
+    ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
+  else
+    ts_field = -1;
+//    return operator_err_t("Must specify start_ts field");
+
+  
   string serialized_slice = config["slice_tuple"];
   min.ParseFromString(serialized_slice);
   max.CopyFrom(min);
@@ -97,23 +104,29 @@ TimeBasedSubscriber::start() {
 void TimeBasedSubscriber::operator()() {
 
     int newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
-    max.mutable_e(ts_field)->set_t_val(newMax);
+    if (ts_field >= 0)
+      max.mutable_e(ts_field)->set_t_val(newMax);
 
     
 	 while (running)  {
   //sleep
-    boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
-    time_t now = time(NULL);
-    LOG(INFO) << "doing query";
+    LOG(INFO) << "doing query; range is " << fmt(min)<< " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max);
     while ( it != cube->end()) {
       emit(*it);
       it++;      
     }
-    int last_query_end = max.e(ts_field).t_val();
-    min.mutable_e(ts_field)->set_t_val(  last_query_end );
-    newMax = now - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
-    max.mutable_e(ts_field)->set_t_val(newMax);
+    
+    
+    boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
+    time_t now = time(NULL);
+
+    if (ts_field >= 0) {
+      int last_query_end = max.e(ts_field).t_val();
+      min.mutable_e(ts_field)->set_t_val(  last_query_end );
+      newMax = now - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+      max.mutable_e(ts_field)->set_t_val(newMax);
+    }
 	}
 
 }

@@ -88,7 +88,7 @@ class SubscriberTest : public ::testing::Test {
       boost::shared_ptr<Tuple> t(new Tuple);
 
       extend_tuple(*t, "http://foo.com");
-      extend_tuple_time(*t, now + i);
+      extend_tuple_time(*t, now - i);
       extend_tuple(*t, i+1);
 
       cout<< "Tuple:" << fmt(*t) << endl;
@@ -111,16 +111,23 @@ class SubscriberTest : public ::testing::Test {
     TaskMeta_DictEntry* op_cfg = task->add_config();
     op_cfg->set_opt_name("cube_name");
     op_cfg->set_val(TEST_CUBE);
-    op_cfg = task->add_config();
 
     Tuple query_tuple;
     extend_tuple(query_tuple, "http://foo.com");
     extend_tuple_time(query_tuple, 0); //just a placeholder
 
+    op_cfg = task->add_config();
     op_cfg->set_opt_name("slice_tuple");
     op_cfg->set_val(query_tuple.SerializeAsString());
-    
 
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("ts_field");
+    op_cfg->set_val("1");
+
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("start_ts");
+    op_cfg->set_val("0");
+    
     
     task = topo.add_tostart();
     id = task->mutable_id();
@@ -153,7 +160,6 @@ TEST_F(SubscriberTest,TimeSubscriber) {
 
 
   add_tuples(cube);
-  cout << "added" <<endl;
   int tries = 0;
   while (cube->num_leaf_cells() < 3 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -163,26 +169,27 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber");
   
   tries = 0;
-  while (rec->tuples.size() < 3 && tries++ < 20)
+  while (rec->tuples.size() < 4 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-  ASSERT_EQ(4, rec->tuples.size()); //one very old, four newish
+  ASSERT_EQ(4, rec->tuples.size()); //one very old, three newish
   
   
-  //wait and check for data
+  //add more, wait and check for data
+  boost::shared_ptr<Tuple> t(new Tuple);
+
+  extend_tuple(*t, "http://foo.com");
+  extend_tuple_time(*t, time(NULL));
+  extend_tuple(*t, 2);
+  cout<< "Tuple:" << fmt(*t) << endl;
+  cube->process(t);
+
+  boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
   
-  add_tuples(cube);
-  
-  while (rec->tuples.size() < 7 && tries++ < 20)
+  while (rec->tuples.size() < 5 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
-  boost::this_thread::sleep(boost::posix_time::milliseconds(500));
-  ASSERT_EQ(7, rec->tuples.size()); //update to old tuple should be suppressed
+  ASSERT_EQ(5, rec->tuples.size()); //update to old tuple should be suppressed
   
-  
-
-  //wait and check for data
-
-
   cout << "done" <<endl;
 }
