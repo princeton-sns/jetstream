@@ -2,9 +2,9 @@
 JS_DIR=`dirname $0`/..
 export LD_LIBRARY_PATH=${JS_DIR}/lib
 CFG="-C ${JS_DIR}/config/sns48.conf"
-PID_DIR=/tmp
+PID_DIR=/disk/local/asr_js_logs
 
-LOGNAME=${JS_DIR}/logs/`hostname`-jslog
+LOGNAME=/disk/local/asr_js_logs/`hostname`-jslog
 echo "logging to ${LOGNAME}; libpath is ${LD_LIBRARY_PATH}"
 CMD="${JS_DIR}/jsnoded --start ${CFG}"
 echo "running ${CMD}"

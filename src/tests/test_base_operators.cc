@@ -121,16 +121,6 @@ TEST(Operator, OperatorChain)
   }
 }
 
-void extend_tuple(Tuple& t, int i) {
-  t.add_e()->set_i_val(i);
-}
-void extend_tuple(Tuple& t, double d) {
-  t.add_e()->set_d_val(d);
-}
-void extend_tuple(Tuple& t, const string& s) {
-  t.add_e()->set_s_val(s);
-}
-
 TEST(Operator,ParseOperator) {
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   GenericParse parse;

@@ -36,41 +36,74 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
   }
 }
 
-void
-jetstream::cube::MysqlCube::init_connection() {
-  sql::Driver * driver = sql::mysql::get_driver_instance();
-
-  sql::ConnectOptionsMap options; 
-  options.insert( std::make_pair( "hostName", db_host)); 
-  options.insert( std::make_pair( "userName", db_user)); 
-  options.insert( std::make_pair( "password", db_pass)); 
-  options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) ); 
-
-
-  //shared_ptr<sql::Connection> con(driver->connect(db_host, db_user, db_pass));
-  try {
-
-    shared_ptr<sql::Connection> con(driver->connect(options));
-
-    connection = con;
-    connection->setSchema(db_name);
-    shared_ptr<sql::Statement> stmnt(connection->createStatement());
-    statement = stmnt;
-
-    for (size_t i = 0; i < dimensions.size(); i++) {
-      dimensions[i]->set_connection(connection);
-    }
-  } catch (sql::SQLException &e) {
-    
-    LOG(FATAL) << e.what()<< "...perhaps the DB isn't running?";
+MysqlCube::~MysqlCube() {
+  LOG(INFO) << "destroying cube "<<db_name<< "."<< name;
+  if(is_frozen) {
+    destroy();
   }
-
 }
 
 void
-jetstream::cube::MysqlCube::execute_sql (const string &sql) const {
+jetstream::cube::MysqlCube::init_connection() {
+}
+
+boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection() {
+  boost::thread::id tid = boost::this_thread::get_id();
+
+  if(connectionPool.count(tid) == 0) {
+    shared_ptr<ThreadConnection> tc(new ThreadConnection());
+
+    sql::Driver * driver = sql::mysql::get_driver_instance();
+    sql::ConnectOptionsMap options;
+    options.insert( std::make_pair( "hostName", db_host));
+    options.insert( std::make_pair( "userName", db_user));
+    options.insert( std::make_pair( "password", db_pass));
+    options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) );
+
+    try {
+      shared_ptr<sql::Connection> con(driver->connect(options));
+
+      tc->connection = con;
+      tc->connection->setSchema(db_name);
+      shared_ptr<sql::Statement> stmnt(tc->connection->createStatement());
+      tc->statement = stmnt;
+    }
+    catch (sql::SQLException &e) {
+      LOG(FATAL) << e.what()<< "...perhaps the DB isn't running?";
+    }
+    connectionPool[tid] = tc;
+
+    //TODO: make thread ends clear the connection pool entry. Tricky because this can be called from
+    //constructor and destructor
+
+    //boost::this_thread::at_thread_exit(boost::bind(&MysqlCube::on_thread_exit, shared_from_this(), tid));
+    boost::this_thread::at_thread_exit(boost::bind(&sql::Driver::threadEnd, driver));
+    if(connectionPool.size() == 1) {
+      for (size_t i = 0; i < dimensions.size(); i++) {
+        dimensions[i]->set_connection(tc->connection);
+      }
+  }
+    
+  }
+
+  assert(connectionPool.count(tid) == 1);
+  return connectionPool[tid];
+}
+
+/*void MysqlCube::on_thread_exit(boost::thread::id tid)
+{
+  //TODO: make this erase from 
+  //connectionPool.erase(tid);
+  sql::Driver * driver = sql::mysql::get_driver_instance();
+  driver->threadEnd();
+}*/
+
+void
+jetstream::cube::MysqlCube::execute_sql (const string &sql){
   try {
-    statement->execute(sql);
+    boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+    VLOG(2) << "Executing sql: " << sql;
+    tc->statement->execute(sql);
   }
   catch (sql::SQLException &e) {
     LOG(WARNING) << "couldn't execute sql statement; " << e.what() <<
@@ -79,9 +112,11 @@ jetstream::cube::MysqlCube::execute_sql (const string &sql) const {
 }
 
 boost::shared_ptr<sql::ResultSet>
-jetstream::cube::MysqlCube::execute_query_sql(const string &sql) const {
+jetstream::cube::MysqlCube::execute_query_sql(const string &sql) {
   try {
-    boost::shared_ptr<sql::ResultSet> res(statement->executeQuery(sql));
+    boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+    VLOG(2) << "Executing query: " << sql;
+    boost::shared_ptr<sql::ResultSet> res(tc->statement->executeQuery(sql));
     return res;
   }
   catch (sql::SQLException &e) {
@@ -91,12 +126,6 @@ jetstream::cube::MysqlCube::execute_query_sql(const string &sql) const {
 
   boost::shared_ptr<sql::ResultSet> no_results;
   return no_results;
-}
-
-
-boost::shared_ptr<sql::Connection>
-jetstream::cube::MysqlCube::get_connection() const {
-  return connection;
 }
 
 string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
@@ -259,7 +288,8 @@ string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(std::string sql) {
   try {
-    shared_ptr<sql::PreparedStatement> stmnt(get_connection()->prepareStatement(sql));
+    boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+    shared_ptr<sql::PreparedStatement> stmnt(tc->connection->prepareStatement(sql));
     return stmnt;
   }
   catch (sql::SQLException &e) {
@@ -273,44 +303,48 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(s
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_lock_prepared_statement(string table_name) {
   string key = "Lock|"+ table_name;
 
-  if(preparedStatementCache.count(key) == 0) {
+  boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+  if(tc->preparedStatementCache.count(key) == 0) {
     string sql= "LOCK TABLES `"+table_name+"` WRITE" ;
-    preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return preparedStatementCache[key];
+  return tc->preparedStatementCache[key];
 }
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_unlock_prepared_statement() {
   string key = "unlock";
 
-  if(preparedStatementCache.count(key) == 0) {
+  boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+  if(tc->preparedStatementCache.count(key) == 0) {
     string sql= "UNLOCK TABLES";
-    preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return preparedStatementCache[key];
+  return tc->preparedStatementCache[key];
 }
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_select_cell_prepared_statement(size_t batch, std::string unique_key) {
   string key = "selectCell|"+boost::lexical_cast<string>(batch)+"|"+unique_key;
 
-  if(preparedStatementCache.count(key) == 0) {
+  boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+  if(tc->preparedStatementCache.count(key) == 0) {
     string sql= get_select_cell_prepared_sql(batch);
-    preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return preparedStatementCache[key];
+  return tc->preparedStatementCache[key];
 }
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_statement(size_t batch) {
   string key = "insert_prepared_statement|"+boost::lexical_cast<string>(batch);
 
-  if(preparedStatementCache.count(key) == 0) {
+  boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
+  if(tc->preparedStatementCache.count(key) == 0) {
     string sql= get_insert_prepared_sql(batch);
-    preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
   }
 
-  return preparedStatementCache[key];
+  return tc->preparedStatementCache[key];
 }
 
 bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t) {
@@ -565,7 +599,7 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
 
   string sql = "SELECT * FROM `"+get_table_name()+"` WHERE "+boost::algorithm::join(where_clauses, " AND ");
 
-  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  boost::shared_ptr<sql::ResultSet> res = const_cast<MysqlCube *>(this)->execute_query_sql(sql);
 
   if(res->rowsCount() > 1) {
     LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";
@@ -695,7 +729,7 @@ string MysqlCube::get_where_clause(jetstream::Tuple const &min, jetstream::Tuple
 }
 
 jetstream::cube::CubeIterator MysqlCube::get_result_iterator(string sql, bool final, bool rollup) const {
-  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  boost::shared_ptr<sql::ResultSet> res = const_cast<MysqlCube *>(this)->execute_query_sql(sql);
   boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl;
 
   if(!res->next())  {
@@ -720,7 +754,7 @@ void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
 size_t jetstream::cube::MysqlCube::num_leaf_cells() const {
   string sql = "SELECT COUNT(*) FROM `"+get_table_name()+"`";
 
-  boost::shared_ptr<sql::ResultSet> res = execute_query_sql(sql);
+  boost::shared_ptr<sql::ResultSet> res = const_cast<MysqlCube *>(this)->execute_query_sql(sql);
 
   if(res->rowsCount() != 1) {
     LOG(FATAL) << "Something went wrong, fetching more than 1 row per cell";

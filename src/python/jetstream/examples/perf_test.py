@@ -28,8 +28,6 @@ def main():
   parser.add_option("-2", "--two-nodes", dest="USE_TWO_NODES", action="store_true", 
                   help="whether to use two nodes", default=False)
   (options, args) = parser.parse_args()
-  
-  
 
   if ':' in options.controller:
     (serv_addr, serv_port) = options.controller.split(':')

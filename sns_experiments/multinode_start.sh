@@ -3,7 +3,7 @@
 HOSTSFILE=sns_experiments/nodes.txt
 SSH_OPTS="-o StrictHostKeyChecking=no"
 JS_DIR=/home/asrabkin/jetstream/
-CMD="${JS_DIR}/bin/start_worker.sh"
+CMD="${JS_DIR}/sns_experiments/start_worker.sh"
 
 cd $JS_DIR
 

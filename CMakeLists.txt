@@ -97,19 +97,20 @@ find_library(GLOG_LIB glog) #glog has no dependencies and so this is safe. --ASR
 #######################################################
 # Set library locations and sources
 
+
+set (LIBRARY_NAME jsproto)
+add_subdirectory (${SRC_DIR}/proto)
+link_directories (${BUILD_DIR}/proto)
+set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
+include_directories (${SRC_DIR}/proto/cpp)
+
+
 set (LIBRARY_NAME jsutils)
 add_subdirectory (${SRC_DIR}/utils)
 link_directories (${BUILD_DIR}/utils)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 include_directories (${SRC_DIR}/utils)
-
-set (LIBRARY_NAME jsproto)
-add_subdirectory (${SRC_DIR}/proto)
-link_directories (${BUILD_DIR}/proto)
-set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
-
-include_directories (${SRC_DIR}/proto/cpp)
 
 set (LIBRARY_NAME jscomm)
 add_subdirectory (${SRC_DIR}/comm)

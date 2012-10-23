@@ -93,6 +93,7 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
       for(int i=0; i < msg.data_size(); ++i) {
         data->MergeFrom (msg.data(i));
         dest->process(data);
+        data->Clear();
       }
       break;
     }
@@ -314,7 +315,8 @@ RemoteDestAdaptor::wait_for_chain_ready() {
 
 boost::shared_ptr<CongestionMonitor>
 RemoteDestAdaptor::congestion_monitor() {
-  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor(*this));
+  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor
+      (*this, mgr.maxQueueSize()));
 }
 
 

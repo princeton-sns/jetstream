@@ -1,9 +1,12 @@
 #include "js_utils.h"
+#include <iostream>
 
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
+
+
 
 using namespace jetstream;
 
@@ -56,4 +59,30 @@ jetstream::get_strtime () {
 }
 */
 
+inline void add_one_el(std::ostringstream& buf, const Element& el) {
+  if (el.has_s_val())
+    buf << el.s_val();
+  else if (el.has_d_val())
+    buf << el.d_val();
+  else if (el.has_i_val())
+    buf << el.i_val();
+  else if (el.has_t_val())
+    buf << el.t_val();
+  else
+    buf << "UNDEF";
+}
+
+std::string fmt(const jetstream::Tuple& t) {
+  std::ostringstream buf;
+  buf << "(";
+  if (t.e_size() > 0) {
+    add_one_el(buf, t.e(0));
+  }
+  for (int i =1; i < t.e_size(); ++i) {
+    buf << ",";
+    add_one_el(buf, t.e(i));
+  }
+  buf<< ")";
+  return buf.str();
+}
 
