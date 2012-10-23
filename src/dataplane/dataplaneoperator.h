@@ -82,10 +82,12 @@ class DataPlaneOperator : public TupleReceiver {
  private:
   operator_id_t operID; // note that id() returns a reference, letting us set this
   boost::shared_ptr<TupleReceiver> dest;
-  Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
-  int tuplesEmitted;
+  protected:   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
+
+  private: int tuplesEmitted;
 
  protected:
+
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
   
