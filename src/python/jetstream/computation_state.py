@@ -101,7 +101,7 @@ class Computation (object):
 #       if edge.src not in self.taskLocations:
 #         print "unknown source %s" % str(edge.src)
 #         raise UserException("Edge from nonexistent source")
-#       dest = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+#       dest = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
 #       self.outEdges[edge.src] = dest
 
 
@@ -127,7 +127,7 @@ class Computation (object):
 #         dest_host = self.taskLocations[destID]
 #   
 #         if type(destID) == types.StringType:
-#           pb_e.cube_name = destID
+#           pb_e.dest_cube = destID
 #         elif type(destID) == types.IntType:
 #           pb_e.dest = destID
 #         else:

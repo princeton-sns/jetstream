@@ -246,8 +246,8 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         operator_id_t dest_operator_id (e.computation(), e.dest());
         dest_as_str = dest_operator_id.to_string();
         dest = get_operator(dest_operator_id);
-      } else if (e.has_cube_name()) {
-        dest_as_str = e.cube_name();
+      } else if (e.has_dest_cube()) {
+        dest_as_str = e.dest_cube();
         dest = cubeMgr.get_cube(dest_as_str);
       }  else {
         LOG(WARNING) << "Got remote chain connect without a dest operator or cube";
@@ -394,13 +394,13 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     assert(srcOperator);
 
     //TODO check if src doesn't exist
-    if (edge.has_cube_name()) { 
+    if (edge.has_dest_cube()) { 
       // connect to local table
-      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.cube_name());
+      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
       if (c)
         srcOperator->set_dest(c);
       else {
-        LOG(WARNING) << "DataCube unknown: " << edge.cube_name() << endl;
+        LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
       }
     } 
     else if (edge.has_dest_addr()) {   //remote network operator

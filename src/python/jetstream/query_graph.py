@@ -48,7 +48,7 @@ class QueryGraph(object):
           pb_e.dest = e[1]
         else:
           assert(e[1] in self.cubes)
-          pb_e.cube_name = self.cubes[e[1]].name
+          pb_e.dest_cube = self.cubes[e[1]].name
       else:
         raise "haven't implemented out-edges from cubes"
     

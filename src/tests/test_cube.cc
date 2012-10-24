@@ -842,7 +842,7 @@ TEST(Cube,Attach) {
 
   Edge * e = topo.add_edges();
   e->set_src(1);
-  e->set_cube_name(cubeName);
+  e->set_dest_cube(cubeName);
   e->set_computation(compID);
 
 //  cout << topo.Utf8DebugString();

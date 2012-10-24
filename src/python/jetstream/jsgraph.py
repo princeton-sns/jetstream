@@ -77,7 +77,7 @@ class JSGraph (object):
 
     # Construct the forward and reverse adjacency lists
     for e in edges:
-      if not e.cube_name and not e.dest:
+      if not e.dest_cube and not e.dest:
         #pseudo-edge, so we ignore
         continue
 
@@ -85,7 +85,7 @@ class JSGraph (object):
       if src not in self.adjList:
         self.adjList[src] = []
       # Determine if the destination is a cube or operator
-      dest = self.nodes[e.cube_name] if e.cube_name != "" else self.nodes[e.dest]
+      dest = self.nodes[e.dest_cube] if e.dest_cube != "" else self.nodes[e.dest]
       if dest not in self.radjList:
         self.radjList[dest] = []
       self.adjList[src].append(dest)
