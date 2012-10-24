@@ -5,18 +5,24 @@
 #include "jetstream_types.pb.h"
 
 namespace jetstream {
+
+class DataCube;
+
 namespace cube {
 
 class Subscriber: public jetstream::DataPlaneOperator {
+  protected:
+    DataCube * cube;
+  
   public:
     enum Action {NO_SEND, SEND, SEND_NO_BATCH, SEND_UPDATE} ;
 
-    Subscriber (): DataPlaneOperator() {};
+    Subscriber (): DataPlaneOperator(), cube(NULL) {};
     virtual ~Subscriber() {};
 
     //TODO
     bool has_cube() {
-      return true;
+      return cube != NULL;
     };
 
     virtual void process (boost::shared_ptr<jetstream::Tuple> t);
@@ -28,6 +34,8 @@ class Subscriber: public jetstream::DataPlaneOperator {
     virtual void update_callback(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) = 0;
+  
+    void set_cube(DataCube  *c ) {cube = c;}
 
   private:
     const static std::string my_type_name;

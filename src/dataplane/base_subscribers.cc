@@ -82,7 +82,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   //max source ts will be set later
   
   
-
+/*
   string name = config["cube_name"];
   if (name.length() == 0)
     return operator_err_t("Must specify option cube_name");
@@ -90,7 +90,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   cube = node->get_cube(name);
   if (cube == NULL) {
     return operator_err_t("No such cube " + name);
-  }
+  }*/
   return NO_ERR;
 }
 

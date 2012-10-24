@@ -955,8 +955,8 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
 
 
 }
-
-TEST_F(CubeTest, MysqlTestTimeRollup) {
+//  Disabled because we ren't using the time hierarchy right now.
+TEST_F(CubeTest, DISABLED_MysqlTestTimeRollup) {
 
   boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 

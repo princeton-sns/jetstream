@@ -286,29 +286,41 @@ class TimeSubscriber(Operator):
   
 
   def add_to_PB(self, alter):
-    my_meta = Operator.add_to_PB(self,alter)
-    
     assert( len(self.preds) == 1)
     pred_cube = list(self.preds)[0]
     #Need to convert the user-specified selection keys into positional form for the DB
     dims_by_id = pred_cube.get_dimensions()
     tuple = Tuple()
     max_dim = max(dims_by_id.keys())
+    print dims_by_id
     for id in range(0, max_dim+1):
       el = tuple.e.add()
       if id not in dims_by_id:
         continue
+        
       dim_name,dim_type = dims_by_id[id]
       if dim_name in self.filter:
+        val = self.filter[dim_name]
+        del self.filter[dim_name]
         if dim_type == Element.STRING:
-          el.s_val = self.filter[dim_name]
+          el.s_val = val
         else:
-          raise "Panic"
-        
+          raise "Panic; trying to filter on dimension without type"
+    
+    if len(self.filter) > 0:
+      unmatched_fields = ",".join(self.filter.keys())
+      raise "Panic: filter field unknown in cube. Unmatched fields:",unmatched_fields
+    print "final filter tuple:", tuple
     #We do this in two phases
     
     serialized_filter = tuple.SerializeToString()
+    print "Filter length, serialized: ",len(serialized_filter)
     self.cfg["slice_tuple"] = serialized_filter
+    
+    my_meta = Operator.add_to_PB(self,alter)
+    
+    
+
     
     
 ##### Test operators #####

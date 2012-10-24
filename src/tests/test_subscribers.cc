@@ -109,8 +109,6 @@ class SubscriberTest : public ::testing::Test {
     task->set_op_typename(subscriberName);
     //TODO MORE CONFIG HERE
     TaskMeta_DictEntry* op_cfg = task->add_config();
-    op_cfg->set_opt_name("cube_name");
-    op_cfg->set_val(TEST_CUBE);
 
     Tuple query_tuple;
     extend_tuple(query_tuple, "http://foo.com");
@@ -140,6 +138,12 @@ class SubscriberTest : public ::testing::Test {
     e->set_src(1);
     e->set_dest(2);
     e->set_computation(compID);
+    
+    e = topo.add_edges();
+    e->set_src_cube(TEST_CUBE);
+    e->set_dest(1);
+    e->set_computation(compID);
+    
     
     ControlMessage r;
     node->handle_alter(r, topo);

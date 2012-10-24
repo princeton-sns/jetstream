@@ -179,6 +179,9 @@ class TestQueryPlanner(unittest.TestCase):
     plan = planner.get_assignments(1)
     self.assertTrue(dummy_node in plan)
     self.assertEquals(len(plan), 1)
+    
+    
+    print plan[dummy_node].get_pb()
 
 if __name__ == '__main__':
   unittest.main()

@@ -7,6 +7,7 @@
 #include "node.h"
 #include "dataplane_comm.h"
 #include "jetstream_types.pb.h"
+#include "subscriber.h"
 
 using namespace jetstream;
 using namespace std;
@@ -380,44 +381,53 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge &edge = topo.edges(i);
-    operator_id_t src (edge.computation(), edge.src());
-    shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
     
-    if (!srcOperator) {
-      LOG(WARNING) << "unknown source operator " << src;
-      
-      Error * err_msg = response.mutable_error_msg();
-      err_msg->set_msg("unknown source operator " + src.to_string());
+    if (edge.has_src()) {
+      operator_id_t src (edge.computation(), edge.src());
+      shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
+    
+      if (!srcOperator) {
+        LOG(WARNING) << "unknown source operator " << src;
+        
+        Error * err_msg = response.mutable_error_msg();
+        err_msg->set_msg("unknown source operator " + src.to_string());
 
-      continue;
-    }
-    assert(srcOperator);
-
-    //TODO check if src doesn't exist
-    if (edge.has_dest_cube()) { 
-      // connect to local table
-      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
-      if (c)
-        srcOperator->set_dest(c);
-      else {
-        LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
+        continue;
       }
-    } 
-    else if (edge.has_dest_addr()) {   //remote network operator
-      shared_ptr<RemoteDestAdaptor> xceiver(
-          new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
-      dataConnMgr.register_new_adaptor(xceiver);
-      srcOperator->set_dest(xceiver);
-    } 
-    else {
-      assert(edge.has_dest());
+      if (edge.has_dest_cube()) { 
+        // connect to local table
+        shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
+        if (c)
+          srcOperator->set_dest(c);
+        else {
+          LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
+        }
+      }
+      else if (edge.has_dest_addr()) {   //remote network operator
+        shared_ptr<RemoteDestAdaptor> xceiver(
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
+        dataConnMgr.register_new_adaptor(xceiver);
+        srcOperator->set_dest(xceiver);
+      }
+      else {
+        assert(edge.has_dest());
+        operator_id_t dest (edge.computation(), edge.dest());
+        shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
+        if (destOperator)
+          srcOperator->set_dest(destOperator);
+        else {
+          LOG(WARNING) << "Dest Operator unknown: " << dest.to_string() << endl;
+        }
+      }
+    }
+    else { //edge starts at cube
+      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
       operator_id_t dest (edge.computation(), edge.dest());
       shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
-      if (destOperator)
-        srcOperator->set_dest(destOperator);
-      else {
-        LOG(WARNING) << "Dest Operator unknown: " << dest.to_string() << endl;
-      }
+      
+      shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
+      subsc->set_cube(c.get());
+      c->add_subscriber(subsc);
     }
   }
   

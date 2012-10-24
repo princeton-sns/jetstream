@@ -68,7 +68,6 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
     bool running;
     boost::shared_ptr<boost::thread> loopThread;
-    boost::shared_ptr<DataCube> cube;
 
     int windowSizeMs;  //query interval
     int ts_field; //which field is the timestamp?
