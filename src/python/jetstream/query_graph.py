@@ -17,7 +17,13 @@ class QueryGraph(object):
     o = Operator(self, type, cfg, self.nID)
     self.operators[self.nID] = o
     self.nID += 1
-    return o  
+    return o    
+
+  def add_existing_operator(self, o):
+    self.operators[self.nID] = o
+    self.nID += 1
+    return o      
+    
     
   def add_cube(self, name, desc = {}):
     """Add a cube to the graph"""
@@ -26,7 +32,6 @@ class QueryGraph(object):
     self.nID += 1
     return c
 
-    
   def add_to_PB(self, alter):
     
     alter.computationID = 0
@@ -142,6 +147,7 @@ class Operator(Destination):
     NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
     SEND_K = "SendK"
     RATE_RECEIVER = "RateRecordReceiver"
+    TIME_SUBSCRIBE = "TimeBasedSubscriber"
 
     # Supported by Python local controller/worker only
     UNIX = "Unix"
@@ -164,7 +170,8 @@ class Operator(Destination):
      for opt,val in self.cfg.items():
        d_entry = task_meta.config.add()
        d_entry.opt_name = opt
-       d_entry.val = val
+       d_entry.val = str(val)
+     return task_meta
      
 
 class Cube(Destination):
@@ -191,6 +198,11 @@ class Cube(Destination):
   def add_agg(self, a_name, a_type, offset):
     self.desc['aggs'].append(  (a_name, a_type, offset) )
 
+  def get_dimensions(self):
+    r = {}
+    for dim_name, dim_type, offset in self.desc['dims']:
+      r[offset] = (dim_name, dim_type)
+    return r
     
   def set_overwrite(self, overwrite):
     assert(type(overwrite) == types.BooleanType)
@@ -249,7 +261,40 @@ def ExtendOperator(graph, typeStr, fldValsList):
 def NoOp(graph, file):
    cfg = {}
    return graph.add_operator(Operator.OpType.EXTEND, cfg)  
-   
+
+class TimeSubscriber(Operator):
+  def __init__ (self, graph, my_filter, interval, sort_order = [], num_results = -1):
+    super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
+    self.filter = my_filter
+    self.cfg["window_size"] = interval
+    graph.add_existing_operator(self)
+  
+
+  def add_to_PB(self, alter):
+    my_meta = Operator.add_to_PB(self,alter)
+    
+    assert( len(self.preds) == 1)
+    pred_cube = list(self.preds)[0]
+    #Need to convert the user-specified selection keys into positional form for the DB
+    dims_by_id = pred_cube.get_dimensions()
+    tuple = Tuple()
+    max_dim = max(dims_by_id.keys())
+    for id in range(0, max_dim+1):
+      el = tuple.e.add()
+      if id not in dims_by_id:
+        continue
+      dim_name,dim_type = dims_by_id[id]
+      if dim_name in self.filter:
+        if dim_type == Element.STRING:
+          el.s_val = self.filter[dim_name]
+        else:
+          raise "Panic"
+        
+    #We do this in two phases
+    
+    serialized_filter = tuple.SerializeToString()
+    self.cfg["slice_tuple"] = serialized_filter
+    
     
 ##### Test operators #####
  
