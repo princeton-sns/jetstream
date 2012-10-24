@@ -11,6 +11,12 @@ class DataCube;
 namespace cube {
 
 class Subscriber: public jetstream::DataPlaneOperator {
+  friend class DataCube;
+
+//  friend DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
+  // Would ideally just have the one method as friend but it would be a circular dependency
+
+
   protected:
     DataCube * cube;
   
@@ -35,9 +41,10 @@ class Subscriber: public jetstream::DataPlaneOperator {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) = 0;
   
+  private:
     void set_cube(DataCube  *c ) {cube = c;}
 
-  private:
+  
     const static std::string my_type_name;
   public:
     virtual const std::string& typename_as_str() {

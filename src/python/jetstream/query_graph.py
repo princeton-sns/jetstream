@@ -333,3 +333,6 @@ def SendK(graph, k):
 def RateRecord(graph):
    cfg = {}
    return graph.add_operator(Operator.OpType.RATE_RECEIVER, cfg)         
+
+def DummySerialize(g):
+  return g.add_operator("SerDeOverhead", {})

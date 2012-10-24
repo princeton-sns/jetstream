@@ -127,6 +127,14 @@ class ContinuousSendK: public DataPlaneOperator {
 GENERIC_CLNAME
 };  
 
+
+class SerDeOverhead: public DataPlaneOperator {
+ public:
+  virtual void process(boost::shared_ptr<Tuple> t);
+
+
+GENERIC_CLNAME
+};  
   
 }
 

@@ -255,6 +255,7 @@ TEST_F(CubeTest, MergeTupleIntoTest) {
 TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+
   cube->add_subscriber(sub);
   cube->destroy();
   cube->create();

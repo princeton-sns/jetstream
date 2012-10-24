@@ -159,7 +159,8 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 
 
 void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
-  assert(sub->has_cube());
+  assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
+  sub->set_cube(this);
   subscribers[sub->id()] = sub;
 }
 

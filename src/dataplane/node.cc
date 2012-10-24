@@ -420,13 +420,12 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
         }
       }
     }
-    else { //edge starts at cube
+    else { //edge starts at cube. Must go to a subscriber operator in this case.
       shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
       operator_id_t dest (edge.computation(), edge.dest());
       shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
       
       shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
-      subsc->set_cube(c.get());
       c->add_subscriber(subsc);
     }
   }
