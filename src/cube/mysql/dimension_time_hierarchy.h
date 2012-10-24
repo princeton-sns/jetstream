@@ -1,5 +1,5 @@
-#ifndef DIMENSION_TIME_Q8TYGR7Q
-#define DIMENSION_TIME_Q8TYGR7Q
+#ifndef DIMENSION_TIME_HIER_Q8TYGR7Q
+#define DIMENSION_TIME_HIER_Q8TYGR7Q
 
 #include "dimension_flat.h"
 #include <time.h>

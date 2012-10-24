@@ -153,7 +153,35 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(  len(pb_to_node.alter.edges), 1)
     self.assertEquals( pb_to_node.alter.edges[0].dest_addr.portno, MY_PORTNO)
 
+  def test_with_subscriber(self):
+    dummy_node = ("host",123)
+    planner = QueryPlanner( {dummy_node:dummy_node})
 
+    qGraph = jsapi.QueryGraph()
+    cube = qGraph.add_cube("local_results")
+    cube.add_dim("hostname", Element.STRING, 0)
+    cube.add_dim("time", Element.TIME, 1)
+    cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+    cube.set_overwrite(True)  #fresh results
+ 
+
+    subscriber = jsapi.TimeSubscriber(qGraph, {"hostname":"http://foo.com"}, 1000)
+  
+    qGraph.connect(cube, subscriber)
+    
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER    
+    qGraph.add_to_PB(req.alter)
+
+    err = planner.take_raw(req.alter)
+    self.assertEquals( len(err), 0)
+    
+    plan = planner.get_assignments(1)
+    self.assertTrue(dummy_node in plan)
+    self.assertEquals(len(plan), 1)
+    
+    
+    print plan[dummy_node].get_pb()
 
 if __name__ == '__main__':
   unittest.main()

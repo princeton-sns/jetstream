@@ -9,6 +9,8 @@
 
 #include "subscriber.h"
 #include "dataplaneoperator.h"
+#include "cube.h"
+
 #include "jetstream_types.pb.h"
 
 namespace jetstream {
@@ -53,12 +55,27 @@ class UnionSubscriber: public Subscriber {
 } /* cube */
 
 
+/***
+Takes as configuration a set of dimensions, including a distinguished time dimension;
+also takes a time interval and start time. Each interval, it queries for all
+tuples matching those dimensions, with time since the last start point.
 
+This subscriber does no backfill. 
+
+
+*/
 class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
     bool running;
     boost::shared_ptr<boost::thread> loopThread;
-    int windowSizeMs;
+
+    int windowSizeMs;  //query interval
+    int ts_field; //which field is the timestamp?
+    int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
+//    int32_t maxTsSeen;
+    jetstream::Tuple min;
+    jetstream::Tuple max;
+    
   
   public:
 

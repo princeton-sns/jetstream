@@ -54,9 +54,9 @@ class CubeTest : public ::testing::Test {
   sql::Driver * driver = sql::mysql::get_driver_instance();
 
   string db_host="localhost";
-               string db_user="root";
-               string db_pass="";
-               string db_name="test_cube";
+  string db_user="root";
+  string db_pass="";
+  string db_name="test_cube";
   sql::ConnectOptionsMap options;
   options.insert( std::make_pair( "hostName", db_host));
   options.insert( std::make_pair( "userName", db_user));
@@ -255,6 +255,7 @@ TEST_F(CubeTest, MergeTupleIntoTest) {
 TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+
   cube->add_subscriber(sub);
   cube->destroy();
   cube->create();
@@ -807,9 +808,11 @@ TEST(Cube,Attach) {
 
   AlterTopo topo;
   topo.set_computationid(compID);
+  string cubeName = "text_and_count";
 
   jetstream::CubeMeta * cube_meta = topo.add_tocreate();
-  cube_meta->set_name("text");
+  cube_meta->set_name(cubeName);
+  cube_meta->set_overwrite_old(true);
 
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
 
@@ -822,8 +825,6 @@ TEST(Cube,Attach) {
   agg->set_name("count");
   agg->set_type("count");
   agg->add_tuple_indexes(1);
-  cube_meta->set_name("test_cube");
-  cube_meta->set_overwrite_old(true);
 
   TaskMeta* task = topo.add_tostart();
   task->set_op_typename("SendK");
@@ -842,7 +843,7 @@ TEST(Cube,Attach) {
 
   Edge * e = topo.add_edges();
   e->set_src(1);
-  e->set_cube_name("test_cube");
+  e->set_dest_cube(cubeName);
   e->set_computation(compID);
 
 //  cout << topo.Utf8DebugString();
@@ -851,7 +852,7 @@ TEST(Cube,Attach) {
   node.handle_alter(r, topo);
   cout << "alter sent; data should be present" << endl;
 
-  shared_ptr<DataCube> cube = node.get_cube("test_cube");
+  shared_ptr<DataCube> cube = node.get_cube(cubeName);
   ASSERT_TRUE( cube );
   for(int i =0; i < 10 &&  cube->num_leaf_cells() < 1; i++)
   {
@@ -955,8 +956,8 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
 
 
 }
-
-TEST_F(CubeTest, MysqlTestTimeRollup) {
+//  Disabled because we ren't using the time hierarchy right now.
+TEST_F(CubeTest, DISABLED_MysqlTestTimeRollup) {
 
   boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 

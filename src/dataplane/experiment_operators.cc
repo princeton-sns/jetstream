@@ -218,12 +218,26 @@ RateRecordReceiver::operator()() {
   }
 }
 
+int BUFSZ = 10000;
+char* buf = new char [BUFSZ];
+void
+SerDeOverhead::process(boost::shared_ptr<Tuple> t) {
+  int len = t->ByteSize();
+  assert (len < BUFSZ);
+//  char* buf = new char[len];
+  t->SerializeToArray(buf, len);
+  
+  boost::shared_ptr<Tuple> t2 = boost::shared_ptr<Tuple>(new Tuple);
+  t2->ParseFromArray(buf, len);
+  emit(t2);
+}
 
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");
+const string SerDeOverhead::my_type_name("Dummy serializer");
 
 
 }

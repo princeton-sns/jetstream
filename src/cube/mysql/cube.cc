@@ -28,7 +28,7 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
   {
 
   init_connection();
-  LOG(INFO) << "creating cube "<<db_name<< "."<< name <<
+  LOG(INFO) << "creating cube " << db_name << "." << name <<
             (delete_if_exists ? " and deleting prior contents": ".");
 
   if (delete_if_exists) {
@@ -132,34 +132,33 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
   string sql;
 
   if(!aggregate_table)
-    sql = "CREATE TABLE IF NOT EXISTS `"+get_table_name()+"` (";
+    sql = "CREATE TABLE IF NOT EXISTS `" + get_table_name() + "` (";
   else
-    sql = "CREATE TABLE IF NOT EXISTS `"+get_rollup_table_name()+"` (";
+    sql = "CREATE TABLE IF NOT EXISTS `" + get_rollup_table_name() + "` (";
 
   vector<string> pk;
 
-  for(size_t i=0; i<dimensions.size(); i++) {
+  for(size_t i = 0; i < dimensions.size(); i++) {
     vector<string> names = dimensions[i]->get_column_names();
     vector<string> types = dimensions[i]->get_column_types();
 
     for (size_t j = 0; j < names.size(); j++) {
-      sql += "`"+names[j]+"` " + types[j] + " NOT NULL,";
-      pk.push_back("`"+names[j]+"`");
+      sql += "`" + names[j] + "` " + types[j] + " NOT NULL,";
+      pk.push_back("`" + names[j] + "`");
     }
 
     if(aggregate_table) {
-      sql += "`"+dimensions[i]->get_rollup_level_column_name()+"` INT NOT NULL ,";
-      pk.push_back("`"+dimensions[i]->get_rollup_level_column_name()+"`");
-
+      sql += "`" + dimensions[i]->get_rollup_level_column_name() + "` INT NOT NULL ,";
+      pk.push_back("`" + dimensions[i]->get_rollup_level_column_name() + "`");
     }
   }
 
-  for(size_t i=0; i<aggregates.size(); i++) {
+  for(size_t i = 0; i < aggregates.size(); i++) {
     vector<string> names = aggregates[i]->get_column_names();
     vector<string> types = aggregates[i]->get_column_types();
 
     for (size_t j = 0; j < names.size(); j++) {
-      sql += "`"+names[j]+"` " + types[j] + " DEFAULT NULL,";
+      sql += "`" + names[j] + "` " + types[j] + " DEFAULT NULL,";
     }
   }
 
@@ -170,7 +169,6 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
 
   VLOG(1) << "Create statement: " << sql;
   return sql;
-
 }
 
 void jetstream::cube::MysqlCube::create() {

@@ -163,9 +163,9 @@ class QueryPlanner (object):
           taskLocations[nodeId] = endpoint
     
     for edge in altertopo.edges:
-      src_host = taskLocations[edge.src]
-      if edge.dest or edge.cube_name:
-        destID = edge.dest if edge.HasField("dest") else str(edge.cube_name)
+      src_host = taskLocations[edge.src] if edge.src else taskLocations[edge.src_cube]
+      if edge.dest or edge.dest_cube:
+        destID = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
         dest_host = taskLocations[destID]
       # If the unique source/dest ids of the edge are different, this is a remote edge
         if dest_host != src_host:

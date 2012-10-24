@@ -83,7 +83,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     }
   }
 
-  LOG(INFO) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
+  VLOG(1) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
 
 
   if(can_batch && tupleBatcher->is_empty())
@@ -159,7 +159,8 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 
 
 void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
-  assert(sub->has_cube());
+  assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
+  sub->set_cube(this);
   subscribers[sub->id()] = sub;
 }
 

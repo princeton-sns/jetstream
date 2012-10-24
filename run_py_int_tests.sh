@@ -12,7 +12,7 @@ PY_27=`python --version 2>&1 | grep -cq 2.7`
 if $PY_27; then
   python -m unittest discover -s 'src/python/jetstream/int_tests' -p '*_test.py'
 else
-  for t in `find src/python/jetstream/int_tests -name web*_test.py`; do
+  for t in `find src/python/jetstream/int_tests -name *_test.py`; do
     echo $t
     python $t
   done

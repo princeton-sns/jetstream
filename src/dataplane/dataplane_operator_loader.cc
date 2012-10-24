@@ -2,6 +2,8 @@
 #include "dataplaneoperator.h"
 #include "base_operators.h"
 #include "experiment_operators.h"
+#include "base_subscribers.h"
+
 
 
 #include <iostream>
@@ -65,11 +67,14 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(SampleOperator);
 
+
   REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
   REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
-
+  REGISTER_OP(SerDeOverhead);
+  
+  REGISTER_OP(TimeBasedSubscriber);
   
   if(cache.count(name) < 1)
   {

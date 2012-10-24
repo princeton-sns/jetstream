@@ -48,26 +48,28 @@ class TestWebIntegration(unittest.TestCase):
     req.alter.computationID = compID
     
     newTask = req.alter.toStart.add()
-    newTask.op_typename = "SendK"
+    newTask.op_typename = "ContinuousSendK"
     newTask.id.computationID = req.alter.computationID
     newTask.id.task = 2
     
     newCube = req.alter.toCreate.add()
     newCube.name = "a_test_cube"
+    newCube.overwrite_old = True
+    
     d = newCube.schema.dimensions.add()
     d.name = "text"
     d.type = Element.STRING
     d.tuple_indexes.append(0)
     
-    d = newCube.schema.aggregates.add()
-    d.name = "count"
-    d.type = "count"
-    d.tuple_indexes.append(1)
+    a = newCube.schema.aggregates.add()
+    a.name = "count"
+    a.type = "count"
+    a.tuple_indexes.append(1)
     
     edge = req.alter.edges.add()
     edge.src = 2
     edge.computation = compID
-    edge.cube_name = newCube.name
+    edge.dest_cube = newCube.name
 
     buf = self.client.do_rpc(req, True)
     resp = ControlMessage()

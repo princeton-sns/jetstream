@@ -6,6 +6,8 @@
 
 #include "base_subscribers.h"
 #include "base_operators.h"
+#include "experiment_operators.h"
+
 #include "js_utils.h"
 
 
@@ -20,15 +22,15 @@ using namespace ::std;
 
 
 const char * TEST_CUBE = "test_cube";
+const int compID = 4;
 
 class SubscriberTest : public ::testing::Test {
   protected:
   
   Node * node;
 
-  virtual void SetUp() {
 
-    int compID = 4;
+  virtual void SetUp() {
 
     NodeConfig cfg;
     boost::system::error_code error;
@@ -65,22 +67,91 @@ class SubscriberTest : public ::testing::Test {
 
     ControlMessage r;
     node->handle_alter(r, topo);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
     cout << "alter sent; cube should be present" << endl;
     
   }
   
   void add_tuples(shared_ptr<DataCube> cube) {
-    for (int i =0; i < 1; ++i) {
+
       boost::shared_ptr<Tuple> t(new Tuple);
 
       extend_tuple(*t, "http://foo.com");
-      extend_tuple_time(*t, i);
+      extend_tuple_time(*t, 10000); //long long ago
+      extend_tuple(*t, 2);
+
+      cout<< "Tuple:" << fmt(*t) << endl;
+      cube->process(t);
+  
+    time_t now = time(NULL);
+    for (int i =0; i < 3; ++i) {
+      boost::shared_ptr<Tuple> t(new Tuple);
+
+      extend_tuple(*t, "http://foo.com");
+      extend_tuple_time(*t, now - i);
       extend_tuple(*t, i+1);
 
       cout<< "Tuple:" << fmt(*t) << endl;
       cube->process(t);
     }
+  }
   
+  //add a subscriber of typename subscriberName;
+  // returns a pointer to the dummy operator
+  shared_ptr<DummyReceiver>  start_time_subscriber(const string& subscriberName) {
+  
+    AlterTopo topo;
+  
+    TaskMeta* task = topo.add_tostart();
+    TaskID * id = task->mutable_id();
+    id->set_computationid(compID);
+    id->set_task(1);
+    task->set_op_typename(subscriberName);
+    //TODO MORE CONFIG HERE
+    TaskMeta_DictEntry* op_cfg = task->add_config();
+
+    Tuple query_tuple;
+    extend_tuple(query_tuple, "http://foo.com");
+    extend_tuple_time(query_tuple, 0); //just a placeholder
+
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("slice_tuple");
+    op_cfg->set_val(query_tuple.SerializeAsString());
+
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("ts_field");
+    op_cfg->set_val("1");
+
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("start_ts");
+    op_cfg->set_val("0");
+    
+    
+    task = topo.add_tostart();
+    id = task->mutable_id();
+    id->set_computationid(compID);
+    id->set_task(2);
+    task->set_op_typename("DummyReceiver");
+
+
+    Edge * e = topo.add_edges();
+    e->set_src(1);
+    e->set_dest(2);
+    e->set_computation(compID);
+    
+    e = topo.add_edges();
+    e->set_src_cube(TEST_CUBE);
+    e->set_dest(1);
+    e->set_computation(compID);
+    
+    
+    ControlMessage r;
+    node->handle_alter(r, topo);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
+    
+    shared_ptr<DataPlaneOperator> dest = node->get_operator( operator_id_t(compID, 2));
+    shared_ptr<DummyReceiver> rec = boost::static_pointer_cast<DummyReceiver>(dest);
+    return rec;
   }
   
 };
@@ -93,19 +164,36 @@ TEST_F(SubscriberTest,TimeSubscriber) {
 
 
   add_tuples(cube);
-  cout << "added" <<endl;
   int tries = 0;
   while (cube->num_leaf_cells() < 3 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-//  ASSERT_EQ(3, cube->num_leaf_cells());
+  ASSERT_EQ(4, cube->num_leaf_cells());
   //create subscriber
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber");
+  
+  tries = 0;
+  while (rec->tuples.size() < 4 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  
+  ASSERT_EQ(4, rec->tuples.size()); //one very old, three newish
   
   
-  
-  //wait and check for data
-  
-//  add_tuples(cube);
+  //add more, wait and check for data
+  boost::shared_ptr<Tuple> t(new Tuple);
 
+  extend_tuple(*t, "http://foo.com");
+  extend_tuple_time(*t, time(NULL));
+  extend_tuple(*t, 2);
+  cout<< "Tuple:" << fmt(*t) << endl;
+  cube->process(t);
+
+  boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+  
+  while (rec->tuples.size() < 5 && tries++ < 20)
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  ASSERT_EQ(5, rec->tuples.size()); //update to old tuple should be suppressed
+  
   cout << "done" <<endl;
 }

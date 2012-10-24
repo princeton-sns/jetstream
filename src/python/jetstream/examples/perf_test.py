@@ -27,6 +27,10 @@ def main():
 
   parser.add_option("-2", "--two-nodes", dest="USE_TWO_NODES", action="store_true", 
                   help="whether to use two nodes", default=False)
+  parser.add_option("-s", "--serialize", dest="serialize", action="store_true", 
+                  help="whether to add a dummy serialization", default=False)
+
+
   (options, args) = parser.parse_args()
 
   if ':' in options.controller:
@@ -40,6 +44,11 @@ def main():
   ### Define the graph abstractly, without a computation
   g = jsapi.QueryGraph()
   source = jsapi.SendK(g, "1" + 10 * "0") #10 billion; fits into an int64 very easily
+  if options.serialize:
+    s2 = jsapi.DummySerialize(g)
+    g.connect(source, s2)
+    source = s2
+  
   sink = jsapi.RateRecord(g)
   
   g.connect(source,sink)
