@@ -1,0 +1,83 @@
+---
+# need to use ssh agent forwarding to forward ssh key for git 
+# so need to setup agent forwarding (ForwardAgent yes) in .ssh/config and use the following command:
+# ANSIBLE_SSH_ARGS="" ansible-playbook  -i ansible_hosts setup.yml -K --connection=ssh
+- hosts: sns48
+  vars:
+  sudo: False
+  tasks:
+  - name: ping all
+    action: ping
+#general
+  - name: make sure jetstream deps dir exists
+    file: dest=/disk/local/jetstream_deps state=directory mode=777
+#boost
+  - name: copy boost
+    command: scp -r -o StrictHostKeyChecking=no sns48:/disk/local/boost_1_50_0 /disk/local/boost_1_50_0 
+            creates=/disk/local/boost_1_50_0
+#mysql cpp connector
+  - name: download mysql cpp conn
+    command: wget http://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit.tar.gz/from/http://cdn.mysql.com/ -O mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit.tar.gz 
+            chdir=/disk/local/jetstream_deps 
+            creates=/disk/local/jetstream_deps/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit.tar.gz
+  - name: untar mysql cpp conn
+    command: tar -xzvf mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit.tar.gz 
+            chdir=/disk/local/jetstream_deps 
+            creates=/disk/local/jetstream_deps/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit
+#protobufs
+  - name: make sure protobufs dir exists
+    file: dest=/disk/local/jetstream_deps/protobufs state=directory mode=777
+  - name: download protobufs
+    command: wget http://archive.ubuntu.com/ubuntu/pool/main/p/protobuf/protobuf_2.4.1.orig.tar.gz -O protobuf_2.4.1.orig.tar.gz 
+            chdir=/disk/local/jetstream_deps 
+            creates=/disk/local/jetstream_deps/protobuf_2.4.1.orig.tar.gz
+  - name: untar protobufs
+    command: tar -xzvf protobuf_2.4.1.orig.tar.gz
+            chdir=/disk/local/jetstream_deps 
+            creates=/disk/local/jetstream_deps/protobuf-2.4.1
+  - name: configure protobuf
+    command: ./configure --prefix=/disk/local/jetstream_deps/protobufs
+            chdir=/disk/local/jetstream_deps/protobuf-2.4.1
+            creates=/disk/local/jetstream_deps/protobuf-2.4.1/config.h
+  - name: make protobuf
+    command: make install
+            chdir=/disk/local/jetstream_deps/protobuf-2.4.1
+            creates=/disk/local/jetstream_deps/protobufs/include
+#js
+  - name: make sure jetstream dir exists
+    file: dest=/disk/local/jetstream state=directory mode=777
+  - name: checkout jetstream
+    git: repo=git@bitbucket.org:mfreed/jetstream.git dest=/disk/local/jetstream 
+  - name: make sure jetstream build dir exists
+    file: dest=/disk/local/jetstream/build state=directory
+  - name: cmake js
+    command: cmake -DUSE_CLANG=OFF 
+              -DBOOST_ROOT=/disk/local/boost_1_50_0/ -DBoost_NO_SYSTEM_PATHS=True 
+              -DPROTOBUF_LIBRARY=/disk/local/jetstream_deps/protobufs/lib/libprotobuf.so 
+              -DPROTOBUF_INCLUDE_DIR=/disk/local/jetstream_deps/protobufs/include/ -DProtobuf_NO_SYSTEM_PATHS=True ../
+              chdir=/disk/local/jetstream/build
+  - name: make js
+    command: make
+            chdir=/disk/local/jetstream/build
+
+
+- hosts: sns48
+  sudo: True
+  tasks:
+#install mysql cpp connector system wide
+  - name: Install mysql cpp conn include
+    command: cp -r /disk/local/jetstream_deps/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit/include /usr/ 
+            creates=/usr/include/cppconn/ 
+  - name: Install mysql cpp conn lib
+    command: cp -r /disk/local/jetstream_deps/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit/lib /usr/ 
+            creates=/usr/lib/libmysqlcppconn.so
+#apt dependencies
+  - name: install cmake
+    apt: pkg=cmake state=present
+  - name: install libgtest0
+    apt: pkg=libgtest0 state=present
+  - name: install libgtest-dev
+    apt: pkg=libgtest-dev state=present
+  - name: install glog
+    apt: pkg=libgoogle-glog-dev state=present
+
