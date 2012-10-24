@@ -163,7 +163,7 @@ class QueryPlanner (object):
           taskLocations[nodeId] = endpoint
     
     for edge in altertopo.edges:
-      src_host = taskLocations[edge.src]
+      src_host = taskLocations[edge.src] if edge.src else taskLocations[edge.src_cube]
       if edge.dest or edge.dest_cube:
         destID = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
         dest_host = taskLocations[destID]

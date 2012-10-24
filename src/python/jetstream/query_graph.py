@@ -4,6 +4,10 @@ from jetstream_types_pb2 import *
 
 
 class QueryGraph(object):
+  """Represents the client's-eye-view of a computation.
+ We use the task IDs of operators internally. We also use the same ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
+ This means, in particular, that you should be able to share a cube across computations. 
+"""
 
   def __init__(self):
     self.nID = 1          # the NEXT ID to hand out
@@ -20,9 +24,10 @@ class QueryGraph(object):
     return o    
 
   def add_existing_operator(self, o):
-    self.operators[self.nID] = o
+    id = self.nID
+    self.operators[id] = o
     self.nID += 1
-    return o      
+    return id
     
     
   def add_cube(self, name, desc = {}):
@@ -42,15 +47,22 @@ class QueryGraph(object):
     for e in self.edges:
       pb_e = alter.edges.add()
       pb_e.computation = 0
+      
+        
       if e[0] in self.operators:
         pb_e.src = e[0]
-        if e[1] in self.operators:
-          pb_e.dest = e[1]
-        else:
-          assert(e[1] in self.cubes)
-          pb_e.dest_cube = self.cubes[e[1]].name
       else:
-        raise "haven't implemented out-edges from cubes"
+        pb_e.src_cube=self.cubes[e[0]].name
+
+      if e[1] in self.operators:
+        pb_e.dest = e[1]
+      else:  #dest wasn't an operator, so must be cube
+        if e[1] not in self.cubes:
+          print "ERR: edge",e,"connects to nonexistant node"
+          print "operators:",self.operators
+          print "cubes:",self.cubes
+        assert(e[1] in self.cubes)
+        pb_e.dest_cube = self.cubes[e[1]].name
     
   def connect(self, oper1, oper2):
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
@@ -106,7 +118,9 @@ class Destination(object):
     self._location = None
 
   
-  def add_pred(self, p):
+  def add_pred(self, p):  
+    assert( isinstance(p,Destination) )
+
     self.preds.add(p)
   
   def get_id(self):
@@ -267,7 +281,8 @@ class TimeSubscriber(Operator):
     super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
     self.filter = my_filter
     self.cfg["window_size"] = interval
-    graph.add_existing_operator(self)
+    self.id = graph.add_existing_operator(self)
+    assert self.id != 0
   
 
   def add_to_PB(self, alter):

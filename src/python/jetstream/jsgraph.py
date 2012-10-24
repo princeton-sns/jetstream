@@ -59,7 +59,7 @@ class JSGraph (object):
   """A JetStream computation graph"""
 
   def __init__ (self, operators, cubes, edges):
-    # Map of node ID -> JSNode
+    # Map of node ID -> JSNode. Id will be a string for cubes, and an int for operators
     self.nodes = {}
     # Map of node ID -> JSNode for sources (nodes with no incoming edge)
     self.sources = {}
@@ -81,7 +81,10 @@ class JSGraph (object):
         #pseudo-edge, so we ignore
         continue
 
-      src = self.nodes[e.src]
+      if e.src:
+        src = self.nodes[e.src]
+      else:
+        src = self.nodes[e.src_cube]
       if src not in self.adjList:
         self.adjList[src] = []
       # Determine if the destination is a cube or operator
