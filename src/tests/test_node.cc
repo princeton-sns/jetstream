@@ -122,8 +122,8 @@ TEST(Node, HandleAlter_2_Ops)
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   int tries = 0;
-  while (rec->tuples.size() == 0 && tries++ < 20)
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  while (rec->tuples.size() == 0 && tries++ < 5)
+    boost::this_thread::sleep(boost::posix_time::seconds(1));
 
   
   ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
@@ -328,8 +328,8 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   data_conn.send_msg(data_msg);
   
   tries = 0;
-  while (data_conn.is_connected() && tries++ < 20) {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  while (data_conn.is_connected() && tries++ < 5) {
+    boost::this_thread::sleep(boost::posix_time::seconds(1));
     data_conn.send_msg(data_msg);
   }
   
@@ -489,8 +489,8 @@ TEST(NodeIntegration, DataplaneConn) {
   stringstream(kStr) >> k;
   
   tries = 0;
-  while (rec->tuples.size() < k && tries++ < 20)
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  while (rec->tuples.size() < k && tries++ < 5)
+    boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   if(tries >= 20) {
     cout << "GAVE UP WAITING FOR DATA"<<endl;
