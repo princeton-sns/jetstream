@@ -11,11 +11,10 @@ class DataCube;
 namespace cube {
 
 class Subscriber: public jetstream::DataPlaneOperator {
-  friend class ::jetstream::DataCube;
+  friend class jetstream::DataCube;
 
 //  friend DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
   // Would ideally just have the one method as friend but it would be a circular dependency
-
 
   protected:
     DataCube * cube;

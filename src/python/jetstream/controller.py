@@ -62,7 +62,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__ (self, addr)
-    self.workers = {}  # maps (hostid, port) to CWorker
+    self.workers = {}  # maps workerID = (hostid, port) -> CWorker
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
@@ -115,7 +115,6 @@ class Controller (ControllerAPI, JSServer):
     self.stateLock.acquire()
     res.extend(self.workers.values())
     self.stateLock.release()
-
     return res
 
     
@@ -165,12 +164,12 @@ class Controller (ControllerAPI, JSServer):
 
     compID,comp = self.assign_comp_id()
 
-    worker_locations = dict([ (h, w.get_dataplane_ep() ) for (h,w) in self.workers.items() ])
-    planner = QueryPlanner(worker_locations)  #these should be the dataplane addresses
+    workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
+    planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
     err = planner.take_raw(altertopo)
     
     if len(err) > 0:
-      print "Invalid topology:",err
+      print "Invalid topology: ",err
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
@@ -179,15 +178,15 @@ class Controller (ControllerAPI, JSServer):
     
     # Finalize the worker assignments
     # TODO should this be AFTER we hear back from workers?
-    for endpoint,assignment in assignments.items():
-      comp.assign_worker(endpoint, self.workers[endpoint].get_dataplane_ep(), assignment)
-      self.workers[endpoint].add_assignment(assignment)
+    for workerID,assignment in assignments.items():
+      comp.assign_worker(workerID, assignment)
+      self.workers[workerID].add_assignment(assignment)
     
     # Start the computation
     logger.info("Starting computation %d" % (compID))
-    for endpoint,assignment in assignments.items():
+    for workerID,assignment in assignments.items():
       req = assignment.get_pb()            
-      h = self.connect_to(endpoint)
+      h = self.connect_to(workerID)
       #print worker, req
       # Send without waiting for response; we'll hear back in the main network message
       # handler

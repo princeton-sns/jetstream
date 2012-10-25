@@ -168,7 +168,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   while (cube->num_leaf_cells() < 3 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-  ASSERT_EQ(4, cube->num_leaf_cells());
+  ASSERT_EQ(4U, cube->num_leaf_cells());
   //create subscriber
   shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber");
   
@@ -176,7 +176,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   while (rec->tuples.size() < 4 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-  ASSERT_EQ(4, rec->tuples.size()); //one very old, three newish
+  ASSERT_EQ(4U, rec->tuples.size()); //one very old, three newish
   
   
   //add more, wait and check for data
@@ -193,7 +193,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   while (rec->tuples.size() < 5 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
-  ASSERT_EQ(5, rec->tuples.size()); //update to old tuple should be suppressed
+  ASSERT_EQ(5U, rec->tuples.size()); //update to old tuple should be suppressed
   
   cout << "done" <<endl;
 }

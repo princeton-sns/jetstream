@@ -360,7 +360,7 @@ TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
   cube->process(t2); 
-  for(int i =0; i < 10 &&  sub->update_q.size() < 1; i++)
+  for(int i =0; i < 10 && (sub->update_q.size() < 1 || sub->insert_q.size() < 1); i++)
   {
     boost::this_thread::sleep(boost::posix_time::milliseconds(10));
   }

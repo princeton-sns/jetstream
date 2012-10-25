@@ -32,18 +32,17 @@ class QueryPlanner (object):
   expanded plan.
   """  
 
-  def __init__ (self, aliveWorkers):
-    assert len(aliveWorkers)==0 or \
-      isinstance(aliveWorkers, types.DictType)  #should be a list of host/port pairs
-    self.workers = aliveWorkers  
+  def __init__ (self, dataplaneEps):
+    assert len(dataplaneEps) == 0 or isinstance(dataplaneEps, types.DictType)
+    self.workerLocs = dataplaneEps  # map of workerID -> dataplane location
     return
     
     
   def take_raw (self, altertopo):
     """Takes the client's plan, validates, and fills in host names.
-     For now, we only allow real host names from the client, so this is purely a validation phase.
-     Returns a string on error.
-     """
+    For now, we only allow real host names from the client, so this is purely a validation phase.
+    Returns a string on error.
+    """
      
     err = self.validate_raw_topo(altertopo)
     if len(err) > 0:
@@ -51,7 +50,7 @@ class QueryPlanner (object):
     self.alter = altertopo  
     return ""
   
-  
+
   CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
@@ -106,7 +105,7 @@ class QueryPlanner (object):
     taskLocations = {}  # task ID [int or string] to host/port pair
     sources = jsGraph.get_sources()
     sink = jsGraph.get_sink()
-    defaultEndpoint = self.workers.keys()[0]
+    defaultEndpoint = self.workerLocs.keys()[0]
 
     # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
     # assign it to a default worker.
@@ -119,7 +118,7 @@ class QueryPlanner (object):
         # Node is pinned to a specific worker
         endpoint = (graph_node.site.address, graph_node.site.portno)
         # But if the worker doesn't exist, revert to the default worker
-        if endpoint not in self.workers.keys():
+        if endpoint not in self.workerLocs.keys():
           logger.warning("Node was pinned to a worker, but that worker does not exist")
           endpoint = defaultEndpoint
       elif (graph_node in sources) or (graph_node == sink):
@@ -170,7 +169,7 @@ class QueryPlanner (object):
       # If the unique source/dest ids of the edge are different, this is a remote edge
         if dest_host != src_host:
           # Use the dataplane endpoint of the destination
-          dest_ep = self.workers[dest_host]
+          dest_ep = self.workerLocs[dest_host]
           edge.dest_addr.address = dest_ep[0]
           edge.dest_addr.portno = dest_ep[1]
     

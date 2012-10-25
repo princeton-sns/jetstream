@@ -68,20 +68,13 @@ class Computation (object):
   def __init__ (self, compID):  #, jsGraph
     # Save the controller interface so we can communicate with workers
     self.compID = compID
-#    self.jsGraph = jsGraph
     # Maps a worker endpoint to an assignment
-    self.workerAssignments = {} #worker ID to WorkerAssignment object
-    self.taskLocations = {} #maps operator ID or cube name to host,port pair
-          # operator IDs are just ints for now.
+    self.workerAssignments = {} # worker ID -> WorkerAssignment object
 
 
-  def assign_worker (self, workerId, endpoint, assignment):
-    assert(endpoint not in self.workerAssignments)
-    for task in assignment.operators:
-      self.taskLocations[task.id.task] = endpoint
-    for cube in assignment.cubes:
-      self.taskLocations[str(cube.name)] = endpoint
-    self.workerAssignments[workerId] = assignment
+  def assign_worker (self, workerID, assignment):
+    assert(workerID not in self.workerAssignments)
+    self.workerAssignments[workerID] = assignment
 
 
   def update_worker (self, endpoint, actualAssignment):
@@ -93,62 +86,17 @@ class Computation (object):
     else:
       intendedAssignment.state = WorkerAssignment.STOPPED
       #TODO Handle failed assignment here
-#       
-# 
-#   def add_edges(self, edgeList):
-#     print "adding",len(edgeList),"edges"
-#     for edge in edgeList:
-#       if edge.src not in self.taskLocations:
-#         print "unknown source %s" % str(edge.src)
-#         raise UserException("Edge from nonexistent source")
-#       dest = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
-#       self.outEdges[edge.src] = dest
 
 
-#   def get_worker_pb(self, workerID):
-#     """Returns the control message to start the portion of this computation on worker 
-#     with id workerID"""
-#     req = ControlMessage()
-#     req.type = ControlMessage.ALTER
-#     req.alter.computationID = self.compID
-#     req.alter.toStart.extend(self.workerAssignments[workerID].operators)
-#     req.alter.toCreate.extend(self.workerAssignments[workerID].cubes)
-#     
-#     print self.taskLocations
-#       #now the edges
-#     for operator in self.workerAssignments[workerID].operators:
-#       tid = operator.id.task
-#       if tid in self.outEdges: #operator has a link to next
-#         destID = self.outEdges[tid]
-#         pb_e = req.alter.edges.add()
-#         pb_e.src = tid
-#         pb_e.computation = self.compID
-#         
-#         dest_host = self.taskLocations[destID]
-#   
-#         if type(destID) == types.StringType:
-#           pb_e.dest_cube = destID
-#         elif type(destID) == types.IntType:
-#           pb_e.dest = destID
-#         else:
-#           print "no such task: %s of type %s" % (str(destID), str(type(destID)))
-#           assert False           
-#   
-#         if dest_host != workerID:
-#           pb_e.dest_addr.address = dest_host[0]
-#           pb_e.dest_addr.portno = dest_host[1]
-#           
-#     return req
-
-
-  def stop (self):
-    # Stop each worker's assignment
-    #TODO: Do this in reverse topological order
-    for worker in self.workerAssignments.keys():
-      req = ControlMessage()
-      req.type = ControlMessage.ALTER
-      req.alter.computationID = self.compID
-      req.alter.taskToStop.extend( [operator.id for operator in self.workerAssignments[worker].operators] )
-      req.alter.cubesToStop.extend( [cube.name for cube in self.workerAssignments[worker].cubes] )
-      h = self.connect_to(worker)
-      h.send_pb(req)
+  #TODO: Move this code to controller.py once we incorporate computation stop logic
+#   def stop (self):
+#     # Stop each worker's assignment
+#     #TODO: Do this in reverse topological order
+#     for worker in self.workerAssignments.keys():
+#       req = ControlMessage()
+#       req.type = ControlMessage.ALTER
+#       req.alter.computationID = self.compID
+#       req.alter.taskToStop.extend( [operator.id for operator in self.workerAssignments[worker].operators] )
+#       req.alter.cubesToStop.extend( [cube.name for cube in self.workerAssignments[worker].cubes] )
+#       h = self.connect_to(worker)
+#       h.send_pb(req)

@@ -42,6 +42,7 @@ class JSServer(asyncore.dispatcher):
     self.listen(1)
     return
 
+
   def handle_accept(self):
     client_info = self.accept()
     while client_info is None:
@@ -53,6 +54,7 @@ class JSServer(asyncore.dispatcher):
     h = ConnHandler(sock=client_info[0], server=self, cli_addr=client_info[1], map=self.my_sockets)
     self.addr_to_handler[client_info[1]] = h
     return
+
   
   def connect_to(self, dest_addr):
     # If a handler for the destination exists, then it is still valid as of this check (otherwise it
@@ -65,9 +67,11 @@ class JSServer(asyncore.dispatcher):
 #    print "client connected to %s:%d" % dest_addr
     self.addr_to_handler[dest_addr] = h
     return h
+
   
   def handle_close(self):
     self.close()
+
     
   def stop(self):
     self.running = False
@@ -79,11 +83,13 @@ class JSServer(asyncore.dispatcher):
     if (self.evtThread != None) and (self.evtThread.is_alive()):
       self.evtThread.join()
 
+
   def start(self):
     self.__running = True
     self.evtThread = threading.Thread(group=None, target=self.evtloop, args=())
     self.evtThread.daemon = True
     self.evtThread.start()
+
 
   def evtloop(self):
     try:
@@ -116,6 +122,7 @@ class ConnHandler(asynchat.async_chat):
     asynchat.async_chat.__init__(self, sock, map)
     return
 
+
   def collect_incoming_data(self, data):
     logger.debug('collect_incoming_data() -> (%d)', len(data))
 
@@ -143,16 +150,19 @@ class ConnHandler(asynchat.async_chat):
       self.server.process_message(buf, self)
       self.set_terminator(4)
       self.next_frame_len = -1
+
   
-  # Overwrite to make thread-safe
+  # Override to make thread-safe
   def push(self, data):
     with self.pushLock:
       asynchat.async_chat.push(self, data)
+
 
   def send_pb(self, response):  #name 'send' already in use for socket send
     buf = response.SerializeToString()
     # Use one call to push to guarantee protobuf is sent contiguously
     self.push(struct.pack("!l", len(buf)) + buf)
+
 
   def handle_close(self):
     logger.info("Socket closed by remote end %s:%d" % self.cli_addr)
@@ -161,11 +171,12 @@ class ConnHandler(asynchat.async_chat):
       del self.server.addr_to_handler[self.cli_addr]
 
 
-
 class JSClient():
   """Simple synchronous client that speaks appropriate protobuf interface"""
+
   def __init__(self, address):
     self.sock = socket.create_connection(address, 1)
+
 
   def do_rpc(self, req, expectResponse):
     buf = req.SerializeToString()
@@ -180,6 +191,7 @@ class JSClient():
       buf = self.sock.recv(unpacked_len)
       return buf
     return None
+
     
   def ctrl_rpc(self, req, expectResponse):
     buf = self.do_rpc(req, expectResponse)
@@ -190,23 +202,25 @@ class JSClient():
     else:
       return None
 
+
   def close(self):
     self.sock.close()
 
 
-def sock_send_pb(sock, pb):
-  buf = req.SerializeToString()
-  sock.send(  struct.pack("!l", len(buf)))
-  sock.send(buf)
-    
+#TODO: unused?
+# def sock_send_pb(sock, pb):
+#   buf = req.SerializeToString()
+#   sock.send(  struct.pack("!l", len(buf)))
+#   sock.send(buf)
+#     
+# 
+# def sock_read_data_pb(sock):
+#   pbframe_len = sock.recv(4)
+#   unpacked_len = struct.unpack("!l", pbframe_len)[0]
+#   print "Got data frame of length %d" % unpacked_len
+#   # print "reading another %d bytes" % unpacked_len
+#   buf = sock.recv(unpacked_len)
+#   resp = DataplaneMessage()
+#   resp.ParseFromString(buf)
+#   return resp
 
-def sock_read_data_pb(sock):
-  pbframe_len = sock.recv(4)
-  unpacked_len = struct.unpack("!l", pbframe_len)[0]
-  print "Got data frame of length %d" % unpacked_len
-  # print "reading another %d bytes" % unpacked_len
-  buf = sock.recv(unpacked_len)
-  resp = DataplaneMessage()
-  resp.ParseFromString(buf)
-  return resp
-    
