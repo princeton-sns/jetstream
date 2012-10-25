@@ -157,6 +157,7 @@ class Operator(Destination):
   class OpType (object):
     FILE_READ = "FileRead"
     STRING_GREP = "StringGrep"
+    PARSE = "GenericParse"
     EXTEND = "ExtendOperator"
     NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
     SEND_K = "SendK"
@@ -270,6 +271,11 @@ def ExtendOperator(graph, typeStr, fldValsList):
       cfg[str(i)] = str(x)
       i += 1
     return graph.add_operator(Operator.OpType.EXTEND, cfg)
+
+
+def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
+    cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
+    return graph.add_operator(Operator.OpType.PARSE, cfg)
     
     
 def NoOp(graph, file):
@@ -277,10 +283,13 @@ def NoOp(graph, file):
    return graph.add_operator(Operator.OpType.EXTEND, cfg)  
 
 class TimeSubscriber(Operator):
-  def __init__ (self, graph, my_filter, interval, sort_order = [], num_results = -1):
+  def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = -1):
     super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
     self.filter = my_filter
     self.cfg["window_size"] = interval
+    self.cfg["sort_order"] = sort_order
+    self.cfg["num_results"] = num_results
+
     self.id = graph.add_existing_operator(self)
     assert self.id != 0
   
@@ -320,8 +329,6 @@ class TimeSubscriber(Operator):
     my_meta = Operator.add_to_PB(self,alter)
     
     
-
-    
     
 ##### Test operators #####
  
@@ -336,3 +343,8 @@ def RateRecord(graph):
 
 def DummySerialize(g):
   return g.add_operator("SerDeOverhead", {})
+  
+
+def Echo(g):
+  return g.add_operator("EchoOperator", {})
+  

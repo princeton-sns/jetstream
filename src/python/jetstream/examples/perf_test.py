@@ -1,6 +1,4 @@
-#
-# Graph data structure and algorithms for representing JetStream queries/computations.
-#
+# A performance test. Can be single-process, two-process or one-process but with serialization
 
 from jetstream_types_pb2 import *
 
@@ -10,10 +8,8 @@ import random
 import socket
 import time
 
-
 from remote_controller import RemoteController
 import query_graph as jsapi
-from jetstream_types_pb2 import *
 
 
 def main():

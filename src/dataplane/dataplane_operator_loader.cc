@@ -73,6 +73,8 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
   REGISTER_OP(SerDeOverhead);
+  REGISTER_OP(EchoOperator);
+
   
   REGISTER_OP(TimeBasedSubscriber);
   

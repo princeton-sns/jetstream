@@ -212,7 +212,8 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     }
   }
   else {
-   // what do we do on parse failures?
+   // what do we do on parse failures?  Currently, suppress silently as 'no match'
+    return;
   }
 
   for(int i = fld_to_parse+1; i < t->e_size(); ++i) {

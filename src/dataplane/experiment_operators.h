@@ -135,6 +135,16 @@ class SerDeOverhead: public DataPlaneOperator {
 
 GENERIC_CLNAME
 };  
+
+
+class EchoOperator: public DataPlaneOperator {
+ public:
+  virtual void process(boost::shared_ptr<Tuple> t);
+
+
+GENERIC_CLNAME
+};  
+
   
 }
 

@@ -1,6 +1,9 @@
 #include <glog/logging.h>
 #include <time.h>
 
+#include <sstream>
+#include <string>
+
 
 #include "base_subscribers.h"
 #include "js_utils.h"
@@ -63,34 +66,34 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   else
     windowSizeMs = 1000;
 
+  string serialized_slice = config["slice_tuple"];
+  min.ParseFromString(serialized_slice);
+  max.CopyFrom(min);
+
   time_t start_ts = time(NULL); //now
   if (config.find("start_ts") != config.end())
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
   
-  if (config.find("ts_field") != config.end())
+  if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
-  else
+    min.mutable_e(ts_field)->set_t_val(start_ts);
+
+  } else
     ts_field = -1;
 //    return operator_err_t("Must specify start_ts field");
 
+
+//  if (config.find("num_results") != config.end())
+  num_results = boost::lexical_cast<int32_t>(config["num_results"]);
+    //default should be zero
   
-  string serialized_slice = config["slice_tuple"];
-  min.ParseFromString(serialized_slice);
-  max.CopyFrom(min);
-  min.mutable_e(ts_field)->set_t_val(start_ts);
-  
-  //max source ts will be set later
-  
-  
-/*
-  string name = config["cube_name"];
-  if (name.length() == 0)
-    return operator_err_t("Must specify option cube_name");
-  
-  cube = node->get_cube(name);
-  if (cube == NULL) {
-    return operator_err_t("No such cube " + name);
-  }*/
+  if (config.find("sort_order") != config.end()) {
+    std::stringstream ss(config["sort_order"]);
+    std::string item;
+    while(std::getline(ss, item, ',')) {
+        sort_order.push_back(item);
+    }
+  }
   return NO_ERR;
 }
 
@@ -111,7 +114,7 @@ void TimeBasedSubscriber::operator()() {
 	 while (running)  {
   //sleep
     LOG(INFO) << "doing query; range is " << fmt(min)<< " to " << fmt(max);
-    cube::CubeIterator it = cube->slice_query(min, max);
+    cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
     while ( it != cube->end()) {
       emit(*it);
       it++;      

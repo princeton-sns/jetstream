@@ -641,12 +641,14 @@ jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::Re
 }
 
 jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final, list<string> const &sort, size_t limit) const {
+
+  VLOG(2) << "in slice_query";
   string sql = "SELECT * FROM `"+get_table_name()+"`";
 
   sql += get_where_clause(min, max);
   sql += get_sort_clause(sort);
   sql += get_limit_clause(limit);
-
+  VLOG(2) << "in slice_query; query is " << sql;
   return get_result_iterator(sql, final);
 }
 

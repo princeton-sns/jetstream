@@ -232,12 +232,21 @@ SerDeOverhead::process(boost::shared_ptr<Tuple> t) {
   emit(t2);
 }
 
+void
+EchoOperator::process(boost::shared_ptr<Tuple> t) {
+  cout << id() <<": " <<fmt(*t) << endl;
+
+  if (get_dest() != NULL)
+    emit(t);
+}
+
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");
 const string SerDeOverhead::my_type_name("Dummy serializer");
+const string EchoOperator::my_type_name("Echo");
 
 
 }

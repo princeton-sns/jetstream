@@ -73,6 +73,8 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     int ts_field; //which field is the timestamp?
     int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
 //    int32_t maxTsSeen;
+    std::list<std::string> sort_order;
+    int32_t num_results;
     jetstream::Tuple min;
     jetstream::Tuple max;
     

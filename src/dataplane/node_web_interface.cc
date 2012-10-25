@@ -27,6 +27,7 @@ NodeWebInterface::start ()
     const char *mg_config[] = {"listening_ports", port_as_str.c_str(), NULL};
     mongoose_ctxt = mg_start(process_req, this, mg_config);
     //FIXME: iscube_iter safe for cfg to go out of scope here?
+    LOG(INFO) << "Web server is on port " << mg_get_option(mongoose_ctxt, "listening_ports");
   }
 }
 

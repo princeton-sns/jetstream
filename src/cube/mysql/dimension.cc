@@ -16,7 +16,7 @@ string MysqlDimension::get_where_clause_exact_prepared() const {
   return boost::algorithm::join(sql, " AND ");
 }
 
-  string MysqlDimension::get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional) const {
+string MysqlDimension::get_where_clause_exact(jetstream::Tuple const &t, int &tuple_index, bool is_optional) const {
   return get_where_clause(t, tuple_index, " = ", is_optional);
 }
 
