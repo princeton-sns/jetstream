@@ -62,12 +62,14 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     //LOG(INFO) << "Action: "<< act << "send is: " <<  cube::Subscriber::SEND;
     if(act == cube::Subscriber::SEND) {
       if(!in_batch) {
+        VLOG(3) << "Action: "<< act << " adding to insert: " <<  tpi->key;
         tpi->insert.push_back((*it).first);
         tpi->need_new_value = true;
       }
     }
     else if(act == cube::Subscriber::SEND_NO_BATCH) {
       if(!in_batch) {
+        VLOG(3) << "Action: "<< act << " adding to insert: " <<  tpi->key;
         tpi->insert.push_back((*it).first);
         tpi->need_new_value = true;
       }
@@ -75,6 +77,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     }
     else if(act == cube::Subscriber::SEND_UPDATE) {
       if(!in_batch) {
+        VLOG(3) << "Action: "<< act << " adding to update: " <<  tpi->key;
         tpi->update.push_back((*it).first);
 
         tpi->need_new_value = true;
@@ -148,10 +151,12 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 
 
     for( std::list<operator_id_t>::iterator it=tpi.insert.begin(); it != tpi.insert.end(); ++it) {
+      VLOG(3) << "Insert Callback:" <<tpi.key<<"; sub:"<<*it;
       subscribers[*it]->insert_callback(tpi.t, new_tuple);
     }
 
     for( std::list<operator_id_t>::iterator it=tpi.update.begin(); it != tpi.update.end(); ++it) {
+      VLOG(3) << "Update Callback:" <<tpi.key<<"; sub:"<<*it;
       subscribers[*it]->update_callback(tpi.t, new_tuple, old_tuple);
     }
   VLOG(1) << "End Save Callback:" <<tpi.key;
