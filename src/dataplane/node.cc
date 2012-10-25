@@ -318,12 +318,11 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     for (int j=0; j < task.config_size(); ++j) {
       const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
-    }
-    // Record the outcome of creating the operator in the response message
-    
+    }    
 
     operator_err_t err = create_operator(cmd, id, config);
     if (err == NO_ERR) {
+          // Record the outcome of creating the operator in the response message
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
       started_task->set_op_typename(task.op_typename());
@@ -475,7 +474,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   d->set_node(this);
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
-    LOG(INFO) << "starting operator " << name << " of type " << op_typename;
+    LOG(INFO) << "creating operator " << name << " of type " << op_typename;
     unique_lock<boost::mutex> lock(operatorTableLock);
     operators[name] = d;
   }

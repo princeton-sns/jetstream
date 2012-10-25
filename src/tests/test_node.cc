@@ -66,6 +66,36 @@ TEST(Node, OperatorCreateDestroy)
   
 }
 
+TEST(Node, BadOperatorName) {
+  NodeConfig cfg;
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+  AlterTopo topo;
+  
+  TaskMeta* task = topo.add_tostart();
+  TaskID * id = task->mutable_id();
+  id->set_computationid( 1 );
+  id->set_task(1);
+  task->set_op_typename("SendK");
+  
+  task = topo.add_tostart();
+  id = task->mutable_id();
+  id->set_computationid( 1 );
+  id->set_task(2);
+  task->set_op_typename("no such name");
+  
+  task = topo.add_tostart();
+  id = task->mutable_id();
+  id->set_computationid( 1 );
+  id->set_task(3);
+  task->set_op_typename("SendK");
+  
+  ControlMessage r;
+  node.handle_alter(r, topo);
+  ASSERT_EQ(r.type(), ControlMessage::ERROR);
+
+}
 
 TEST(Node, HandleAlter_2_Ops)
 {
