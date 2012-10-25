@@ -3,6 +3,7 @@
 #include "mysql/aggregate.h"
 #include "mysql/aggregate_count.h"
 #include "mysql/aggregate_avg.h"
+#include "mysql/aggregate_string.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <glog/logging.h>
@@ -26,6 +27,11 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
     }
     else if(_schema.type() == "avg") {
       boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateAvg>();
+      obj->init(_schema);
+      return obj;
+    }
+    else if(_schema.type() == "string") {
+      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateString>();
       obj->init(_schema);
       return obj;
     }
