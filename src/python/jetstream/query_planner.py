@@ -34,7 +34,7 @@ class QueryPlanner (object):
 
   def __init__ (self, dataplaneEps):
     assert len(dataplaneEps) == 0 or isinstance(dataplaneEps, types.DictType)
-    self.workerLocs = dataplaneEps  # map of workerID -> dataplane location
+    self.workerLocs = dataplaneEps  # map of workerID -> dataplane location [host,port pair]
     return
     
     
@@ -73,12 +73,12 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "cubes must have at least one dimension"
 
-    # TODO check that both endpoints of each edge are defined by the computation
+    #TODO check that both endpoints of each edge are defined by the computation
 
     return ""
 
 
-  def overwrite_operator_comp_ids (self, compID):
+  def overwrite_comp_ids (self, compID):
     for operatorMeta in self.alter.toStart:
       operatorMeta.id.computationID = compID
 
@@ -88,92 +88,91 @@ class QueryPlanner (object):
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.
-    Takes the computation ID and a list of worker addresses (as host,port pairs).
-    Returns a map from worker address to WorkerAssignment
+    Takes the computation ID to use for this computation.
+    Returns a map from worker ID to WorkerAssignment
     """
-    if not self.alter:
-      print "Need to call take_raw before get_assignments    "
-      sys.exit(0)
 
-    altertopo = self.alter
-    self.overwrite_operator_comp_ids(compID)
+    if not self.alter:
+      logger.error("No raw topology specified; need to call take_raw before get_assignments")
+      assert(false)
+
+    self.overwrite_comp_ids(compID)
     # Build the computation graph so we can analyze/manipulate it
-    jsGraph = JSGraph(altertopo.toStart, altertopo.toCreate, altertopo.edges)
-    # Set up the computation
-    
-    assignments = {}  # maps node ID [host/port pair] to a WorkerAssignment
-    taskLocations = {}  # task ID [int or string] to host/port pair
-    sources = jsGraph.get_sources()
-    sink = jsGraph.get_sink()
-    defaultEndpoint = self.workerLocs.keys()[0]
+    jsGraph = JSGraph(self.alter.toStart, self.alter.toCreate, self.alter.edges)
+    assignments = {}   # maps worker ID [host,port pair] -> WorkerAssignment
+    taskToWorker = {}  # task ID [int or string] -> worker ID
+    gSources = jsGraph.get_sources()
+    gSink = jsGraph.get_sink()
+    # Pick a default worker for nodes whose placement is unconstrained by our algorithm
+    defaultWorkerID = self.workerLocs.keys()[0]
 
     # Assign pinned nodes to their specified workers. If a source or sink is unpinned,
     # assign it to a default worker.
     toPin = []
-    toPin.extend(altertopo.toStart)
-    toPin.extend(altertopo.toCreate)
-    for graph_node in toPin:
-      endpoint = None
-      if graph_node.site.address != '':
+    toPin.extend(self.alter.toStart)
+    toPin.extend(self.alter.toCreate)
+    for gNode in toPin:
+      workerID = None
+      if gNode.site.address != '':
         # Node is pinned to a specific worker
-        endpoint = (graph_node.site.address, graph_node.site.portno)
+        workerID = (gNode.site.address, gNode.site.portno)
         # But if the worker doesn't exist, revert to the default worker
-        if endpoint not in self.workerLocs.keys():
+        if workerID not in self.workerLocs.keys():
           logger.warning("Node was pinned to a worker, but that worker does not exist")
-          endpoint = defaultEndpoint
-      elif (graph_node in sources) or (graph_node == sink):
+          workerID = defaultWorkerID
+      elif (gNode in gSources) or (gNode == gSink):
         # Node is an unpinned source/sink; pin it to a default worker
-        endpoint = defaultEndpoint
+        workerID = defaultWorkerID
       else:
         # Node will be placed later
         continue
         
-      if endpoint not in assignments:
-        assignments[endpoint] = WorkerAssignment(compID)
-      
-      assignments[endpoint].add_node(graph_node)
-      #TODO: Sid will consolidate with Computation data structure
-      nodeId = graph_node.id.task if isinstance(graph_node, TaskMeta) else graph_node.name
-      taskLocations[nodeId] = endpoint
+      if workerID not in assignments:
+        assignments[workerID] = WorkerAssignment(compID)
+      assignments[workerID].add_node(gNode)
+      taskToWorker[get_oid(gNode)] = workerID
     
     # Find the first global union node, aka the LCA of all sources.
     union = jsGraph.get_sources_lca()
     # All nodes from union to sink should be at one site
-    nodeId = union.id.task if isinstance(union, TaskMeta) else union.name
-    endpoint = taskLocations[nodeId] if nodeId in taskLocations else defaultEndpoint
-    if endpoint not in assignments:
-      assignments[endpoint] = WorkerAssignment(compID)
+    unionID = get_oid(union)
+    workerID = taskToWorker[unionID] if unionID in taskToWorker else defaultWorkerID
+    if workerID not in assignments:
+      assignments[workerID] = WorkerAssignment(compID)
     toPlace = jsGraph.get_descendants(union)
-    for node in toPlace:
-      nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
-      if nodeId not in taskLocations:
-        assignments[endpoint].add_node(node)
-        taskLocations[nodeId] = endpoint
-    # All nodes from source to union should be at one site, for each source
-    for source in sources:
-      nodeId = source.id.task if isinstance(source, TaskMeta) else source.name
-      assert(nodeId in taskLocations)
-      endpoint = taskLocations[nodeId]
-      toPlace = jsGraph.get_descendants(source, union)
-      for node in toPlace:
-        nodeId = node.id.task if isinstance(node, TaskMeta) else node.name
-        if nodeId not in taskLocations:
-          assignments[endpoint].add_node(node)
-          taskLocations[nodeId] = endpoint
-    
-    for edge in altertopo.edges:
-      src_host = taskLocations[edge.src] if edge.src else taskLocations[edge.src_cube]
-      if edge.dest or edge.dest_cube:
-        destID = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
-        dest_host = taskLocations[destID]
-      # If the unique source/dest ids of the edge are different, this is a remote edge
-        if dest_host != src_host:
-          # Use the dataplane endpoint of the destination
-          dest_ep = self.workerLocs[dest_host]
-          edge.dest_addr.address = dest_ep[0]
-          edge.dest_addr.portno = dest_ep[1]
-    
-      assignments[src_host].add_edge(edge)
-
-    return assignments    
+    for gNode in toPlace:
+      gID = get_oid(gNode)
+      if gID not in taskToWorker:
+        taskToWorker[gID] = workerID
+        assignments[workerID].add_node(gNode)
         
+    # All nodes from source to union should be at one site, for each source
+    for gSource in gSources:
+      gID = get_oid(gSource)
+      assert(gID in taskToWorker)
+      workerID = taskToWorker[gID]
+      toPlace = jsGraph.get_descendants(gSource, union)
+      for gNode in toPlace:
+        gID = get_oid(gNode)
+        if gID not in taskToWorker:
+          taskToWorker[gID] = workerID
+          assignments[workerID].add_node(gNode)
+
+    # Assign each edge to the worker where the source is placed, since the source will
+    # initiate the connection to the dest
+    #TODO: Update for NAT support, which may require dest to contact source
+    for edge in self.alter.edges:
+      srcWorkerID = taskToWorker[edge.src] if edge.HasField("src") else taskToWorker[edge.src_cube]
+      if edge.HasField("dest") or edge.HasField("dest_cube"):
+        gID = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
+        destWorkerID = taskToWorker[gID]
+        # If the source/dest workers are different, this is a remote edge
+        if destWorkerID != srcWorkerID:
+          # Use the dataplane location of the destination worker
+          destLoc = self.workerLocs[destWorkerID]
+          edge.dest_addr.address = destLoc[0]
+          edge.dest_addr.portno = destLoc[1]
+    
+      assignments[srcWorkerID].add_edge(edge)
+
+    return assignments

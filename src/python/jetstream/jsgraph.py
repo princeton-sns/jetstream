@@ -10,8 +10,14 @@ from jetstream_types_pb2 import *
 logger = logging.getLogger('JetStream')
 
 
+def get_oid (obj):
+  """Returns the ID of a node in a JetStream query graph, which is currently either an
+  operator or a cube."""
+  return obj.id.task if isinstance(obj, TaskMeta) else obj.name
+
+
 class JSNode (object):
-  """Internal representation of a node in a JetStream computation graph. JSNode objects
+  """Internal representation of a node in a JetStream computation graph. A JSNode 
   should not be returned to an outside caller; return the underlying object instead."""
 
   # Color enum for graph algorithm
@@ -131,12 +137,10 @@ class JSGraph (object):
 
   #TODO: Use colors to mark visited vertices and avoid redundant exploration
   def get_descendants (self, startObj, endObj=None):
-    nodeId = startObj.id.task if isinstance(startObj, TaskMeta) else startObj.name
-    start = self.nodes[nodeId]
+    start = self.nodes[get_oid(startObj)]
     end = None
     if endObj != None:
-      nodeId = endObj.id.task if isinstance(endObj, TaskMeta) else endObj.name
-      end = self.nodes[nodeId]
+      end = self.nodes[get_oid(endObj)]
     self.reset_nodes()
     descendantObjs = [start.object]
     if start in self.adjList:

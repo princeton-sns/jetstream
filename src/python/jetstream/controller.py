@@ -167,7 +167,6 @@ class Controller (ControllerAPI, JSServer):
     workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
     err = planner.take_raw(altertopo)
-    
     if len(err) > 0:
       print "Invalid topology: ",err
       response.type = ControlMessage.ERROR
@@ -175,7 +174,6 @@ class Controller (ControllerAPI, JSServer):
       return
 
     assignments = planner.get_assignments(compID)
-    
     # Finalize the worker assignments
     # TODO should this be AFTER we hear back from workers?
     for workerID,assignment in assignments.items():
@@ -183,7 +181,7 @@ class Controller (ControllerAPI, JSServer):
       self.workers[workerID].add_assignment(assignment)
     
     # Start the computation
-    logger.info("Starting computation %d" % (compID))
+    logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
     for workerID,assignment in assignments.items():
       req = assignment.get_pb()            
       h = self.connect_to(workerID)
@@ -192,7 +190,8 @@ class Controller (ControllerAPI, JSServer):
       # handler
       h.send_pb(req)
 
-  # TODO should construct response to client with computation ID
+    # TODO should construct response to client with computation ID
+
 
   def handle_alter_response (self, altertopo, workerEndpoint):
     #TODO: As above, the code below only deals with starting tasks
