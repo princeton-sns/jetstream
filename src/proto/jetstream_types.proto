@@ -90,11 +90,11 @@ message CubeMeta {
   required string name = 1;
   required CubeSchema schema = 2;
   optional NodeID site = 3;
-  
+
+  // If overwrite_old set to true, cube will be emptied on create; schema will be
+  // changed if table already existed. If set to false, schema will not be changed.
+  // TODO: Create should succeed only if existing table has same schema.
   optional bool overwrite_old = 4 [default = false];  
-    // If overwrite_old set to true, cube will be emptied on create; schema will
-    // be changed if table already existed. If set to false, schema will not be
-    // changed. Create will succeed only if existing table has same schema.
 }
 
 
@@ -111,13 +111,14 @@ message Tuple {
 message Edge {
   required int32 computation = 1;  // which computation the edge is in
 
-  // Source is either an operator or cube, not both
+  // Source is either an operator or cube (not both)
   optional int32 src = 2;          // operator ID, local
   optional string src_cube = 3;    // cube name, local or remote
   //TODO: This may be needed if/when we support NATs
   //optional NodeID src_addr = 4;  // source address if remote
 
-  // Destination is either an operator or cube, not both
+  // Destination is either an operator or cube (not both); or it is neither, in which
+  // case dest_addr must be specified
   optional int32 dest = 5;         // operator ID, local
   optional string dest_cube = 6;   // cube name, local or remote
   optional NodeID dest_addr = 7;   // dest address if remote
@@ -125,7 +126,7 @@ message Edge {
 
 
 /**
-* An AlterTopo specifies a set of mutations to the operator graph of a single
+* An AlterTopo specifies a set of mutations to the query graph of a single
 * computation. 
 *
 * When used as a request, it includes operators and cubes to start, operators and
