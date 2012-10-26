@@ -97,6 +97,30 @@ TEST(Node, BadOperatorName) {
 
 }
 
+
+TEST(Node, BadOperatorConfig) {
+  NodeConfig cfg;
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+  AlterTopo topo;
+  
+  TaskMeta* task = topo.add_tostart();
+  TaskID * id = task->mutable_id();
+  id->set_computationid( 1 );
+  id->set_task(1);
+  task->set_op_typename("SendK");
+  TaskMeta_DictEntry* op_cfg = task->add_config();
+  op_cfg->set_opt_name("k");
+  op_cfg->set_val("nanana");
+  
+  
+  ControlMessage r;
+  node.handle_alter(r, topo);
+  ASSERT_EQ(r.type(), ControlMessage::ERROR);
+
+}
+
 TEST(Node, HandleAlter_2_Ops)
 {
   NodeConfig cfg;

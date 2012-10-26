@@ -9,7 +9,7 @@ using namespace jetstream;
 
 DataPlaneOperator::~DataPlaneOperator() 
 {
-
+  VLOG(1) << "destroying " << id();
 }
 
 

@@ -337,7 +337,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       //teardown started operators
       for (size_t j=0; j < operators_to_start.size(); ++j) {
         //note we don't call stop(), since operators didn't start()
-          operators.erase(operators_to_start[i]);
+        operators.erase(operators_to_start.at(j));
       }
       response.set_type(ControlMessage::ERROR);
       Error * err_msg = response.mutable_error_msg();
@@ -356,6 +356,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       created->CopyFrom(task);
     } else {
       LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
+        //TODO could tear down operators_to_start here.
       respTopo->add_cubestostop(task.name());
     }
   }
