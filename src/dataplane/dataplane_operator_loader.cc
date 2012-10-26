@@ -3,6 +3,7 @@
 #include "base_operators.h"
 #include "experiment_operators.h"
 #include "base_subscribers.h"
+#include "rand_source.h"
 
 
 
@@ -67,13 +68,13 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(SampleOperator);
 
-
   REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
   REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
   REGISTER_OP(SerDeOverhead);
   REGISTER_OP(EchoOperator);
+  REGISTER_OP(RandSourceOperator);
 
   
   REGISTER_OP(TimeBasedSubscriber);

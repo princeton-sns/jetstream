@@ -15,7 +15,7 @@ using namespace jetstream::cube;
 using namespace boost;
 using namespace ::std;
 
-const char * TEST_CUBE = "test_cube";
+static const char * TEST_CUBE = "test_cube";
 const int compID = 4;
 
 

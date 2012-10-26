@@ -1,11 +1,3 @@
-//
-//  experiment_operators.h
-//  JetStream
-//
-//  Created by Ariel Rabkin on 10/9/12.
-//  Copyright (c) 2012 Ariel Rabkin. All rights reserved.
-//
-
 #ifndef JetStream_experiment_operators_h
 #define JetStream_experiment_operators_h
 
@@ -70,8 +62,6 @@ class RateRecordReceiver: public DataPlaneOperator {
   
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   
-  virtual ~RateRecordReceiver() {}
-
   virtual void start();
   virtual void stop();
   void operator()();  // A thread that will loop while reading the file    
