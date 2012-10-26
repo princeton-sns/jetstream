@@ -71,16 +71,17 @@ class TestController(unittest.TestCase):
     self.assertEquals(workerList[0].state, CWorker.ALIVE)
     self.assertEquals(workerList[1].state, CWorker.ALIVE)
 
-    # Kill one of the workers, it should be marked dead after several hb intervals
-    worker1.stop()
+    # Stop sending heartbeats from one of the workers; it should be marked dead after
+    # several hb intervals
+    worker1.stop_heartbeat_thread()
     time.sleep(hbInterval * (CWorker.DEFAULT_HB_DEAD_INTERVALS + 1))
     workerList = self.controller.get_nodes()
     self.assertEquals(len(workerList), 1)
     self.assertEquals(workerList[0].state, CWorker.ALIVE)
 
-    # Kill the second worker
+    # Kill the second worker; it should be marked dead much faster
     worker2.stop()
-    time.sleep(hbInterval * (CWorker.DEFAULT_HB_DEAD_INTERVALS + 1))
+    time.sleep(1)
     self.assertEquals(len(self.controller.get_nodes()), 0)
     
       

@@ -72,6 +72,12 @@ class JSServer(asyncore.dispatcher):
   def handle_close(self):
     self.close()
 
+
+  def handle_connection_close(self, cHandler):
+    """Called when an accepted connection has been closed by the remote client."""
+    if cHandler.cli_addr in self.addr_to_handler:
+      del self.addr_to_handler[cHandler.cli_addr]
+  
     
   def stop(self):
     self.running = False
@@ -166,9 +172,11 @@ class ConnHandler(asynchat.async_chat):
 
   def handle_close(self):
     logger.info("Socket closed by remote end %s:%d" % self.cli_addr)
-    self.close()
+    self.server.handle_connection_close(self)
     if self.cli_addr in self.server.addr_to_handler:
       del self.server.addr_to_handler[self.cli_addr]
+    self.close()
+
 
 
 class JSClient():

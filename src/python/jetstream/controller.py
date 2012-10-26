@@ -61,7 +61,7 @@ class Controller (ControllerAPI, JSServer):
   """A JetStream controller"""
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
-    JSServer.__init__ (self, addr)
+    JSServer.__init__(self, addr)
     self.workers = {}  # maps workerID = (hostid, port) -> CWorker
     self.computations = {}
     self.hbInterval = hbInterval
@@ -71,6 +71,14 @@ class Controller (ControllerAPI, JSServer):
     self.stateLock = threading.RLock()
 
 
+  def handle_connection_close (self, cHandler):
+    """Overrides parent class method."""
+    wID = cHandler.cli_addr
+    logger.info("Marking worker %s:%d as dead due to closed connection" % (wID[0],wID[1]))
+    self.worker_died(wID)
+    JSServer.handle_connection_close(self, cHandler)
+    
+  
   def start (self):
     self.running = True
     JSServer.start(self)
@@ -92,16 +100,25 @@ class Controller (ControllerAPI, JSServer):
     self.livenessThread.start()
 
 
+  def worker_died (self, workerID):
+    """Called when a worker stops heartbeating and should be treated as dead.
+    Manipulates the worker list (caller must ensure thread-safety)."""
+
+    if workerID in self.workers.keys():
+      del self.workers[workerID]
+
+    #TODO: Reschedule worker's assignments elsewhere, etc.
+
   def liveness_thread (self):
     while self.running:
       self.stateLock.acquire()
-      for w,s in self.workers.items():
+      for wID,s in self.workers.items():
         # TODO: Just delete the node for now, but going forward we'll have to 
         # reschedule computations etc.
         if s.update_state() == CWorker.DEAD:
-          logger.info("marking worker %s:%d as dead due to timeout" % (w[0],w[1]))
+          logger.info("Marking worker %s:%d as dead due to timeout" % (wID[0],wID[1]))
           # This is thread-safe since we are using items() and not an iterator
-          del self.workers[w]
+          self.worker_died(wID)
       self.stateLock.release()
           
       # All workers reporting to a controller should have the same hb interval
