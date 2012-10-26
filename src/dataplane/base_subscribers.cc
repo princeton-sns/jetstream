@@ -123,7 +123,7 @@ TimeBasedSubscriber::operator()() {
     
     if (ts_field >= 0) {
       time_t lastQueryEnd = max.e(ts_field).t_val();
-      min.mutable_e(ts_field)->set_t_val(lastQueryEnd);
+      min.mutable_e(ts_field)->set_t_val(lastQueryEnd + 1);
       newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       max.mutable_e(ts_field)->set_t_val(newMax);
     }

@@ -122,7 +122,7 @@ TEST(Node, HandleAlter_2_Ops)
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   int tries = 0;
-  while (rec->tuples.size() == 0 && tries++ < 5)
+  while (rec->tuples.size() < 5 && tries++ < 5)
     boost::this_thread::sleep(boost::posix_time::seconds(1));
 
   
