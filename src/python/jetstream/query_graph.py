@@ -10,10 +10,11 @@ class QueryGraph(object):
 """
 
   def __init__(self):
-    self.nID = 1          # the NEXT ID to hand out
-    self.edges = set([])  # pairs of nIDs
-    self.operators = {}   # maps id -> value
-    self.cubes = {}       # maps id -> value
+    self.nID = 1            # the NEXT ID to hand out
+    self.edges = set([])    # pairs of nIDs
+    self.operators = {}     # maps id -> value
+    self.cubes = {}         # maps id -> value
+    self.externalEdges = [] # literal protobuf edges
 
 
   def add_operator(self, type, cfg):
@@ -44,6 +45,10 @@ class QueryGraph(object):
       operator.add_to_PB(alter)
     for id,cube in self.cubes.items():
       cube.add_to_PB(alter)
+    for e in self.externalEdges:
+        pb_e = alter.edges.add()
+        pb_e.CopyFrom(e)
+        assert pb_e.IsInitialized()
     for e in self.edges:
       pb_e = alter.edges.add()
       pb_e.computation = 0
@@ -64,10 +69,21 @@ class QueryGraph(object):
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
     
+  """ Add an edge from the the first operator to the second. """
   def connect(self, oper1, oper2):
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
     oper2.add_pred(oper1)
 
+  # right now this is for adding an edge to the client so it can act as a
+  # receiver
+  """ Add an edge from an operator to a node """
+  def connectExternal(self, operator, nodeid):
+      e = Edge()
+      e.computation = 0 # dummy
+      e.src = operator.get_id()
+      e.dest_addr.CopyFrom(nodeid)
+
+      self.externalEdges.append(e)
     
   def clone_back_from(self, head, numcopies):
     to_copy = {}  #maps id to object

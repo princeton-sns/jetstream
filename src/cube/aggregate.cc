@@ -8,6 +8,10 @@ Aggregate::Aggregate () {
   
 }
 
+string Aggregate::get_name() const {
+  return name;
+}
+
 void Aggregate::init(jetstream::CubeSchema_Aggregate schema) {
   name = schema.name();
   type = schema.type();

@@ -672,13 +672,19 @@ string MysqlCube::get_sort_clause(list<string> const &sort) const {
     else
       sort_sql = " ORDER BY ";
 
+    string suffix = " ASC";
     if(item[0] == '-') {
-      boost::shared_ptr<MysqlDimension> dim = get_dimension(item.erase(0,1));
-      sort_sql += dim->get_base_column_name()+" DESC";
+      suffix = " DESC";
+      item = item.erase(0,1);
     }
-    else {
+
+    if (has_dimension(item)) {
       boost::shared_ptr<MysqlDimension> dim = get_dimension(item);
-      sort_sql += dim->get_base_column_name()+" ASC";
+      sort_sql += dim->get_base_column_name()+suffix;
+    }
+    else if(has_aggregate(item)) {
+      boost::shared_ptr<MysqlAggregate> agg = get_aggregate(item);
+      sort_sql += agg->get_base_column_name()+suffix;
     }
   }
 

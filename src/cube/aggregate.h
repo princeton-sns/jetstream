@@ -16,6 +16,7 @@ class Aggregate {
     Aggregate ();
     void init(jetstream::CubeSchema_Aggregate schema_dimension);
     virtual ~Aggregate () {};
+    string get_name() const;
 
   protected:
     virtual size_t number_tuple_elements() const;

@@ -59,7 +59,10 @@
   - name: make js
     command: make
             chdir=/disk/local/jetstream/build
-
+  - name: cp tests data
+    command: cp -r src/tests build/src/
+            chdir=/disk/local/jetstream/
+            creates=/disk/local/jetstream/build/src/tests
 
 - hosts: sns48
   sudo: True

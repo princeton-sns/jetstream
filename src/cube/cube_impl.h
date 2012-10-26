@@ -44,12 +44,34 @@ class DataCubeImpl : public DataCube {
       for (int i = 0; i < _schema.aggregates_size() ; i++) {
         ptr_agg = AggregateFactory<CubeAggregate>::create(_schema.aggregates(i));
         aggregates.push_back(ptr_agg);
+        aggregateMap[ptr_agg->get_name()] = aggregates.size()-1;
       }
     }
 
     boost::shared_ptr<CubeDimension> get_dimension(string name) const {
-      size_t pos = dimensionMap.find(name)->second;
-      return dimensions.at(pos);
+      std::map<string,size_t>::const_iterator found = dimensionMap.find(name);
+      if(found != dimensionMap.end()) {
+        size_t pos = found->second;
+        return dimensions.at(pos);
+      }
+      LOG(FATAL) << "No dimension: "<<name;
+    }
+
+    bool has_dimension(string name) const {
+      return dimensionMap.count(name) > 0;
+    }
+
+    boost::shared_ptr<CubeAggregate> get_aggregate(string name) const {
+      std::map<string,size_t>::const_iterator found = aggregateMap.find(name);
+      if(found != aggregateMap.end()) {
+        size_t pos = found->second;
+        return aggregates.at(pos);
+      }
+      LOG(FATAL) << "No aggregate: "<<name;
+    }
+
+    bool has_aggregate(string name) const {
+      return aggregateMap.count(name) > 0;
     }
 
 
@@ -57,6 +79,7 @@ class DataCubeImpl : public DataCube {
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
     std::map<string, size_t> dimensionMap;
+    std::map<string, size_t> aggregateMap;
 
     virtual DimensionKey get_dimension_key(const Tuple &t) const {
       string key="";
