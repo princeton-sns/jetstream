@@ -60,7 +60,8 @@ TimeBasedSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &
 
 operator_err_t
 TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
-  
+
+  windowOffsetMs = 0;
   if (config.find("window_size") != config.end())
     windowSizeMs = boost::lexical_cast<time_t>(config["window_size"]);
   else
@@ -117,7 +118,7 @@ TimeBasedSubscriber::operator()() {
       emit(*it);
       it++;      
     }
-    
+
     boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
     
     if (ts_field >= 0) {
