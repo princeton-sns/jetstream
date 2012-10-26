@@ -94,7 +94,7 @@ TEST(Node, BadOperatorName) {
   ControlMessage r;
   node.handle_alter(r, topo);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-
+  ASSERT_EQ(node.operator_count(), 0);
 }
 
 
@@ -118,6 +118,7 @@ TEST(Node, BadOperatorConfig) {
   ControlMessage r;
   node.handle_alter(r, topo);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
+  ASSERT_EQ(node.operator_count(), 0);
 
 }
 
