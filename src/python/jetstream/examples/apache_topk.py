@@ -46,7 +46,7 @@ def main():
   local_cube.set_overwrite(True)  #fresh results
 
   
-  pull_k2 = jsapi.TimeSubscriber(g, {}, 2000, "count", k2)
+  pull_k2 = jsapi.TimeSubscriber(g, {}, 2000, "-count", k2)
   echo = jsapi.Echo(g)
   
   

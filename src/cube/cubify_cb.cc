@@ -341,7 +341,7 @@ ImmutArrayFindBack(ImmutString **ims, int numElem, int doAdd)
   return(walk);
 }
 /*----------------------------------------------------------------*/
-static ImmutArrayEnt *
+ImmutArrayEnt *
 ImmutArrayFind(ImmutString **ims, int numElem)
 {
   return(ImmutArrayFindBack(ims, numElem, FALSE));

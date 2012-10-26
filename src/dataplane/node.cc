@@ -303,7 +303,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
 
-  VLOG(1) << topo.Utf8DebugString() << endl;
+  VLOG(1) << "Incoming Alter message: "<<topo.Utf8DebugString() << endl;
 
   LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
       << topo.tostart_size() << " operators." <<endl;
@@ -319,8 +319,11 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       const TaskMeta_DictEntry &cfg_param = task.config(j);
       config[cfg_param.opt_name()] = cfg_param.val();
     }    
+    VLOG(1) << "calling create operator " << id;
 
     operator_err_t err = create_operator(cmd, id, config);
+    VLOG(1) << "create returned " << err;
+
     if (err == NO_ERR) {
           // Record the outcome of creating the operator in the response message
       TaskMeta *started_task = respTopo->add_tostart();
@@ -342,7 +345,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       return response;
     }
   }
-
+  
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
@@ -472,6 +475,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   
   d->id() = name;
   d->set_node(this);
+  VLOG(1) << "configuring " << name << " of type " << op_typename;;
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
     LOG(INFO) << "creating operator " << name << " of type " << op_typename;
