@@ -208,6 +208,24 @@ TEST_F(NodeNetTest, NetBind)
   cout << "leaving NetBindTest; starting teardown" << endl;
 }
 
+
+
+
+//This test verifies that heartbeats are being sent correctly.
+TEST_F(NodeNetTest, ControllerDrop)
+{
+  ASSERT_TRUE( cli_socket.is_open());
+
+  boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
+  ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+  ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
+  cout << "stopping network; node should not crash" << endl;
+  synch_net.close();
+  
+}
+
+
+
 //This test verifies that the Node handles requests properly
 TEST_F(NodeNetTest, NetStart)
 {

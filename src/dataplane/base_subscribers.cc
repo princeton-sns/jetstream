@@ -83,10 +83,11 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 //    return operator_err_t("Must specify start_ts field");
 
 
-//  if (config.find("num_results") != config.end())
-  num_results = boost::lexical_cast<int32_t>(config["num_results"]);
-    //default should be zero
-  
+  if (config.find("num_results") != config.end())
+    num_results = boost::lexical_cast<int32_t>(config["num_results"]);
+  else
+    num_results = 0;
+
   if (config.find("sort_order") != config.end()) {
     std::stringstream ss(config["sort_order"]);
     std::string item;

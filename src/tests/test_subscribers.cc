@@ -171,6 +171,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   ASSERT_EQ(4U, cube->num_leaf_cells());
   //create subscriber
   shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber");
+  cout << "subscriber started" << endl;
   
   tries = 0;
   while (rec->tuples.size() < 4 && tries++ < 5)

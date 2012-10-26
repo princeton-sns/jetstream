@@ -28,6 +28,10 @@ class SimpleNet {
    // const int HEADER_LEN = sizeof(u_int32_t);
   
   bool is_connected() { return sock.is_open(); }
+  
+  void close() {
+    sock.close();
+  }
 };
 
 }
