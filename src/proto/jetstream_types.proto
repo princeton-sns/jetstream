@@ -117,8 +117,8 @@ message Edge {
   //TODO: This may be needed if/when we support NATs
   //optional NodeID src_addr = 4;  // source address if remote
 
-  // Destination is either an operator or cube (not both); or it is neither, in which
-  // case dest_addr must be specified
+  // Destination is either an operator or cube (not both); or it is neither
+  // (an 'external' edge), in which case dest_addr must be specified
   optional int32 dest = 5;         // operator ID, local
   optional string dest_cube = 6;   // cube name, local or remote
   optional NodeID dest_addr = 7;   // dest address if remote

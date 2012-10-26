@@ -106,8 +106,7 @@ class TestController(unittest.TestCase):
     workerEndpoint = worker2.controllerConn.getsockname()
     newOp.site.address = workerEndpoint[0]
     newOp.site.portno = workerEndpoint[1]
-    
-    
+        
     buf = self.client.do_rpc(req, True)
     req = ControlMessage()
     req.ParseFromString(buf)

@@ -166,7 +166,7 @@ class Controller (ControllerAPI, JSServer):
 
     workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
-    err = planner.take_raw(altertopo)
+    err = planner.take_raw_topo(altertopo)
     if len(err) > 0:
       print "Invalid topology: ",err
       response.type = ControlMessage.ERROR

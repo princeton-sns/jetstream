@@ -38,7 +38,7 @@ class QueryPlanner (object):
     return
     
     
-  def take_raw (self, altertopo):
+  def take_raw_topo (self, altertopo):
     """Takes the client's plan, validates, and fills in host names.
     For now, we only allow real host names from the client, so this is purely a validation phase.
     Returns a string on error.
@@ -54,11 +54,16 @@ class QueryPlanner (object):
   CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
-    
+
+    validIDs = {}  # map of operator ID/cube name -> None
     # Organization of this method is parallel to the altertopo structure.
     # First verify top-level metadata. Then operators, then cubes.
     if len(altertopo.toStart) == 0:
       return "Topology includes no operators"
+    for op in altertopo.toStart:
+      if op.id.task in validIDs.keys():
+        return "Operator %d was defined more than once" % (op.id.task)
+      validIDs[op.id.task] = None
 
 #  Can't really do this verification -- breaks with UDFs
 #    for operator in altertopo.toStart:
@@ -67,13 +72,30 @@ class QueryPlanner (object):
       
     for cube in altertopo.toCreate:
       if not self.CUBE_NAME_PAT.match(cube.name):
-        return "invalid cube name %s" % cube.name
+        return "Invalid cube name %s" % cube.name
       if len(cube.schema.aggregates) == 0:
-        return "cubes must have at least one aggregate per cell"
+        return "Cubes must have at least one aggregate per cell"
       if len(cube.schema.dimensions) == 0:
-        return "cubes must have at least one dimension"
+        return "Cubes must have at least one dimension"
+      if cube.name in validIDs.keys():
+        return "Cube %s was defined more than once" % (cube.name)
+      validIDs[cube.name] = None
 
-    #TODO check that both endpoints of each edge are defined by the computation
+    for edge in altertopo.edges:
+      if ((edge.HasField("src") and edge.HasField("src_cube")) or
+          (edge.HasField("dest") and edge.HasField("dest_cube"))):
+        return "Source/destination can be an operator or cube, not both"
+      if edge.HasField("dest_addr"):
+        # This is an external edge
+        if edge.HasField("dest") or edge.HasField("dest_cube"):
+          return "External edge cannot have an operator/cube as destination"
+      else:
+        srcID = edge.src if edge.HasField("src") else edge.src_cube
+        destID = edge.dest if edge.HasField("dest") else edge.dest_cube
+        if srcID not in validIDs.keys():
+          return "Edge source operator/cube %s has not been defined" % (str(srcID))
+        if destID not in validIDs.keys():
+          return "Edge destination operator/cube %s has not been defined" % (str(destID))
 
     return ""
 
@@ -158,20 +180,22 @@ class QueryPlanner (object):
           taskToWorker[gID] = workerID
           assignments[workerID].add_node(gNode)
 
-    # Assign each edge to the worker where the source is placed, since the source will
-    # initiate the connection to the dest
+    # Assign each edge to the worker where the source was placed, since the source will
+    # initiate the connection to the destination
     #TODO: Update for NAT support, which may require dest to contact source
     for edge in self.alter.edges:
       srcWorkerID = taskToWorker[edge.src] if edge.HasField("src") else taskToWorker[edge.src_cube]
       if edge.HasField("dest") or edge.HasField("dest_cube"):
-        gID = edge.dest if edge.HasField("dest") else str(edge.dest_cube)
-        destWorkerID = taskToWorker[gID]
+        destWorkerID = taskToWorker[edge.dest] if edge.HasField("dest") else taskToWorker[edge.dest_cube]
         # If the source/dest workers are different, this is a remote edge
         if destWorkerID != srcWorkerID:
           # Use the dataplane location of the destination worker
           destLoc = self.workerLocs[destWorkerID]
           edge.dest_addr.address = destLoc[0]
           edge.dest_addr.portno = destLoc[1]
+      else:
+        # This is an external edge that has its own destination endpoint information
+        assert(edge.HasField("dest_addr"))
     
       assignments[srcWorkerID].add_edge(edge)
 

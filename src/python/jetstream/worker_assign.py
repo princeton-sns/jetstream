@@ -60,6 +60,5 @@ class WorkerAssignment (object):
     req.alter.computationID = self.compID
     req.alter.toStart.extend(self.operators)
     req.alter.toCreate.extend(self.cubes)
-    
     req.alter.edges.extend(self.edges)
     return req
