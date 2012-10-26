@@ -1,5 +1,3 @@
-
-
 #include <iostream>
 #include "cube_manager.h"
 #include "node.h"
@@ -10,7 +8,6 @@
 
 #include "js_utils.h"
 
-
 #include <gtest/gtest.h>
 
 using namespace jetstream;
@@ -18,17 +15,13 @@ using namespace jetstream::cube;
 using namespace boost;
 using namespace ::std;
 
-
-
-
 const char * TEST_CUBE = "test_cube";
 const int compID = 4;
 
-class SubscriberTest : public ::testing::Test {
-  protected:
-  
-  Node * node;
 
+class SubscriberTest : public ::testing::Test {
+ protected:
+  Node * node;
 
   virtual void SetUp() {
 
@@ -74,17 +67,17 @@ class SubscriberTest : public ::testing::Test {
   
   void add_tuples(shared_ptr<DataCube> cube) {
 
-      boost::shared_ptr<Tuple> t(new Tuple);
-
-      extend_tuple(*t, "http://foo.com");
-      extend_tuple_time(*t, 10000); //long long ago
-      extend_tuple(*t, 2);
-
-      cout<< "Tuple:" << fmt(*t) << endl;
-      cube->process(t);
-  
+    boost::shared_ptr<Tuple> t(new Tuple);
+    
+    extend_tuple(*t, "http://foo.com");
+    extend_tuple_time(*t, 10000); //long long ago
+    extend_tuple(*t, 2);
+    
+    cout<< "Tuple:" << fmt(*t) << endl;
+    cube->process(t);
+    
     time_t now = time(NULL);
-    for (int i =0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
       boost::shared_ptr<Tuple> t(new Tuple);
 
       extend_tuple(*t, "http://foo.com");
@@ -98,7 +91,7 @@ class SubscriberTest : public ::testing::Test {
   
   //add a subscriber of typename subscriberName;
   // returns a pointer to the dummy operator
-  shared_ptr<DummyReceiver>  start_time_subscriber(const string& subscriberName) {
+  shared_ptr<DummyReceiver> start_time_subscriber(const string& subscriberName) {
   
     AlterTopo topo;
   
@@ -125,7 +118,11 @@ class SubscriberTest : public ::testing::Test {
     op_cfg = task->add_config();
     op_cfg->set_opt_name("start_ts");
     op_cfg->set_val("0");
-    
+
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("num_results");
+    // Set the result limit large enough for our tests
+    op_cfg->set_val("100");
     
     task = topo.add_tostart();
     id = task->mutable_id();
@@ -157,15 +154,12 @@ class SubscriberTest : public ::testing::Test {
 };
 
 
-
-
 TEST_F(SubscriberTest,TimeSubscriber) {
   shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
 
-
   add_tuples(cube);
   int tries = 0;
-  while (cube->num_leaf_cells() < 3 && tries++ < 5)
+  while (cube->num_leaf_cells() < 4 && tries++ < 5)
     boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   ASSERT_EQ(4U, cube->num_leaf_cells());
@@ -176,8 +170,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   while (rec->tuples.size() < 4 && tries++ < 5)
     boost::this_thread::sleep(boost::posix_time::seconds(1));
   
-  ASSERT_EQ(4U, rec->tuples.size()); //one very old, three newish
-  
+  ASSERT_EQ(4U, rec->tuples.size());  // one very old, three newish
   
   //add more, wait and check for data
   boost::shared_ptr<Tuple> t(new Tuple);

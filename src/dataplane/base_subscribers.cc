@@ -82,10 +82,9 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
     ts_field = -1;
 //    return operator_err_t("Must specify start_ts field");
 
-
-//  if (config.find("num_results") != config.end())
-  num_results = boost::lexical_cast<int32_t>(config["num_results"]);
-    //default should be zero
+  num_results = 0;
+  if (config.find("num_results") != config.end()) 
+    num_results = boost::lexical_cast<int32_t>(config["num_results"]);
   
   if (config.find("sort_order") != config.end()) {
     std::stringstream ss(config["sort_order"]);
@@ -104,39 +103,34 @@ TimeBasedSubscriber::start() {
   loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
 
-void TimeBasedSubscriber::operator()() {
-
-    int newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
-    if (ts_field >= 0)
-      max.mutable_e(ts_field)->set_t_val(newMax);
-
+void 
+TimeBasedSubscriber::operator()() {
+  time_t newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
+  if (ts_field >= 0)
+    max.mutable_e(ts_field)->set_t_val(newMax);
     
-	 while (running)  {
-  //sleep
-    LOG(INFO) << "doing query; range is " << fmt(min)<< " to " << fmt(max);
+  while (running)  {
+    //sleep
+    LOG(INFO) << "Doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
     while ( it != cube->end()) {
       emit(*it);
       it++;      
     }
     
-    
     boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
-    time_t now = time(NULL);
-
+    
     if (ts_field >= 0) {
-      int last_query_end = max.e(ts_field).t_val();
-      min.mutable_e(ts_field)->set_t_val(  last_query_end );
-      newMax = now - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+      time_t lastQueryEnd = max.e(ts_field).t_val();
+      min.mutable_e(ts_field)->set_t_val(lastQueryEnd);
+      newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       max.mutable_e(ts_field)->set_t_val(newMax);
     }
-	}
-
+  }
 }
 
 
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
-
 
 
 } //end namespace

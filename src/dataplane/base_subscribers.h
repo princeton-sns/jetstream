@@ -61,8 +61,6 @@ also takes a time interval and start time. Each interval, it queries for all
 tuples matching those dimensions, with time since the last start point.
 
 This subscriber does no backfill. 
-
-
 */
 class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
@@ -80,13 +78,9 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     
   
   public:
-
     TimeBasedSubscriber(): running(true) {};
 
-
-
     virtual ~TimeBasedSubscriber() {};
-
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) ;
 
@@ -105,8 +99,9 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
 
 
   private:
-  
     const static std::string my_type_name;
+
+
   public:
     virtual const std::string& typename_as_str() {
       return my_type_name;
