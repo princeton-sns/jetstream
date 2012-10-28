@@ -24,11 +24,26 @@ SendK::configure (std::map<std::string,std::string> &config) {
     k = 1;
   }
   send_now = config["send_now"].length() > 0;
+  
+  t = boost::shared_ptr<Tuple>(new Tuple);
+  t->add_e()->set_s_val("foo");
+  
+  n = 1;
+  
   return NO_ERR;
 }
 
+
+bool
+SendK::emit_1() {
+
+  emit(t);
+  return (++n > k);
+  
+}
+
 void
-SendK::start() {
+FixedRateSource::start() {
   if (send_now) {
     (*this)();
   }
@@ -40,13 +55,13 @@ SendK::start() {
 
 
 void
-SendK::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a SendK";
+FixedRateSource::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a fixed rate source";
 } 
 
 
 void
-SendK::stop() {
+FixedRateSource::stop() {
   running = false;
   LOG(INFO) << "Stopping SendK operator " << id();
   if (running) {
@@ -57,20 +72,18 @@ SendK::stop() {
 
 
 void
-SendK::operator()() {
-  boost::shared_ptr<Tuple> t(new Tuple);
-  t->add_e()->set_s_val("foo");
-  
+FixedRateSource::operator()() {
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   
-  for (u_int i = 0; i < k; i++) {
+  while (true) {
     while (congested->is_congested()) {
       boost::this_thread::yield();
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 //      LOG(INFO) << "BLOCKING waiting for congestion";
     }
-    emit(t);
+    if (emit_1())
+      break;
   }
   LOG(INFO) << "SendK " << id() << " done with " << k << " tuples";
   no_more_tuples();
@@ -101,6 +114,7 @@ ContinuousSendK::configure (std::map<std::string,std::string> &config) {
   }
   
   send_now = config["send_now"].length() > 0;
+  
   return NO_ERR;
 }
 
