@@ -301,7 +301,14 @@ TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
 }
 
 TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube  * cube;
+  try {
+    cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  } catch (boost::system::system_error e) {
+    LOG(FATAL) << e.what();
+  }
+  cout << "created cube; adding subscriber " << endl;
+
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
   cube->destroy();
@@ -618,6 +625,8 @@ TEST_F(CubeTest, MysqlTest) {
   cube->insert_partial_aggregate(t);
   ASSERT_EQ(2U, cube->num_leaf_cells());
 
+
+  delete cube_batch;
   delete cube;
 }
 

@@ -79,6 +79,8 @@ class ThreadedSource: public DataPlaneOperator {
   void operator()();  // A thread that will loop while reading the file
   
  protected:
+  ThreadedSource(): running(false),send_now(false) {}
+  
   virtual bool emit_1() = 0; //returns true to stop sending; else false
 
   boost::shared_ptr<boost::thread> loopThread;
