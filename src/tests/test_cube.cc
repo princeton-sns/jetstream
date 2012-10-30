@@ -45,6 +45,11 @@ class CubeTest : public ::testing::Test {
     }
 
     jetstream::CubeSchema * sc;
+  
+  
+   virtual void TearDown() {
+      delete sc;
+  }
 };
 
 /*TEST_F(CubeTest, MultiStatementTest) {

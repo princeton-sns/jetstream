@@ -34,6 +34,7 @@ TEST(Operator, RandGen) {
   
   cfg["k"] = "1";
   err = op.configure(cfg);
+  op.set_dest(rec);
   ASSERT_EQ(NO_ERR, err);
   
   cout << "running a second time" <<endl;

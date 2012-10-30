@@ -14,7 +14,8 @@ namespace jetstream {
 void
 ThreadedSource::start() {
   if (send_now) {
-    (*this)();
+    while (! emit_1())
+      ;
   }
   else {
     running = true;
@@ -31,9 +32,9 @@ ThreadedSource::process(boost::shared_ptr<Tuple> t) {
 
 void
 ThreadedSource::stop() {
-  running = false;
   LOG(INFO) << "Stopping SendK operator " << id();
   if (running) {
+    running = false;
     assert (loopThread->get_id()!=boost::this_thread::get_id());
     loopThread->join();
   }
@@ -45,7 +46,7 @@ ThreadedSource::operator()() {
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   
-  while (true) {
+  do {
     while (congested->is_congested()) {
       boost::this_thread::yield();
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -53,7 +54,8 @@ ThreadedSource::operator()() {
     }
     if (emit_1())
       break;
-  }
+  } while (running); //running will be false if we're running synchronously
+  
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
   no_more_tuples();
 }
@@ -106,7 +108,7 @@ SendK::configure (std::map<std::string,std::string> &config) {
   t = boost::shared_ptr<Tuple>(new Tuple);
   t->add_e()->set_s_val("foo");
   
-  n = 1;
+  n = 1; // number sent
   
   return NO_ERR;
 }
@@ -116,6 +118,7 @@ bool
 SendK::emit_1() {
 
   emit(t);
+//  cout << "sendk. N=" << n<< " and k = " << k<<endl;
   return (++n > k);
   
 }
