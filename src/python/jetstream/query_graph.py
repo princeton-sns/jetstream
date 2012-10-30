@@ -7,6 +7,9 @@ class QueryGraph(object):
   """Represents the client's-eye-view of a computation.
  We use the task IDs of operators internally. We also use the same ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
  This means, in particular, that you should be able to share a cube across computations. 
+ 
+ Note that cube names are NOT unique across a computation; multiple nodes can and often do
+ have cubes with the same name. -- this happens after a clone, e.g.
 """
 
   def __init__(self):
@@ -122,6 +125,13 @@ class QueryGraph(object):
     else:
       raise "unexpected param to copy_dest"
 
+
+  def get_deploy_pb(self):
+    req = ControlMessage()
+    req.type = ControlMessage.ALTER  
+    self.add_to_PB(req.alter)
+    return req     
+
       
 # This represents the abstract concept of an operator or cube, for building
 # the query graphs. The concrete executable implementations are elsewhere.
@@ -205,6 +215,9 @@ class Operator(Destination):
        d_entry.val = str(val)
      return task_meta
      
+  def set_cfg(self, key, val):
+    self.cfg[key] = val
+
 
 class Cube(Destination):
 
@@ -306,7 +319,7 @@ def NoOp(graph, file):
 class TimeSubscriber(Operator):
   def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = -1):
     super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
-    self.filter = my_filter
+    self.filter = my_filter  #maps 
     self.cfg["window_size"] = interval
     self.cfg["sort_order"] = sort_order
     self.cfg["num_results"] = num_results

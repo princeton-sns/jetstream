@@ -109,7 +109,13 @@ TimeBasedSubscriber::operator()() {
   time_t newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
   if (ts_field >= 0)
     max.mutable_e(ts_field)->set_t_val(newMax);
-    
+  
+  int slice_fields = min.e_size();
+  int cube_dims = cube->get_schema().dimensions_size();
+  
+  if (slice_fields != cube_dims) {
+    LOG(FATAL) << "trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
+  }
   while (running)  {
     //sleep
     LOG(INFO) << "Doing query; range is " << fmt(min) << " to " << fmt(max);

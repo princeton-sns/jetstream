@@ -35,11 +35,11 @@ class RemoteController():
 
   def deploy(self, op_graph):
     """Deploys an operator graph"""
-    req = ControlMessage()
-    req.type = ControlMessage.ALTER
+    resp = self.client.ctrl_rpc(op_graph.get_deploy_pb(), True)
+    print resp
     
-    op_graph.add_to_PB(req.alter)
-    print req
+  def deploy_pb(self, req):
+    """Deploys an operator graph"""
     resp = self.client.ctrl_rpc(req, True)
     print resp
     

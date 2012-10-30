@@ -30,8 +30,8 @@ def main():
   
   file_to_parse = args[0]
   
-  k2 = 20
-  k = 10
+  k2 = 20 #how many to pull to top level
+  k = 10 #how many to display
   
   ### Define the graph abstractly, without a computation
   g = jsapi.QueryGraph()

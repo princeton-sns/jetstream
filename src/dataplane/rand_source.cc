@@ -4,6 +4,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 #include <glog/logging.h>
+#include <time.h>
 
 
 using namespace ::std;
@@ -71,6 +72,7 @@ bool RandSourceOperator::emit_1()  {
   
   int tuples = BATCH_SIZE;
   int tuples_sent = 0;
+  time_t now = time(NULL);
   while (running && tuples_sent++ < tuples) {
     double d = rand(gen);
     double my_acc = accum;
@@ -80,6 +82,7 @@ bool RandSourceOperator::emit_1()  {
     }
     shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(labels[i]);
+    t->add_e()->set_t_val(now);
     emit(t);
     
     

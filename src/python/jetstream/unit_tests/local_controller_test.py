@@ -52,7 +52,7 @@ class TestLocalController(unittest.TestCase):
     op = g.add_operator(Operator.OpType.UNIX, {"cmd":"cat /etc/shells"})
     cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
-    self.assertEquals(g.nID, 3)
+    self.assertEquals(g.nID, 3) #cubes have operator numbers
     g.clone_back_from(cube, 1)
     self.assertEquals(g.nID, 5)
     self.assertEquals( len(cube.preds), 1)
