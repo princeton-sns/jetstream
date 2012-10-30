@@ -2,6 +2,8 @@
 #define JetStream_topk_source_h
 
 #include "dataplaneoperator.h"
+#include "experiment_operators.h"
+
 #include <string>
 #include <iostream>
 // #include <boost/thread/thread.hpp>
@@ -10,21 +12,22 @@
 
 namespace jetstream {
 
-class RandSourceOperator: public DataPlaneOperator {
+class RandSourceOperator: public ThreadedSource {
  private:
-  double slice_min, slice_max;
-  std::string drawFromDistrib(int x);
+  const static int BATCH_SIZE = 500;
+ 
+  double slice_min, slice_max; //the numeric values to choose between
+  
+  int start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min 
 
-  boost::shared_ptr<boost::thread> loopThread;
-  volatile bool running;
-
+  double accum;  //the sum of labels[0]...labels[start_idx]
+  int wait_per_batch; //ms
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-  virtual void start();
-  virtual void stop();
-  void operator()();  // A thread that will loop while reading the file
+ protected:
+  virtual bool emit_1() ;
 
 
 GENERIC_CLNAME

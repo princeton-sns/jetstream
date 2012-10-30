@@ -179,6 +179,7 @@ class Operator(Destination):
     SEND_K = "SendK"
     RATE_RECEIVER = "RateRecordReceiver"
     TIME_SUBSCRIBE = "TimeBasedSubscriber"
+    RAND_SOURCE = "RandSourceOperator"
 
     # Supported by Python local controller/worker only
     UNIX = "Unix"
@@ -292,7 +293,11 @@ def ExtendOperator(graph, typeStr, fldValsList):
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
     cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
     return graph.add_operator(Operator.OpType.PARSE, cfg)
-    
+
+
+def RandSource(graph, n, k):
+   cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
+   return graph.add_operator(Operator.OpType.RAND_SOURCE, cfg)      
     
 def NoOp(graph, file):
    cfg = {}

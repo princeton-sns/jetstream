@@ -11,6 +11,84 @@ using namespace boost::posix_time;
 namespace jetstream {
 
 
+void
+ThreadedSource::start() {
+  if (send_now) {
+    (*this)();
+  }
+  else {
+    running = true;
+    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  }
+}
+
+
+void
+ThreadedSource::process(boost::shared_ptr<Tuple> t) {
+  LOG(ERROR) << "Should not send data to a fixed rate source";
+} 
+
+
+void
+ThreadedSource::stop() {
+  running = false;
+  LOG(INFO) << "Stopping SendK operator " << id();
+  if (running) {
+    assert (loopThread->get_id()!=boost::this_thread::get_id());
+    loopThread->join();
+  }
+}
+
+
+void
+ThreadedSource::operator()() {
+  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
+  
+  
+  while (true) {
+    while (congested->is_congested()) {
+      boost::this_thread::yield();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+//      LOG(INFO) << "BLOCKING waiting for congestion";
+    }
+    if (emit_1())
+      break;
+  }
+  LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
+  no_more_tuples();
+}
+
+
+operator_err_t
+ContinuousSendK::configure (std::map<std::string,std::string> &config) {
+  if (config["k"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["k"]) >> k)) {
+      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
+      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.");
+    }
+  } else {
+    // Send one tuple by default
+    k = 1;
+  }
+
+  if (config["period"].length() > 0) {
+    if (!(stringstream(config["period"]) >> period)) {
+      LOG(WARNING) << "invalid send period (msecs): " << config["period"] << endl;
+      return operator_err_t("Invalid send period (msecs) '" + config["period"] + "' is not a number.");
+    }
+  } else {
+    // Wait one second by default
+    period = 1000;
+  }
+  
+  send_now = config["send_now"].length() > 0;
+  t = boost::shared_ptr<Tuple>(new Tuple);
+  t->add_e()->set_s_val("foo");  
+  
+  return NO_ERR;
+}
+
 operator_err_t
 SendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
@@ -42,122 +120,12 @@ SendK::emit_1() {
   
 }
 
-void
-FixedRateSource::start() {
-  if (send_now) {
-    (*this)();
-  }
-  else {
-    running = true;
-    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-  }
-}
+bool
+ContinuousSendK::emit_1() {
 
-
-void
-FixedRateSource::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a fixed rate source";
-} 
-
-
-void
-FixedRateSource::stop() {
-  running = false;
-  LOG(INFO) << "Stopping SendK operator " << id();
-  if (running) {
-    assert (loopThread->get_id()!=boost::this_thread::get_id());
-    loopThread->join();
-  }
-}
-
-
-void
-FixedRateSource::operator()() {
-  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-  
-  
-  while (true) {
-    while (congested->is_congested()) {
-      boost::this_thread::yield();
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-//      LOG(INFO) << "BLOCKING waiting for congestion";
-    }
-    if (emit_1())
-      break;
-  }
-  LOG(INFO) << "SendK " << id() << " done with " << k << " tuples";
-  no_more_tuples();
-}
-
-
-operator_err_t
-ContinuousSendK::configure (std::map<std::string,std::string> &config) {
-  if (config["k"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["k"]) >> k)) {
-      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.");
-    }
-  } else {
-    // Send one tuple by default
-    k = 1;
-  }
-
-  if (config["period"].length() > 0) {
-    if (!(stringstream(config["period"]) >> period)) {
-      LOG(WARNING) << "invalid send period (msecs): " << config["period"] << endl;
-      return operator_err_t("Invalid send period (msecs) '" + config["period"] + "' is not a number.");
-    }
-  } else {
-    // Wait one second by default
-    period = 1000;
-  }
-  
-  send_now = config["send_now"].length() > 0;
-  
-  return NO_ERR;
-}
-
-void
-ContinuousSendK::start() {
-  if (send_now) {
-    (*this)();
-  }
-  else {
-    running = true;
-    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-  }
-}
-
-
-void
-ContinuousSendK::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a ContinuousSendK";
-} 
-
-
-void
-ContinuousSendK::stop() {
-  running = false;
-  LOG(INFO) << "Stopping ContinuousSendK operator " << id();
-  if (running) {
-    assert (loopThread->get_id()!=boost::this_thread::get_id());
-    loopThread->join();
-  }
-}
-
-
-void
-ContinuousSendK::operator()() {
-  while (running) {
-    boost::shared_ptr<Tuple> t(new Tuple);
-    t->add_e()->set_s_val("foo");
-    for (u_int i = 0; i < k; i++) {
-      emit(t);
-    }
-    boost::this_thread::sleep(boost::posix_time::milliseconds(period));
-  }
-  no_more_tuples();
+  emit(t);
+  boost::this_thread::sleep(boost::posix_time::milliseconds(period));
+  return false;
 }
 
 

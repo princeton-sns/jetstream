@@ -145,10 +145,16 @@ TEST_F(CubeTest, SaveTupleTest) {
   cube->save_tuple(t, false, false, new_tuple, old_tuple);
   ASSERT_FALSE(new_tuple);
   ASSERT_FALSE(old_tuple);
+  delete cube;
 }
 
 TEST_F(CubeTest, SavePartialTupleTest) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  MysqlCube * cube;
+  try {
+    cube = new MysqlCube(*sc, "web_requests", true);
+  } catch (boost::system::system_error e) {
+    LOG(FATAL) << e.what();
+  }
   cube->destroy();
   cube->create();
 
@@ -168,6 +174,7 @@ TEST_F(CubeTest, SavePartialTupleTest) {
   ASSERT_FALSE(old_tuple);
   ASSERT_TRUE(new_tuple);
   check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  delete cube;
 }
 
 
@@ -202,6 +209,7 @@ TEST_F(CubeTest, SaveTupleBatchTest) {
   ASSERT_EQ(0U, old_tuple_list.size());
   check_tuple((new_tuple_list.front()), time_entered, "http:\\\\www.example.com", 200, 50, 1);
   check_tuple((new_tuple_list.back()), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  delete cube;
 }
 
 TEST_F(CubeTest, SubscriberTest) {
@@ -233,6 +241,7 @@ TEST_F(CubeTest, SubscriberTest) {
   }
   ASSERT_EQ(1U, sub->update_q.size());
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  delete cube;
 }
 /* method now protected
 TEST_F(CubeTest, MergeTupleIntoTest) {
@@ -287,6 +296,8 @@ TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   ASSERT_EQ(2U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
   check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cout << "done" <<endl;
+  delete cube;
 }
 
 TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
@@ -326,8 +337,8 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
   ASSERT_EQ(2U, sub->update_q.size());
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
   check_tuple(sub->update_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  
-
+  cout << "done" <<endl;
+  delete cube;
 }
 
 
@@ -369,6 +380,8 @@ TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
   ASSERT_EQ(1U, sub->update_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cout << "done" <<endl;
+  delete cube;
 }
 
 TEST_F(CubeTest, SubscriberNoBatch) {
@@ -389,6 +402,7 @@ TEST_F(CubeTest, SubscriberNoBatch) {
   }
   ASSERT_EQ(1U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  delete cube;
 }
 
 TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
@@ -434,6 +448,7 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   ASSERT_EQ(3U, sub->insert_q.size());
   check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 202, 50, 1);
 
+  delete cube;
 }
 
 TEST_F(CubeTest, SubscriberBatchTimeout) {
@@ -453,6 +468,8 @@ TEST_F(CubeTest, SubscriberBatchTimeout) {
   ASSERT_EQ(0U, sub->insert_q.size());
   boost::this_thread::sleep(boost::posix_time::seconds(2));
   ASSERT_EQ(1U, sub->insert_q.size());
+
+  delete cube;
 }
 
 
@@ -600,6 +617,8 @@ TEST_F(CubeTest, MysqlTest) {
 
   cube->insert_partial_aggregate(t);
   ASSERT_EQ(2U, cube->num_leaf_cells());
+
+  delete cube;
 }
 
 

@@ -41,49 +41,35 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
   double slice_size = total /n;
   slice_min = slice_size * k;
   slice_max = slice_size * (k + 1);
+
+  accum = 0;
+  start_idx = 0;
+
+  while ( accum + data[start_idx] < slice_min ) {
+    accum += data[start_idx++];
+  }
+
+  int rate_per_sec = 1000;
+
+  if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> rate_per_sec)) {
+    return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
+  }
+
+  wait_per_batch = BATCH_SIZE * 1000 / rate_per_sec;
   
   return NO_ERR;
 }
 
 
-  
-void
-RandSourceOperator::start() {
-  if (running) {
-    LOG(FATAL) << "Should only start() once";
-  }
-  running = true;
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-}
 
-void
-RandSourceOperator::stop() {
-  running = false;
-  LOG(INFO) << "Stopping RandSourceOperator operator " << id();
-  if (running) {
-    assert (loopThread->get_id()!=boost::this_thread::get_id());
-    loopThread->join();
-  }
-}
-
-void
-RandSourceOperator::operator()() {
+bool RandSourceOperator::emit_1()  {
   boost::shared_ptr<Tuple> t(new Tuple);
   
-//  string s =
-  
-  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-  
-  int start_idx = 0;
-  double accum = 0;
-  while ( accum + data[start_idx] < slice_min ) {
-    accum += data[start_idx++];
-  }
 
   boost::mt19937 gen;
   boost::random::uniform_real_distribution<double> rand(slice_min, slice_max);
   
-  int tuples = 1000;
+  int tuples = BATCH_SIZE;
   int tuples_sent = 0;
   while (running && tuples_sent++ < tuples) {
     double d = rand(gen);
@@ -95,8 +81,12 @@ RandSourceOperator::operator()() {
     shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(labels[i]);
     emit(t);
+    
+    
   }
+  boost::this_thread::sleep(boost::posix_time::milliseconds(wait_per_batch));
 
+  return false; //keep running indefinitely
 }
 
 

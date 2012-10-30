@@ -70,7 +70,7 @@ class RateRecordReceiver: public DataPlaneOperator {
 GENERIC_CLNAME
 };
 
-class FixedRateSource: public DataPlaneOperator {
+class ThreadedSource: public DataPlaneOperator {
  public:
 //  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
@@ -81,8 +81,6 @@ class FixedRateSource: public DataPlaneOperator {
  protected:
   virtual bool emit_1() = 0; //returns true to stop sending; else false
 
-  u_int64_t k, n;  // Number of tuples to send
-  
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
   volatile bool send_now;
@@ -93,14 +91,17 @@ class FixedRateSource: public DataPlaneOperator {
 /***
  * Operator for emitting a specified number of generic tuples.
  */
-class SendK: public FixedRateSource {
+class SendK: public ThreadedSource {
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
 
  protected:
-  virtual bool emit_1() ;
+  virtual bool emit_1();
   boost::shared_ptr<Tuple> t;
+  u_int64_t k, n;  // Number of tuples to send and number sent, respectively
+  
+
 
 GENERIC_CLNAME
 };  
@@ -112,13 +113,11 @@ GENERIC_CLNAME
 class ContinuousSendK: public DataPlaneOperator {
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual void start();
-  virtual void stop();
-  virtual void process(boost::shared_ptr<Tuple> t);
-  void operator()();  // A thread that will loop while reading the file    
 
-    
+
  protected:
+  virtual bool emit_1() ;
+  boost::shared_ptr<Tuple> t;
   u_long k;       // Number of tuples to send
   msec_t period;  // Time to wait before sending next k tuples
   boost::shared_ptr<boost::thread> loopThread;
