@@ -208,18 +208,67 @@ class TestQueryPlanner(unittest.TestCase):
     subscriber = jsapi.TimeSubscriber(qGraph, {"hostname":"http://foo.com"}, 1000)
     qGraph.connect(cube, subscriber)
     
-    req = ControlMessage()
-    req.type = ControlMessage.ALTER    
-    qGraph.add_to_PB(req.alter)
-
-    err = planner.take_raw_topo(req.alter).lower()
+    err = planner.take_raw_topo(qGraph.get_deploy_pb().alter).lower()
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
     self.assertTrue(dummy_node in plan)
     self.assertEquals(len(plan), 1)
     #print plan[dummy_node].get_pb()
+
+
+  def test_with_partial_placement(self):
+    dummy_node1 = ("host",123)
+    dummy_node2 = ("host2",234)
+
+    planner = QueryPlanner( {dummy_node1:dummy_node1, dummy_node2:dummy_node2} )
+    g = jsapi.QueryGraph()
+
+    eval_op = jsapi.RandEval(g)
+
+    for node,k in zip([dummy_node1, dummy_node2], range(0,2)):
+      src = jsapi.RandSource(g, 1, 2)
+      src.set_cfg("rate", 1000)
+  
+      local_cube = g.add_cube("local_results_%d" %k)
+      local_cube.add_dim("state", Element.STRING, 0)
+      local_cube.add_dim("time", Element.TIME, 1)
+      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+      local_cube.set_overwrite(True)  #fresh results
+  
+      pull_op = jsapi.TimeSubscriber(g, {}, 1000)
+      pull_op.set_cfg("ts_field", 1)
+      pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
+      
+      extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
+      round_op = jsapi.TRoundOperator(g, fld=1, round_to=5)
+      g.connect(src, local_cube)  
+      g.connect(local_cube, pull_op)
+      g.connect(pull_op, extend_op)
+      g.connect(extend_op, round_op)
+      g.connect(round_op, eval_op)
+
+      nID = NodeID()
+      nID.address, nID.portno = node
+      src.instantiate_on(nID)
+
+    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    print err
+    self.assertEquals(len(err), 0)  
+    plan = planner.get_assignments(1)
     
+    pb1 = plan[dummy_node1].get_pb().alter
+    print "Plan for node 1:"
+    print pb1
+    
+    subscribers = [x for x in pb1.toStart if "Subscriber" in x.op_typename]
+    self.assertEquals(len(subscribers),  len(pb1.toCreate))
+    self.assertEquals(len(pb1.toCreate), 1)
+    self.assertGreater(len(pb1.toStart), 3)
+    self.assertLessEqual(len(pb1.toStart), 4)
+    
+
+        
 
 if __name__ == '__main__':
   unittest.main()

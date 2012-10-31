@@ -62,7 +62,7 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
-    self.workers = {}  # maps workerID = (hostid, port) -> CWorker
+    self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE
     self.computations = {}
     self.hbInterval = hbInterval
     self.running = False
