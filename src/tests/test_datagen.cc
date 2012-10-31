@@ -44,7 +44,7 @@ TEST(Operator, RandGen) {
   
   cout << "results:" <<endl;
   map<string,int> results;
-  for (int i=0; i < rec->tuples.size(); ++i) {
+  for (unsigned int i=0; i < rec->tuples.size(); ++i) {
     shared_ptr<Tuple> t = rec->tuples.at(i);
     results[t->e(0).s_val()] += 1;
   }
