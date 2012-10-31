@@ -64,6 +64,8 @@ This subscriber does no backfill.
 */
 class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
+    static const int DEFAULT_WINDOW_OFFSET = 100;
+  
     bool running;
     boost::shared_ptr<boost::thread> loopThread;
 

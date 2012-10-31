@@ -322,7 +322,7 @@ def RandSource(graph, n, k):
 def RandEval(graph):
   return graph.add_operator(Operator.OpType.RAND_EVAL, {} )
 
-def RoundOperator(graph, fld, round_to):
+def TRoundOperator(graph, fld, round_to):
    cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
    return graph.add_operator(Operator.OpType.T_ROUND_OPERATOR, cfg)      
     
