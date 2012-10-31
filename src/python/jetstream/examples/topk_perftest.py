@@ -68,7 +68,7 @@ def main():
     src = jsapi.RandSource(g, n, k)
     src.set_cfg("rate", 1000)
 
-    local_cube = g.add_cube("local_results")
+    local_cube = g.add_cube("local_results_%d" % k)
     local_cube.add_dim("state", Element.STRING, 0)
     local_cube.add_dim("time", Element.TIME, 1)
     local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
@@ -89,6 +89,7 @@ def main():
 
     round_op.instantiate_on(node)
 
+    local_cube.instantiate_on(node)
     g.connect(round_op, final_cube)
   
   #### Finished building in memory, now to deploy
