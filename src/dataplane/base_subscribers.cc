@@ -116,6 +116,9 @@ TimeBasedSubscriber::operator()() {
   if (slice_fields != cube_dims) {
     LOG(FATAL) << "trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
   }
+  
+  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
+  
   while (running)  {
     //sleep
     LOG(INFO) << "Doing query; range is " << fmt(min) << " to " << fmt(max);
@@ -126,6 +129,11 @@ TimeBasedSubscriber::operator()() {
     }
 
     boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
+    while (congested->is_congested()) {
+      boost::this_thread::yield();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    }
+
     
     if (ts_field >= 0) {
       time_t lastQueryEnd = max.e(ts_field).t_val();

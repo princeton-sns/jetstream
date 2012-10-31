@@ -57,5 +57,45 @@ TEST(Operator, RandGen) {
   }
   //examine results
 
+}
+
+
+TEST(Operator, GoodnessOfData) {
+  RandEvalOperator op;
+  
+  operator_config_t cfg;
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  
+  cout << "starting eval operator" <<endl;
+  op.start();
+
+  
+  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+  extend_tuple(*t, "California");
+  extend_tuple_time(*t, 1);
+  extend_tuple(*t, 1);
+  op.process(t);
+
+  t->mutable_e(1)->set_t_val(2);
+  int total = 0;
+  for (int i=0; i < rand_data_len; ++i) {
+    t->mutable_e(0)->set_s_val(rand_labels[i]);
+    int v = rand_data[i];
+    t->mutable_e(2)->set_i_val(v);
+    total += v;
+    op.process(t);
+  }
+  
+  ASSERT_EQ(op.data_in_last_window(), 1); //new data won't have taken effect
+  ASSERT_EQ(op.cur_deviation(), 0.0);
+
+  
+  t->mutable_e(1)->set_t_val(3);  
+  op.process(t);
+
+  ASSERT_EQ(op.data_in_last_window(), total);
+  ASSERT_GT(op.cur_deviation(), 0.9);
+  
 
 }

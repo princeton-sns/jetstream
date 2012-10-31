@@ -223,6 +223,8 @@ class Cube(Destination):
 
   class AggType (object):
     COUNT = "count"
+    AVERAGE = "avg"
+    STRING = "string"
     
 
   def __init__(self, graph, name, desc, id):

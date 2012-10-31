@@ -60,17 +60,12 @@ class TupleReceiver {
     return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
   }
 
-  
-  
   virtual ~TupleReceiver() {}
   virtual const std::string& typename_as_str() = 0; //return a name for the type
   virtual std::string id_as_str() = 0;
     /** Return a longer description of the operator. Should NOT include the typename*/
   virtual std::string long_description() {return "";}
 
-  
-
-  
 };
 
 typedef std::map<std::string,std::string> operator_config_t;

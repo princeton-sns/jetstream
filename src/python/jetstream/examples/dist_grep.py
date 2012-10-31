@@ -47,6 +47,7 @@ def main():
   cube.add_dim("log_line", Element.STRING, 0)
   cube.add_dim("hostname", Element.STRING, 1)
   cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+
   cube.set_overwrite(True)  #fresh results
 
   g.connect(reader,grepper)

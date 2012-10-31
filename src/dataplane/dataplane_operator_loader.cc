@@ -75,7 +75,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(SerDeOverhead);
   REGISTER_OP(EchoOperator);
   REGISTER_OP(RandSourceOperator);
-
+  REGISTER_OP(RandEvalOperator);
   
   REGISTER_OP(TimeBasedSubscriber);
   
