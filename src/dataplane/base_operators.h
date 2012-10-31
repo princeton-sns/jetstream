@@ -134,6 +134,21 @@ GENERIC_CLNAME
 };
 
 
+//rounds time fields
+class TRoundingOperator: public DataPlaneOperator {
+ public:
+  unsigned int fld_offset;
+  int round_to;
+// could in theory have a fixed offset, so you'd get  result = (original / round_to) * round_to + offset
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+
+
+GENERIC_CLNAME
+};
+
+
+
 /**
  Rearranges the order of elements in a tuple
 

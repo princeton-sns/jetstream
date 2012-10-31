@@ -185,11 +185,16 @@ class Operator(Destination):
     STRING_GREP = "StringGrep"
     PARSE = "GenericParse"
     EXTEND = "ExtendOperator"
+    T_ROUND_OPERATOR = "TRoundingOperator"
+    
     NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
     SEND_K = "SendK"
     RATE_RECEIVER = "RateRecordReceiver"
-    TIME_SUBSCRIBE = "TimeBasedSubscriber"
     RAND_SOURCE = "RandSourceOperator"
+    RAND_EVAL = "RandEvalOperator"
+
+    TIME_SUBSCRIBE = "TimeBasedSubscriber"
+    
 
     # Supported by Python local controller/worker only
     UNIX = "Unix"
@@ -313,6 +318,14 @@ def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
 def RandSource(graph, n, k):
    cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
    return graph.add_operator(Operator.OpType.RAND_SOURCE, cfg)      
+
+def RandEval(graph):
+  return graph.add_operator(Operator.OpType.RAND_EVAL, {} )
+
+def RoundOperator(graph, fld, round_to):
+   cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
+   return graph.add_operator(Operator.OpType.T_ROUND_OPERATOR, cfg)      
+    
     
 def NoOp(graph, file):
    cfg = {}

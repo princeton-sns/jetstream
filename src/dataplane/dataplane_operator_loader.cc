@@ -62,12 +62,16 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
 jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
+  
+    // These are base operators in base_operators
   REGISTER_OP(FileRead);
   REGISTER_OP(StringGrep);
   REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(SampleOperator);
+  REGISTER_OP(TRoundingOperator);
 
+      // Experimental purposes 
   REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
   REGISTER_OP(ContinuousSendK);
@@ -77,6 +81,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(RandSourceOperator);
   REGISTER_OP(RandEvalOperator);
   
+    // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
   
   if(cache.count(name) < 1)

@@ -284,7 +284,8 @@ SampleOperator::process (boost::shared_ptr<Tuple> t) {
   }
 }
 
-operator_err_t SampleOperator::configure (std::map<std::string,std::string> &config) {
+operator_err_t
+SampleOperator::configure (std::map<std::string,std::string> &config) {
   double frac_to_drop = 0;
   istringstream(config["fraction"]) >> frac_to_drop;
   threshold = frac_to_drop * numeric_limits<uint32_t>::max();
@@ -295,10 +296,32 @@ operator_err_t SampleOperator::configure (std::map<std::string,std::string> &con
 }
 
 
+void
+TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
+  time_t old_val = t->e(fld_offset).t_val();
+  t->mutable_e(fld_offset)->set_t_val(  (old_val / round_to) * round_to);
+
+  emit(t);
+}
+
+operator_err_t
+TRoundingOperator::configure (std::map<std::string,std::string> &config) {
+
+  if ( !(istringstream(config["round_to"]) >> round_to)) {
+    return operator_err_t("must specify an int as round_to");
+  }
+
+  if ( !(istringstream(config["fld_offset"]) >> fld_offset)) {
+    return operator_err_t("must specify an int as fld_offset; got " + config["fld_offset"] +  " instead");
+  }
+  return NO_ERR;
+}
+
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
 const string SampleOperator::my_type_name("Sample operator");
+const string TRoundingOperator::my_type_name("Time rounding");
 
 }

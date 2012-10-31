@@ -203,7 +203,35 @@ TEST(Operator, SampleOperator) {
   }
   ASSERT_GT((size_t)420, rec->tuples.size());
   ASSERT_LT((size_t)380, rec->tuples.size());
-
   
   cout << "done; " << rec->tuples.size() << " tuples received"<<endl;
+}
+
+
+TEST(Operator, TRoundingOperator) {
+  TRoundingOperator op;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+
+  
+  operator_config_t cfg;
+  cfg["fld_offset"] = "1";
+  cfg["round_to"] = "5";
+  
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(rec);
+  
+  cout << "starting operator" <<endl;
+  op.start();
+
+  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+  extend_tuple(*t, "California");
+  extend_tuple_time(*t, 6);
+  op.process(t);
+  
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ((time_t)5, result->e(1).t_val());
+
+
 }
