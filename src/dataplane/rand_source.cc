@@ -11,8 +11,8 @@ using namespace boost;
 
 namespace jetstream {
 
-double rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9};
-string rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois"};
+double rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9, 0.0};
+string rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois", "Should never appear; fencepost"};
 int rand_data_len = sizeof(rand_data) / sizeof(double);
 
 double init_countup() {
@@ -52,50 +52,73 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
   slice_min = slice_size * k;
   slice_max = slice_size * (k + 1);
 
-  accum = 0;
   start_idx = 0;
-
-  while ( accum + rand_data[start_idx] < slice_min ) {
-    accum += rand_data[start_idx++];
+  double low_vals = 0;
+  while ( low_vals + rand_data[start_idx] < slice_min ) {
+    low_vals += rand_data[start_idx++];
   }
+    //at this point accum is how much weight is associated with values <= start_idx
+  accum = slice_min - low_vals;
+  
 
   int rate_per_sec = 1000;
 
   if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> rate_per_sec)) {
     return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
   }
-
+  LOG(INFO) << id() << " will choose numbers between " << slice_min << " and " << slice_max <<". Total = " << total;
+ 
+  BATCH_SIZE = DEFAULT_BATCH_SIZE;
+  if (BATCH_SIZE > rate_per_sec )
+    BATCH_SIZE = rate_per_sec;
   wait_per_batch = BATCH_SIZE * 1000 / rate_per_sec;
-  
   return NO_ERR;
 }
 
-
+#define USE_SEQ 
+//  two choices: a sequential algorithm or an RNG. Take your pick.
 
 bool
 RandSourceOperator::emit_1()  {
   boost::shared_ptr<Tuple> t(new Tuple);
   
-
-  boost::mt19937 gen;
-  boost::random::uniform_real_distribution<double> rand(slice_min, slice_max);
-  
   int tuples = BATCH_SIZE;
   int tuples_sent = 0;
+
+#ifdef USE_SEQ
+  double incr = (slice_max - slice_min) / tuples;
+  int i = start_idx;
+  double my_acc = accum;
+#else
+  boost::mt19937 gen;
+  boost::random::uniform_real_distribution<double> rand(slice_min, slice_max);
+#endif
+
   time_t now = time(NULL);
+
   while (running && tuples_sent++ < tuples) {
+  
+#ifdef USE_SEQ
+    if ( my_acc + incr > rand_data[i] ) { // note endpoint does NOT trigger increment here. That is deliberate.
+      my_acc = 0;
+      i ++;
+    } else
+      my_acc += incr;
+    
+#else
     double d = rand(gen);
     double my_acc = accum;
     int i = start_idx;
     while ( my_acc + rand_data[i] < d) {
       my_acc += rand_data[i++];
     }
+#endif
+
+
     shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(rand_labels[i]);
     t->add_e()->set_t_val(now);
     emit(t);
-    
-    
   }
   boost::this_thread::sleep(boost::posix_time::milliseconds(wait_per_batch));
 

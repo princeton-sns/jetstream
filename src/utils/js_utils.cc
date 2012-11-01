@@ -1,6 +1,8 @@
 #include "js_utils.h"
 #include <iostream>
 
+#include <time.h>
+
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
@@ -66,9 +68,15 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
     buf << el.d_val();
   else if (el.has_i_val())
     buf << el.i_val();
-  else if (el.has_t_val())
-    buf << el.t_val();
-  else
+  else if (el.has_t_val()) {
+    time_t t = (time_t)el.t_val();
+    struct tm parsed_time;
+    gmtime_r(&t, &parsed_time);
+    
+    char tmbuf[80];
+    strftime(tmbuf, sizeof(tmbuf), "%H:%M:%S", &parsed_time);
+    buf << tmbuf;
+  } else
     buf << "UNDEF";
 }
 

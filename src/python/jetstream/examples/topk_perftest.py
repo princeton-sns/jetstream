@@ -79,7 +79,7 @@ def main():
     pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
     
     extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
-    round_op = jsapi.TRoundOperator(g, fld=1, round_to=5)
+    round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
 
 
     g.connect(src, local_cube)  

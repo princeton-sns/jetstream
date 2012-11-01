@@ -9,6 +9,7 @@
 // #include <boost/thread/thread.hpp>
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <glog/logging.h>
 
 namespace jetstream {
 
@@ -18,7 +19,8 @@ extern int rand_data_len;
 
 class RandSourceOperator: public ThreadedSource {
  private:
-  const static int BATCH_SIZE = 500;
+  const static int DEFAULT_BATCH_SIZE = 1000;
+  int BATCH_SIZE;
  
   double slice_min, slice_max; //the numeric values to choose between
   

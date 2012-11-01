@@ -26,7 +26,7 @@ ThreadedSource::start() {
 
 void
 ThreadedSource::process(boost::shared_ptr<Tuple> t) {
-  LOG(ERROR) << "Should not send data to a fixed rate source";
+  LOG(FATAL) << "Should not send data to a fixed rate source";
 } 
 
 
