@@ -74,7 +74,7 @@ class Controller (ControllerAPI, JSServer):
   def handle_connection_close (self, cHandler):
     """Overrides parent class method."""
     wID = cHandler.cli_addr
-    logger.info("Marking worker %s:%d as dead due to closed connection" % (wID[0],wID[1]))
+#    logger.info("Marking worker %s:%d as dead due to closed connection" % (wID[0],wID[1]))  #Note not all sockets are with workers. There's also the client.
     self.worker_died(wID)
     JSServer.handle_connection_close(self, cHandler)
     
@@ -159,14 +159,15 @@ class Controller (ControllerAPI, JSServer):
     
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
-    print "got heartbeat at %s from sender %s" % (time.ctime(t), str(clientEndpoint))
     self.stateLock.acquire()
     if clientEndpoint not in self.workers:
       logger.info("Added worker %s; dp addr %s:%d" % 
           (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
       self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+    node_count = len(self.workers)
     self.workers[clientEndpoint].receive_hb(hb)
     self.stateLock.release()
+    print "got heartbeat at %s from sender %s. %d nodes in system" % (time.ctime(t), str(clientEndpoint), node_count)
 
 
   def handle_alter (self, response, altertopo):
