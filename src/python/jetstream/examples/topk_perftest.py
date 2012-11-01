@@ -87,7 +87,7 @@ def main():
     g.connect(pull_op, extend_op)
     g.connect(extend_op, round_op)
 
-    round_op.instantiate_on(node)
+    src.instantiate_on(node)
 
     local_cube.instantiate_on(node)
     g.connect(round_op, final_cube)
