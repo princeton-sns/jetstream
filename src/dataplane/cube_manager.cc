@@ -51,10 +51,9 @@ CubeManager::destroy_cube (const std::string &name)
 
 
 void
-CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c)
-{
+CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c) {
   lock_guard<boost::mutex> lock (mapMutex);
-  cubeMap.insert (std::pair<std::string, shared_ptr<DataCube> > (name, c));
+  cubeMap[name] = c;
 }
 
 boost::shared_ptr<vector<string> >

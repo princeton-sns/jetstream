@@ -128,7 +128,9 @@ RandSourceOperator::emit_1()  {
 
 void
 RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
-
+  assert( t->e_size() > 2);
+  assert (t->e(1).has_t_val());
+  
   time_t tuple_ts = t->e(1).t_val();
   if (last_ts_seen == 0) {
     last_ts_seen = tuple_ts;
