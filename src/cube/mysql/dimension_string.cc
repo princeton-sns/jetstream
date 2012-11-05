@@ -6,7 +6,7 @@ using namespace jetstream::cube;
 jetstream::DataCube::DimensionKey MysqlDimensionString::get_key(const Tuple &t) const
 {
   assert(tuple_indexes.size() ==  1);
-  if ( (size_t) tuple_indexes[0] >= t.e_size())
+  if ( (int) tuple_indexes[0] >= t.e_size())
     LOG(FATAL) << "no element " << tuple_indexes[0] << " of " << fmt(t)<< " (len == " << t.e_size() << ")";
 
   const jetstream::Element& e = t.e(tuple_indexes[0]);
