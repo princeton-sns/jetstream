@@ -15,7 +15,6 @@ usec_t       get_usec ();
 timespec     get_time ();
 // std::string  get_strtime ();
 
-}
 
 std::string fmt(const jetstream::Tuple& t);
 
@@ -34,5 +33,7 @@ inline void extend_tuple_time(jetstream::Tuple& t, int32_t time) {
   t.add_e()->set_t_val(time);
 }
 
+
+}
 
 #endif /* _JS_UTILS_H_ */

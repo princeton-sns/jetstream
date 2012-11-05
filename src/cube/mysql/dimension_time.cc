@@ -104,7 +104,8 @@ void MysqlDimensionTime::populate_tuple(boost::shared_ptr<jetstream::Tuple> t, b
   jetstream::Element *elem = t->add_e();
   string timestring = resultset->getString(column_index);
   struct tm temptm;
-
+  temptm.tm_isdst = 0; //not filled in by mktime
+  
   if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL) {
     elem->set_t_val(mktime(&temptm));
   }

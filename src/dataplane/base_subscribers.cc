@@ -42,7 +42,13 @@ namespace jetstream {
 
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-  return NO_SEND;
+
+  time_t tuple_time = update->e(ts_field).t_val();
+  if (tuple_time < next_window_start_time) {
+    backfill_tuples ++;
+    return SEND_UPDATE;
+  } else
+    return NO_SEND;
 }
 
 void
@@ -51,6 +57,7 @@ TimeBasedSubscriber::insert_callback(boost::shared_ptr<jetstream::Tuple> const &
 	; 
 }
 
+//called on backfill
 void
 TimeBasedSubscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
@@ -127,7 +134,6 @@ TimeBasedSubscriber::operator()() {
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   while (running)  {
-    //sleep
     LOG(INFO) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
     while ( it != cube->end()) {
@@ -143,12 +149,24 @@ TimeBasedSubscriber::operator()() {
 
     
     if (ts_field >= 0) {
-      time_t lastQueryEnd = max.e(ts_field).t_val();
-      min.mutable_e(ts_field)->set_t_val(lastQueryEnd + 1);
+      next_window_start_time = max.e(ts_field).t_val();
+      min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       max.mutable_e(ts_field)->set_t_val(newMax);
     }
+      //else leave next_window_start_time as 0; data is never backfill because we always send everything
   }
+}
+
+
+std::string
+TimeBasedSubscriber::long_description() {
+//  boost::lock_guard<boost::mutex> lock (mutex);
+
+  ostringstream out;
+  out << backfill_tuples << " late tuples";
+  return out.str();
+
 }
 
 

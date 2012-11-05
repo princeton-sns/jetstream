@@ -61,6 +61,8 @@ jetstream::get_strtime () {
 }
 */
 
+namespace jetstream {
+
 inline void add_one_el(std::ostringstream& buf, const Element& el) {
   if (el.has_s_val())
     buf << el.s_val();
@@ -94,3 +96,4 @@ std::string fmt(const jetstream::Tuple& t) {
   return buf.str();
 }
 
+}

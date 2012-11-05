@@ -86,7 +86,10 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
     
   }
 
-  assert(connectionPool.count(tid) == 1);
+  if(connectionPool.count(tid) != 1) {
+    LOG(ERROR) << "connectionPool.count(tid) was " << connectionPool.count(tid);
+    LOG(FATAL) << "Mat thought this was bad. Why?"; //was assert, changed by asr 11/1/12
+  }
   return connectionPool[tid];
 }
 

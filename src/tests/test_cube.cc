@@ -130,7 +130,7 @@ void check_tuple_input(boost::shared_ptr<jetstream::Tuple> const & answer, time_
 
 TEST_F(CubeTest, SaveTupleTest) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
-  cube->destroy();
+//  cube->destroy();
   cube->create();
 
   jetstream::Tuple t;
@@ -160,7 +160,7 @@ TEST_F(CubeTest, SavePartialTupleTest) {
   } catch (boost::system::system_error e) {
     LOG(FATAL) << e.what();
   }
-  cube->destroy();
+//  cube->destroy();
   cube->create();
 
   jetstream::Tuple t;

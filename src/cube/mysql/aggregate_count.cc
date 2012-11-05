@@ -1,6 +1,7 @@
 #include "aggregate_count.h"
 
 #include <glog/logging.h>
+#include "js_utils.h"
 
 using namespace std;
 using namespace jetstream::cube;
@@ -35,20 +36,21 @@ size_t  MysqlAggregateCount::number_tuple_elements() const
 }
 
 
-void MysqlAggregateCount::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
+void MysqlAggregateCount::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt,  const jetstream::Tuple &t, int &field_index) const {
   if(tuple_indexes.size() != 1)
   {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }
   if(t.e_size()-1 >= (int) tuple_indexes[0])
   {
-    jetstream::Element * const e_count = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
-    if(e_count->has_i_val()) {
-      pstmt->setInt(field_index, e_count->i_val());
+    const jetstream::Element&  e = t.e(tuple_indexes[0]);
+    if(e.has_i_val()) {
+      pstmt->setInt(field_index, e.i_val());
       field_index += 1;
       return;
-    }
-    LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+    } else
+    LOG(FATAL) << "Expected field "<< tuple_indexes[0] << " to be an int corresponding to "<< name <<
+      "\n. Tuple was " << jetstream::fmt(t);
   }
   else
   {

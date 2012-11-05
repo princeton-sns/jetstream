@@ -21,8 +21,10 @@ def main():
   parser.add_option("-a", "--controller", dest="controller",
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true", 
-                  help="whether to use two nodes", default=False)
+                  help="whether to show PB without running", default=False)
 
+  parser.add_option("-n", "--no-local", dest="NO_LOCAL", action="store_true", 
+                  help="whether to do no local buffering", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -49,7 +51,8 @@ def main():
   final_cube.add_dim("state", Element.STRING, 0)
   final_cube.add_dim("time", Element.TIME, 1)
   final_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
-  final_cube.add_agg("sources", jsapi.Cube.AggType.STRING, 3)
+  if not options.NO_LOCAL:
+    final_cube.add_agg("sources", jsapi.Cube.AggType.STRING, 3)
   
   final_cube.set_overwrite(True)  #fresh results  
 
@@ -68,28 +71,31 @@ def main():
     src = jsapi.RandSource(g, n, k)
     src.set_cfg("rate", 1000)
 
-    local_cube = g.add_cube("local_results_%d" % k)
-    local_cube.add_dim("state", Element.STRING, 0)
-    local_cube.add_dim("time", Element.TIME, 1)
-    local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
-    local_cube.set_overwrite(True)  #fresh results
-
-    pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
-    pull_op.set_cfg("ts_field", 1)
-    pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
-    
-    extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
 
+    if not options.NO_LOCAL:
+      extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
 
-    g.connect(src, local_cube)  
-    g.connect(local_cube, pull_op)
-    g.connect(pull_op, extend_op)
-    g.connect(extend_op, round_op)
 
+      local_cube = g.add_cube("local_results_%d" % k)
+      local_cube.add_dim("state", Element.STRING, 0)
+      local_cube.add_dim("time", Element.TIME, 1)
+      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+      local_cube.set_overwrite(True)  #fresh results
+  
+      pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
+      pull_op.set_cfg("ts_field", 1)
+      pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
+      g.connect(src, local_cube)  
+      g.connect(local_cube, pull_op)
+      g.connect(pull_op, extend_op)
+      local_cube.instantiate_on(node)    
+      g.connect(extend_op, round_op)
+    else:
+      g.connect(src, round_op)
+    
     src.instantiate_on(node)
 
-    local_cube.instantiate_on(node)
     g.connect(round_op, final_cube)
   
   #### Finished building in memory, now to deploy

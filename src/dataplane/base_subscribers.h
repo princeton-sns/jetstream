@@ -64,7 +64,7 @@ This subscriber does no backfill.
 */
 class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
-    static const int DEFAULT_WINDOW_OFFSET = 100;
+    static const int DEFAULT_WINDOW_OFFSET = 100; //ms
   
     bool running;
     boost::shared_ptr<boost::thread> loopThread;
@@ -74,13 +74,16 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
 //    int32_t maxTsSeen;
     std::list<std::string> sort_order;
-    int32_t num_results;
+    int32_t num_results; //a limit on the number of results returned. 0 = infinite
     jetstream::Tuple min;
     jetstream::Tuple max;
-    
   
+//    boost::mutex mutex; //protects next_window_start_time
+    time_t next_window_start_time; //all data from before this should be visible
+    int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
+        //estimate will tend to be high: some of this data still arrived "in time" 
   public:
-    TimeBasedSubscriber(): running(true) {};
+    TimeBasedSubscriber(): running(true),next_window_start_time(0),backfill_tuples(0) {};
 
     virtual ~TimeBasedSubscriber() {};
 
@@ -98,6 +101,8 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     virtual void stop() {running = false; }
 
     void operator()();  // A thread that will loop while reading the file
+
+    virtual std::string long_description();
 
 
   private:
