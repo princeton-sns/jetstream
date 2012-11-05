@@ -164,7 +164,7 @@ TimeBasedSubscriber::long_description() {
 //  boost::lock_guard<boost::mutex> lock (mutex);
 
   ostringstream out;
-  out << backfill_tuples << " late tuples";
+  out << backfill_tuples << " late tuples; sample interval " << windowSizeMs << " ms";
   return out.str();
 
 }

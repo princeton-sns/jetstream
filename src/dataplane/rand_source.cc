@@ -167,7 +167,15 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
   counts_this_period[t->e(0).s_val()] += count;
   total_in_window += count;
   last_ts_seen = tuple_ts;
-  
+}
+
+std::string
+RandEvalOperator::long_description() {
+//  boost::lock_guard<boost::mutex> lock (mutex);
+
+  ostringstream out;
+  out << total_in_window << " tuples. Data evenness was " <<  max_rel_deviation;
+  return out.str();
 
 }
 
