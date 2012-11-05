@@ -397,7 +397,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 
         continue;
       }
-      if (edge.has_dest_cube()) { 
+      
+      if (edge.has_dest_addr()) {   // sending to remote operator or cube
+        shared_ptr<RemoteDestAdaptor> xceiver(
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
+        dataConnMgr.register_new_adaptor(xceiver);
+        srcOperator->set_dest(xceiver);
+      }
+      else if (edge.has_dest_cube()) {  //local cube
         // connect to local table
         shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
         if (c)
@@ -406,13 +413,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
           LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
         }
       }
-      else if (edge.has_dest_addr()) {   //remote network operator
-        shared_ptr<RemoteDestAdaptor> xceiver(
-            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
-        dataConnMgr.register_new_adaptor(xceiver);
-        srcOperator->set_dest(xceiver);
-      }
-      else {
+      else {  // local operator
         assert(edge.has_dest());
         operator_id_t dest (edge.computation(), edge.dest());
         shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
