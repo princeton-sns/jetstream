@@ -51,6 +51,8 @@ class RandEvalOperator: public DataPlaneOperator {
 
   
   RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),total_last_window(0) {}
+
+  virtual std::string long_description();
   
  private:
   std::map<std::string,int> counts_this_period;

@@ -5,14 +5,18 @@ using namespace jetstream::cube;
 
 jetstream::DataCube::DimensionKey MysqlDimensionString::get_key(const Tuple &t) const
 {
-  assert(tuple_indexes.size() == 1);
+  assert(tuple_indexes.size() ==  1);
+  if ( (int) tuple_indexes[0] >= t.e_size())
+    LOG(FATAL) << "no element " << tuple_indexes[0] << " of " << fmt(t)<< " (len == " << t.e_size() << ")";
+
   const jetstream::Element& e = t.e(tuple_indexes[0]);
 
   if(e.has_s_val()) {
     return e.s_val();
   }
-
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+  else
+    LOG(FATAL) << "Expected a string element for field "<< name << " in tuple "<< fmt(t);
+  return "";
 }
 
 vector<string> MysqlDimensionString::get_column_types() const {

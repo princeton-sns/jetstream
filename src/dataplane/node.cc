@@ -352,6 +352,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     // Record the outcome of creating the cube in the response message
     if (cubeMgr.create_cube(task.name(), task.schema(), task.overwrite_old()) != NULL) {
       LOG(INFO) << "Created cube " << task.name() <<endl;
+      assert (cubeMgr.get_cube(task.name()));
       CubeMeta *created = respTopo->add_tocreate();
       created->CopyFrom(task);
     } else {
@@ -397,7 +398,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
 
         continue;
       }
-      if (edge.has_dest_cube()) { 
+      
+      if (edge.has_dest_addr()) {   // sending to remote operator or cube
+        shared_ptr<RemoteDestAdaptor> xceiver(
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
+        dataConnMgr.register_new_adaptor(xceiver);
+        srcOperator->set_dest(xceiver);
+      }
+      else if (edge.has_dest_cube()) {  //local cube
         // connect to local table
         shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
         if (c)
@@ -406,13 +414,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
           LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
         }
       }
-      else if (edge.has_dest_addr()) {   //remote network operator
-        shared_ptr<RemoteDestAdaptor> xceiver(
-            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
-        dataConnMgr.register_new_adaptor(xceiver);
-        srcOperator->set_dest(xceiver);
-      }
-      else {
+      else {  // local operator
         assert(edge.has_dest());
         operator_id_t dest (edge.computation(), edge.dest());
         shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
@@ -428,8 +430,14 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       operator_id_t dest (edge.computation(), edge.dest());
       shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
       
-      shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
-      c->add_subscriber(subsc);
+      if (!c) {
+        LOG(WARNING) << "Can't add edge from " << edge.src_cube() << " to " 
+            << edge.dest() << ": no such cube";
+      }
+      else {
+        shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
+        c->add_subscriber(subsc);
+      }
     }
   }
   
@@ -439,6 +447,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
     shared_ptr<DataPlaneOperator> op = get_operator(name);
+    assert (op);
     op->start();
     dataConnMgr.created_operator(op);
   }
@@ -446,6 +455,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
     shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
+    assert (c);
     dataConnMgr.created_operator(c);
   }
   return response;

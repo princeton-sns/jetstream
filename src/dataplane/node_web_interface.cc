@@ -74,8 +74,7 @@ NodeWebInterface::process_req(enum mg_event event, struct mg_connection *conn)
 
 
 void
-NodeWebInterface::make_base_page(ostream &buf)
-{
+NodeWebInterface::make_base_page(ostream &buf) {
   buf << "<html><head><title>JetStream Status</title></head>" << endl;
   buf << "<body>" << endl;
 
@@ -85,48 +84,54 @@ NodeWebInterface::make_base_page(ostream &buf)
   buf << "<p>Cubes:</p>" << endl<<"<ol>"<<endl;
   vector<string>::iterator cube_it;
   for (cube_it = cubeList->begin();cube_it != cubeList->end(); ++cube_it) {
-   string& name = *cube_it;
-   boost::shared_ptr<DataCube> cube = node.cubeMgr.get_cube(name);
-   if (!cube)
-    continue; //cube deleted since list created
+    string& name = *cube_it;
+    boost::shared_ptr<DataCube> cube = node.cubeMgr.get_cube(name);
+    if (!cube)
+      continue; //cube deleted since list created
     
-   buf << "<li><b>" << name << "</b> " << cube->num_leaf_cells() << " cells." << endl;
+    buf << "<li><b>" << name << "</b> " << cube->num_leaf_cells() << " cells." << endl;
 
       //could print schema here
 
 
-   Tuple empty = cube->empty_tuple();
-   cube::CubeIterator it = cube->slice_query
+    Tuple empty = cube->empty_tuple();
+    cube::CubeIterator it = cube->slice_query
               (empty, empty, true, std::list<std::string>(), MAX_ROWS_TO_SHOW);
-    
-   if (it.numCells() > 0) {
-     buf << "<table>" << endl;
-     while (it != cube->end()) {
-       buf << "<tr>";
-       boost::shared_ptr<Tuple> t = *it;
-       it++;
-       if (t == NULL) {
+
+    if (it.numCells() > 0) {
+      buf << "<table>" << endl;
+      while (it != cube->end()) {
+        buf << "<tr>";
+        boost::shared_ptr<Tuple> t = *it;
+        it++;
+        if (t == NULL) {
          LOG(WARNING) << "unexpected null tuple when printing cube";
-       }
-       for (int v = 0; v < t->e_size(); ++ v) {
-         buf << "<td>";
-         const Element& cell = t->e(v);
-         if (cell.has_i_val())
-           buf << cell.i_val();
-         else if (cell.has_s_val())
-           buf << cell.s_val();
-         else if (cell.has_d_val())
-           buf << cell.d_val();
-         else if (cell.has_t_val())
-           buf << cell.t_val();
-         
-         buf << "</td>";
-       }
-       buf << "</tr>";
-     }
-     buf << "</table>" << endl;
-   }
-   buf << "</li>" << endl;
+        }
+        for (int v = 0; v < t->e_size(); ++ v) {
+          buf << "<td>";
+          const Element& cell = t->e(v);
+          if (cell.has_i_val())
+            buf << cell.i_val();
+          else if (cell.has_s_val())
+            buf << cell.s_val();
+          else if (cell.has_d_val())
+            buf << cell.d_val();
+          else if (cell.has_t_val()) {
+            time_t t = (time_t)cell.t_val();
+            struct tm parsed_time;
+            gmtime_r(&t, &parsed_time);
+            
+            char tmbuf[80];
+            strftime(tmbuf, sizeof(tmbuf), "%H:%M:%S", &parsed_time);
+            buf << tmbuf;
+          }
+          buf << "</td>";
+        }
+        buf << "</tr>";
+      }
+      buf << "</table>" << endl;
+    }
+    buf << "</li>" << endl;
   }
   
   buf << "</ol>"<<endl;

@@ -89,11 +89,11 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
   case DataplaneMessage::DATA:
     {
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      shared_ptr<Tuple> data (new Tuple);
       for(int i=0; i < msg.data_size(); ++i) {
+        shared_ptr<Tuple> data (new Tuple);
         data->MergeFrom (msg.data(i));
+        assert (data->e_size() > 0);
         dest->process(data);
-        data->Clear();
       }
       break;
     }

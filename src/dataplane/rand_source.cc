@@ -128,7 +128,9 @@ RandSourceOperator::emit_1()  {
 
 void
 RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
-
+  assert( t->e_size() > 2);
+  assert (t->e(1).has_t_val());
+  
   time_t tuple_ts = t->e(1).t_val();
   if (last_ts_seen == 0) {
     last_ts_seen = tuple_ts;
@@ -165,7 +167,15 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
   counts_this_period[t->e(0).s_val()] += count;
   total_in_window += count;
   last_ts_seen = tuple_ts;
-  
+}
+
+std::string
+RandEvalOperator::long_description() {
+//  boost::lock_guard<boost::mutex> lock (mutex);
+
+  ostringstream out;
+  out << total_in_window << " tuples. Data evenness was " <<  max_rel_deviation;
+  return out.str();
 
 }
 
