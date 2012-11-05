@@ -116,6 +116,7 @@ int main(int argc, const char **argv)
     
     jetstream::Element *e;
     struct tm temptm;
+    temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
 
     while ( myfile.good())
     {
