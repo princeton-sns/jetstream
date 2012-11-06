@@ -27,11 +27,14 @@ class TestOpIntegration(unittest.TestCase):
     self.controller.start()
     print "controller bound to %s:%d" % self.controller.address
     self.client = JSClient(self.controller.address)
+    self.workers = list()
 
 
   def tearDown(self):
     self.client.close()
     self.controller.stop()
+    map(lambda proc: os.killpg(proc.pid, signal.SIGTERM), self.workers)
+    self.workers = list()
 
 
   def test_operator(self):
@@ -39,6 +42,7 @@ class TestOpIntegration(unittest.TestCase):
     jsnode_cmd = "./jsnoded -a localhost:%d --start -C ./config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
+    self.workers.append(workerProc)
     time.sleep(2)
 
     # Tell the controller to deploy a topology (it will be deployed on the only worker)
@@ -63,7 +67,6 @@ class TestOpIntegration(unittest.TestCase):
     assert(len(workerList) == 1)
     self.assertEquals(len(workerList[0].assignments), 1)
     self.assertEquals(workerList[0].assignments.values()[0].state, WorkerAssignment.RUNNING)
-    os.killpg(workerProc.pid, signal.SIGTERM)
 
 
   def test_multiple_operators(self):
@@ -71,6 +74,7 @@ class TestOpIntegration(unittest.TestCase):
     jsnode_cmd = "./jsnoded -a localhost:%d --start -C ./config/datanode.conf" % (self.controller.address[1])
     print "starting",jsnode_cmd
     workerProc = subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid)
+    self.workers.append(workerProc)
     time.sleep(2)
 
     # Tell the controller to deploy multiple single-node topologies (they will all be
@@ -102,7 +106,6 @@ class TestOpIntegration(unittest.TestCase):
     assert(len(workerList) == 1)
     for assignment in workerList[0].assignments.values():
       self.assertEquals(assignment.state, WorkerAssignment.RUNNING)
-    os.killpg(workerProc.pid, signal.SIGTERM)
 
  
   def test_operator_chain(self):
@@ -117,6 +120,7 @@ class TestOpIntegration(unittest.TestCase):
       webPort += 1
       print "starting",jsnode_cmd
       workerProcs.append(subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid))
+    self.workers.extend(workerProcs)
     # Give the workers time to register with the controller
     time.sleep(3)
     
@@ -211,10 +215,6 @@ class TestOpIntegration(unittest.TestCase):
     # We should have matched all operators, one per worker
     print "length at end is " + str(len(assignedOps))
     assert(len(assignedOps) == 0)
-
-    # Cleanup
-    for proc in workerProcs:
-      os.killpg(proc.pid, signal.SIGTERM)
 
 
 if __name__ == '__main__':

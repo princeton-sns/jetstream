@@ -8,10 +8,11 @@ import random
 import socket
 import time
 
-from remote_controller import RemoteController
+from remote_controller import *
 import query_graph as jsapi
 
 WINDOW_SECS = 3
+OFFSET = 1000   #ms
 
 def main():
   parser = OptionParser()
@@ -28,12 +29,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  if ':' in options.controller:
-    (serv_addr, serv_port) = options.controller.split(':')
-    serv_port = int(serv_port)
-  else:
-    serv_addr = options.controller
-    serv_port = 3456
+  serv_addr, serv_port = normalize_controller_addr(options.controller)
   
     #Unlike most Jetstream programs, need to know how many nodes we have to set up the distribution properly
   server = RemoteController()
@@ -42,6 +38,23 @@ def main():
   assert isinstance(root_node, NodeID)
   all_nodes = server.all_nodes()
   
+  g = get_graph(root_node, all_nodes, options)
+
+  #### Finished building in memory, now to deploy
+  
+  for bw in [1000]:
+#    set_rate(g, bw)
+  
+    req = g.get_deploy_pb()
+    if not options.DRY_RUN:
+      cid = server.deploy_pb(req)
+      print "Computation running; ID =",cid
+    
+    #sleep a while; 
+    #now stop and restart
+    
+
+def get_graph(root_node, all_nodes, options):
   
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
@@ -85,7 +98,7 @@ def main():
   
       pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
       pull_op.set_cfg("ts_field", 1)
-      pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
+      pull_op.set_cfg("window_offset", OFFSET) #pull every three seconds, trailing by one
       g.connect(src, local_cube)  
       g.connect(local_cube, pull_op)
       g.connect(pull_op, extend_op)
@@ -97,15 +110,7 @@ def main():
     src.instantiate_on(node)
 
     g.connect(round_op, final_cube)
-  
-  #### Finished building in memory, now to deploy
-  
-  req = g.get_deploy_pb()
-  print req
-  if not options.DRY_RUN:
-    server.deploy_pb(req)
-    
-
+  return g
 
 if __name__ == '__main__':
     main()

@@ -19,15 +19,14 @@ using namespace boost::asio;
 using namespace boost::asio::ip;
 using namespace jetstream;
 
+int COMP_ID = 17;
 
 //helper method to fill in an AlterTopo with a pair of operators
-void add_pair_to_topo(AlterTopo& topo)
-{
-  int compID = 17;
-  topo.set_computationid(compID);
+void add_pair_to_topo(AlterTopo& topo) {
+  topo.set_computationid(COMP_ID);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
-  id->set_computationid(compID);
+  id->set_computationid(COMP_ID);
   id->set_task(2);
   task->set_op_typename("FileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
@@ -36,14 +35,14 @@ void add_pair_to_topo(AlterTopo& topo)
 
   task = topo.add_tostart();
   id = task->mutable_id();
-  id->set_computationid(compID);
+  id->set_computationid(COMP_ID);
   id->set_task(3);
   task->set_op_typename("DummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);
   e->set_dest(3);
-  e->set_computation(compID);
+  e->set_computation(COMP_ID);
 }
 
 TEST(Node, OperatorCreateDestroy)
@@ -251,8 +250,9 @@ TEST_F(NodeNetTest, ControllerDrop)
 
 
 
+
 //This test verifies that the Node handles requests properly
-TEST_F(NodeNetTest, NetStart)
+TEST_F(NodeNetTest, NetStartStop)
 {
   ASSERT_TRUE( cli_socket.is_open());
 
@@ -267,25 +267,57 @@ TEST_F(NodeNetTest, NetStart)
   
   bool found_response = false;
   for (int i =0; i < 3 && !found_response; ++i) {
-    
     boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();
     
     switch( h->type() ) {
       case ControlMessage::ALTER_RESPONSE:
         cout << "got response back ok from AlterTopo" <<endl;
+        ASSERT_EQ(h->alter().tostart_size(), 2);
+        
         found_response = true;
         break;
       case ControlMessage::HEARTBEAT:
         break;
       default:
         cout << "Unexpected message type: " << h->type() <<endl;
-        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT);
+        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT); //will always fail if reached. This is deliberate.
         break;
     }
   }
 
   ASSERT_TRUE(found_response);
+  ASSERT_GT(n->operator_count(), 0); //might be 1 or 2, depending when file reader stops
+  
+  msg.Clear();
+  msg.set_type(ControlMessage::STOP_COMPUTATION);
+  msg.set_comp_to_stop(COMP_ID);
+  synch_net.send_msg(msg);
+  
+  cout << "sent stop" <<endl;
+
+  found_response = false;
+  for (int i =0; i < 3 && !found_response; ++i) {
+    boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();    
+    switch( h->type() ) {
+      case ControlMessage::ALTER_RESPONSE:
+        cout << "got response back from stop" <<endl;
+        ASSERT_GT(h->alter().tasktostop_size(), 0);
+        found_response = true;
+        break;
+      case ControlMessage::HEARTBEAT:
+        break;
+      default:
+        cout << "Unexpected message type: " << h->type() <<endl;
+        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT); //will always fail if reached. This is deliberate.
+        break;
+    }
+  }  
+  
+  ASSERT_EQ(0, n->operator_count());
+  
+  
 }
+
 
 
 shared_ptr<DataPlaneOperator> 

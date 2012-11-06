@@ -25,7 +25,9 @@ SimpleNet::get_ctrl_msg()
   int32_t len = ntohl( *(reinterpret_cast<int32_t*> (buf.data())));
   
   std::vector<char> buf2(len);
+  
   int hb_len = sock.read_some(boost::asio::buffer(buf2));
+  assert(hb_len == len);
 
   boost::shared_ptr<ControlMessage>  h(new ControlMessage);
   h->ParseFromArray(&buf2[0], hb_len);

@@ -62,6 +62,11 @@ class Node {
   void incoming_conn_handler(boost::shared_ptr<ConnectedSocket> sock,
                              const boost::system::error_code &);
 
+
+  void make_stop_comput_response (ControlMessage& response,
+                                  std::vector<int32_t> stopped_operators,
+                                  int32_t compID);
+
   
  public:
   Node (const NodeConfig &conf, boost::system::error_code &error);
@@ -81,6 +86,9 @@ class Node {
     create_operator (std::string op_typename, operator_id_t, operator_config_t) ;
     
   bool stop_operator (operator_id_t name);
+  
+  std::vector<int32_t> stop_computation(int32_t compID);
+  
   
   int operator_count () const { 
     boost::unique_lock<boost::mutex> lock(operatorTableLock);

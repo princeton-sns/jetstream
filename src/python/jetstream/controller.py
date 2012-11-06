@@ -181,7 +181,8 @@ class Controller (ControllerAPI, JSServer):
       return # Note that we modify response in-place. (ASR: FIXME; why do it this way?)
 
     compID,comp = self.assign_comp_id()
-
+    response.started_comp_id = compID
+    
     workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
     err = planner.take_raw_topo(altertopo)
@@ -234,24 +235,49 @@ class Controller (ControllerAPI, JSServer):
     
     if req.type == ControlMessage.GET_NODE_LIST_REQ:
       self.handle_get_nodes(response)
+
     elif req.type == ControlMessage.ALTER:
       self.handle_alter(response, req.alter)
+
     elif req.type == ControlMessage.ALTER_RESPONSE:
       self.handle_alter_response(req.alter, handler.cli_addr)
       return  # no response
+
     elif req.type == ControlMessage.HEARTBEAT:
       self.handle_heartbeat(req.heartbeat, handler.cli_addr)
-      return  # no response
+      return # no response
+      
+    elif req.type == ControlMessage.STOP_COMPUTATION:
+      self.stop_computation(response, req)
+    
     elif req.type == ControlMessage.OK:
       # This should not be used
       logger.fatal("Received dangling OK message from %s" % (str(handler.cli_addr)))
       assert(false)
       return  # no response
+    
     else:
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "unknown error"
 
     handler.send_pb(response)
+
+
+  def stop_computation(self, response, req):
+    comp_to_stop = req.comp_to_stop
+    logger.error("Stopping computation %d" % comp_to_stop)
+    if comp_to_stop not in self.computations:
+      response.type = ControlMessage.ERROR
+      response.error_msg.msg = "No such computation %d" % comp_to_stop
+      return
+      
+    for worker in self.computations[comp_to_stop].workers_in_use():
+      h = self.connect_to(worker)
+      h.send_pb(req)         #we can re-use the existing stop message
+    response.type = ControlMessage.OK
+    #response value is passed by reference, not returned
+    return   
+    
 
 
   def assign_comp_id(self):

@@ -8,7 +8,7 @@ import random
 import socket
 import time
 
-from remote_controller import RemoteController
+from remote_controller import RemoteController,normalize_controller_addr
 import query_graph as jsapi
 
 def main():
@@ -21,12 +21,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  if ':' in options.controller:
-    (serv_addr, serv_port) = options.controller.split(':')
-    serv_port = int(serv_port)
-  else:
-    serv_addr = options.controller
-    serv_port = 3456
+  serv_addr,serv_port =  normalize_controller_addr(options.controller)
   
   file_to_parse = args[0]
   
