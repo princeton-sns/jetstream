@@ -43,7 +43,7 @@ struct operator_id_t {
     return buf.str();
   }
     
-  operator_id_t (int32_t c, int32_t t) : computation_id (c), task_id (t) {}
+  operator_id_t (int32_t comp, int32_t t) : computation_id (comp), task_id (t) {}
   operator_id_t () : computation_id (0), task_id (0) {}
 };
 

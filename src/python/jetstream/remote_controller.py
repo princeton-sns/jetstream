@@ -42,4 +42,13 @@ class RemoteController():
     """Deploys an operator graph"""
     resp = self.client.ctrl_rpc(req, True)
     print resp
-    
+    return resp
+ 
+  def stop_computation(self, comput_id):
+    req = ControlMessage()
+    req.type = ControlMessage.STOP_COMPUTATION
+    req.comp_to_stop = comput_id
+    resp = self.client.ctrl_rpc(req, True)
+    print resp
+    return resp  
+     

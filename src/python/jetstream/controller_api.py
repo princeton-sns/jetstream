@@ -11,3 +11,6 @@ class ControllerAPI():
   def deploy(self, op_graph):
     """Deploys an operator graph"""
     raise "Unimplemented!"
+
+  def stop_computation(self, comput_id):
+    raise "Unimplemented!"

@@ -177,10 +177,11 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
  // VLOG(1) << "got message: " << msg.Utf8DebugString() <<endl;
   
   boost::system::error_code send_error;
+  ControlMessage response;
+
   switch (msg.type ()) {
   case ControlMessage::ALTER:
     {
-      ControlMessage response;
       const AlterTopo &alter = msg.alter();
       handle_alter(response, alter);
       conn->send_msg(response, send_error);
@@ -191,10 +192,25 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
         
       break;
     }
+  case ControlMessage::STOP_COMPUTATION:
+    {
+      int compID = 0;
+      vector<int> stopped_operators = stop_computation(compID);
+      make_stop_comput_response(response, stopped_operators, compID);
 
+      break;
+    }
    default:
+     LOG(WARNING) << "Unexpected control message: " << msg.Utf8DebugString() << endl;
      break;
   }
+
+  conn->send_msg(response, send_error);
+
+  if (send_error != boost::system::errc::success) {
+    LOG(WARNING) << "Failure sending response: " << send_error.message() << endl;
+  }
+
   
   // Wait for the next control message 
   boost::system::error_code e;
@@ -461,6 +477,33 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   return response;
 }
 
+void
+Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> stopped_operators, int32_t compID) {
+  response.set_type(ControlMessage::ALTER_RESPONSE);
+  AlterTopo *respTopo = response.mutable_alter();
+  for (int i = 0; i < stopped_operators.size(); ++i) {
+    TaskID * tID = respTopo->add_tasktostop();
+    tID->set_computationid(compID);
+    tID->set_task(stopped_operators[i]);
+  }
+}
+
+
+vector<int32_t>
+Node::stop_computation(int32_t compID) {
+  vector<int32_t> stopped_ops;
+  unique_lock<boost::mutex> lock(operatorTableLock);
+  
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  for ( iter = operators.begin(); iter != operators.end(); ++iter) {
+    if (iter -> first.computation_id == compID) {
+      stopped_ops.push_back(iter->first.task_id);
+      //TODO actual stop. Note that we have a NON-REENTRANT LOCK HERE
+    }
+  }
+  return stopped_ops;
+}
+
 boost::shared_ptr<DataPlaneOperator> 
 Node::get_operator (operator_id_t name) {
   unique_lock<boost::mutex> lock(operatorTableLock);
@@ -505,11 +548,13 @@ Node::stop_operator(operator_id_t name) {
   if (op) { //operator still around
   
     operator_cleanup.stop_on_strand(op);
+    
     {
       unique_lock<boost::mutex> lock(operatorTableLock);
       int delCount = operators.erase(name);
       assert(delCount > 0);
     }
+    
     operator_cleanup.cleanup(op);
   
     return true;

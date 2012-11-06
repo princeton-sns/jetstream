@@ -151,6 +151,12 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
         deflection = real_total / expected_total;
       else
         deflection = expected_total / real_total;
+      
+      if (deflection < 0.9) {
+        cout << "Expected " << rand_labels[i] << " to be " << expected_total
+          << " and got " << real_total << endl;
+      }
+      
       max_rel_deviation = min(max_rel_deviation, deflection);
     }
     cout << "Total data rate: "<< total_in_window << ". Data evenness was " <<  max_rel_deviation  << endl;

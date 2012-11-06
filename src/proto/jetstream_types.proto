@@ -171,7 +171,7 @@ message Error {
 */
 message ControlMessage {
   enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; 
-                     ALTER = 6; ALTER_RESPONSE = 7; NODES_RESPONSE = 8; OK = 9; }
+                     ALTER = 6; ALTER_RESPONSE = 7; NODES_RESPONSE = 8; STOP_COMPUTATION  = 9;  OK = 10;}
   required ControlType type = 1; 
   
   optional Error error_msg = 2;
@@ -179,6 +179,8 @@ message ControlMessage {
   optional int32 node_count = 5;
   optional AlterTopo alter = 6; 
   repeated NodeID nodes = 7;
+  optional int32 started_comp_id = 8; //in an alter response, identifies the started computation
+  optional int32 comp_to_stop = 9;
    
 }
 
