@@ -272,6 +272,8 @@ TEST_F(NodeNetTest, NetStartStop)
     switch( h->type() ) {
       case ControlMessage::ALTER_RESPONSE:
         cout << "got response back ok from AlterTopo" <<endl;
+        ASSERT_EQ(h->alter().tostart_size(), 2);
+        
         found_response = true;
         break;
       case ControlMessage::HEARTBEAT:
@@ -284,12 +286,34 @@ TEST_F(NodeNetTest, NetStartStop)
   }
 
   ASSERT_TRUE(found_response);
-  ASSERT_EQ(1, n->operator_count());
+  ASSERT_GT(n->operator_count(), 0); //might be 1 or 2, depending when file reader stops
   
   msg.Clear();
   msg.set_type(ControlMessage::STOP_COMPUTATION);
   msg.set_comp_to_stop(COMP_ID);
   synch_net.send_msg(msg);
+  
+  cout << "sent stop" <<endl;
+
+  found_response = false;
+  for (int i =0; i < 3 && !found_response; ++i) {
+    boost::shared_ptr<ControlMessage> h = synch_net.get_ctrl_msg();    
+    switch( h->type() ) {
+      case ControlMessage::ALTER_RESPONSE:
+        cout << "got response back from stop" <<endl;
+        ASSERT_GT(h->alter().tasktostop_size(), 0);
+        found_response = true;
+        break;
+      case ControlMessage::HEARTBEAT:
+        break;
+      default:
+        cout << "Unexpected message type: " << h->type() <<endl;
+        ASSERT_EQ(h->type(), ControlMessage::HEARTBEAT); //will always fail if reached. This is deliberate.
+        break;
+    }
+  }  
+  
+  ASSERT_EQ(0, n->operator_count());
   
   
 }

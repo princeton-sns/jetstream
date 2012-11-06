@@ -168,6 +168,17 @@ message Error {
 * A message between controller and workers, or from client to controller.
 * The fields of the message should line up with the type field. This is a human
 * notational convenience, and not enforced or used in the code.
+*
+* Notes on the protocol:
+*  Errors, Heartbeats, and Alter_response have no response.
+*   GET_NODE_LIST_REQ should result in NODES_RESPONSE
+*   NODE_COUNT_REQ is currently un-implemented
+*   ALTER to client should result in an ALTER_RESPONSE
+*   ALTER to controller should result in OK or ERROR. If OK, started_comp_id should be set
+*   
+*   STOP_COMPUTATION to worker should result in ALTER_RESPONSE with a list of stopped operators.
+*   
+*
 */
 message ControlMessage {
   enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; 
@@ -176,11 +187,11 @@ message ControlMessage {
   
   optional Error error_msg = 2;
   optional Heartbeat heartbeat = 3;
-  optional int32 node_count = 5;
-  optional AlterTopo alter = 6; 
-  repeated NodeID nodes = 7;
-  optional int32 started_comp_id = 8; //in an alter response, identifies the started computation
-  optional int32 comp_to_stop = 9;
+  optional int32 node_count = 5;  // present if type is NODE_COUNT_REQ
+  optional AlterTopo alter = 6;   // present if type is ALTER or ALTER_RESPONSE
+  repeated NodeID nodes = 7;      // present if type is NODES_RESPONSE
+  optional int32 started_comp_id = 8; // present in an OK sent back from controller in response to an alter
+  optional int32 comp_to_stop = 9;  // present if type is STOP_COMPUTATION
    
 }
 

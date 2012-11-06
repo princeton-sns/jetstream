@@ -184,18 +184,12 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
     {
       const AlterTopo &alter = msg.alter();
       handle_alter(response, alter);
-      conn->send_msg(response, send_error);
-
-      if (send_error != boost::system::errc::success) {
-        LOG(WARNING) << "Failure sending response: " << send_error.message() << endl;
-      }
-        
       break;
     }
   case ControlMessage::STOP_COMPUTATION:
     {
-      int compID = 0;
-      vector<int> stopped_operators = stop_computation(compID);
+      int32_t compID = msg.comp_to_stop();
+      vector<int32_t> stopped_operators = stop_computation(compID);
       make_stop_comput_response(response, stopped_operators, compID);
 
       break;
@@ -481,6 +475,7 @@ void
 Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> stopped_operators, int32_t compID) {
   response.set_type(ControlMessage::ALTER_RESPONSE);
   AlterTopo *respTopo = response.mutable_alter();
+  respTopo->set_computationid(compID);
   for (int i = 0; i < stopped_operators.size(); ++i) {
     TaskID * tID = respTopo->add_tasktostop();
     tID->set_computationid(compID);
@@ -491,16 +486,27 @@ Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> s
 
 vector<int32_t>
 Node::stop_computation(int32_t compID) {
+  LOG(INFO) << "stopping computation " << compID;
   vector<int32_t> stopped_ops;
   unique_lock<boost::mutex> lock(operatorTableLock);
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
-  for ( iter = operators.begin(); iter != operators.end(); ++iter) {
-    if (iter -> first.computation_id == compID) {
-      stopped_ops.push_back(iter->first.task_id);
-      //TODO actual stop. Note that we have a NON-REENTRANT LOCK HERE
+  for ( iter = operators.begin(); iter != operators.end(); ) {
+    operator_id_t op_id = iter->first;
+    boost::shared_ptr<DataPlaneOperator>  op = iter->second;
+     //need to advance iterator BEFORE stop, since iterator to removed element is invalid
+    iter ++;
+    
+    if (op_id.computation_id == compID) {
+    
+      stopped_ops.push_back(op_id.task_id);
+      // The actual stop. Note that we have a NON-REENTRANT lock here, so can't use stop()
+      operator_cleanup.stop_on_strand(op);
+      operators.erase(op_id);
+      operator_cleanup.cleanup(op);      
     }
   }
+  LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " << compID << " , leaving " << operators.size();
   return stopped_ops;
 }
 
