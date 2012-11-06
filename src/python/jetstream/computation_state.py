@@ -87,6 +87,9 @@ class Computation (object):
       intendedAssignment.state = WorkerAssignment.STOPPED
       #TODO Handle failed assignment here
 
+  def workers_in_use(self):
+    return [workerID for workerID, worker in self.workerAssignments.items() if len(worker.operators) > 0]
+    
 
   #TODO: Move this code to controller.py once we incorporate computation stop logic
 #   def stop (self):

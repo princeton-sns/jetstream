@@ -8,7 +8,7 @@ import random
 import socket
 import time
 
-from remote_controller import RemoteController
+from remote_controller import *
 import query_graph as jsapi
 
 WINDOW_SECS = 3
@@ -29,12 +29,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  if ':' in options.controller:
-    (serv_addr, serv_port) = options.controller.split(':')
-    serv_port = int(serv_port)
-  else:
-    serv_addr = options.controller
-    serv_port = 3456
+  serv_addr, serv_port = normalize_controller_addr(options.controller)
   
     #Unlike most Jetstream programs, need to know how many nodes we have to set up the distribution properly
   server = RemoteController()
@@ -47,18 +42,19 @@ def main():
 
   #### Finished building in memory, now to deploy
   
-  for bw in [1000]
-    set_rate(g, bw)
+  for bw in [1000]:
+#    set_rate(g, bw)
   
     req = g.get_deploy_pb()
     if not options.DRY_RUN:
-      server.deploy_pb(req)
+      cid = server.deploy_pb(req)
+      print "Computation running; ID =",cid
     
     #sleep a while; 
     #now stop and restart
     
 
-def get_graph(root_node, all_nodes, options)
+def get_graph(root_node, all_nodes, options):
   
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
@@ -115,12 +111,6 @@ def get_graph(root_node, all_nodes, options)
 
     g.connect(round_op, final_cube)
   return g
-
-
-def set_rate(g, bw)
-  for id,op in g.operators:
-    if op.type == Operator.OpType.RAND_SOURCE
-      op.cfg['rate'] = bw
 
 if __name__ == '__main__':
     main()

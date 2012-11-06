@@ -176,8 +176,8 @@ message Error {
 *   ALTER to client should result in an ALTER_RESPONSE
 *   ALTER to controller should result in OK or ERROR. If OK, started_comp_id should be set
 *   
-*   STOP_COMPUTATION to worker should result in ALTER_RESPONSE with a list of stopped operators.
-*   
+*   STOP_COMPUTATION to worker should result in ALTER_RESPONSE with a list of stopped operators.  
+*   STOP_COMPUTATION to controller will result in OK if comp. was running, else ERROR.
 *
 */
 message ControlMessage {

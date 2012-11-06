@@ -2,6 +2,18 @@ from generic_netinterface import JSClient
 
 from jetstream_types_pb2 import *
 
+
+def normalize_controller_addr(addr_str):
+  if ':' in addr_str:
+    (serv_addr, serv_port) = addr_str.split(':')
+    serv_port = int(serv_port)
+  else:
+    serv_addr = options.controller
+    serv_port = 3456  #default
+    
+  return   serv_addr, serv_port 
+
+
 class RemoteController():
 
   def __init__(self):
@@ -39,16 +51,20 @@ class RemoteController():
     print resp
     
   def deploy_pb(self, req):
-    """Deploys an operator graph"""
+    """Deploys an operator graph; returns an integer ID or an error message"""
     resp = self.client.ctrl_rpc(req, True)
-    print resp
-    return resp
+    if resp.type == ControlMessage.OK:
+      return resp.started_comp_id
+    else:
+      return resp.error_msg.msg
  
   def stop_computation(self, comput_id):
     req = ControlMessage()
     req.type = ControlMessage.STOP_COMPUTATION
-    req.comp_to_stop = comput_id
+    req.comp_to_stop = int(comput_id)
     resp = self.client.ctrl_rpc(req, True)
-    print resp
     return resp  
+     
+     
+     
      
