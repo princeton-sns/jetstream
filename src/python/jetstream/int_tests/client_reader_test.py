@@ -70,7 +70,7 @@ class TestClientReaderIntegration(unittest.TestCase):
                                        preexec_fn=os.setsid,
                                        stdout=self.jsnode_out[0],
                                        stderr=subprocess.STDOUT)
-    time.sleep(0.0300)
+    time.sleep(2)
 
     # shouldn't have terminated yet
     # TODO why does this fail
