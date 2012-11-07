@@ -86,7 +86,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     }
   }
 
-  VLOG(1) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
+  VLOG(2) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
 
 
   if(can_batch && tupleBatcher->is_empty())
@@ -159,7 +159,7 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
       VLOG(3) << "Update Callback:" <<tpi.key<<"; sub:"<<*it;
       subscribers[*it]->update_callback(tpi.t, new_tuple, old_tuple);
     }
-  VLOG(1) << "End Save Callback:" <<tpi.key;
+  VLOG(2) << "End Save Callback:" <<tpi.key;
 }
 
 

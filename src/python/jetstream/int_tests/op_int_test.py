@@ -187,9 +187,9 @@ class TestOpIntegration(unittest.TestCase):
     buf = self.client.do_rpc(req, True)
     resp = ControlMessage()
     resp.ParseFromString(buf)
-    assert(resp.type == ControlMessage.OK)
+    self.assertEquals(ControlMessage.OK, resp.type)
     # The controller overwrites the computation ID, so get it again
-    assert(len(self.controller.computations) == 1)
+    self.assertEquals(1, len(self.controller.computations))
     compID = self.controller.computations.keys()[0]
     time.sleep(2)
 
@@ -209,12 +209,14 @@ class TestOpIntegration(unittest.TestCase):
           assignedOps.remove(op)
           # If this is the final receiver, check the received tuple count
           if opName == "DummyReceiver":
-            assert(str(numTuples) in getResp)
+            if not str(numTuples) in getResp:
+              print getResp
+            self.assertTrue(str(numTuples) in getResp)
           break
       webPort += 1
     # We should have matched all operators, one per worker
     print "length at end is " + str(len(assignedOps))
-    assert(len(assignedOps) == 0)
+    self.assertEquals(0, len(assignedOps))
 
 
 if __name__ == '__main__':

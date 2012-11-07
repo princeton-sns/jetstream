@@ -6,6 +6,7 @@ from optparse import OptionParser
 
 import random
 import socket
+import sys
 import time
 
 from remote_controller import *
@@ -13,6 +14,7 @@ import query_graph as jsapi
 
 WINDOW_SECS = 3
 OFFSET = 1000   #ms
+TIME_AT_RATE = 30 #seconds
 
 def main():
   parser = OptionParser()
@@ -27,6 +29,10 @@ def main():
   parser.add_option("-n", "--no-local", dest="NO_LOCAL", action="store_true", 
                   help="whether to do no local buffering", default=False)
 
+
+  parser.add_option("-o", "--log_out_file", dest="perflog", 
+                  help="file to log performance history into")
+
   (options, args) = parser.parse_args()
 
   serv_addr, serv_port = normalize_controller_addr(options.controller)
@@ -38,24 +44,33 @@ def main():
   assert isinstance(root_node, NodeID)
   all_nodes = server.all_nodes()
   
-  g = get_graph(root_node, all_nodes, options)
 
   #### Finished building in memory, now to deploy
   
-  for bw in [1000]:
+  for bw in [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000]:
+    print "launching run with rate = %d per source" % bw
 #    set_rate(g, bw)
-  
+    g = get_graph(root_node, all_nodes, options, bw)
+
     req = g.get_deploy_pb()
-    if not options.DRY_RUN:
-      cid = server.deploy_pb(req)
-      print "Computation running; ID =",cid
+    if options.DRY_RUN:
+      print req
+      break
+
+    cid = server.deploy_pb(req)
+    print "Computation running; ID =",cid
     
+
+    print_wait()
+    server.stop_computation(cid)
+    time.sleep(10)   
+
     #sleep a while; 
     #now stop and restart
     
-
-def get_graph(root_node, all_nodes, options):
-  
+is_first_run = False
+def get_graph(root_node, all_nodes, options, rate=1000):
+  global is_first_run
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
 
@@ -69,20 +84,27 @@ def get_graph(root_node, all_nodes, options):
   
   final_cube.set_overwrite(True)  #fresh results  
 
+  final_cube.instantiate_on(root_node)
+
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
   pull_op.set_cfg("ts_field", 1)
-  pull_op.set_cfg("window_offset", 4000) #but trailing by four
+  pull_op.set_cfg("window_offset", OFFSET) #but trailing by four
   
   eval_op = jsapi.RandEval(g)
+  if options.perflog:
+    eval_op.set_cfg("file_out", options.perflog)
+    if is_first_run:
+      eval_op.set_cfg("append", "false")
+      is_first_run = False
+  
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
   
-  eval_op.instantiate_on(root_node)
   
   n = len(all_nodes)
   for node,k in zip(all_nodes, range(0,n)):
     src = jsapi.RandSource(g, n, k)
-    src.set_cfg("rate", 1000)
+    src.set_cfg("rate", rate)
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
 
@@ -112,5 +134,13 @@ def get_graph(root_node, all_nodes, options):
     g.connect(round_op, final_cube)
   return g
 
+
+def print_wait():
+  for i in xrange(0,TIME_AT_RATE/3):    #sleep k seconds, waiting 3 seconds between printing dots
+    time.sleep(3)   
+    sys.stdout.write(".")
+    sys.stdout.flush()
+  sys.stdout.write("\n")
+  
 if __name__ == '__main__':
     main()

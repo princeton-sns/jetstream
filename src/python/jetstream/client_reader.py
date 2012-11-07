@@ -70,6 +70,8 @@ class ClientDataReader():
 
     # spawn a thread to listen/receive tuples (the producer)
     self.receiver_thread = threading.Thread(target=self.receive_tuples)
+    self.receiver_thread.daemon = True
+
     self.receiver_thread.start()
 
     return addr

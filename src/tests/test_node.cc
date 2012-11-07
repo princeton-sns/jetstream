@@ -22,11 +22,11 @@ using namespace jetstream;
 int COMP_ID = 17;
 
 //helper method to fill in an AlterTopo with a pair of operators
-void add_pair_to_topo(AlterTopo& topo) {
-  topo.set_computationid(COMP_ID);
+void add_pair_to_topo(AlterTopo& topo, int compID) {
+  topo.set_computationid(compID);
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
-  id->set_computationid(COMP_ID);
+  id->set_computationid(compID);
   id->set_task(2);
   task->set_op_typename("FileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
@@ -35,14 +35,14 @@ void add_pair_to_topo(AlterTopo& topo) {
 
   task = topo.add_tostart();
   id = task->mutable_id();
-  id->set_computationid(COMP_ID);
+  id->set_computationid(compID);
   id->set_task(3);
   task->set_op_typename("DummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);
   e->set_dest(3);
-  e->set_computation(COMP_ID);
+  e->set_computation(compID);
 }
 
 TEST(Node, OperatorCreateDestroy)
@@ -128,31 +128,34 @@ TEST(Node, HandleAlter_2_Ops)
   Node node(cfg, error);
   ASSERT_TRUE(error == 0);
 
-  AlterTopo topo;
+  node.start();
+  for (int i =0; i < 4; ++i) {
+    AlterTopo topo;
+    add_pair_to_topo(topo, i);
+    
+    ControlMessage r;
+    node.handle_alter(r, topo);
+    ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
+    
+    operator_id_t id2(i,2);
+    shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
+    ASSERT_TRUE(op != NULL);
+    
+    id2 = operator_id_t(i,3);
+    shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
+    ASSERT_TRUE(dest != NULL);
+    
+    DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+    int tries = 0;
+    while (rec->tuples.size() < 5 && tries++ < 5)
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
 
-  add_pair_to_topo(topo);
-  
-  ControlMessage r;
-  node.handle_alter(r, topo);
-  ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
-  
-  operator_id_t id2(17,2);
-  shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
-  ASSERT_TRUE(op != NULL);
-  
-  id2 = operator_id_t(17,3);
-  shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
-  ASSERT_TRUE(dest != NULL);
-  
-  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-  int tries = 0;
-  while (rec->tuples.size() < 5 && tries++ < 5)
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
-
-  
-  ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
-  string s = rec->tuples[0]->e(0).s_val();
-  ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+    
+    ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
+    string s = rec->tuples[0]->e(0).s_val();
+    ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+    node.stop_computation(i);
+  }
 }
 
 //verify that web interface starts and stops are properly idempotent/repeatable.
@@ -260,7 +263,7 @@ TEST_F(NodeNetTest, NetStartStop)
 
   ControlMessage msg;
   AlterTopo* topo = msg.mutable_alter();
-  add_pair_to_topo(*topo);
+  add_pair_to_topo(*topo, COMP_ID);
   msg.set_type(ControlMessage::ALTER);
   //send it
   synch_net.send_msg(msg);
