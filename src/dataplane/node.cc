@@ -356,6 +356,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
     }
   }
   
+  
+  VLOG(1) << "before starting creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
+  
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
@@ -371,6 +374,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       respTopo->add_cubestostop(task.name());
     }
   }
+  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
 
   // Stop operators if requested
   for (int i=0; i < topo.tasktostop_size(); ++i) {
@@ -421,7 +425,9 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
         if (c)
           srcOperator->set_dest(c);
         else {
-          LOG(WARNING) << "DataCube unknown: " << edge.dest_cube() << endl;
+          LOG(WARNING) << "Dest DataCube unknown: " << edge.dest_cube() << endl;
+          Error * err_msg = response.mutable_error_msg();
+          err_msg->set_msg("unknown dest DataCube " + edge.dest_cube());
         }
       }
       else {  // local operator
@@ -432,6 +438,8 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
           srcOperator->set_dest(destOperator);
         else {
           LOG(WARNING) << "Dest Operator unknown: " << dest.to_string() << endl;
+          Error * err_msg = response.mutable_error_msg();
+          err_msg->set_msg("unknown dest operator " + dest.to_string());
         }
       }
     }
@@ -488,7 +496,7 @@ vector<int32_t>
 Node::stop_computation(int32_t compID) {
   LOG(INFO) << "stopping computation " << compID;
   vector<int32_t> stopped_ops;
-  unique_lock<boost::mutex> lock(operatorTableLock);
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
   for ( iter = operators.begin(); iter != operators.end(); ) {
@@ -500,19 +508,20 @@ Node::stop_computation(int32_t compID) {
     if (op_id.computation_id == compID) {
     
       stopped_ops.push_back(op_id.task_id);
-      // The actual stop. Note that we have a NON-REENTRANT lock here, so can't use stop()
+      // The actual stop. 
       operator_cleanup.stop_on_strand(op);
       operators.erase(op_id);
       operator_cleanup.cleanup(op);      
     }
   }
-  LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " << compID << " , leaving " << operators.size();
-  return stopped_ops;
+  LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " <<
+    compID << " , leaving " << operators.size()<<":" << make_op_list();
+  return stopped_ops ;
 }
 
 boost::shared_ptr<DataPlaneOperator> 
 Node::get_operator (operator_id_t name) {
-  unique_lock<boost::mutex> lock(operatorTableLock);
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
   iter = operators.find(name);
@@ -535,12 +544,12 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   
   d->id() = name;
   d->set_node(this);
-  VLOG(1) << "configuring " << name << " of type " << op_typename;;
+  VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
     LOG(INFO) << "creating operator " << name << " of type " << op_typename;
-    unique_lock<boost::mutex> lock(operatorTableLock);
-    operators[name] = d;
+    unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+    operators[name] = d; //TODO check for name in use?
   }
   return err;
 }
@@ -550,13 +559,15 @@ Node::stop_operator(operator_id_t name) {
 // No need for locking provided that operator is invoked in the control
 //  connection strand. Otherwise would need to avoid concurrent modification
 //  to the operator table
-  shared_ptr<DataPlaneOperator> op = operators[name];
-  if (op) { //operator still around
-  
+
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  iter = operators.find(name);
+  if (iter != operators.end())  { //operator still around
+    shared_ptr<DataPlaneOperator> op = iter->second;
     operator_cleanup.stop_on_strand(op);
     
     {
-      unique_lock<boost::mutex> lock(operatorTableLock);
+      unique_lock<boost::recursive_mutex> lock(operatorTableLock);
       int delCount = operators.erase(name);
       assert(delCount > 0);
     }
@@ -569,4 +580,24 @@ Node::stop_operator(operator_id_t name) {
 
   }
   return false;
+}
+
+
+
+std::string
+Node::make_op_list() {
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+
+  ostringstream s;
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  for ( iter = operators.begin(); iter != operators.end(); ++iter) {
+    operator_id_t op_id = iter->first;
+    boost::shared_ptr<DataPlaneOperator>  op = iter->second;
+    if (op)
+      s << "\t" << op_id << " " << op->typename_as_str() << endl;
+    else
+      s << "\t" << op_id << " NULL" << endl;
+
+  }
+  return s.str();
 }

@@ -5,6 +5,7 @@
 #include <boost/random/uniform_real_distribution.hpp>
 #include <glog/logging.h>
 #include <time.h>
+#include <fstream>
 
 using namespace ::std;
 using namespace boost;
@@ -126,6 +127,19 @@ RandSourceOperator::emit_1()  {
 }
 
 
+operator_err_t
+RandEvalOperator::configure(std::map<std::string,std::string> &config) {
+  string out_file_name = config["file_out"];
+  if ( out_file_name.length() > 0) {
+    bool clear_file = (config["append"].length() > 0) && (config["append"] != "false");
+    LOG(INFO) << "clear_file is " << clear_file;
+    results_out = new ofstream(out_file_name.c_str(), (clear_file ? ios_base::out : ios_base::ate | ios_base::app));
+  }
+  return NO_ERR;
+}
+
+
+
 void
 RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
   assert( t->e_size() > 2);
@@ -134,14 +148,9 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
   time_t tuple_ts = t->e(1).t_val();
   if (last_ts_seen == 0) {
     last_ts_seen = tuple_ts;
-/*    for (int i = 0; i < rand_data_len; ++i) {
-      cout << "clearing " << labels[i] << "("<<i << "/" << rand_data_len<< ")"<< endl;
-      counts_this_period[ labels[i]] = 0;
-    }*/
   }
   if (tuple_ts != last_ts_seen) {
       //end of window, need to assess. The current tuple is irrelevant to the window
-    cout << "end of window" << endl;
     max_rel_deviation = 1;
     for (int i = 0; i < rand_data_len; ++i) {
       double expected_total = total_in_window * rand_data[i] / total_in_distrib; //todo can normalize in advance
@@ -153,18 +162,18 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
         deflection = expected_total / real_total;
       
       if (deflection < 0.9) {
-        cout << "Expected " << rand_labels[i] << " to be " << expected_total
+        *results_out << "Expected " << rand_labels[i] << " to be " << expected_total
           << " and got " << real_total << endl;
       }
-      
-      max_rel_deviation = min(max_rel_deviation, deflection);
+      max_rel_deviation = min(max_rel_deviation, deflection); //TODO can average here instead
     }
-    cout << "Total data rate: "<< total_in_window << ". Data evenness was " <<  max_rel_deviation  << endl;
+    char time_str_buf[80];
+    time_t now = time(NULL);
+    ctime_r(&now, time_str_buf);
+    *results_out <<  time_str_buf << " Data rate: "<< total_in_window << ". Data evenness was " <<  max_rel_deviation  << endl;
     last_ts_seen = tuple_ts;
     total_last_window = total_in_window;
     total_in_window = 0;
-//    for (int i = 0; i < rand_data_len; ++i)
-//      counts_this_period[ labels[i]] = 0;
     counts_this_period.clear();
   }
   
@@ -183,6 +192,14 @@ RandEvalOperator::long_description() {
   out << total_in_window << " tuples. Data evenness was " <<  max_rel_deviation;
   return out.str();
 
+}
+
+
+RandEvalOperator::~RandEvalOperator() {
+  if (results_out != &std::cout) {
+    ((ofstream*)results_out)->close();
+    delete results_out;
+  }
 }
 
 const string RandSourceOperator::my_type_name("Random source");

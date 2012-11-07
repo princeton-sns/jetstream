@@ -34,7 +34,7 @@ class Node {
   std::vector<boost::shared_ptr<ClientConnection> > controllers;
   mutable boost::mutex threadpoolLock; // a mutex to make sure concurrent thread starts/stops
             //don't interfere
-  mutable boost::mutex operatorTableLock; // protects list of operators
+  mutable boost::recursive_mutex operatorTableLock; // protects list of operators
   
   boost::condition_variable startStopCond;
   OperatorCleanup operator_cleanup;
@@ -67,6 +67,7 @@ class Node {
                                   std::vector<int32_t> stopped_operators,
                                   int32_t compID);
 
+  std::string make_op_list();
   
  public:
   Node (const NodeConfig &conf, boost::system::error_code &error);
@@ -91,7 +92,7 @@ class Node {
   
   
   int operator_count () const { 
-    boost::unique_lock<boost::mutex> lock(operatorTableLock);
+    boost::unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     return operators.size();
   }
   
