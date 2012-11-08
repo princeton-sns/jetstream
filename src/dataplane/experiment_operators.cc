@@ -47,11 +47,8 @@ ThreadedSource::operator()() {
   
   
   do {
-    while (congested->is_congested()) {
-      boost::this_thread::yield();
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-//      LOG(INFO) << "BLOCKING waiting for congestion";
-    }
+    congested->wait_for_space();
+
     if (emit_1())
       break;
   } while (running); //running will be false if we're running synchronously

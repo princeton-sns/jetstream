@@ -88,11 +88,15 @@ DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
+        boost::shared_ptr<CongestionMonitor> congested = dest->congestion_monitor();
+        congested->wait_for_space();
+
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
       for(int i=0; i < msg.data_size(); ++i) {
         shared_ptr<Tuple> data (new Tuple);
         data->MergeFrom (msg.data(i));
         assert (data->e_size() > 0);
+
         dest->process(data);
       }
       break;
