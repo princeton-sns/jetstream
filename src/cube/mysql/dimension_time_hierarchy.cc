@@ -130,6 +130,7 @@ void MysqlDimensionTimeHierarchy::populate_tuple(boost::shared_ptr<jetstream::Tu
   temptm.tm_hour = resultset->getInt(column_index+3);
   temptm.tm_min = resultset->getInt(column_index+4);
   temptm.tm_sec = resultset->getInt(column_index+5);
+  temptm.tm_isdst = -1; //Make mktime figure it out
 
   time_t time = mktime(&temptm);
   if (time > 0) {
