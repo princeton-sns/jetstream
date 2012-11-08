@@ -196,6 +196,29 @@ const jetstream::CubeSchema& DataCube::get_schema() {
 std::string DataCube::id_as_str() {
   return name;
 }
+
+
+class CubeQueueMonitor : public CongestionMonitor {
+    private:
+      const size_t MAX_QUEUE_BYTES;
+      DataCube& c;
+
+    public:
+      CubeQueueMonitor(DataCube& o, size_t queue) : MAX_QUEUE_BYTES(queue), c(o) {}
+      virtual bool is_congested() {
+        return c.queued_batches();
+      }
+};
+
+boost::shared_ptr<CongestionMonitor>
+DataCube::congestion_monitor() {
+  return boost::shared_ptr<CongestionMonitor>(new CubeQueueMonitor(*this, 10));
+}
+
+
+
+
+
 const std::string& DataCube::typename_as_str() {
   return my_tyepename;
 }

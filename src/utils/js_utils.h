@@ -29,8 +29,8 @@ inline void extend_tuple(jetstream::Tuple& t, double d) {
 inline void extend_tuple(jetstream::Tuple& t, const std::string& s) {
   t.add_e()->set_s_val(s);
 }
-inline void extend_tuple_time(jetstream::Tuple& t, int32_t time) {
-  t.add_e()->set_t_val(time);
+inline void extend_tuple_time(jetstream::Tuple& t, time_t time) {
+  t.add_e()->set_t_val((int)time);
 }
 
 

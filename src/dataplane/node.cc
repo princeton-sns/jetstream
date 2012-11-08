@@ -484,7 +484,7 @@ Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> s
   response.set_type(ControlMessage::ALTER_RESPONSE);
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(compID);
-  for (int i = 0; i < stopped_operators.size(); ++i) {
+  for (size_t i = 0; i < stopped_operators.size(); ++i) {
     TaskID * tID = respTopo->add_tasktostop();
     tID->set_computationid(compID);
     tID->set_task(stopped_operators[i]);

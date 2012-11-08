@@ -112,6 +112,12 @@ class DataCube : public TupleReceiver {
                                   std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list,
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
+
+
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
+
+  size_t queued_batches() {return outstanding_batches;}
+
   protected:
     jetstream::CubeSchema schema;
     std::string name;
