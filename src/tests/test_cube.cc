@@ -230,9 +230,9 @@ TEST_F(CubeTest, SubscriberTest) {
 
   cube->process(t);
   
-  for(int i =0; i < 1000 &&  sub->insert_q.size() < 1; i++)
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000); 
   }
   ASSERT_EQ(1U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
@@ -240,9 +240,9 @@ TEST_F(CubeTest, SubscriberTest) {
   sub->returnAction = Subscriber::SEND_UPDATE;
   cube->process(t);
 
-  for(int i =0; i < 1000 &&  sub->update_q.size() < 1; i++)
+  for(int i =0; i < 100 &&  sub->update_q.size() < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000); 
   }
   ASSERT_EQ(1U, sub->update_q.size());
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
@@ -283,9 +283,9 @@ TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   cube->process(t);
 
-  for(int i =0; i < 1000 && t->e(4).i_val() < 2 ; i++)
+  for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000); 
   }
   ASSERT_EQ(0U, sub->insert_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
@@ -294,9 +294,9 @@ TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
   cube->process(t2); 
   
-  for(int i =0; i < 1000 &&  sub->insert_q.size() < 2; i++)
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(10000); 
   }
   ASSERT_EQ(2U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
@@ -324,15 +324,15 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
   sub->returnAction = Subscriber::SEND_UPDATE;
-  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+  js_usleep(1000000);
   cube->process(t); 
   ASSERT_EQ(0U, sub->insert_q.size());
   ASSERT_EQ(0U, sub->update_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   cube->process(t);
-  for(int i =0; i < 1000 && t->e(4).i_val() < 2 ; i++)
+  for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(0U, sub->insert_q.size());
   ASSERT_EQ(0U, sub->update_q.size());
@@ -341,9 +341,9 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
   cube->process(t2); 
-  for(int i =0; i < 1000 &&  sub->update_q.size() < 2; i++)
+  for(int i =0; i < 100 &&  sub->update_q.size() < 2; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(0U, sub->insert_q.size());
   ASSERT_EQ(2U, sub->update_q.size());
@@ -369,13 +369,13 @@ TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
   cube->process(t); 
   
   ASSERT_EQ(0U, sub->insert_q.size());
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
+  js_usleep(1000000);
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_UPDATE;
   cube->process(t);
-  for(int i =0; i < 1000 && t->e(4).i_val() < 2 ; i++)
+  for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(0U, sub->insert_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
@@ -386,7 +386,7 @@ TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
   for(int i =0; i < 5 && (sub->update_q.size() < 1 || sub->insert_q.size() < 1); i++)
   {
     VLOG(1)<< "."<<i;
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
   }
   ASSERT_EQ(1U, sub->insert_q.size());
   ASSERT_EQ(1U, sub->update_q.size());
@@ -408,9 +408,9 @@ TEST_F(CubeTest, SubscriberNoBatch) {
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_NO_BATCH;
   cube->process(t); 
-  for(int i =0; i < 1000 &&  sub->insert_q.size() < 1; i++)
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(1U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
@@ -429,17 +429,17 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
   cube->process(t); 
-  for(int i =0; i < 1000 &&  cube->batch_size() < 1; i++)
+  for(int i =0; i < 100 &&  cube->batch_size() < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(0U, sub->insert_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_NO_BATCH;
   cube->process(t);
-  for(int i =0; i < 1000 &&  sub->insert_q.size() < 2; i++)
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    js_usleep(100000);
   }
   ASSERT_EQ(1U, sub->insert_q.size());
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
@@ -455,7 +455,7 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   cube->process(t3);
   for(int i =0; i < 5 &&  sub->insert_q.size() < 3; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
   }
   ASSERT_EQ(3U, sub->insert_q.size());
   check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 202, 50, 1);
@@ -476,9 +476,9 @@ TEST_F(CubeTest, SubscriberBatchTimeout) {
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND;
   cube->process(t);
-  boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+  js_usleep(500000);
   ASSERT_EQ(0U, sub->insert_q.size());
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
+  js_usleep(2000000);
   ASSERT_EQ(1U, sub->insert_q.size());
 
   delete cube;
@@ -890,7 +890,7 @@ TEST(Cube,Attach) {
   ASSERT_TRUE( cube );
   for(int i =0; i < 5 &&  cube->num_leaf_cells() < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
   }
   ASSERT_EQ(1U, cube->num_leaf_cells());
   Tuple empty = cube->empty_tuple();
@@ -898,7 +898,7 @@ TEST(Cube,Attach) {
   cube::CubeIterator it = cube->slice_query(empty, empty);
   for(int i =0; i < 5 &&  (it.numCells() < 1 || (*it)->e_size() < 2)   < 1; i++)
   {
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
     it = cube->slice_query(empty, empty);
   }
 
