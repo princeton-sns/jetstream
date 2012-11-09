@@ -14,12 +14,29 @@ using namespace boost;
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
 
+
+class CubeQueueMonitor : public CongestionMonitor {
+    private:
+      const size_t MAX_QUEUE_LEN;
+      DataCube& c;
+      mutable boost::mutex internals;
+      usec_t lastQueryTS;
+      bool wasCongestedLast;
+
+    public:
+      CubeQueueMonitor(DataCube& o, size_t queue) : MAX_QUEUE_LEN(queue), c(o),lastQueryTS(0) {}
+      virtual bool is_congested();
+};
+
+
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch, size_t num_threads, boost::posix_time::time_duration batch_timeout) :
   schema(_schema), name(_name), is_frozen(false), 
   tupleBatcher(new cube::TupleBatch(this, elements_in_batch)), 
   batch_timeout(batch_timeout), elements_in_batch(elements_in_batch), 
   exec(num_threads), flushStrand(exec.make_strand()), processStrand(exec.make_strand()),
-  outstanding_batches(0), batch_timeout_timer(*(exec.get_io_service())) {};
+  outstanding_batches(0), batch_timeout_timer(*(exec.get_io_service())),
+  congestMon(boost::shared_ptr<CubeQueueMonitor>(new CubeQueueMonitor(*this, 10)))  {
+};
 
 const std::string jetstream::DataCube::my_tyepename("data cube");
 
@@ -198,26 +215,23 @@ std::string DataCube::id_as_str() {
 }
 
 
-class CubeQueueMonitor : public CongestionMonitor {
-    private:
-      const size_t MAX_QUEUE_BYTES;
-      DataCube& c;
-
-    public:
-      CubeQueueMonitor(DataCube& o, size_t queue) : MAX_QUEUE_BYTES(queue), c(o) {}
-      virtual bool is_congested() {
-        return c.queued_batches();
-      }
-};
+bool
+CubeQueueMonitor::is_congested() {
+  boost::unique_lock<boost::mutex> lock(internals);
+  usec_t now = get_usec();
+  
+  if (now > lastQueryTS + 100 * 1000) {
+    lastQueryTS = now;
+    wasCongestedLast = c.queued_batches() > MAX_QUEUE_LEN;
+  }
+  
+  return wasCongestedLast;
+}
 
 boost::shared_ptr<CongestionMonitor>
 DataCube::congestion_monitor() {
-  return boost::shared_ptr<CongestionMonitor>(new CubeQueueMonitor(*this, 10));
+  return congestMon;
 }
-
-
-
-
 
 const std::string& DataCube::typename_as_str() {
   return my_tyepename;

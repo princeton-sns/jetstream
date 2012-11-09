@@ -150,8 +150,7 @@ class DataCube : public TupleReceiver {
     shared_ptr<boost::asio::strand> processStrand;
     int outstanding_batches; //protected by processStrand;
     boost::asio::deadline_timer batch_timeout_timer;
-    
-
+    boost::shared_ptr<CongestionMonitor> congestMon;
 };
 
 }
