@@ -160,7 +160,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   add_tuples(cube);
   int tries = 0;
   while (cube->num_leaf_cells() < 4 && tries++ < 5)
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
   
   ASSERT_EQ(4U, cube->num_leaf_cells());
   //create subscriber
@@ -169,7 +169,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   
   tries = 0;
   while (rec->tuples.size() < 4 && tries++ < 5)
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
   
   ASSERT_EQ(4U, rec->tuples.size());  // one very old, three newish
   
@@ -182,10 +182,10 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout<< "Tuple:" << fmt(*t) << endl;
   cube->process(t);
 
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
+  js_usleep(1000000);
   
   while (rec->tuples.size() < 5 && tries++ < 5)
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    js_usleep(1000000);
 
   ASSERT_EQ(5U, rec->tuples.size()); //update to old tuple should be suppressed
   

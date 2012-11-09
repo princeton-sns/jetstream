@@ -13,6 +13,7 @@ void         refresh_time ();
 sec_t        get_sec ();
 usec_t       get_usec ();
 timespec     get_time ();
+int          js_usleep(useconds_t usecs);
 // std::string  get_strtime ();
 
 

@@ -51,6 +51,12 @@ jetstream::get_time () {
   return tsnow;
 }
 
+int
+jetstream::js_usleep(useconds_t usecs)
+{
+  return usleep(usecs);
+}
+
 /*
 std::string
 jetstream::get_strtime () {
