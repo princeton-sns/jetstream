@@ -156,6 +156,8 @@ TimeBasedSubscriber::operator()() {
     }
       //else leave next_window_start_time as 0; data is never backfill because we always send everything
   }
+  
+  LOG(INFO) << "Subscriber " << id() << " exiting; total backfill tuple count " << backfill_tuples;
 }
 
 
