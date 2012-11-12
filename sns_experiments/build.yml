@@ -1,0 +1,38 @@
+---
+# Instructions:
+# 1) install ansible 
+# 2) install ssh forward-agent so that you can pass your key along for git 
+# 3) add hosts you are working with to ansible_hosts file under [setup] section 
+# 4) run the following:
+# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts build.yml -K --connection=ssh -f 1
+#
+#
+#
+# This file checks out and build jetstrem on a host. 
+
+
+### download and build js###
+- hosts: setup
+  vars:
+  sudo: False
+  tags: build
+  tasks:
+  - name: checkout jetstream
+    git: repo=git@bitbucket.org:mfreed/jetstream.git dest=/disk/local/jetstream 
+  - name: make sure jetstream build dir exists
+    file: dest=/disk/local/jetstream/build state=directory
+  - name: cmake js
+    command: cmake -DUSE_CLANG=OFF 
+              -DBOOST_ROOT=/disk/local/boost_1_50_0/ -DBoost_NO_SYSTEM_PATHS=True 
+              -DPROTOBUF_LIBRARY=/disk/local/jetstream_deps/protobufs/lib/libprotobuf.so 
+              -DPROTOBUF_INCLUDE_DIR=/disk/local/jetstream_deps/protobufs/include/ 
+              -DProtobuf_NO_SYSTEM_PATHS=True 
+              -DPROTOBUF_PROTOC_EXECUTABLE=/disk/local/jetstream_deps/protobufs/bin/protoc ../
+              chdir=/disk/local/jetstream/build
+  - name: make js
+    command: make
+            chdir=/disk/local/jetstream/build
+  - name: cp tests data
+    command: cp -r src/tests build/src/
+            chdir=/disk/local/jetstream/
+            creates=/disk/local/jetstream/build/src/tests

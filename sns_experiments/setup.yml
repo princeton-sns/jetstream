@@ -1,8 +1,43 @@
 ---
-# need to use ssh agent forwarding to forward ssh key for git 
-# so need to setup agent forwarding (ForwardAgent yes) in .ssh/config and use the following command:
-# ANSIBLE_SSH_ARGS="" ansible-playbook  -i ansible_hosts setup.yml -K --connection=ssh
-- hosts: sns48
+# Instructions:
+# 1) install ansible 
+# 2) install ssh forward-agent so that you can pass your key along for git 
+# 3) add hosts you are working with to ansible_hosts file under [setup] section 
+# 4) run the following:
+# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts setup.yml -K --connection=ssh -f 1
+#
+#
+#
+# This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
+# mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
+# it could run unit test.
+
+
+
+###initial packages###
+- hosts: setup
+  sudo: True
+  tasks:
+  - name: install cmake
+    apt: pkg=cmake state=present
+  - name: install libgtest0
+    apt: pkg=libgtest0 state=present
+  - name: install libgtest-dev
+    apt: pkg=libgtest-dev state=present
+  - name: install glog
+    apt: pkg=libgoogle-glog-dev state=present
+  - name: install mysql
+    apt: pkg=mysql-server state=present
+  - name: install mysqldb python 
+    apt: pkg=python-mysqldb state=present
+  - name: install mysqlclientdev python 
+    apt: pkg=libmysqlclient-dev state=present
+  - name: install git 
+    apt: pkg=git state=present
+
+
+###intitial setup###
+- hosts: setup
   vars:
   sudo: False
   tasks:
@@ -46,25 +81,8 @@
 #js
   - name: make sure jetstream dir exists
     file: dest=/disk/local/jetstream state=directory mode=777
-  - name: checkout jetstream
-    git: repo=git@bitbucket.org:mfreed/jetstream.git dest=/disk/local/jetstream 
-  - name: make sure jetstream build dir exists
-    file: dest=/disk/local/jetstream/build state=directory
-  - name: cmake js
-    command: cmake -DUSE_CLANG=OFF 
-              -DBOOST_ROOT=/disk/local/boost_1_50_0/ -DBoost_NO_SYSTEM_PATHS=True 
-              -DPROTOBUF_LIBRARY=/disk/local/jetstream_deps/protobufs/lib/libprotobuf.so 
-              -DPROTOBUF_INCLUDE_DIR=/disk/local/jetstream_deps/protobufs/include/ -DProtobuf_NO_SYSTEM_PATHS=True ../
-              chdir=/disk/local/jetstream/build
-  - name: make js
-    command: make
-            chdir=/disk/local/jetstream/build
-  - name: cp tests data
-    command: cp -r src/tests build/src/
-            chdir=/disk/local/jetstream/
-            creates=/disk/local/jetstream/build/src/tests
 
-- hosts: sns48
+- hosts: setup
   sudo: True
   tasks:
 #install mysql cpp connector system wide
@@ -74,13 +92,35 @@
   - name: Install mysql cpp conn lib
     command: cp -r /disk/local/jetstream_deps/mysql-connector-c++-1.1.1-linux-ubuntu10.04-x86-64bit/lib /usr/ 
             creates=/usr/lib/libmysqlcppconn.so
-#apt dependencies
-  - name: install cmake
-    apt: pkg=cmake state=present
-  - name: install libgtest0
-    apt: pkg=libgtest0 state=present
-  - name: install libgtest-dev
-    apt: pkg=libgtest-dev state=present
-  - name: install glog
-    apt: pkg=libgoogle-glog-dev state=present
+#mysql
+  - name: make mysql data dir 
+    command: cp -rp /var/lib/mysql /disk/local/ creates=/disk/local/mysql/
+#    copy: src=/var/lib/mysql dest=/disk/local/mysql owner=mysql group=mysql
+#    file: dest=/disk/local/mysql/ state=directory owner=mysql group=mysql
+  - name: configure mysql apparmor r
+    lineinfile: dest=/etc/apparmor.d/usr.sbin.mysqld regexp="/disk/local/mysql/ r" line="/disk/local/mysql/ r," insertafter="/var/lib/mysql/\*\* rwk," 
+    notify:
+      - restart apparmor
+  - name: configure mysql apparmor rwk
+    lineinfile: dest=/etc/apparmor.d/usr.sbin.mysqld regexp="/disk/local/mysql/\*\*" line="/disk/local/mysql/** rwk," insertafter="/disk/local/mysql/ r," 
+    notify:
+      - restart apparmor
+  - name: configure mysql data dir 
+    lineinfile: dest=/etc/mysql/my.cnf regexp="^datadir" line="datadir \t = /disk/local/mysql" backup=yes
+    notify:
+      - restart mysql
+  handlers:
+  - name: restart apparmor
+    command: /etc/init.d/apparmor restart
+  - name: restart mysql
+    service: name=mysql state=restarted
 
+- hosts: setup
+  sudo: True
+  tasks:
+  - name: start mysql
+    service: name=mysql state=started
+  - name: create mysql db test_cube
+    mysql_db: name=test_cube state=present login_user=root login_password=""
+
+- include: build.yml
