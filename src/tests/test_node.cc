@@ -238,6 +238,16 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const string& name
   return task;
 }
 
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
+  Edge * edge = topo.add_edges();
+  EXPECT_EQ(src_id.computation_id, dest_id.computation_id);
+  edge->set_computation(src_id.computation_id);
+  edge->set_dest(dest_id.task_id);
+  edge->set_src(src_id.task_id);
+  return edge;
+}
+
 shared_ptr<DataPlaneOperator> 
 add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
 {
@@ -403,7 +413,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
 }
 
 
-class TwoNodeTest : public ::testing::Test {
+class NodeTwoNodesTest : public ::testing::Test {
 
 
 public:
@@ -465,7 +475,7 @@ protected:
 // Thus it can test the following scenario: an operator on one node attempts to
 // send data to a remote operator on the second node before receiving CHAIN_READY.
 // The RemoteDestAdaptor on the first node should block until the chains is ready.
-TEST_F(TwoNodeTest, DataplaneConn) {
+TEST_F(NodeTwoNodesTest, DataplaneConn) {
 
 
   operator_id_t dest_id(17,3), src_id(17,2);
@@ -525,28 +535,72 @@ TEST_F(TwoNodeTest, DataplaneConn) {
 
 }
 
-TEST_F(TwoNodeTest, RemoteCongestionSignal) {
+TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
 
   //create dest and congestion monitor
 
-  operator_id_t dest_id(1,1), congest_op_id(1,2);
+  operator_id_t dest_id(1,1), congest_op_id(1,2), src_op_id(1,3);
 
-  AlterTopo topo;
-  ControlMessage r;
-  topo.set_computationid(dest_id.computation_id);
+  ControlMessage response;
 
-  add_operator_to_alter(topo, dest_id, "DummyReceiver");
-  add_operator_to_alter(topo, congest_op_id, "MockCongestion");
-  nodes[0]->handle_alter(r, topo);
+    //Set up destination
+  {
+    AlterTopo dest_topo;
+    dest_topo.set_computationid(dest_id.computation_id);
+
+    add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
+    add_operator_to_alter(dest_topo, congest_op_id, "MockCongestion");
+    add_edge_to_alter(dest_topo, congest_op_id, dest_id);
+    nodes[0]->handle_alter(response, dest_topo);
+  }
 
   EXPECT_EQ(2, nodes[0]->operator_count());
+    //TODO check for OK here
   
-  shared_ptr<DataPlaneOperator> dest = nodes[0]->get_operator( dest_id );
-  shared_ptr<DataPlaneOperator> congest_op = nodes[0]->get_operator( congest_op_id );
+  shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
+            nodes[0]->get_operator( dest_id ));
+  shared_ptr<MockCongestion> congest_op = boost::dynamic_pointer_cast<MockCongestion>(
+            nodes[0]->get_operator( congest_op_id ));
   
-  //TODO: set congestion to false
+  congest_op->isCongested = false;
   
-  //create source
+  
+  // Sources
+  {
+    AlterTopo send_topo;
+    send_topo.set_computationid(src_op_id.computation_id);
+    TaskMeta* task  = add_operator_to_alter(send_topo, src_op_id, "SendK");
+    // Send some tuples, e.g. k = 5
+    TaskMeta_DictEntry* op_cfg = task->add_config();
+    op_cfg->set_opt_name("k");
+    op_cfg->set_val("5");
+    Edge* e = add_edge_to_alter(send_topo,  src_op_id, congest_op_id);
+    
+    NodeID * dest_node = e->mutable_dest_addr();
+    const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
+    dest_node->set_portno(dest_node_addr.port());
+    dest_node->set_address("127.0.0.1");
+    
+
+    nodes[1]->handle_alter(response, send_topo);
+  }
+  
+  
+  int k = 5;
+
+  int tries = 0;
+  while (dest->tuples.size() < k && tries++ < 5)
+    js_usleep(100 * 1000);
+
+  congest_op->isCongested = true;
+  //TODO arrange for more sends  
+
+  tries = 0;    //no more sends
+  while (tries++ < 5) {
+    ASSERT_EQ(k, dest->tuples.size());
+    js_usleep(200 * 1000);
+  }
+  
   
   
   
