@@ -13,7 +13,7 @@ from remote_controller import *
 import query_graph as jsapi
 
 WINDOW_SECS = 3
-OFFSET = 1000   #ms
+OFFSET = 3000   #ms
 TIME_AT_RATE = 30 #seconds
 
 def main():

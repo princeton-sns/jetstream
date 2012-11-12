@@ -148,6 +148,29 @@ class EchoOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 };  
 
+
+/***
+ * Operator for emitting a specified number of generic tuples.
+ */
+class MockCongestion: public DataPlaneOperator {
+ public:
+  virtual void process(boost::shared_ptr<Tuple> t) {
+    emit(t);
+  }
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return mon;
+  }
+
+  MockCongestion();
+
+  bool isCongested;
+
+private:
+  boost::shared_ptr<CongestionMonitor> mon;
+
+GENERIC_CLNAME
+};  
+
   
 }
 

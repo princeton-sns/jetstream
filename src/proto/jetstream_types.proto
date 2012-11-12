@@ -203,11 +203,12 @@ message ControlMessage {
 */ 
 message DataplaneMessage {
   enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; 
-  NO_MORE_DATA = 6; TS_ECHO = 7;}
+  NO_MORE_DATA = 6; TS_ECHO = 7; CONGEST_STATUS = 8;}
   required DataplaneType type  = 1;
 
   optional Error error_msg = 2;
   optional Edge chain_link = 3;
   repeated Tuple data = 4;  // Streaming data on the data plane
   optional sfixed64 timestamp = 7;
+  optional int32 congestion_level = 8; // for now, 0 = no congestion, 1+ = full congestion
 }

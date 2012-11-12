@@ -223,12 +223,30 @@ EchoOperator::process(boost::shared_ptr<Tuple> t) {
 }
 
 
+class MyMon: public CongestionMonitor {
+  public:
+    MockCongestion & m;
+    MyMon(MockCongestion & m2):m(m2) {}
+  
+    bool is_congested() {
+      return m.isCongested;
+    }
+};
+
+
+MockCongestion::MockCongestion(): isCongested(false) {
+  mon = boost::shared_ptr<CongestionMonitor>(new MyMon(*this));
+}
+
+
+
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");
 const string SerDeOverhead::my_type_name("Dummy serializer");
 const string EchoOperator::my_type_name("Echo");
+const string MockCongestion::my_type_name("Mock Congestion");
 
 
 

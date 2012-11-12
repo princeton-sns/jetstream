@@ -5,8 +5,6 @@
 #include <boost/date_time.hpp>
 #include <boost/asio.hpp>
 
-#include <netinet/in.h>
-
 #include "node.h"
 #include "base_operators.h"
 #include "simple_net.h"
@@ -45,81 +43,6 @@ void add_pair_to_topo(AlterTopo& topo, int compID) {
   e->set_computation(compID);
 }
 
-TEST(Node, OperatorCreateDestroy)
-{
-  NodeConfig cfg;
-  boost::system::error_code error;
-  Node node(cfg, error);
-  ASSERT_TRUE(error == 0);
-
-  operator_id_t id(1,2);
-  operator_config_t oper_cfg;
-  node.create_operator("test",id, oper_cfg);
-  shared_ptr<DataPlaneOperator> op = node.get_operator(id);
-  ASSERT_TRUE(op != NULL);
-  ASSERT_EQ(node.get_operator( id ), op);
-  
-  bool stopped = node.stop_operator(id);
-  ASSERT_TRUE(stopped);
-  ASSERT_FALSE(node.get_operator( id ));
-  
-}
-
-TEST(Node, BadOperatorName) {
-  NodeConfig cfg;
-  boost::system::error_code error;
-  Node node(cfg, error);
-  ASSERT_TRUE(error == 0);
-  AlterTopo topo;
-  
-  TaskMeta* task = topo.add_tostart();
-  TaskID * id = task->mutable_id();
-  id->set_computationid( 1 );
-  id->set_task(1);
-  task->set_op_typename("SendK");
-  
-  task = topo.add_tostart();
-  id = task->mutable_id();
-  id->set_computationid( 1 );
-  id->set_task(2);
-  task->set_op_typename("no such name");
-  
-  task = topo.add_tostart();
-  id = task->mutable_id();
-  id->set_computationid( 1 );
-  id->set_task(3);
-  task->set_op_typename("SendK");
-  
-  ControlMessage r;
-  node.handle_alter(r, topo);
-  ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);
-}
-
-
-TEST(Node, BadOperatorConfig) {
-  NodeConfig cfg;
-  boost::system::error_code error;
-  Node node(cfg, error);
-  ASSERT_TRUE(error == 0);
-  AlterTopo topo;
-  
-  TaskMeta* task = topo.add_tostart();
-  TaskID * id = task->mutable_id();
-  id->set_computationid( 1 );
-  id->set_task(1);
-  task->set_op_typename("SendK");
-  TaskMeta_DictEntry* op_cfg = task->add_config();
-  op_cfg->set_opt_name("k");
-  op_cfg->set_val("nanana");
-  
-  
-  ControlMessage r;
-  node.handle_alter(r, topo);
-  ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);
-
-}
 
 TEST(Node, HandleAlter_2_Ops)
 {
@@ -158,23 +81,6 @@ TEST(Node, HandleAlter_2_Ops)
   }
 }
 
-//verify that web interface starts and stops are properly idempotent/repeatable.
-TEST(Node,WebIfaceStartStop)
-{
-  NodeConfig cfg;
-  boost::system::error_code error;
-  Node node(cfg, error);
-  ASSERT_TRUE(error == 0);
-
-  NodeWebInterface iface((port_t) 8081, node);
-  
-  for(int i=0; i < 10; ++i) {
-    iface.start();
-    iface.stop();
-    iface.stop();
-  }
-
-}
 
 class NodeNetTest : public ::testing::Test {
 
@@ -322,23 +228,33 @@ TEST_F(NodeNetTest, NetStartStop)
 }
 
 
-
-shared_ptr<DataPlaneOperator> 
-add_dummy_receiver(Node& n, operator_id_t dest_id)
-{
-  AlterTopo topo;
-  ControlMessage r;
-  topo.set_computationid(dest_id.computation_id);
+TaskMeta* 
+add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const string& name) {
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
   id->set_computationid(dest_id.computation_id);
   id->set_task(dest_id.task_id);
-  task->set_op_typename("DummyReceiver");
+  task->set_op_typename(name);
+  return task;
+}
+
+shared_ptr<DataPlaneOperator> 
+add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
+{
+  AlterTopo topo;
+  ControlMessage r;
+  topo.set_computationid(dest_id.computation_id);
+
+  add_operator_to_alter(topo, dest_id, name);
   n.handle_alter(r, topo);
-  
   shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
   EXPECT_TRUE( dest != NULL );
   return dest;
+}
+
+shared_ptr<DataPlaneOperator> 
+add_dummy_receiver(Node& n, operator_id_t dest_id) {
+  return  add_operator_to_node(n, dest_id, "DummyReceiver");
 }
 
 
@@ -487,40 +403,70 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
 }
 
 
-// This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.
-// Thus it can test the following scenario: an operator on one node attempts to
-// send data to a remote operator on the second node before receiving CHAIN_READY.
-// The RemoteDestAdaptor on the first node should block until the chains is ready.
-TEST(NodeIntegration, DataplaneConn) {
+class TwoNodeTest : public ::testing::Test {
+
+
+public:
+
+  virtual void SetUp() {
+    ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
+    ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
+    acceptor.listen();
+    pair<string, port_t> p("127.0.0.1", concrete_end.port());
+
+
+    NodeConfig cfg;
+    cfg.heartbeat_time = 2000;
+    cfg.controllers.push_back(p);
+    
+    boost::system::error_code err;
+
+    for (int i = 0; i < 2; ++i) {
+
+      boost::system::error_code error;
+      nodes[i] = shared_ptr<Node>(new Node(cfg, error));
+      EXPECT_TRUE(error == 0);
+      nodes[i]->start();
+    
+      sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
+      acceptor.accept(*sockets[i], err);
+      connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
+      connections[i]->get_ctrl_msg();
+    }
+    cout << "created nodes, got heartbeats" << endl;
+  }
+  
+  virtual void tearDown() {
+    boost::system::error_code err;
+
+    cout << "done with test; tearing down" << endl;
+    // Close sockets to avoid badness related to io_service destruction
+    for (int i =0; i < 2; ++i) {
+      sockets[i]->shutdown(tcp::socket::shutdown_both, err);
+      sockets[i]->close();
+    }
+
+    for (int i =0; i < 2; ++i) {
+      nodes[i]->stop();
+    }
+  }
+
+protected:
   asio::io_service io_service;
   shared_ptr<tcp::socket> sockets[2];
   shared_ptr<SimpleNet> connections[2];
   shared_ptr<Node> nodes[2];
 
-  ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
-  ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
-  acceptor.listen();
-  pair<string, port_t> p("127.0.0.1", concrete_end.port());
 
-  NodeConfig cfg;
-  cfg.heartbeat_time = 2000;
-  cfg.controllers.push_back(p);
-  
-  boost::system::error_code err;
+};
 
-  for (int i = 0; i < 2; ++i) {
 
-    boost::system::error_code error;
-    nodes[i] = shared_ptr<Node>(new Node(cfg, error));
-    EXPECT_TRUE(error == 0);
-    nodes[i]->start();
-  
-    sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
-    acceptor.accept(*sockets[i], err);
-    connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
-    connections[i]->get_ctrl_msg();
-  }
-  cout << "created nodes, got heartbeats" << endl;
+// This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.
+// Thus it can test the following scenario: an operator on one node attempts to
+// send data to a remote operator on the second node before receiving CHAIN_READY.
+// The RemoteDestAdaptor on the first node should block until the chains is ready.
+TEST_F(TwoNodeTest, DataplaneConn) {
+
 
   operator_id_t dest_id(17,3), src_id(17,2);
 
@@ -553,7 +499,7 @@ TEST(NodeIntegration, DataplaneConn) {
   nodes[1]->handle_alter(r, topo);  //starting on node 0, ordering it to send to node 1
   
   int tries = 0;
-  while (nodes[1]->operator_count() == 0 && tries++ < 20)
+  while (nodes[1]->operator_count() == 0 && tries++ < 20) //wait for alter to be processed
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 
@@ -576,27 +522,34 @@ TEST(NodeIntegration, DataplaneConn) {
   
   // EXPECT_* records the failure but allows the cleanup code below to execute
   EXPECT_EQ(k, rec->tuples.size());
-  cout << "done with test; tearing down" << endl;
-  // Close sockets to avoid badness related to io_service destruction
-  for (int i =0; i < 2; ++i) {
-    sockets[0]->shutdown(tcp::socket::shutdown_both, err);
-    sockets[0]->close();
-  }
 
-  nodes[0]->stop();
-  nodes[1]->stop();
 }
 
-TEST(Node,Ctor) {
-  NodeConfig cfg;
-  boost::system::error_code err;
-  Node n(cfg,err);
+TEST_F(TwoNodeTest, RemoteCongestionSignal) {
+
+  //create dest and congestion monitor
+
+  operator_id_t dest_id(1,1), congest_op_id(1,2);
+
+  AlterTopo topo;
+  ControlMessage r;
+  topo.set_computationid(dest_id.computation_id);
+
+  add_operator_to_alter(topo, dest_id, "DummyReceiver");
+  add_operator_to_alter(topo, congest_op_id, "MockCongestion");
+  nodes[0]->handle_alter(r, topo);
+
+  EXPECT_EQ(2, nodes[0]->operator_count());
+  
+  shared_ptr<DataPlaneOperator> dest = nodes[0]->get_operator( dest_id );
+  shared_ptr<DataPlaneOperator> congest_op = nodes[0]->get_operator( congest_op_id );
+  
+  //TODO: set congestion to false
+  
+  //create source
+  
+  
+  
 }
 
-TEST(Node,BareStop) {
-  NodeConfig cfg;
-  boost::system::error_code err;
-  Node n(cfg,err);
-  n.stop();
-  n.stop();
-}
+
