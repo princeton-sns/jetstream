@@ -562,7 +562,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   shared_ptr<MockCongestion> congest_op = boost::dynamic_pointer_cast<MockCongestion>(
             nodes[0]->get_operator( congest_op_id ));
   
-  congest_op->isCongested = false;
+  congest_op->isCongested = true;
   
   
   // Sources
@@ -574,6 +574,9 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     TaskMeta_DictEntry* op_cfg = task->add_config();
     op_cfg->set_opt_name("k");
     op_cfg->set_val("5");
+    op_cfg = task->add_config();
+    op_cfg->set_opt_name("exit_at_end");
+    op_cfg->set_val("false");
     Edge* e = add_edge_to_alter(send_topo,  src_op_id, congest_op_id);
     
     NodeID * dest_node = e->mutable_dest_addr();
@@ -583,7 +586,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
 
     nodes[1]->handle_alter(response, send_topo);
   }
-  shared_ptr<DataPlaneOperator> src_op =  nodes[1]->get_operator( src_op_id );
+  shared_ptr<SendK> src_op =  boost::dynamic_pointer_cast<SendK>(nodes[1]->get_operator( src_op_id ));
   
   
   int k = 5;
@@ -592,14 +595,18 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   while (dest->tuples.size() < k && tries++ < 5)
     js_usleep(100 * 1000);
 
-  congest_op->isCongested = true;
+  js_usleep(100 * 1000); //time for signal to propagate
+
+
   //TODO arrange for more sends
   
+  src_op->reset();
+  src_op->start();
 
   tries = 0;    //no more sends
-  while (tries++ < 10) {  //wait two seconds, make sure we're still blocking the source
+  while (tries++ < 10) {  //wait a second, make sure we're still blocking the source
     ASSERT_EQ(k, dest->tuples.size());
-    js_usleep(200 * 1000);
+    js_usleep(100 * 1000);
   }
   
   congest_op->isCongested = false;

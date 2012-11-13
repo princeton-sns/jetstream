@@ -85,7 +85,8 @@ class ThreadedSource: public DataPlaneOperator {
 
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
-  volatile bool send_now;
+  volatile bool send_now, exit_at_end;
+  
 
 };
 
@@ -96,7 +97,7 @@ class ThreadedSource: public DataPlaneOperator {
 class SendK: public ThreadedSource {
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-
+  void reset() { n = 1; }
 
  protected:
   virtual bool emit_1();

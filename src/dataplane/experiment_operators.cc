@@ -14,6 +14,8 @@ namespace jetstream {
 void
 ThreadedSource::start() {
   if (send_now) {
+    boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
+    congested->wait_for_space();
     while (! emit_1())
       ;
   }
@@ -54,7 +56,8 @@ ThreadedSource::operator()() {
   } while (running); //running will be false if we're running synchronously
   
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
-  no_more_tuples();
+  if (exit_at_end)
+    no_more_tuples();
 }
 
 
@@ -101,6 +104,7 @@ SendK::configure (std::map<std::string,std::string> &config) {
     k = 1;
   }
   send_now = config["send_now"].length() > 0;
+  exit_at_end = config["exit_at_end"].length() == 0 || config["exit_at_end"] != "false";
   
   t = boost::shared_ptr<Tuple>(new Tuple);
   t->add_e()->set_s_val("foo");

@@ -22,8 +22,11 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
-        mon->wait_for_space();
-
+      if (mon->is_congested()) {
+        VLOG(1) << "reporting upstream congestion at " << dest->id_as_str();
+        report_congestion_upstream(1);
+        register_congestion_recheck();
+      }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
       for(int i=0; i < msg.data_size(); ++i) {
         shared_ptr<Tuple> data (new Tuple);
@@ -60,14 +63,36 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   			this, _1, _2), e);
 }
   
-/*
 
 void
-IncomingConnectionState::close_async() {
-  conn->close_async(no_op_v);
-}*/
+IncomingConnectionState::report_congestion_upstream(int level) {
+  DataplaneMessage msg;
+  msg.set_type(DataplaneMessage::CONGEST_STATUS);
+  msg.set_congestion_level(level);
+
+  VLOG(1) << "Reporting congestion at " << dest->id_as_str()<< ": " << level;
+  boost::system::error_code error;
+  conn->send_msg(msg, error);
+  if (error)
+    LOG(WARNING) << "Failed to report congestion: " << error.message();
+}
 
 
+void
+IncomingConnectionState::register_congestion_recheck() {
+  timer.expires_from_now(boost::posix_time::millisec(100));
+  timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this));
+}
+
+
+void
+IncomingConnectionState::congestion_recheck_cb() {
+  VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
+  if (!mon->is_congested()) // only report if congestion went away
+    report_congestion_upstream(0);
+  else
+    register_congestion_recheck();
+}
 
 
 void
@@ -230,14 +255,21 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     case DataplaneMessage::CONGEST_STATUS:
     {
       int status = msg.congestion_level();
+      VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
+
       congestion->congestion_upstream = (status == 1);
       break;
     }
 
     default:
-      LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString()
+      LOG(WARNING) << "unexpected incoming message after chain connect: " << msg.Utf8DebugString()
                    << std::endl << "Error code is " << error;
   }
+
+  boost::system::error_code err;  
+  conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
+  			this, _1, _2), err);
+
 }
 
   

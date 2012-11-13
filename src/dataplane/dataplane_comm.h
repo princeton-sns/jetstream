@@ -123,6 +123,7 @@ class IncomingConnectionState {
   boost::shared_ptr<CongestionMonitor> mon;
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
+  boost::asio::deadline_timer timer;
 
 
 public:
@@ -133,7 +134,7 @@ public:
                           boost::shared_ptr<TupleReceiver> d,
                           boost::asio::io_service & i,
                           DataplaneConnManager& m):
-      conn(c),dest(d), iosrv(i), mgr(m) {
+      conn(c),dest(d), iosrv(i), mgr(m), timer(iosrv) {
       mon = dest->congestion_monitor();
   }
   
@@ -144,6 +145,18 @@ public:
   boost::asio::ip::tcp::endpoint get_remote_endpoint() {
     return conn->get_remote_endpoint();
   }
+  
+  void report_congestion_upstream(int congestionLevel);
+  
+  void register_congestion_recheck();
+
+  void congestion_recheck_cb();
+
+
+  virtual ~IncomingConnectionState() {
+    timer.cancel();
+  }
+  
 };
 
 
@@ -194,7 +207,7 @@ Internally, we identify endpoints by a string consisting of an address:port pair
   void created_operator (boost::shared_ptr<TupleReceiver> dest);
                          
   void close();
-  
+    
   ///////////////  Handles outgoing connections ////////////
   
  public:

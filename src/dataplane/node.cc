@@ -570,7 +570,7 @@ Node::stop_operator(operator_id_t name) {
     {
       unique_lock<boost::recursive_mutex> lock(operatorTableLock);
       int delCount = operators.erase(name);
-      assert(delCount > 0);
+      LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
     }
     
     operator_cleanup.cleanup(op);
