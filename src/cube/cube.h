@@ -48,9 +48,18 @@ class DataCube : public TupleReceiver {
     //main external functions
     virtual void create() = 0;
     virtual void destroy() = 0;
+    
+    /**
+     * @brief insert the tuple for processing. Note that it is not safe to alter the tuple after calling process
+     * (until do_process returns).
+     *
+     * @param t
+     */
+
     void process(boost::shared_ptr<Tuple> t);
     size_t batch_size();
     void set_batch_timeout(boost::posix_time::time_duration batch_timeout);
+    void set_elements_in_batch(size_t size);
 
 
     //query functions

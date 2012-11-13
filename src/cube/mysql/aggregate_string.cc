@@ -37,15 +37,6 @@ void MysqlAggregateString::set_value_for_insert_tuple(shared_ptr<sql::PreparedSt
   field_index += 1;
 }
 
-void MysqlAggregateString::set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  LOG(FATAL) << "deprecated ";
-}
-
-void MysqlAggregateString::set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  LOG(FATAL) << "deprecated ";
-}
-
-
 void MysqlAggregateString::populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
   string s = resultset->getString(column_index);
   ++column_index;

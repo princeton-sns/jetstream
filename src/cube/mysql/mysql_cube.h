@@ -39,8 +39,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
         std::map<std::string, boost::shared_ptr<sql::PreparedStatement> > preparedStatementCache;
     };
 
-    virtual bool insert_entry(jetstream::Tuple const &t);
-    virtual bool insert_partial_aggregate(jetstream::Tuple const &t);
 
 
    virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
@@ -78,8 +76,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     string get_rollup_table_name() const;
     vector<string> get_dimension_column_types() const;
     vector<string> get_aggregate_column_types() const;
-
-    void set_batch(size_t numBatch);
 
     string create_sql(bool aggregate_table = false) const;
 
@@ -127,13 +123,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     std::map<boost::thread::id, boost::shared_ptr<ThreadConnection> > connectionPool;
 
-    size_t batch;
-
-    size_t insertCurrentBatch;
     bool assumeOnlyWriter;
-
-    size_t numFieldsPerBatch;
-
 
     boost::shared_ptr<sql::ResultSet> slice_result_set;
     bool slice_final;

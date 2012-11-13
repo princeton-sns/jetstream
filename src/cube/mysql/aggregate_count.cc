@@ -60,28 +60,6 @@ void MysqlAggregateCount::set_value_for_insert_tuple(shared_ptr<sql::PreparedSta
   }
 }
 
-void MysqlAggregateCount::set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  //should have no tuple element for this aggregate for a single entry.
-  pstmt->setInt(field_index, 1);
-  field_index += 1;
-}
-
-void MysqlAggregateCount::set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
-
-  if(e->has_i_val()) {
-    pstmt->setInt(field_index, e->i_val());
-    tuple_index += 1;
-    field_index += 1;
-    return;
-  }
-
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
-}
-
-
-
-
 
 void MysqlAggregateCount::populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
   int count = resultset->getInt(column_index);

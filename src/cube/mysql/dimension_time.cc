@@ -62,24 +62,6 @@ void MysqlDimensionTime::set_value_for_insert_tuple(shared_ptr<sql::PreparedStat
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
-void MysqlDimensionTime::set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const&t, int &tuple_index, int &field_index) const {
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
-
-  if(e->has_t_val()) {
-    struct tm temptm;
-    char timestring[30];
-    time_t clock = e->t_val();
-    localtime_r(&clock, &temptm);
-    strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
-    pstmt->setString(field_index, timestring);
-    tuple_index += 1;
-    field_index += 1;
-    return;
-  }
-
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
-}
-
 string MysqlDimensionTime::get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional) const {
   jetstream::Element e = t.e(tuple_index);
 
