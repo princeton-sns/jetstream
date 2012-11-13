@@ -580,10 +580,10 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
     dest_node->set_portno(dest_node_addr.port());
     dest_node->set_address("127.0.0.1");
-    
 
     nodes[1]->handle_alter(response, send_topo);
   }
+  shared_ptr<DataPlaneOperator> src_op =  nodes[1]->get_operator( src_op_id );
   
   
   int k = 5;
@@ -593,15 +593,23 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     js_usleep(100 * 1000);
 
   congest_op->isCongested = true;
-  //TODO arrange for more sends  
+  //TODO arrange for more sends
+  
 
   tries = 0;    //no more sends
-  while (tries++ < 5) {
+  while (tries++ < 10) {  //wait two seconds, make sure we're still blocking the source
     ASSERT_EQ(k, dest->tuples.size());
     js_usleep(200 * 1000);
   }
   
-  
+  congest_op->isCongested = false;
+
+  tries = 0;
+  while (tries++ < 5 && dest->tuples.size() < 2 * k) {
+    js_usleep(200 * 1000);
+  }
+
+  ASSERT_EQ(2 * k, dest->tuples.size());
   
   
 }

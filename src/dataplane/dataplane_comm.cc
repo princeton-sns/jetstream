@@ -7,10 +7,74 @@ using namespace boost;
 using namespace boost::asio::ip;
 
 
+
+void
+IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
+                                   const boost::system::error_code &error) {
+  if (error) {
+    LOG(WARNING) << "error trying to read data: " << error.message();
+    return;
+  }
+  
+  if (!dest)
+    LOG(FATAL) << "got data but no operator to receive it";
+
+  switch (msg.type ()) {
+  case DataplaneMessage::DATA:
+    {
+        mon->wait_for_space();
+
+//      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
+      for(int i=0; i < msg.data_size(); ++i) {
+        shared_ptr<Tuple> data (new Tuple);
+        data->MergeFrom (msg.data(i));
+        assert (data->e_size() > 0);
+
+        dest->process(data);
+      }
+      break;
+    }
+  case DataplaneMessage::NO_MORE_DATA:
+    {
+      LOG(INFO) << "got no-more-data signal from " << conn->get_remote_endpoint()
+                << ", will tear down connection into " << dest->id_as_str();
+      conn->close_async(no_op_v);
+      mgr.cleanup_incoming(conn->get_remote_endpoint());
+    }
+    break;
+  case DataplaneMessage::TS_ECHO:
+    {
+      LOG(INFO)  << "got ts echo; responding";
+      boost::system::error_code err;
+      conn->send_msg(msg, err); // just echo back what we got
+    }
+    break;
+  default:
+      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
+                   << conn->get_remote_endpoint() << " for existing dataplane connection";
+  }
+
+  // Wait for the next data message
+  boost::system::error_code e;
+  conn->recv_data_msg(bind(&IncomingConnectionState::got_data_cb,
+  			this, _1, _2), e);
+}
+  
+/*
+
+void
+IncomingConnectionState::close_async() {
+  conn->close_async(no_op_v);
+}*/
+
+
+
+
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                                          shared_ptr<TupleReceiver> dest) {
   
+  boost::shared_ptr<IncomingConnectionState> incomingConn;
   {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
@@ -19,12 +83,14 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
       LOG(FATAL) << "Trying to connect remote conn from "<< c->get_remote_endpoint()
                  << " to " << dest->id_as_str() << "but there already is a connection";
     }
-    liveConns[c->get_remote_endpoint()] = c;
+    incomingConn = boost::shared_ptr<IncomingConnectionState> (
+          new IncomingConnectionState(c, dest, iosrv, *this));
+    liveConns[c->get_remote_endpoint()] = incomingConn;
   }
   
   boost::system::error_code error;
-  c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
-			this, c, dest,  _1, _2), error);
+  c->recv_data_msg(bind(&IncomingConnectionState::got_data_cb,
+			incomingConn,  _1, _2), error);
 
   DataplaneMessage response;
   if (!error) {
@@ -69,66 +135,6 @@ DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
     }
   }
 }
-
-void
-DataplaneConnManager::got_data_cb (shared_ptr<ClientConnection> c,
-                                   shared_ptr<TupleReceiver> dest,
-                                   const DataplaneMessage &msg,
-                                   const boost::system::error_code &error) {
-  if (error) {
-    LOG(WARNING) << "error trying to read data: " << error.message();
-    return;
-  }
-  
-  if (!dest)
-    LOG(FATAL) << "got data but no operator to receive it";
-
-  assert(c);
-
-  switch (msg.type ()) {
-  case DataplaneMessage::DATA:
-    {
-        boost::shared_ptr<CongestionMonitor> congested = dest->congestion_monitor();
-        congested->wait_for_space();
-
-//      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      for(int i=0; i < msg.data_size(); ++i) {
-        shared_ptr<Tuple> data (new Tuple);
-        data->MergeFrom (msg.data(i));
-        assert (data->e_size() > 0);
-
-        dest->process(data);
-      }
-      break;
-    }
-  case DataplaneMessage::NO_MORE_DATA:
-    {
-      LOG(INFO) << "got no-more-data signal from " << c->get_remote_endpoint()
-                << ", will tear down connection into " << dest->id_as_str();
-      tcp::endpoint e = c->get_remote_endpoint();
-      c->close_async(no_op_v);
-      liveConns.erase(e);
-    }
-    break;
-  case DataplaneMessage::TS_ECHO:
-    {
-      LOG(INFO)  << "got ts echo; responding";
-      boost::system::error_code err;
-      c->send_msg(msg, err); // just echo back what we got
-    }
-    break;
-  default:
-      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
-                   << c->get_remote_endpoint() << " for existing dataplane connection";
-  }
-
-  // Wait for the next data message
-  boost::system::error_code e;
-  c->recv_data_msg(bind(&DataplaneConnManager::got_data_cb,
-  			this, c, dest, _1, _2), e);
-}
-  
-  
 void
 DataplaneConnManager::close() {
   lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
@@ -142,10 +148,10 @@ DataplaneConnManager::close() {
       conns[i]->close_async(no_op_v);
   }
 
-  std::map<tcp::endpoint, boost::shared_ptr<ClientConnection> >::iterator live_iter;
+  std::map<tcp::endpoint, boost::shared_ptr<IncomingConnectionState> >::iterator live_iter;
 
   for (live_iter = liveConns.begin(); live_iter != liveConns.end(); live_iter++) {
-    live_iter->second->close_async(no_op_v);
+    live_iter->second->close_async();
   }
 }
   
@@ -174,6 +180,10 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
   
   cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
+      
+      
+  congestion = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor
+      (*this, mgr.maxQueueSize()));
 }
 
 void
@@ -202,20 +212,31 @@ void
 RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
-  if (msg.type() == DataplaneMessage::CHAIN_READY) {
-    LOG(INFO) << "got ready back from " << dest_as_str;
+  switch (msg.type ()) {
+    case DataplaneMessage::CHAIN_READY:
     {
-      unique_lock<boost::mutex> lock(mutex);
-      // Indicate the chain is ready before calling notify to avoid a race condition
-      chainIsReady = true;
+      LOG(INFO) << "got ready back from " << dest_as_str;
+      {
+        unique_lock<boost::mutex> lock(mutex);
+        // Indicate the chain is ready before calling notify to avoid a race condition
+        chainIsReady = true;
+      }
+      // Unblock any threads that are waiting for the chain to be ready; the mutex does
+      // not need to be locked across the notify call
+      chainReadyCond.notify_all();  
+      break;
     }
-    // Unblock any threads that are waiting for the chain to be ready; the mutex does
-    // not need to be locked across the notify call
-    chainReadyCond.notify_all();  
-  } 
-  else {
-    LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString()
-                 << std::endl << "Error code is " << error;
+    
+    case DataplaneMessage::CONGEST_STATUS:
+    {
+      int status = msg.congestion_level();
+      congestion->congestion_upstream = (status == 1);
+      break;
+    }
+
+    default:
+      LOG(WARNING) << "unexpected response to Chain connect: " << msg.Utf8DebugString()
+                   << std::endl << "Error code is " << error;
   }
 }
 
@@ -316,14 +337,6 @@ RemoteDestAdaptor::wait_for_chain_ready() {
   return true;
 }
 
-
-boost::shared_ptr<CongestionMonitor>
-RemoteDestAdaptor::congestion_monitor() {
-  return boost::shared_ptr<CongestionMonitor>(new QueueCongestionMonitor
-      (*this, mgr.maxQueueSize()));
-}
-
-
 string
 RemoteDestAdaptor::long_description() {
     std::ostringstream buf;
@@ -349,6 +362,13 @@ DataplaneConnManager::deferred_cleanup(string id) {
     LOG(FATAL) << "need to handle deferred cleanup of an in-use rda";
    //should set this up on a timer
   }
+}
+
+void
+DataplaneConnManager::deferred_cleanup_in(tcp::endpoint e) {
+
+  lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
+  liveConns.erase(e);
 }
 
 

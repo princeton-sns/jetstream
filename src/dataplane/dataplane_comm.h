@@ -32,6 +32,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   DataplaneConnManager& mgr;
   boost::asio::io_service & iosrv;
 
+
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
@@ -53,9 +54,10 @@ class RemoteDestAdaptor : public TupleReceiver {
   bool wait_for_chain_ready ();
    
   msec_t wait_for_conn; // Note this is a wide area wait.
-  
   void force_send(); //called by timer
   void do_send_unlocked(); //does the send, no lock acquisition
+
+
   
  public:
   //  The below ctor might be useful at some future point, but for now we aren't
@@ -75,8 +77,6 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   virtual void no_more_tuples();
   
-  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
-
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
   virtual std::string id_as_str() {return long_description();}
@@ -84,17 +84,18 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   private:
    static const std::string generic_name;
-  
-  
-  class QueueCongestionMonitor: public CongestionMonitor {
+
+   class QueueCongestionMonitor: public CongestionMonitor {
   
     private:
       const size_t MAX_QUEUE_BYTES;
       RemoteDestAdaptor& rda;
-
+    
     public:
+      bool congestion_upstream;
+
       QueueCongestionMonitor(RemoteDestAdaptor& o, size_t queue) :
-          MAX_QUEUE_BYTES(queue), rda(o) {}
+          MAX_QUEUE_BYTES(queue), rda(o),congestion_upstream(false) {}
       virtual bool is_congested() {
       /*
         if (rda.chainIsReady) {
@@ -102,14 +103,48 @@ class RemoteDestAdaptor : public TupleReceiver {
         } else
           std::cout << "waiting for conn in monitor \n";
           */
-        return !(rda.chainIsReady) || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
+        return !(rda.chainIsReady) || congestion_upstream || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
       }
-    
-  };
-    
+    };
+  
+  boost::shared_ptr<QueueCongestionMonitor> congestion;
+  
+ public:
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return congestion;
+  }
+  
 };
   
 
+class IncomingConnectionState {
+  boost::shared_ptr<ClientConnection> conn;
+  boost::shared_ptr<TupleReceiver> dest;
+  boost::shared_ptr<CongestionMonitor> mon;
+  boost::asio::io_service & iosrv;
+  DataplaneConnManager& mgr;
+
+
+public:
+  void got_data_cb (const DataplaneMessage &msg,
+                    const boost::system::error_code &error);
+  
+  IncomingConnectionState(boost::shared_ptr<ClientConnection> c,
+                          boost::shared_ptr<TupleReceiver> d,
+                          boost::asio::io_service & i,
+                          DataplaneConnManager& m):
+      conn(c),dest(d), iosrv(i), mgr(m) {
+      mon = dest->congestion_monitor();
+  }
+  
+  void close_async() {
+    conn->close_async(no_op_v);
+  }
+  
+  boost::asio::ip::tcp::endpoint get_remote_endpoint() {
+    return conn->get_remote_endpoint();
+  }
+};
 
 
 
@@ -131,15 +166,9 @@ Internally, we identify endpoints by a string consisting of an address:port pair
     * Note that the connection-to-destination mapping is implicit in the callback
     * closure and is not stored explicitly.
     */
-  std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<ClientConnection> > liveConns;
+  std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<IncomingConnectionState> > liveConns;
 
   boost::recursive_mutex incomingMapMutex;
-  
-  
-  void got_data_cb (boost::shared_ptr<ClientConnection> c,
-                    boost::shared_ptr<TupleReceiver> dest,
-                    const DataplaneMessage &msg,
-                    const boost::system::error_code &error);
   
   
   void operator= (const DataplaneConnManager &) 
@@ -171,9 +200,7 @@ Internally, we identify endpoints by a string consisting of an address:port pair
  public:
  /**
  * RemoteDestAdaptors need to be torn down once there is no more data for them.
- * For now, we just do this by blocking in RemoteDestAdaptor::no_more_tuples().
- * The below code is mostly dead but we are keeping in case we decide we need
- * a non-blocking solution.
+ * Similarly, we need to tear down incoming connections
  */
     void register_new_adaptor(boost::shared_ptr<RemoteDestAdaptor> p) {
        boost::lock_guard<boost::recursive_mutex> lock (outgoingMapMutex);
@@ -185,7 +212,13 @@ Internally, we identify endpoints by a string consisting of an address:port pair
     }
   
     void deferred_cleanup(std::string);
- 
+
+   void cleanup_incoming(boost::asio::ip::tcp::endpoint c) {
+      strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup_in,this, c));
+    }
+  
+    void deferred_cleanup_in(boost::asio::ip::tcp::endpoint);
+
     size_t maxQueueSize() { return cfg.sendQueueSize; }
  
   private:
