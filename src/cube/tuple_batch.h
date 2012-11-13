@@ -28,6 +28,7 @@ public:
   bool is_full();
   bool is_empty();
   size_t size();
+  void set_max_batch_size(size_t size);
   bool contains(jetstream::DimensionKey key);
   boost::shared_ptr<jetstream::TupleProcessingInfo> get(DimensionKey key);
 private:

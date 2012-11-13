@@ -58,22 +58,28 @@ boost::shared_ptr<jetstream::CubeSchema> get_schema()
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
       dim->set_type(Element_ElementType_TIME);
+      dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
       dim->set_name("url");
       dim->set_type(Element_ElementType_STRING);
+      dim->add_tuple_indexes(1);
 
       dim = sc->add_dimensions();
       dim->set_name("response_code");
       dim->set_type(Element_ElementType_INT32);
+      dim->add_tuple_indexes(2);
 
       jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
       agg->set_name("count");
       agg->set_type("count");
+      dim->add_tuple_indexes(4);
 
       agg = sc->add_aggregates();
       agg->set_name("avg_size");
       agg->set_type("avg");
+      dim->add_tuple_indexes(3);
+      dim->add_tuple_indexes(5);
       return sc;
 }
 	
@@ -96,7 +102,7 @@ int main(int argc, const char **argv)
   
   boost::shared_ptr<jetstream::CubeSchema> sc = get_schema();
   boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc, "web_requests", true);
-  cube->set_batch(batch);
+  cube->set_elements_in_batch(batch);
 
   cube->destroy();
   cube->create();
@@ -108,11 +114,11 @@ int main(int argc, const char **argv)
   int size;
   if (myfile.is_open())
   {
-    jetstream::Tuple t;
-    t.add_e(); //time
-    t.add_e(); //url
-    t.add_e(); //response code
-    t.add_e(); //size
+    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+    t->add_e(); //time
+    t->add_e(); //url
+    t->add_e(); //response code
+    t->add_e(); //size
     
     jetstream::Element *e;
     struct tm temptm;
@@ -124,7 +130,7 @@ int main(int argc, const char **argv)
       if (line.size()<10)
         continue;
       parse (line, time, url, rc, size); 
-      e=t.mutable_e(0);
+      e=t->mutable_e(0);
       if(strptime(time.c_str(),"%d/%b/%Y:%H:%M:%S", &temptm)!= NULL)
       {
         e->set_t_val(mktime(&temptm));
@@ -134,14 +140,14 @@ int main(int argc, const char **argv)
         LOG(ERROR)<<"Error in time conversion: " << time;
       }
 
-      e=t.mutable_e(1);
+      e=t->mutable_e(1);
       e->set_s_val(url);
-      e=t.mutable_e(2);
+      e=t->mutable_e(2);
       e->set_i_val(rc);
-      e=t.mutable_e(3);
+      e=t->mutable_e(3);
       e->set_i_val(size);
 
-      cube->insert_entry(t);
+      cube->process(t);
     }
     myfile.close();
   }

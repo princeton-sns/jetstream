@@ -76,26 +76,6 @@ void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(shared_ptr<sql::Pre
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
-void MysqlDimensionTimeHierarchy::set_value_for_insert(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const&t, int &tuple_index, int &field_index) const {
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
-
-  if(e->has_t_val()) {
-    struct tm temptm;
-    time_t clock = e->t_val();
-    localtime_r(&clock, &temptm);
-    pstmt->setInt(field_index, temptm.tm_year);
-    pstmt->setInt(field_index+1, temptm.tm_mon);
-    pstmt->setInt(field_index+2, temptm.tm_mday);
-    pstmt->setInt(field_index+3, temptm.tm_hour);
-    pstmt->setInt(field_index+4, temptm.tm_min);
-    pstmt->setInt(field_index+5, temptm.tm_sec);
-    tuple_index += 1;
-    field_index += 6;
-    return;
-  }
-
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
-}
 
 string MysqlDimensionTimeHierarchy::get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional) const {
   jetstream::Element e = t.e(tuple_index);

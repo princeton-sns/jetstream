@@ -113,19 +113,6 @@ void MysqlAggregateAvg::set_value(shared_ptr<sql::PreparedStatement> pstmt, int 
 
 
 
-void MysqlAggregateAvg::set_value_for_insert_entry(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
-  tuple_index += 1;
-  set_value(pstmt, field_index, e);
-}
-
-void MysqlAggregateAvg::set_value_for_insert_partial_aggregate(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &tuple_index, int &field_index) const {
-  jetstream::Element * const e_sum = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index);
-  jetstream::Element * const e_count = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_index+1);
-  tuple_index += 2;
-  set_value(pstmt, field_index, e_sum, e_count);
-}
-
 void MysqlAggregateAvg::populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
   int sum = resultset->getInt(column_index);
   int count = resultset->getInt(column_index+1);

@@ -22,8 +22,6 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
   db_user(db_user),
   db_pass(db_pass),
   db_name(db_name),
-  batch(batch),
-  insertCurrentBatch(0),
   assumeOnlyWriter(true)
   {
 
@@ -277,7 +275,6 @@ string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
   sql += " ("+boost::algorithm::join(column_names, ", ")+")";
   sql += " VALUES ";
   string vals =  "("+boost::algorithm::join(column_values, ", ")+")";
-  numFieldsPerBatch = column_values.size();
 
   assert(batch > 0);
   for(size_t i=0; i < (batch-1); i++) {
@@ -350,53 +347,6 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_stateme
   return tc->preparedStatementCache[key];
 }
 
-bool jetstream::cube::MysqlCube::insert_entry(jetstream::Tuple const &t) {
-  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_prepared_statement(batch);
-  int tuple_index = 0;
-  int field_index = (insertCurrentBatch*numFieldsPerBatch)+1;
-
-  for(size_t i=0; i<dimensions.size(); i++) {
-    dimensions[i]->set_value_for_insert(pstmt, t, tuple_index, field_index);
-  }
-
-  for(size_t i=0; i<aggregates.size(); i++) {
-    aggregates[i]->set_value_for_insert_entry(pstmt, t, tuple_index, field_index);
-  }
-
-  ++insertCurrentBatch;
-
-  //TODO error handling
-  if (insertCurrentBatch >= batch) {
-    pstmt->execute();
-    insertCurrentBatch = 0;
-  }
-
-  return true;
-}
-
-bool jetstream::cube::MysqlCube::insert_partial_aggregate(jetstream::Tuple const &t) {
-  boost::shared_ptr<sql::PreparedStatement> pstmt = get_insert_prepared_statement(batch);
-  int tuple_index = 0;
-  int field_index = (insertCurrentBatch*numFieldsPerBatch)+1;
-
-  for(size_t i=0; i<dimensions.size(); i++) {
-    dimensions[i]->set_value_for_insert(pstmt, t, tuple_index, field_index);
-  }
-
-  for(size_t i=0; i<aggregates.size(); i++) {
-    aggregates[i]->set_value_for_insert_partial_aggregate(pstmt, t, tuple_index, field_index);
-  }
-
-  ++insertCurrentBatch;
-
-  //TODO error handling
-  if (insertCurrentBatch >= batch) {
-    pstmt->execute();
-    insertCurrentBatch = 0;
-  }
-
-  return true;
-}
 
 void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple) {
   boost::shared_ptr<sql::PreparedStatement> lock_stmt;
@@ -756,10 +706,6 @@ jetstream::cube::CubeIterator MysqlCube::get_result_iterator(string sql, bool fi
 jetstream::cube::CubeIterator jetstream::cube::MysqlCube::end() const {
   boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl = MysqlCubeIteratorImpl::end();
   return CubeIterator(impl);
-}
-
-void jetstream::cube::MysqlCube::set_batch(size_t numBatch) {
-  batch = numBatch;
 }
 
 size_t jetstream::cube::MysqlCube::num_leaf_cells() const {

@@ -38,6 +38,11 @@ TupleBatch::update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInf
    
 }
 
+void TupleBatch::set_max_batch_size(size_t size)
+{
+  batch = size;
+} 
+
 void TupleBatch::save_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi)
 {
    boost::shared_ptr<jetstream::Tuple> new_tuple;

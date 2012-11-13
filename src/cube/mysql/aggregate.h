@@ -19,14 +19,6 @@ class MysqlAggregate : public Aggregate {
     virtual void make_full_tuple(jetstream::Tuple &t) const;
     virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const =0;
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
-    //deprecated
-    virtual void set_value_for_insert_entry(
-      shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &tuple_index, int &field_index) const = 0;
-    //deprecated
-    virtual void set_value_for_insert_partial_aggregate(
-      shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &tuple_index, int &field_index) const = 0;
 
     string get_base_column_name() const;
 

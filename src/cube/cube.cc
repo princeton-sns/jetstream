@@ -132,6 +132,11 @@ void DataCube::set_batch_timeout(boost::posix_time::time_duration timeout)
   batch_timeout = timeout;  
 }
 
+void DataCube::set_elements_in_batch(size_t size) {
+  elements_in_batch = size;
+  tupleBatcher->set_max_batch_size(size);
+}
+
 void DataCube::queue_flush() //always executed in the processStrand
 {
     batch_timeout_timer.cancel();
