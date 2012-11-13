@@ -10,6 +10,7 @@
 #include <boost/thread/mutex.hpp>
 #include <map>
 #include "cube.h"
+#include "node_config.h"
 
 namespace jetstream {
 
@@ -22,9 +23,10 @@ class CubeManager {
  private:
   std::map<std::string, boost::shared_ptr<DataCube> > cubeMap;
   boost::mutex mapMutex;
+  NodeConfig config;
 
  public:
-  CubeManager () {}
+  CubeManager (const NodeConfig &conf): config(conf) {}
 
   boost::shared_ptr<DataCube> create_cube (const std::string &name,
                                            const CubeSchema &schema,
