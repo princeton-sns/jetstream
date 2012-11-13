@@ -19,17 +19,17 @@ class CubeTest : public ::testing::Test {
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
-      dim->set_type(Element_ElementType_TIME);
+      dim->set_type(CubeSchema_Dimension_DimensionType_TIME);
       dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
       dim->set_name("url");
-      dim->set_type(Element_ElementType_STRING);
+      dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
       dim->add_tuple_indexes(1);
 
       dim = sc->add_dimensions();
       dim->set_name("response_code");
-      dim->set_type(Element_ElementType_INT32);
+      dim->set_type(CubeSchema_Dimension_DimensionType_INT32);
       dim->add_tuple_indexes(2);
 
       jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
@@ -796,7 +796,7 @@ TEST(Cube,Attach) {
   jetstream::CubeSchema * sc = cube_meta->mutable_schema();
 
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
-  dim->set_type(Element_ElementType_STRING);
+  dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
   dim->set_name("text");
   dim->add_tuple_indexes(0);
 

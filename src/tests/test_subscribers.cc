@@ -41,12 +41,12 @@ class SubscriberTest : public ::testing::Test {
     cube_meta->set_overwrite_old(true);
 
     jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
-    dim->set_type(Element_ElementType_STRING);
+    dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
     dim->set_name("url");
     dim->add_tuple_indexes(0);
 
     dim = sc->add_dimensions();
-    dim->set_type(Element_ElementType_TIME);
+    dim->set_type(CubeSchema_Dimension_DimensionType_TIME);
     dim->set_name("time");
     dim->add_tuple_indexes(1);
 

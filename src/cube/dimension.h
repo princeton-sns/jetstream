@@ -24,7 +24,7 @@ public:
 
 protected:
   string name;
-  Element_ElementType type;
+  CubeSchema_Dimension_DimensionType type;
   vector<size_t> tuple_indexes;
 };
 
