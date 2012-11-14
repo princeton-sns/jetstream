@@ -49,6 +49,7 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
   boost::thread::id tid = boost::this_thread::get_id();
 
   if(connectionPool.count(tid) == 0) {
+    LOG(INFO) << "creating new SQL connection for thread " << tid;
     shared_ptr<ThreadConnection> tc(new ThreadConnection());
 
     sql::Driver * driver = sql::mysql::get_driver_instance();
@@ -80,13 +81,14 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
       for (size_t i = 0; i < dimensions.size(); i++) {
         dimensions[i]->set_connection(tc->connection);
       }
-  }
+    }
     
   }
 
   if(connectionPool.count(tid) != 1) {
-    LOG(ERROR) << "connectionPool.count(tid) was " << connectionPool.count(tid);
-    LOG(FATAL) << "Mat thought this was bad. Why?"; //was assert, changed by asr 11/1/12
+    // we just set this above so it ought to stay set
+    LOG(ERROR) << "connectionPool.count(" << tid <<") was " << connectionPool.count(tid);
+    LOG(FATAL) << "We should have just initialized that connection..."; //was assert, changed by asr 11/1/12
   }
   return connectionPool[tid];
 }
