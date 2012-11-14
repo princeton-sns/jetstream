@@ -389,7 +389,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
   // Remove cubes if requested
   for (int i=0; i < topo.cubestostop_size(); ++i) {
     string id = topo.cubestostop(i);
-    LOG(INFO) << "Closing cube " << id << " due to server request";
+    LOG(INFO) << "Destroying cube " << id << " due to server request";
     cubeMgr.destroy_cube(id); //Note that this disconnects the cube and marks it
         // as locked. It doesn't actually delete the cube in memory.
         

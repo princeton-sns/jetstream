@@ -158,9 +158,10 @@ class OperatorCleanup {
 
     }
     void cleanup(boost::shared_ptr<DataPlaneOperator> op);
-    void cleanup_cb(boost::shared_ptr<DataPlaneOperator> op);
 
   private:
+    void cleanup_cb(boost::shared_ptr<DataPlaneOperator> op);
+
    boost::asio::io_service & iosrv;
    boost::asio::strand cleanup_strand;
 };

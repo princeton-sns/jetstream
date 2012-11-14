@@ -44,7 +44,7 @@ def main():
   assert isinstance(root_node, NodeID)
   all_nodes = server.all_nodes()
   
-
+  print "Using",root_node,"as aggregator"
   #### Finished building in memory, now to deploy
   
   for bw in [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000]:

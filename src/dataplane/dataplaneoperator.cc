@@ -58,7 +58,7 @@ DataPlaneOperator::no_more_tuples () {
 
 void
 OperatorCleanup::cleanup(boost::shared_ptr<DataPlaneOperator> op) {
-  iosrv.post( boost::bind(&OperatorCleanup::cleanup_cb, this, op) );
+  cleanup_strand.post( boost::bind(&OperatorCleanup::cleanup_cb, this, op) );
 }
 
 void
