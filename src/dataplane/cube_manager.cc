@@ -36,7 +36,8 @@ CubeManager::create_cube ( const std::string &name,
   std::map<string, shared_ptr<DataCube> >::iterator iter;
   iter = cubeMap.find(name);
   if (iter != cubeMap.end()) { //cube already exists, so return it
-    
+    if (!iter->second)
+      LOG(WARNING) << "Cube " << name << " had null entry in table";
     return iter->second;
   }
 
@@ -47,9 +48,7 @@ CubeManager::create_cube ( const std::string &name,
   c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config.cube_db_host, config.cube_db_user, config.cube_db_pass, config.cube_db_name, config.cube_max_elements_in_batch));
 //  set_batch(10)
   c->create();
-  if (c != NULL) {
-    cubeMap[name] = c;
-  }
+  cubeMap[name] = c;
   return c;
 }
 
