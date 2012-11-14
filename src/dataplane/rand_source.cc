@@ -121,7 +121,7 @@ RandSourceOperator::emit_1()  {
     t->add_e()->set_t_val(now);
     emit(t);
   }
-  boost::this_thread::sleep(boost::posix_time::milliseconds(wait_per_batch));
+  js_usleep( 1000 * wait_per_batch);
 
   return false; //keep running indefinitely
 }

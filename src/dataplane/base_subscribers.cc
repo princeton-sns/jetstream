@@ -141,12 +141,8 @@ TimeBasedSubscriber::operator()() {
       it++;      
     }
 
-    boost::this_thread::sleep(boost::posix_time::milliseconds(windowSizeMs));
-    while (congested->is_congested()) {
-      boost::this_thread::yield();
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    }
-
+    js_usleep(1000 * windowSizeMs);
+    congested->wait_for_space();
     
     if (ts_field >= 0) {
       next_window_start_time = max.e(ts_field).t_val();
