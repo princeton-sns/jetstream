@@ -43,12 +43,14 @@ namespace jetstream {
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
 
-  time_t tuple_time = update->e(ts_field).t_val();
-  if (tuple_time < next_window_start_time) {
-    backfill_tuples ++;
-    return SEND_UPDATE;
-  } else
-    return NO_SEND;
+  if (ts_field >= 0) {
+    time_t tuple_time = update->e(ts_field).t_val();
+    if (tuple_time < next_window_start_time) {
+      backfill_tuples ++;
+      return SEND_UPDATE;
+    }
+  }
+  return NO_SEND;
 }
 
 void

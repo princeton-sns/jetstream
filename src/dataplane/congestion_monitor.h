@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
+
 namespace jetstream {
 
 class CongestionMonitor {
@@ -15,7 +16,7 @@ class CongestionMonitor {
     void wait_for_space() {
       while (is_congested()) {
         boost::this_thread::yield();
-        boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        js_usleep(100 * 1000);
       }
     }
 

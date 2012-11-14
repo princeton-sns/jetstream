@@ -64,7 +64,8 @@ def main():
     print_wait()
     server.stop_computation(cid)
     time.sleep(10)   
-
+    
+  print "DONE; all computations should be stopped"
     #sleep a while; 
     #now stop and restart
     
