@@ -237,6 +237,11 @@ void
 RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
+  if (error) {
+    LOG(WARNING) << error.message() << " code = " << error.value();
+    return;
+  }
+
   switch (msg.type ()) {
     case DataplaneMessage::CHAIN_READY:
     {

@@ -50,7 +50,8 @@ class RandEvalOperator: public DataPlaneOperator {
   long data_in_last_window() {return total_last_window;}
 
   
-  RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),total_last_window(0),results_out(&std::cout) {}
+  RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),
+      total_last_window(0), old_data(0), results_out(&std::cout) {}
 
   virtual std::string long_description();
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
@@ -60,7 +61,7 @@ class RandEvalOperator: public DataPlaneOperator {
   std::map<std::string,int> counts_this_period;
   time_t last_ts_seen ;
   double max_rel_deviation;
-  long total_in_window, total_last_window;
+  long total_in_window, total_last_window, old_data;
   std::ostream* results_out;
 
 

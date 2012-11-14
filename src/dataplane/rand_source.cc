@@ -149,7 +149,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
   if (last_ts_seen == 0) {
     last_ts_seen = tuple_ts;
   }
-  if (tuple_ts != last_ts_seen) {
+  if (tuple_ts > last_ts_seen) {
       //end of window, need to assess. The current tuple is irrelevant to the window
     max_rel_deviation = 1;
     for (int i = 0; i < rand_data_len; ++i) {
@@ -162,6 +162,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
         deflection = expected_total / real_total;
       
       if (deflection < 0.9) {
+        *results_out << endl;
         *results_out << "Expected " << rand_labels[i] << " to be " << expected_total
           << " and got " << real_total << endl;
       }
@@ -170,11 +171,15 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
     char time_str_buf[80];
     time_t now = time(NULL);
     ctime_r(&now, time_str_buf);
-    *results_out <<  time_str_buf << " Data rate: "<< total_in_window << ". Data evenness was " <<  max_rel_deviation  << endl;
+    *results_out <<  time_str_buf << " Data rate: "<< total_in_window << ". Data evenness was " <<
+       max_rel_deviation  << " and got " << old_data << " old tuples"  << endl;
     last_ts_seen = tuple_ts;
     total_last_window = total_in_window;
     total_in_window = 0;
+    old_data = 0;
     counts_this_period.clear();
+  } else if (tuple_ts < last_ts_seen) {
+    old_data ++;
   }
   
     //need to process the data, whether or not window closed
