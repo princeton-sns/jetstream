@@ -232,6 +232,36 @@ TEST(Operator, TRoundingOperator) {
   ASSERT_EQ((size_t)1, rec->tuples.size());
   boost::shared_ptr<Tuple> result = rec->tuples[0];
   ASSERT_EQ((time_t)5, result->e(1).t_val());
+}
 
 
+
+TEST(Operator, DISABLED_UnixOperator) {
+  UnixOperator op;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  operator_config_t cfg;
+  cfg["cmd"] = "grep foo";
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(rec);
+  op.start();
+  
+  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+  extend_tuple(*t, "Bar");
+  cout << "sending first tuple"<< endl;
+  op.process(t);
+  
+  js_usleep(500 * 1000);
+
+  ASSERT_EQ((size_t)0, rec->tuples.size());
+
+  extend_tuple(*t, "Foo");
+  op.process(t);
+  cout << "sending second tuple"<< endl;
+
+  int tries = 0;
+  while (tries ++ < 5 && rec->tuples.size() == 0)
+    js_usleep(50 * 1000);
+  
+  ASSERT_EQ((size_t)1, rec->tuples.size());
 }

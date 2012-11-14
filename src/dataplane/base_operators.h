@@ -2,6 +2,9 @@
 #define JetStream_operators_h
 
 #include "dataplaneoperator.h"
+#include "threaded_source.h"
+
+
 #include <string>
 #include <iostream>
 #include <boost/regex.hpp>
@@ -147,7 +150,20 @@ class TRoundingOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 };
 
+class UnixOperator: public ThreadedSource {
+ public:
+ 
+  virtual void stop();
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+  virtual bool emit_1();
 
+private:
+  FILE * pipe;
+  std::string cmd;
+
+GENERIC_CLNAME
+};
 
 /**
  Rearranges the order of elements in a tuple

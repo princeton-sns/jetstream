@@ -4,10 +4,13 @@
 
 #include <iostream>
 #include <fstream>
-#include "stdlib.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 #include <glog/logging.h>
 #include <boost/asio/ip/host_name.hpp>
+
+#include "js_utils.h"
 
 using namespace std;
 using namespace boost;
@@ -317,11 +320,57 @@ TRoundingOperator::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+
+operator_err_t
+UnixOperator::configure (std::map<std::string,std::string> &config) {
+  cmd = config["cmd"];
+  if (cmd.length() == 0) {
+    LOG(WARNING) << "no cmd to run, bailing";
+    return operator_err_t("option 'cmd' not specified");
+  }
+  pipe = popen(cmd.c_str(), "r+");
+
+  return NO_ERR;
+}
+
+
+void
+UnixOperator::stop() {
+  pclose(pipe);
+  ThreadedSource::stop();
+}
+
+void UnixOperator::process (boost::shared_ptr<Tuple> t) {
+  string s = fmt(*t);
+  fputs(s.c_str(), pipe);
+  cout << "returning from 'process'" << endl;
+}
+
+
+bool
+UnixOperator::emit_1() {
+  char buf[1000];
+  buf[0] = 0;
+  cout << "reading line from unix cmd" << endl;
+  fgets(buf, sizeof(buf), pipe);
+  int readLen = strlen(buf);
+  if( readLen > 0) {
+    shared_ptr<Tuple> t( new Tuple);
+    Element * e = t->add_e();
+    e->set_s_val(buf);
+    emit(t);
+  }
+  return true; //we're done if we failed to read.
+}
+
+
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
 const string SampleOperator::my_type_name("Sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
+const string UnixOperator::my_type_name("Unix command");
+
 
 }

@@ -130,3 +130,21 @@ TEST(Node,WebIfaceStartStop)
     iface.stop();
   }
 }
+
+TEST(Node,DuplicateStart) {
+  NodeConfig cfg;
+  boost::system::error_code err;
+//  cfg.webinterface_port = 8082;
+
+  Node n(cfg,err);
+  n.start();
+
+  tcp::endpoint e = n.get_listening_endpoint();
+  cfg.dataplane_myport = e.port();
+  Node n2(cfg, err);
+  n2.start();
+
+  cout << "duplicate start ok";
+  n.stop();
+  n2.stop();
+}

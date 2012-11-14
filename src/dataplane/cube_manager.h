@@ -23,7 +23,7 @@ class CubeManager {
  private:
   std::map<std::string, boost::shared_ptr<DataCube> > cubeMap;
   boost::mutex mapMutex;
-  NodeConfig config;
+  const NodeConfig& config;
 
  public:
   CubeManager (const NodeConfig &conf): config(conf) {}
