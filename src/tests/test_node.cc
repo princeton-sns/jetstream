@@ -589,9 +589,9 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   shared_ptr<SendK> src_op =  boost::dynamic_pointer_cast<SendK>(nodes[1]->get_operator( src_op_id ));
   
   
-  int k = 5;
+  size_t k = 5;
 
-  int tries = 0;
+  size_t tries = 0;
   while (dest->tuples.size() < k && tries++ < 5)
     js_usleep(100 * 1000);
 
