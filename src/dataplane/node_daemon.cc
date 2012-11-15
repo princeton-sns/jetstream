@@ -47,6 +47,8 @@ parse_config (program_options::variables_map *inputopts,
      "liveness monitoring timer (in milliseconds)")
     ("thread_pool_size,p", value<u_int16_t>(),
      "thread pool size")
+    ("cube_max_elements_in_batch", value<size_t>(),
+     "batch queue size for cubes")
     ;
   
   
