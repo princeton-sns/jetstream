@@ -150,6 +150,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
     last_ts_seen = tuple_ts;
   }
   if (tuple_ts > last_ts_seen) {
+    int window_size_s = tuple_ts - last_ts_seen;
       //end of window, need to assess. The current tuple is irrelevant to the window
     max_rel_deviation = 1;
     for (int i = 0; i < rand_data_len; ++i) {
@@ -171,7 +172,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
     char time_str_buf[80];
     time_t now = time(NULL);
     ctime_r(&now, time_str_buf);
-    *results_out <<  time_str_buf << " Data rate: "<< total_in_window << ". Data evenness was " <<
+    *results_out <<  time_str_buf << " Data rate: "<< total_in_window/window_size_s << ". Data evenness was " <<
        max_rel_deviation  << " and got " << old_data << " old tuples"  << endl;
     last_ts_seen = tuple_ts;
     total_last_window = total_in_window;

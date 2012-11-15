@@ -34,14 +34,23 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write("<html><head><title>JetStream Status.</title></head>")
     self.wfile.write("<body>")
     self.print_node_list()
+    self.print_computation_list()
     self.wfile.write("</body></html>")
     
     
   def print_node_list(self):
     nodes = self.server.js_server.get_nodes()
     self.wfile.write("<p>Total of %d nodes. <ul>" % len(nodes))
-
     for n in nodes:
       self.wfile.write("<li>%s:%d</li>" % (n.endpoint[0], n.endpoint[1]))
     self.wfile.write("</ul>")
+
+  def print_computation_list(self):
+
+    computations = self.server.js_server.computations
+    self.wfile.write("<p>Total of %d computations. <ul>" % len(computations))
+    for c,_ in computations.items():
+      self.wfile.write("<li>%d</li>" % (c))
+    self.wfile.write("</ul>")
+
 

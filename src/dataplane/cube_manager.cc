@@ -64,6 +64,7 @@ CubeManager::destroy_cube (const std::string &name)
 void
 CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c) {
   lock_guard<boost::mutex> lock (mapMutex);
+  LOG_IF(FATAL, c == NULL) << "should not insert a null cube";
   cubeMap[name] = c;
 }
 
