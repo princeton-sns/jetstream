@@ -121,6 +121,10 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("thread_pool_size"))
     config.thread_pool_size = input_opts["thread_pool_size"].as<u_int16_t>();
 
+
+  if (input_opts.count("cube_max_elements_in_batch"))
+    config.cube_max_elements_in_batch = input_opts["cube_max_elements_in_batch"].as<size_t>();
+
   // Configuration variables
   if (input_opts.count("controller_addr")) {
     vector<string> addrs = input_opts["controller_addr"].as<vector<string> >();

@@ -235,8 +235,8 @@ TEST(Operator, TRoundingOperator) {
 }
 
 
-
-TEST(Operator, DISABLED_UnixOperator) {
+//DISABLED_
+TEST(Operator, UnixOperator) {
   UnixOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   operator_config_t cfg;
@@ -248,16 +248,14 @@ TEST(Operator, DISABLED_UnixOperator) {
   
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "Bar");
-  cout << "sending first tuple"<< endl;
-  op.process(t);
-  
-  js_usleep(500 * 1000);
+//  cout << "sending first tuple"<< endl;
+//  op.process(t);
 
-  ASSERT_EQ((size_t)0, rec->tuples.size());
+//  ASSERT_EQ((size_t)0, rec->tuples.size());
 
-  extend_tuple(*t, "Foo");
+  extend_tuple(*t, "foo");
   op.process(t);
-  cout << "sending second tuple"<< endl;
+  cout << "sent tuple"<< endl;
 
   int tries = 0;
   while (tries ++ < 5 && rec->tuples.size() == 0)

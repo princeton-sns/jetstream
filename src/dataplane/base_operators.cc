@@ -341,8 +341,11 @@ UnixOperator::stop() {
 }
 
 void UnixOperator::process (boost::shared_ptr<Tuple> t) {
-  string s = fmt(*t);
-  fputs(s.c_str(), pipe);
+  string s = fmt(*t) + "\n";
+  const char * buf = s.c_str();
+  write(fileno(pipe), buf, s.length());
+//  fputs(s.c_str(), pipe);
+  fsync(fileno(pipe));
   cout << "returning from 'process'" << endl;
 }
 
@@ -351,9 +354,14 @@ bool
 UnixOperator::emit_1() {
   char buf[1000];
   buf[0] = 0;
-  cout << "reading line from unix cmd" << endl;
-  fgets(buf, sizeof(buf), pipe);
-  int readLen = strlen(buf);
+  cout << "reading line from unix cmd..." << endl;
+  
+//  fgets(buf, sizeof(buf), pipe);
+//  int readLen = strlen(buf);
+
+  int readLen = read( fileno(pipe), buf, sizeof(buf) - 1);
+  buf[readLen] = 0;
+  cout << "read: " << buf << endl;
   if( readLen > 0) {
     shared_ptr<Tuple> t( new Tuple);
     Element * e = t->add_e();
