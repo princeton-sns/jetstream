@@ -42,7 +42,7 @@ class TestWorker(unittest.TestCase):
     resp.ParseFromString(buf)
     
     self.assertEquals(resp.node_count, 1)
-    print resp
+#    print resp
 
     worker.stop()
     client.close()

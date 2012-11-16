@@ -47,7 +47,8 @@ def main():
   print "Using",root_node,"as aggregator"
   #### Finished building in memory, now to deploy
   
-  for bw in [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000]:
+#  for bw in [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000]:
+  for bw in [15000, 25000, 50 * 1000, 75 * 1000, 150 * 1000, 250 * 1000]:
     print "launching run with rate = %d per source" % bw
 #    set_rate(g, bw)
     g = get_graph(root_node, all_nodes, options, bw)

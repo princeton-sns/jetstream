@@ -13,7 +13,7 @@ if $PY_27; then
   python -m unittest discover -s 'src/python/jetstream/unit_tests' -p '*_test.py'
 else
   for t in `find src/python/jetstream/unit_tests -name *_test.py`; do
-    echo $t
+    echo "Test: $t"
     python $t
   done
 fi

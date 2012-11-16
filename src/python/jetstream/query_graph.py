@@ -350,7 +350,7 @@ class TimeSubscriber(Operator):
     dims_by_id = pred_cube.get_dimensions()
     tuple = Tuple()
     max_dim = max(dims_by_id.keys())
-    print dims_by_id
+ #   print dims_by_id
     for id in range(0, max_dim+1):
       el = tuple.e.add()
       if id not in dims_by_id:
@@ -368,11 +368,11 @@ class TimeSubscriber(Operator):
     if len(self.filter) > 0:
       unmatched_fields = ",".join(self.filter.keys())
       raise "Panic: filter field unknown in cube. Unmatched fields:",unmatched_fields
-    print "final filter tuple:", tuple
+#    print "final filter tuple:", tuple
     #We do this in two phases
     
     serialized_filter = tuple.SerializeToString()
-    print "Filter length, serialized: ",len(serialized_filter)
+#    print "Filter length, serialized: ",len(serialized_filter)
     self.cfg["slice_tuple"] = serialized_filter
     
     my_meta = Operator.add_to_PB(self,alter)

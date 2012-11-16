@@ -265,16 +265,19 @@ class Controller (ControllerAPI, JSServer):
 
   def stop_computation(self, response, req):
     comp_to_stop = req.comp_to_stop
-    logger.error("Stopping computation %d" % comp_to_stop)
+    logger.info("Stopping computation %d" % comp_to_stop)
     if comp_to_stop not in self.computations:
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "No such computation %d" % comp_to_stop
       return
       
     for worker in self.computations[comp_to_stop].workers_in_use():
-      h = self.connect_to(worker)
-      h.send_pb(req)         #we can re-use the existing stop message
+      if worker in self.workers:
+        h = self.connect_to(worker)
+        h.send_pb(req)         #we can re-use the existing stop message
+        self.workers[worker].cleanup_computation(comp_to_stop)
     response.type = ControlMessage.OK
+    del self.computations[comp_to_stop]
     #response value is passed by reference, not returned
     return   
     

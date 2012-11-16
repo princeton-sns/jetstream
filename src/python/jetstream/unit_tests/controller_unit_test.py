@@ -182,7 +182,6 @@ class TestQueryPlanner(unittest.TestCase):
     dummy_node = ("host",123)
     planner = QueryPlanner( {dummy_node:dummy_node} )
     err = planner.take_raw_topo(req.alter).lower()
-    print err
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
@@ -253,13 +252,10 @@ class TestQueryPlanner(unittest.TestCase):
       src.instantiate_on(nID)
 
     err = planner.take_raw_topo(g.get_deploy_pb().alter)
-    print err
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
     pb1 = plan[dummy_node1].get_pb().alter
-    print "Plan for node 1:"
-    print pb1
     
     subscribers = [x for x in pb1.toStart if "Subscriber" in x.op_typename]
     self.assertEquals(len(subscribers),  len(pb1.toCreate))

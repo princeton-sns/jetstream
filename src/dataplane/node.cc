@@ -452,8 +452,10 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       if (!c) {
         LOG(WARNING) << "Can't add edge from " << edge.src_cube() << " to " 
             << edge.dest() << ": no such cube";
-      }
-      else {
+      } else if (!destOperator) {
+        LOG(WARNING) << "Can't add edge from " << edge.src_cube() << " to " 
+            << edge.dest() << ": no such destination";      
+      } else {
         shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
         c->add_subscriber(subsc);
       }

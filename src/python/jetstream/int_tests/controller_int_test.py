@@ -56,6 +56,8 @@ class TestController(unittest.TestCase):
 
 
   def test_worker_liveness(self):
+
+    print "\n--- test worker liveness ---"
     # Use a smaller heartbeat interval to speed up this test
     hbInterval = 0.5
     self.controller.hbInterval = hbInterval
@@ -79,13 +81,14 @@ class TestController(unittest.TestCase):
     self.assertEquals(len(workerList), 1)
     self.assertEquals(workerList[0].state, CWorker.ALIVE)
 
-    # Kill the second worker; it should be marked dead much faster
+    # Kill the second worker; it should be marked dead much faster since we're closing the socket
     worker2.stop()
     time.sleep(1)
     self.assertEquals(len(self.controller.get_nodes()), 0)
     
       
   def test_deploy(self):
+    print "--- test deploy ---"
     # Create a worker and give it enough time to heartbeat (i.e. register with the controller)
     worker1 = create_worker(self.controller.address)
     worker1.start()
@@ -109,15 +112,28 @@ class TestController(unittest.TestCase):
     newOp.site.portno = workerEndpoint[1]
         
     buf = self.client.do_rpc(req, True)
-    req = ControlMessage()
-    req.ParseFromString(buf)
-    self.assertEquals(req.type, ControlMessage.OK)
+    resp = ControlMessage()
+    resp.ParseFromString(buf)
+    self.assertEquals(resp.type, ControlMessage.OK)
     # Wait for the topology to start running; there should be one task on the
     # second worker and none on the first
     time.sleep(1)
     self.assertEquals(len(worker2.tasks), 1)
     self.assertEquals(len(worker1.tasks), 0)
-    print "stopping worker"
+    self.assertEquals(len(self.controller.computations), 1)
+    
+    req = ControlMessage()
+    req.type = ControlMessage.STOP_COMPUTATION
+    req.comp_to_stop = int(1)    
+    self.controller.stop_computation(resp, req) 
+    self.assertEquals(len(self.controller.computations), 0)
+    cworker2 = self.controller.workers[worker2.controllerConn.getsockname()]
+    self.assertTrue(cworker2 is not None)
+    
+    self.assertEquals(len(cworker2.assignments), 0)
+    
+    
+    print "stopping workers"
     worker1.stop()
     worker2.stop()
 
