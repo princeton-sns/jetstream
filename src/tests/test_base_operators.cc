@@ -240,7 +240,8 @@ TEST(Operator, UnixOperator) {
   UnixOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   operator_config_t cfg;
-  cfg["cmd"] = "grep foo";
+  cfg["cmd"] = "tee /tmp/tout";
+ // cfg["cmd"] = "grep .";
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   op.set_dest(rec);
@@ -249,17 +250,18 @@ TEST(Operator, UnixOperator) {
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "Bar");
 //  cout << "sending first tuple"<< endl;
-//  op.process(t);
+  op.process(t);
 
-//  ASSERT_EQ((size_t)0, rec->tuples.size());
+//  ASSERT_EQ((size_t)1, rec->tuples.size());
 
   extend_tuple(*t, "foo");
   op.process(t);
   cout << "sent tuple"<< endl;
 
   int tries = 0;
-  while (tries ++ < 5 && rec->tuples.size() == 0)
+  size_t EXPECTED = 2;
+  while (tries ++ < 10 && rec->tuples.size() < EXPECTED)
     js_usleep(50 * 1000);
   
-  ASSERT_EQ((size_t)1, rec->tuples.size());
+  ASSERT_EQ(EXPECTED, rec->tuples.size());
 }

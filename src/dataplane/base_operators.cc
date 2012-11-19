@@ -9,6 +9,7 @@
 
 #include <glog/logging.h>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "js_utils.h"
 
@@ -363,10 +364,18 @@ UnixOperator::emit_1() {
   buf[readLen] = 0;
   cout << "read: " << buf << endl;
   if( readLen > 0) {
-    shared_ptr<Tuple> t( new Tuple);
-    Element * e = t->add_e();
-    e->set_s_val(buf);
-    emit(t);
+    vector <string> lines;
+
+    split( lines, buf, is_any_of( "\n" ) );
+    
+    for (int i=0; i < lines.size(); ++i) {
+      if (lines[i].length() == 0)
+        continue;
+      shared_ptr<Tuple> t( new Tuple);
+      Element * e = t->add_e();
+      e->set_s_val(lines[i]);
+      emit(t);
+    }
   }
   return true; //we're done if we failed to read.
 }

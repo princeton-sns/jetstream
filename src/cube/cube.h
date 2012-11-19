@@ -8,6 +8,7 @@
 #include "dataplaneoperator.h"  //needed only for Receiver
 #include "cube_iterator.h"
 #include "subscriber.h"
+#include "queue_congestion_mon.h"
 
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
@@ -18,6 +19,7 @@ class DataCube;
 class TupleProcessingInfo;
 typedef std::string DimensionKey;
 }
+
 #include "tuple_batch.h"
 
 namespace jetstream {
@@ -123,9 +125,9 @@ class DataCube : public TupleReceiver {
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
 
 
-  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return congestMon;}
 
-  size_t queued_batches() {return outstanding_batches;}
+//  size_t queued_batches() {return outstanding_batches;}
 
   protected:
     jetstream::CubeSchema schema;
@@ -140,11 +142,8 @@ class DataCube : public TupleReceiver {
     boost::posix_time::time_duration batch_timeout;
 
 
-//TODO should figure out how to implement this
-
   private:
     static const std::string my_tyepename;
-
 
     virtual void do_process(boost::shared_ptr<Tuple> t);
     void queue_flush();
@@ -159,7 +158,7 @@ class DataCube : public TupleReceiver {
     shared_ptr<boost::asio::strand> processStrand;
     int outstanding_batches; //protected by processStrand;
     boost::asio::deadline_timer batch_timeout_timer;
-    boost::shared_ptr<CongestionMonitor> congestMon;
+    boost::shared_ptr<QueueCongestionMonitor> congestMon;
 };
 
 }

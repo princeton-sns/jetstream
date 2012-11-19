@@ -13,29 +13,13 @@ using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
-
-
-class CubeQueueMonitor : public CongestionMonitor {
-    private:
-      const size_t MAX_QUEUE_LEN;
-      DataCube& c;
-      mutable boost::mutex internals;
-      usec_t lastQueryTS;
-      bool wasCongestedLast;
-
-    public:
-      CubeQueueMonitor(DataCube& o, size_t queue) : MAX_QUEUE_LEN(queue), c(o),lastQueryTS(0) {}
-      virtual bool is_congested();
-};
-
-
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch, size_t num_threads, boost::posix_time::time_duration batch_timeout) :
   schema(_schema), name(_name), is_frozen(false), 
   tupleBatcher(new cube::TupleBatch(this, elements_in_batch)), 
   batch_timeout(batch_timeout), elements_in_batch(elements_in_batch), 
   exec(num_threads), flushStrand(exec.make_strand()), processStrand(exec.make_strand()),
   outstanding_batches(0), batch_timeout_timer(*(exec.get_io_service())),
-  congestMon(boost::shared_ptr<CubeQueueMonitor>(new CubeQueueMonitor(*this, 10)))  {
+  congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10)))  {
 };
 
 const std::string jetstream::DataCube::my_tyepename("data cube");
@@ -142,11 +126,15 @@ void DataCube::queue_flush() //always executed in the processStrand
     batch_timeout_timer.cancel();
     flushStrand->post(boost::bind(&DataCube::do_flush, this, tupleBatcher));
     outstanding_batches++;
-    tupleBatcher.reset(new cube::TupleBatch(this, elements_in_batch));
+  
+    cube::TupleBatch * batch = new cube::TupleBatch(this, elements_in_batch);
+    congestMon->report_insert(batch);
+    tupleBatcher.reset(batch);
 }
 
 void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   tb->flush();
+  congestMon->report_delete(tb.get());
   processStrand->post(boost::bind(&DataCube::post_flush, this));
 }
 
@@ -219,24 +207,6 @@ std::string DataCube::id_as_str() {
   return name;
 }
 
-
-bool
-CubeQueueMonitor::is_congested() {
-  boost::unique_lock<boost::mutex> lock(internals);
-  usec_t now = get_usec();
-  
-  if (now > lastQueryTS + 100 * 1000) {
-    lastQueryTS = now;
-    wasCongestedLast = c.queued_batches() > MAX_QUEUE_LEN;
-  }
-  
-  return wasCongestedLast;
-}
-
-boost::shared_ptr<CongestionMonitor>
-DataCube::congestion_monitor() {
-  return congestMon;
-}
 
 const std::string& DataCube::typename_as_str() {
   return my_tyepename;
