@@ -3,17 +3,21 @@
 
 namespace jetstream {
 
-bool
-QueueCongestionMonitor::is_congested() {
+double 
+QueueCongestionMonitor::capacity_ratio() {
   boost::unique_lock<boost::mutex> lock(internals);
   usec_t now = get_usec();
   
+    //only sample every 100 ms
   if (now > lastQueryTS + 100 * 1000) {
     lastQueryTS = now;
-    wasCongestedLast = queueLen > maxQueue;
+    if (queueLen > maxQueue)
+      prevRatio = 0.333;
+    else
+      prevRatio = 3;
   }
   
-  return wasCongestedLast;
+  return prevRatio < upstream_status ? prevRatio : upstream_status;
 }
 
 

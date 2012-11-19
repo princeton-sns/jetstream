@@ -12,7 +12,7 @@
 #include "connection.h"
 #include "dataplaneoperator.h"
 #include "node_config.h"
-
+#include "queue_congestion_mon.h"
 
 namespace  jetstream {
   
@@ -85,7 +85,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   private:
    static const std::string generic_name;
 
-   class QueueCongestionMonitor: public CongestionMonitor {
+   class NetQueueCongestionMonitor: public CongestionMonitor {
   
     private:
       const size_t MAX_QUEUE_BYTES;
@@ -94,7 +94,7 @@ class RemoteDestAdaptor : public TupleReceiver {
     public:
       bool congestion_upstream;
 
-      QueueCongestionMonitor(RemoteDestAdaptor& o, size_t queue) :
+      NetQueueCongestionMonitor(RemoteDestAdaptor& o, size_t queue) :
           MAX_QUEUE_BYTES(queue), rda(o),congestion_upstream(false) {}
       virtual bool is_congested() {
       /*
@@ -146,7 +146,7 @@ public:
     return conn->get_remote_endpoint();
   }
   
-  void report_congestion_upstream(int congestionLevel);
+  void report_congestion_upstream(double congestionLevel);
   
   void register_congestion_recheck();
 

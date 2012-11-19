@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include "congestion_monitor.h"
 #include <boost/interprocess/detail/atomic.hpp>
+#include <math.h>
 
 namespace jetstream {
 
@@ -14,15 +15,17 @@ class QueueCongestionMonitor: public CongestionMonitor {
   boost::uint32_t queueLen;
   mutable boost::mutex internals;
   usec_t lastQueryTS;
-  bool wasCongestedLast;
+  double prevRatio;
+  double upstream_status;
 
   
  public:
     QueueCongestionMonitor(boost::uint32_t max_q):
-      maxQueue(max_q), queueLen(0), lastQueryTS(0),wasCongestedLast(0)  { }
+      maxQueue(max_q), queueLen(0), lastQueryTS(0),prevRatio(2),upstream_status(INFINITY)  { }
 
 
-    virtual bool is_congested();
+    
+    virtual double capacity_ratio();
   
     virtual ~QueueCongestionMonitor() {};
   
@@ -34,6 +37,10 @@ class QueueCongestionMonitor: public CongestionMonitor {
       boost::interprocess::ipcdetail::atomic_dec32(&queueLen);
     }
 
+    void set_upstream_congestion(double d) {
+      boost::unique_lock<boost::mutex> lock(internals);
+      upstream_status = d;
+    }
   
 
 };

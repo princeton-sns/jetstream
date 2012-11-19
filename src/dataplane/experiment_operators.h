@@ -134,7 +134,7 @@ GENERIC_CLNAME
 
 
 /***
- * Operator for emitting a specified number of generic tuples.
+ * Operator for artificially imposing congestion.
  */
 class MockCongestion: public DataPlaneOperator {
  public:
@@ -147,7 +147,7 @@ class MockCongestion: public DataPlaneOperator {
 
   MockCongestion();
 
-  bool isCongested;
+  double congestion;
 
 private:
   boost::shared_ptr<CongestionMonitor> mon;

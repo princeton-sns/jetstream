@@ -182,13 +182,13 @@ class MyMon: public CongestionMonitor {
     MockCongestion & m;
     MyMon(MockCongestion & m2):m(m2) {}
   
-    bool is_congested() {
-      return m.isCongested;
+    virtual double capacity_ratio() {
+      return m.congestion;
     }
 };
 
 
-MockCongestion::MockCongestion(): isCongested(false) {
+MockCongestion::MockCongestion(): congestion(INFINITY) {
   mon = boost::shared_ptr<CongestionMonitor>(new MyMon(*this));
 }
 

@@ -65,7 +65,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   
 
 void
-IncomingConnectionState::report_congestion_upstream(int level) {
+IncomingConnectionState::report_congestion_upstream(double level) {
   DataplaneMessage msg;
   msg.set_type(DataplaneMessage::CONGEST_STATUS);
   msg.set_congestion_level(level);
@@ -88,10 +88,12 @@ IncomingConnectionState::register_congestion_recheck() {
 void
 IncomingConnectionState::congestion_recheck_cb() {
   VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
-  if (!mon->is_congested()) // only report if congestion went away
-    report_congestion_upstream(0);
-  else
-    register_congestion_recheck();
+  double level = mon->capacity_ratio();
+  report_congestion_upstream(level);
+//  if (!mon->is_congested()) // only report if congestion went away
+//    report_congestion_upstream(0);
+//  else
+  register_congestion_recheck();
 }
 
 
@@ -208,7 +210,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
       
       
   congestion = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor
-      (*this, mgr.maxQueueSize()));
+      (mgr.maxQueueSize()));
 }
 
 void
@@ -259,10 +261,10 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     
     case DataplaneMessage::CONGEST_STATUS:
     {
-      int status = msg.congestion_level();
+      double status = msg.congestion_level();
       VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
-      congestion->congestion_upstream = (status == 1);
+      congestion->set_upstream_congestion(status);
       break;
     }
 

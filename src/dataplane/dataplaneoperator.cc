@@ -63,6 +63,9 @@ OperatorCleanup::cleanup(boost::shared_ptr<DataPlaneOperator> op) {
 
 void
 OperatorCleanup::cleanup_cb(boost::shared_ptr<DataPlaneOperator> op) {
+  boost::shared_ptr<DataPlaneOperator> no_ptr;
+  op->set_dest( no_ptr );
+  op->clear_preds();
   LOG(INFO) << "destroying operator " << op->id();
   op.reset();
   //do nothing, quietly invokes destructor for op

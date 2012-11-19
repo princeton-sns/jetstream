@@ -435,9 +435,10 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
         assert(edge.has_dest());
         operator_id_t dest (edge.computation(), edge.dest());
         shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
-        if (destOperator)
+        if (destOperator) {
           srcOperator->set_dest(destOperator);
-        else {
+          destOperator->add_pred(srcOperator);
+         } else {
           LOG(WARNING) << "Dest Operator unknown: " << dest.to_string() << endl;
           Error * err_msg = response.mutable_error_msg();
           err_msg->set_msg("unknown dest operator " + dest.to_string());

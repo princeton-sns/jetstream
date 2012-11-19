@@ -76,7 +76,7 @@ const operator_err_t NO_ERR = "";
 class DataPlaneOperator : public TupleReceiver {
  private:
   operator_id_t operID; // note that id() returns a reference, letting us set this
-  boost::shared_ptr<TupleReceiver> dest;
+  boost::shared_ptr<TupleReceiver> dest, pred;
   protected:   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
 
   private: int tuplesEmitted;
@@ -92,6 +92,11 @@ class DataPlaneOperator : public TupleReceiver {
 
   
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
+  
+      //these need to be virtual to support the case where an operator has multiple preds
+  virtual void add_pred (boost::shared_ptr<TupleReceiver> d) { pred = d; }
+  virtual void clear_preds () { pred.reset(); }
+
 
   /** This will be called before configure
   */
