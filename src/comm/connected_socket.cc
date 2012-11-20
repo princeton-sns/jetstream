@@ -119,7 +119,9 @@ ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
     return;
   else if (sending) {
     VLOG(2) << "send is busy in perform_send, queueing" <<endl;
+
     bytesQueued += msg->nbytes;
+    mon->report_insert(msg.get(), msg->nbytes);
 
     sendQueue.push_back(msg);
     sendStrand.post(bind(&ConnectedSocket::perform_queued_send, 
@@ -153,6 +155,7 @@ ConnectedSocket::perform_queued_send ()
     LOG(FATAL) << "trying to substract "<< msg->nbytes << " from "<<bytesQueued;
   }
   bytesQueued -= msg->nbytes;
+  mon->report_delete(msg.get(), msg->nbytes);
 
   asio::async_write(*sock, 
 		    asio::buffer(msg->msg, msg->nbytes),

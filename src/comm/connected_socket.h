@@ -8,6 +8,7 @@
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
+#include "queue_congestion_mon.h"
 
 
 #include <glog/logging.h>
@@ -133,12 +134,15 @@ friend class ClientConnection;
   void close_now ();
   void close_on_strand (close_cb_t cb);
 
+  boost::shared_ptr< QueueCongestionMonitor> mon;
+
 
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
     : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-    isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
+    isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false),
+    mon(new QueueCongestionMonitor(10 * 1000)){
     VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
   }
 
@@ -178,6 +182,7 @@ friend class ClientConnection;
 
   size_t send_count() { return sendCount; }
   size_t bytes_queued() { return bytesQueued; }
+  boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return mon;}
 
 };
 

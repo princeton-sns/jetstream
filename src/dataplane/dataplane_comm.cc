@@ -208,9 +208,6 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
   cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
       
-      
-  congestion = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor
-      (mgr.maxQueueSize()));
 }
 
 void
@@ -264,7 +261,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       double status = msg.congestion_level();
       VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
-      congestion->set_upstream_congestion(status);
+      conn->congestion_monitor()->set_upstream_congestion(status);
       break;
     }
 
@@ -361,7 +358,7 @@ bool
 RemoteDestAdaptor::wait_for_chain_ready() {
   unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
   while (!chainIsReady) {
-    LOG(WARNING) << "trying to send data to "<< dest_as_str << " on "
+    LOG(INFO) << "trying to send data to "<< dest_as_str << " on "
 		 << remoteAddr << " through closed conn. Should block";
     
     system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);

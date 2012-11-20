@@ -83,35 +83,15 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   
   private:
-   static const std::string generic_name;
-
-   class NetQueueCongestionMonitor: public CongestionMonitor {
-  
-    private:
-      const size_t MAX_QUEUE_BYTES;
-      RemoteDestAdaptor& rda;
-    
-    public:
-      bool congestion_upstream;
-
-      NetQueueCongestionMonitor(RemoteDestAdaptor& o, size_t queue) :
-          MAX_QUEUE_BYTES(queue), rda(o),congestion_upstream(false) {}
-      virtual bool is_congested() {
-      /*
-        if (rda.chainIsReady) {
-          std::cout << "queue size " << rda.conn->bytes_queued() << std::endl;
-        } else
-          std::cout << "waiting for conn in monitor \n";
-          */
-        return !(rda.chainIsReady) || congestion_upstream || ( rda.conn->bytes_queued() > MAX_QUEUE_BYTES);
-      }
-    };
-  
-  boost::shared_ptr<QueueCongestionMonitor> congestion;
+   static const std::string generic_name;  
   
  public:
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
-    return congestion;
+    if (!wait_for_chain_ready()) {
+      boost::shared_ptr<CongestionMonitor> m;
+      return m; //no monitor
+    }
+    return conn->congestion_monitor();
   }
   
 };

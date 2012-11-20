@@ -22,11 +22,9 @@ class QueueCongestionMonitor: public CongestionMonitor {
 
   
  public:
-    QueueCongestionMonitor(boost::uint32_t max_q):
+    QueueCongestionMonitor(uint32_t max_q):
       maxQueue(max_q), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
         prevRatio(INFINITY), upstream_status(INFINITY)  { }
-
-
     
     virtual double capacity_ratio();
   
@@ -38,7 +36,8 @@ class QueueCongestionMonitor: public CongestionMonitor {
     }
   
     void report_delete(void * item, uint32_t weight) {
-      boost::interprocess::ipcdetail::atomic_add32(&queueLen, -weight);
+      uint32_t negweight = -weight;  // Do we need a cast here to appease pedantic compilers?
+      boost::interprocess::ipcdetail::atomic_add32(&queueLen, negweight);
     }
 
     void set_upstream_congestion(double d) {
@@ -46,6 +45,9 @@ class QueueCongestionMonitor: public CongestionMonitor {
       upstream_status = d;
     }
   
+    void set_queue_size(uint32_t s) {
+      maxQueue = s;
+    }
 
 };
 

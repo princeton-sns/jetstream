@@ -211,5 +211,5 @@ message DataplaneMessage {
   optional Edge chain_link = 3;
   repeated Tuple data = 4;  // Streaming data on the data plane
   optional sfixed64 timestamp = 7;
-  optional double congestion_level = 8; // for now, 0 = no congestion, 1+ = full congestion
+  optional double congestion_level = 8; // ratio between capacity and fraction sent. > 1 means uncongested.
 }
