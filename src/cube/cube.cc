@@ -128,13 +128,13 @@ void DataCube::queue_flush() //always executed in the processStrand
     outstanding_batches++;
   
     cube::TupleBatch * batch = new cube::TupleBatch(this, elements_in_batch);
-    congestMon->report_insert(batch);
+    congestMon->report_insert(batch, 1);
     tupleBatcher.reset(batch);
 }
 
 void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   tb->flush();
-  congestMon->report_delete(tb.get());
+  congestMon->report_delete(tb.get(), 1);
   processStrand->post(boost::bind(&DataCube::post_flush, this));
 }
 

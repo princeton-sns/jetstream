@@ -21,11 +21,11 @@ TEST(CongestMon, QueueMon) {
   QueueCongestionMonitor mon(TOTAL_ELEMS);
   
   for(int i=0; i < TOTAL_ELEMS; ++i) {
-    mon.report_insert(elements + i);
+    mon.report_insert(elements + i, 1);
   }
   cout << "did inserts" <<endl;
   for(int i=0; i < TOTAL_ELEMS/2; ++i) {
-    mon.report_delete(elements + i);
+    mon.report_delete(elements + i, 1);
   }
   
 //  cout << "did removes" <<endl;

@@ -32,13 +32,13 @@ class QueueCongestionMonitor: public CongestionMonitor {
   
     virtual ~QueueCongestionMonitor() {};
   
-    void report_insert(void * item) {
-      boost::interprocess::ipcdetail::atomic_inc32(&queueLen);
-      boost::interprocess::ipcdetail::atomic_inc32(&insertsInPeriod);
+    void report_insert(void * item, uint32_t weight) {
+      boost::interprocess::ipcdetail::atomic_add32(&queueLen, weight);
+      boost::interprocess::ipcdetail::atomic_add32(&insertsInPeriod, weight);
     }
   
-    void report_delete(void * item) {
-      boost::interprocess::ipcdetail::atomic_dec32(&queueLen);
+    void report_delete(void * item, uint32_t weight) {
+      boost::interprocess::ipcdetail::atomic_add32(&queueLen, -weight);
     }
 
     void set_upstream_congestion(double d) {
