@@ -1,5 +1,6 @@
 
 #include "queue_congestion_mon.h"
+#include <glog/logging.h>
 
 using namespace boost::interprocess::ipcdetail;
 
@@ -24,7 +25,8 @@ QueueCongestionMonitor::capacity_ratio() {
     int32_t availRoom = maxQueue/2 - queueLen - queueDelta; //negative implies we need to cut the rate
 
     prevRatio = availRoom /(double) inserts + 1.0;
-
+    LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0, 20) << "Queue for " << name << " got " << inserts <<
+         " inserts; queue length " << queueLen << ". Ratio is " << prevRatio;
     prevQueueLen = queueLen;
   }
   

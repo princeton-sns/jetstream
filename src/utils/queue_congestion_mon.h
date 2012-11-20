@@ -19,12 +19,13 @@ class QueueCongestionMonitor: public CongestionMonitor {
   usec_t lastQueryTS;
   double prevRatio;
   double upstream_status;
+  std::string name;
 
   
  public:
-    QueueCongestionMonitor(uint32_t max_q):
+    QueueCongestionMonitor(uint32_t max_q, const std::string& nm):
       maxQueue(max_q), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
-        prevRatio(INFINITY), upstream_status(INFINITY)  { }
+        prevRatio(INFINITY), upstream_status(INFINITY),name(nm)  { }
     
     virtual double capacity_ratio();
   

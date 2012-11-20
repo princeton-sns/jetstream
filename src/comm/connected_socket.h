@@ -139,12 +139,7 @@ friend class ClientConnection;
 
  public:
   ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
-		   boost::shared_ptr<boost::asio::ip::tcp::socket> s)
-    : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-    isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false),
-    mon(new QueueCongestionMonitor(10 * 1000)){
-    VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
-  }
+		   boost::shared_ptr<boost::asio::ip::tcp::socket> s);
 
   void close(close_cb_t cb) {
     sendStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
