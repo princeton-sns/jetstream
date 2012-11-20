@@ -222,7 +222,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
-  
+  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
+
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);
   
