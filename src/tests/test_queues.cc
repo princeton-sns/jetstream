@@ -28,6 +28,8 @@ TEST(CongestMon, QueueMon) {
     mon.report_delete(elements + i);
   }  
   
+  js_usleep(1000 * 200);
+  
   double lev = mon.capacity_ratio();
   cout << "congestion ratio: " << lev << endl;
 

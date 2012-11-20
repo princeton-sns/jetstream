@@ -13,6 +13,8 @@ class QueueCongestionMonitor: public CongestionMonitor {
  private:
   boost::uint32_t maxQueue;
   boost::uint32_t queueLen;
+  boost::uint32_t prevQueueLen;
+  boost::uint32_t insertsInPeriod;
   mutable boost::mutex internals;
   usec_t lastQueryTS;
   double prevRatio;
@@ -21,7 +23,8 @@ class QueueCongestionMonitor: public CongestionMonitor {
   
  public:
     QueueCongestionMonitor(boost::uint32_t max_q):
-      maxQueue(max_q), queueLen(0), lastQueryTS(0),prevRatio(2),upstream_status(INFINITY)  { }
+      maxQueue(max_q), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
+        prevRatio(INFINITY), upstream_status(INFINITY)  { }
 
 
     
@@ -31,6 +34,7 @@ class QueueCongestionMonitor: public CongestionMonitor {
   
     void report_insert(void * item) {
       boost::interprocess::ipcdetail::atomic_inc32(&queueLen);
+      boost::interprocess::ipcdetail::atomic_inc32(&insertsInPeriod);
     }
   
     void report_delete(void * item) {
