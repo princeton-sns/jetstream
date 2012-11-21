@@ -368,7 +368,7 @@ UnixOperator::emit_1() {
 
     split( lines, buf, is_any_of( "\n" ) );
     
-    for (int i=0; i < lines.size(); ++i) {
+    for (unsigned int i=0; i < lines.size(); ++i) {
       if (lines[i].length() == 0)
         continue;
       shared_ptr<Tuple> t( new Tuple);
