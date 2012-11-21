@@ -102,7 +102,7 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
 	 << ": " << send_error.message() << endl;
   }
   else {
-    LOG(INFO) << "Successfully scheduled message on "
+    LOG_EVERY_N(INFO, 20) << "Successfully scheduled message on "
 	 << conn->get_fourtuple() << endl;
   }
 

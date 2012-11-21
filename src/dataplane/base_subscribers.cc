@@ -136,7 +136,7 @@ TimeBasedSubscriber::operator()() {
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   while (running)  {
-    LOG(INFO) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
+    VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
     while ( it != cube->end()) {
       emit(*it);
@@ -153,9 +153,14 @@ TimeBasedSubscriber::operator()() {
       max.mutable_e(ts_field)->set_t_val(newMax);
     }
       //else leave next_window_start_time as 0; data is never backfill because we always send everything
+    if (!get_dest()) {
+      LOG(WARNING) << "Subscriber " << id() << " exiting because no successor.";
+      running = false;
+    }
   }
   
-  LOG(INFO) << "Subscriber " << id() << " exiting; total backfill tuple count " << backfill_tuples;
+  LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
+      << ". Total backfill tuple count " << backfill_tuples;
 }
 
 
