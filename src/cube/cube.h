@@ -12,7 +12,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
-#include "js_executor.h"
+#include "js_counting_executor.h"
 
 namespace jetstream {
 class DataCube;
@@ -44,7 +44,7 @@ class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, size_t num_threads=2, boost::posix_time::time_duration batch_timeout = boost::posix_time::millisec(100));
+    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, boost::posix_time::time_duration batch_timeout = boost::posix_time::millisec(100));
     virtual ~DataCube() {}
 
     //main external functions
@@ -127,7 +127,6 @@ class DataCube : public TupleReceiver {
 
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return congestMon;}
 
-//  size_t queued_batches() {return outstanding_batches;}
 
   protected:
     jetstream::CubeSchema schema;
@@ -153,10 +152,8 @@ class DataCube : public TupleReceiver {
     void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher);
 
     size_t elements_in_batch;
-    Executor exec;
-    shared_ptr<boost::asio::strand> flushStrand;
-    shared_ptr<boost::asio::strand> processStrand;
-    int outstanding_batches; //protected by processStrand;
+    CountingExecutor flushExec;
+    CountingExecutor processExec;
     boost::asio::deadline_timer batch_timeout_timer;
     boost::shared_ptr<QueueCongestionMonitor> congestMon;
 };
