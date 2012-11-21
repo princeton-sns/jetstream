@@ -44,7 +44,23 @@ class CountingExecutor {
       //don't wan't handler executed before calling run, so protect!
       service->post(boost::bind(&CountingExecutor::run<boost::_bi::protected_bind_t<Handler> >, this, boost::protect(task)));
     }
+ 
+    /*template<typename Handler> 
+      inline void dispatch(Handler task) {
+      ++outstanding;
+      //can't bind to an abstract function
+      //don't wan't handler executed before calling run, so protect!
+      service->dispatch(boost::bind(&CountingExecutor::run<boost::_bi::protected_bind_t<Handler> >, this, boost::protect(task)));
+    }
 
+    template<typename Handler>
+    boost::asio::detail::wrapped_handler<CountingExecutor&, Handler>
+    wrap(Handler task)
+    {
+      //wrapped handler will call the dispatch method
+      return boost::asio::detail::wrapped_handler<CountingExecutor&, Handler>(*this, task);
+    }
+*/
     size_t outstanding_tasks()
     {
       return outstanding;

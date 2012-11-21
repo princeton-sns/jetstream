@@ -13,12 +13,12 @@ using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
-DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch, size_t num_threads, boost::posix_time::time_duration batch_timeout) :
+DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch,  boost::posix_time::time_duration batch_timeout) :
   schema(_schema), name(_name), is_frozen(false), 
   tupleBatcher(new cube::TupleBatch(this, elements_in_batch)), 
   batch_timeout(batch_timeout), elements_in_batch(elements_in_batch), 
-  exec(num_threads), flushStrand(exec.make_strand()), processStrand(exec.make_strand()),
-  outstanding_batches(0), batch_timeout_timer(*(exec.get_io_service())),
+  flushExec(1), processExec(1),
+  batch_timeout_timer(*(processExec.get_io_service())),
   congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name)))  {
 };
 
@@ -31,7 +31,7 @@ boost::shared_ptr<cube::TupleBatch> & DataCube::get_tuple_batcher()
 
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
-  processStrand->dispatch(boost::bind(&DataCube::do_process, this, t));
+  processExec.submit(boost::bind(&DataCube::do_process, this, t));
 }
 
 void DataCube::do_process(boost::shared_ptr<Tuple> t) {
@@ -121,11 +121,10 @@ void DataCube::set_elements_in_batch(size_t size) {
   tupleBatcher->set_max_batch_size(size);
 }
 
-void DataCube::queue_flush() //always executed in the processStrand
+void DataCube::queue_flush()
 {
     batch_timeout_timer.cancel();
-    flushStrand->post(boost::bind(&DataCube::do_flush, this, tupleBatcher));
-    outstanding_batches++;
+    flushExec.submit(boost::bind(&DataCube::do_flush, this, tupleBatcher));
   
     cube::TupleBatch * batch = new cube::TupleBatch(this, elements_in_batch);
     congestMon->report_insert(batch, 1);
@@ -135,16 +134,11 @@ void DataCube::queue_flush() //always executed in the processStrand
 void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   tb->flush();
   congestMon->report_delete(tb.get(), 1);
-  processStrand->post(boost::bind(&DataCube::post_flush, this));
-}
-
-void DataCube::post_flush() {
-  outstanding_batches--;
 }
 
 void DataCube::start_batch_timeout() {
   batch_timeout_timer.expires_from_now(batch_timeout);
-  batch_timeout_timer.async_wait(processStrand->wrap(boost::bind(&DataCube::batch_timer_fired, this, tupleBatcher)));
+  batch_timeout_timer.async_wait(boost::bind(&DataCube::batch_timer_fired, this, tupleBatcher));
 }
 
 void DataCube::batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher) {
@@ -152,7 +146,7 @@ void DataCube::batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher) {
   {
     //need to check that batcher still points to tupleBatcher in the following case:
     //flush() was called after batch_timeout_timer went off and put batch_timer_fired on strand
-    //but before batch_timer_fired could be executed by the processStrand();
+    //but before batch_timer_fired could be executed by the processExec();
     queue_flush();
   }
 }
