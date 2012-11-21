@@ -421,6 +421,7 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
+  cube->set_batch_timeout( boost::posix_time::seconds(1));
   cube->destroy();
   cube->create();
   
@@ -437,7 +438,7 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_NO_BATCH;
   cube->process(t);
-  for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++)
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 1; i++)
   {
     js_usleep(100000);
   }
