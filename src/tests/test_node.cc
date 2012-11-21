@@ -5,6 +5,7 @@
 #include <boost/date_time.hpp>
 #include <boost/asio.hpp>
 
+#include "js_utils.h"
 #include "node.h"
 #include "base_operators.h"
 #include "simple_net.h"
@@ -57,7 +58,7 @@ TEST(Node, HandleAlter_2_Ops)
     add_pair_to_topo(topo, i);
     
     ControlMessage r;
-    node.handle_alter(r, topo);
+    node.handle_alter(topo, r);
     ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
     
     operator_id_t id2(i,2);
@@ -227,27 +228,6 @@ TEST_F(NodeNetTest, NetStartStop)
   
 }
 
-
-TaskMeta* 
-add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const string& name) {
-  TaskMeta* task = topo.add_tostart();
-  TaskID* id = task->mutable_id();
-  id->set_computationid(dest_id.computation_id);
-  id->set_task(dest_id.task_id);
-  task->set_op_typename(name);
-  return task;
-}
-
-Edge * 
-add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
-  Edge * edge = topo.add_edges();
-  EXPECT_EQ(src_id.computation_id, dest_id.computation_id);
-  edge->set_computation(src_id.computation_id);
-  edge->set_dest(dest_id.task_id);
-  edge->set_src(src_id.task_id);
-  return edge;
-}
-
 shared_ptr<DataPlaneOperator> 
 add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
 {
@@ -256,7 +236,7 @@ add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
   topo.set_computationid(dest_id.computation_id);
 
   add_operator_to_alter(topo, dest_id, name);
-  n.handle_alter(r, topo);
+  n.handle_alter(topo, r);
   shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
   EXPECT_TRUE( dest != NULL );
   return dest;
@@ -506,7 +486,7 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
   dest_node->set_address("127.0.0.1");
  
   ControlMessage r;
-  nodes[1]->handle_alter(r, topo);  //starting on node 0, ordering it to send to node 1
+  nodes[1]->handle_alter(topo, r);  //starting on node 0, ordering it to send to node 1
   
   int tries = 0;
   while (nodes[1]->operator_count() == 0 && tries++ < 20) //wait for alter to be processed
@@ -551,7 +531,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
     add_operator_to_alter(dest_topo, congest_op_id, "MockCongestion");
     add_edge_to_alter(dest_topo, congest_op_id, dest_id);
-    nodes[0]->handle_alter(response, dest_topo);
+    nodes[0]->handle_alter(dest_topo, response);
   }
 
   EXPECT_EQ(2, nodes[0]->operator_count());
@@ -584,7 +564,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     dest_node->set_portno(dest_node_addr.port());
     dest_node->set_address("127.0.0.1");
 
-    nodes[1]->handle_alter(response, send_topo);
+    nodes[1]->handle_alter(send_topo, response);
   }
   shared_ptr<SendK> src_op =  boost::dynamic_pointer_cast<SendK>(nodes[1]->get_operator( src_op_id ));
   

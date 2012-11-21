@@ -84,7 +84,7 @@ TEST(Node, BadOperatorName) {
   task->set_op_typename("SendK");
   
   ControlMessage r;
-  node.handle_alter(r, topo);
+  node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
   ASSERT_EQ(node.operator_count(), 0);
 }
@@ -108,7 +108,7 @@ TEST(Node, BadOperatorConfig) {
   
   
   ControlMessage r;
-  node.handle_alter(r, topo);
+  node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
   ASSERT_EQ(node.operator_count(), 0);
 }

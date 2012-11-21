@@ -828,7 +828,7 @@ TEST(Cube,Attach) {
 //  cout << topo.Utf8DebugString();
 
   ControlMessage r;
-  node.handle_alter(r, topo);
+  node.handle_alter(topo, r);
   cout << "alter sent; data should be present" << endl;
 
   shared_ptr<DataCube> cube = node.get_cube(cubeName);
