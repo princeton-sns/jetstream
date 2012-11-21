@@ -12,6 +12,7 @@
 #include "cube.h"
 
 #include "jetstream_types.pb.h"
+#include <glog/logging.h>
 
 namespace jetstream {
 namespace cube {
@@ -66,7 +67,7 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   private:
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
   
-    bool running;
+    volatile bool running;
     boost::shared_ptr<boost::thread> loopThread;
 
     int windowSizeMs;  //query interval
@@ -98,7 +99,10 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
   
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
     virtual void start();
-    virtual void stop() {running = false; }
+    virtual void stop() {
+      LOG(INFO) << id() << " received stop()";
+      running = false;
+    }
 
     void operator()();  // A thread that will loop while reading the file
 

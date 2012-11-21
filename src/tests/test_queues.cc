@@ -18,7 +18,7 @@ const int compID = 4;
 TEST(CongestMon, QueueMon) {
   int TOTAL_ELEMS = 10;
   int elements[TOTAL_ELEMS];
-  QueueCongestionMonitor mon(TOTAL_ELEMS);
+  QueueCongestionMonitor mon(TOTAL_ELEMS, "test");
   
   for(int i=0; i < TOTAL_ELEMS; ++i) {
     mon.report_insert(elements + i, 1);

@@ -42,8 +42,12 @@ ThreadedSource::stop() {
 
 void
 ThreadedSource::operator()() {
+
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-  
+  if (!congested) { //connection failed, e.g.
+    LOG(WARNING) << "Operator " << id() << " exiting because chain setup failed";
+    return;
+  }
   
   do {
     congested->wait_for_space();

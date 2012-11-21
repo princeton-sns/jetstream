@@ -202,6 +202,7 @@ RandEvalOperator::long_description() {
 
 
 RandEvalOperator::~RandEvalOperator() {
+  *results_out << "ending RandEvalOperator" << endl;
   if (results_out != &std::cout) {
     ((ofstream*)results_out)->close();
     delete results_out;

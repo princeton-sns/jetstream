@@ -9,6 +9,20 @@ using namespace boost::asio::ip;
 using namespace jetstream;
 
 
+ConnectedSocket::ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
+     boost::shared_ptr<boost::asio::ip::tcp::socket> s)
+  : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
+  isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
+  VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
+  
+  std::ostringstream mon_name;
+  mon_name << "connection to " << get_remote_endpoint();
+  mon = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10 * 1000, mon_name.str()));
+  
+}
+
+
+
 std::string
 ConnectedSocket::get_fourtuple () const
 {

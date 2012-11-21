@@ -14,7 +14,12 @@ shared_ptr<DataCube>
 CubeManager::get_cube (const std::string &name) 
 {
   lock_guard<boost::mutex> lock (mapMutex);
-  return cubeMap[name];
+  if (cubeMap.count(name) > 0)
+    return cubeMap[name];
+  else {
+    shared_ptr<DataCube> c;
+    return c;
+  }
 }
   
 shared_ptr<DataCube> 

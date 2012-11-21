@@ -8,6 +8,7 @@ import random
 import socket
 import sys
 import time
+import types
 
 from remote_controller import *
 import query_graph as jsapi
@@ -59,8 +60,11 @@ def main():
       break
 
     cid = server.deploy_pb(req)
-    print "Computation running; ID =",cid
-    
+    if type(cid) == types.IntType:
+      print "Computation running; ID =",cid
+    else:
+      print "computation failed",cid
+      break  
 
     print_wait()
     server.stop_computation(cid)

@@ -69,7 +69,7 @@ class Controller (ControllerAPI, JSServer):
     self.livenessThread = None
     # Given GIL, coarse-grained locking should be sufficient
     self.stateLock = threading.RLock()
-
+    self.nextCompID = 1
 
   def handle_connection_close (self, cHandler):
     """Overrides parent class method."""
@@ -286,11 +286,9 @@ class Controller (ControllerAPI, JSServer):
   def assign_comp_id(self):
   #TODO locking
     self.stateLock.acquire()
-  
-    if len(self.computations) == 0:
-      compID = 1
-    else:
-      compID = max(self.computations.keys()) + 1
+
+    compID = self.nextCompID
+    self.nextCompID += 1
 
     comp = Computation(compID)
     self.computations[compID] = comp

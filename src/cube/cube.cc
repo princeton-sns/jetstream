@@ -19,7 +19,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elem
   batch_timeout(batch_timeout), elements_in_batch(elements_in_batch), 
   flushExec(1), processExec(1),
   batch_timeout_timer(*(processExec.get_io_service())),
-  congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10)))  {
+  congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name)))  {
 };
 
 const std::string jetstream::DataCube::my_tyepename("data cube");
