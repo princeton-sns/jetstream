@@ -4,7 +4,7 @@
 #include "experiment_operators.h"
 #include "base_subscribers.h"
 #include "rand_source.h"
-
+#include "variable_sampling.h"
 
 
 #include <iostream>
@@ -84,6 +84,11 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
+  
+   // Congestion response
+  REGISTER_OP(VariableSamplingOperator);
+  REGISTER_OP(CongestionController);
+  
   
   if(cache.count(name) < 1)
   {
