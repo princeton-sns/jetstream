@@ -416,7 +416,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       
       if (edge.has_dest_addr()) {   // sending to remote operator or cube
         shared_ptr<RemoteDestAdaptor> xceiver(
-            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait, srcOperator) );
         dataConnMgr.register_new_adaptor(xceiver);
         srcOperator->set_dest(xceiver);
       }

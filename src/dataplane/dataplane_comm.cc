@@ -198,9 +198,10 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       ConnectionManager &cm,
                                       boost::asio::io_service & io,
                                       const Edge &e,
-                                      msec_t wait)
+                                      msec_t wait,
+                                      boost::shared_ptr<TupleSender> p)
   : mgr(dcm), iosrv(io), chainIsReady(false), this_buf_size(0),
-    timer(io), wait_for_conn(wait) {
+    timer(io), wait_for_conn(wait), pred(p) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
@@ -276,6 +277,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       conn->congestion_monitor()->set_upstream_congestion(status);
       break;
     }
+
+    case DataplaneMessage::SET_BACKOFF:
+    {
+      pred->meta_from_downstream(msg);
+      break;
+    }
+
 
     default:
       LOG(WARNING) << "unexpected incoming message after chain connect: " << msg.Utf8DebugString()
