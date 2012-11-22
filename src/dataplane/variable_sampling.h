@@ -22,7 +22,7 @@ class VariableSamplingOperator: public SampleOperator {
     virtual void start();
   
     //needs to respond to congestion signals
-    virtual void meta_from_downstream(DataplaneMessage & msg);
+    virtual void meta_from_downstream(const DataplaneMessage & msg);
 
 
     boost::shared_ptr<CongestionMonitor> congestion_monitor() {
@@ -37,9 +37,12 @@ GENERIC_CLNAME
 class CongestionController: public DataPlaneOperator {
 
 private:
+    static const int INTERVAL = 300; //ms
+
+
     std::map<operator_id_t,double> reportedLevels;
 
-    std::map<operator_id_t, boost::shared_ptr<TupleSender> > predecessors;
+    std::vector<boost::shared_ptr<TupleSender> > predecessors;
   
   
     double targetSampleRate, worstCongestion; //should always be lower than min(reportedLevels)
@@ -52,11 +55,14 @@ public:
 
   CongestionController() : targetSampleRate(1.0),worstCongestion(INFINITY) {}
 
+  virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
+  virtual void clear_preds () { predecessors.clear(); }
+
   virtual void process(boost::shared_ptr<Tuple> t) {
     emit(t);
   }
 
-  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   void assess_status();
 

@@ -57,13 +57,13 @@ DataPlaneOperator::no_more_tuples () {
 
 
 void
-DataPlaneOperator::meta_from_downstream(DataplaneMessage &msg) {
+DataPlaneOperator::meta_from_downstream(const DataplaneMessage &msg) {
   if (pred != NULL)
     pred->meta_from_downstream(msg);
 }
 
 void
-DataPlaneOperator::meta_from_upstream(DataplaneMessage & msg, operator_id_t pred) {
+DataPlaneOperator::meta_from_upstream(const DataplaneMessage & msg, operator_id_t pred) {
   if (dest != NULL)
     dest->meta_from_upstream(msg, pred);
 }

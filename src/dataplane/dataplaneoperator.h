@@ -42,13 +42,13 @@ class TupleReceiver {
   virtual std::string long_description() {return "";}
 
   
-  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) = 0;
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) = 0;
 
 };
 
 class TupleSender {
   public:
-    virtual void meta_from_downstream(DataplaneMessage & msg) = 0;
+    virtual void meta_from_downstream(const DataplaneMessage & msg) = 0;
 };
 
 typedef std::map<std::string,std::string> operator_config_t;
@@ -133,9 +133,9 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   virtual void stop () {};
   
   
-  virtual void meta_from_downstream(DataplaneMessage &msg);
+  virtual void meta_from_downstream(const DataplaneMessage &msg);
   
-  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   
   GENERIC_CLNAME

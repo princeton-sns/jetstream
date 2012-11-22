@@ -17,7 +17,7 @@ const int compID = 4;
 
 
 TEST(Sampling, TwoLocalChains) {
-  const int CHAINS = 1;
+  const int CHAINS = 2;
   int K = 10;
 
   int nextOpID = 1;
@@ -89,6 +89,9 @@ TEST(Sampling, TwoLocalChains) {
   //turn on sampling
 
   congest_op->congestion = 0.5;
+  
+  js_usleep(800 * 1000); //make sure no more arrives
+
 
   cout << "doing restarts" << endl;
   //restart sends

@@ -127,7 +127,7 @@ class DataCube : public TupleReceiver {
 
     virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return congestMon;}
   
-    virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) {}
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {}
 
   protected:
     jetstream::CubeSchema schema;

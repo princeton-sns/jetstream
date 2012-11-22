@@ -53,6 +53,14 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     }
     break;
   
+  case DataplaneMessage::SET_BACKOFF:
+  case DataplaneMessage::CONGEST_STATUS:
+    {
+      dest->meta_from_upstream(msg, remote_op);
+    }
+    break;
+
+
   //  
     
   default:
@@ -359,7 +367,7 @@ RemoteDestAdaptor::no_more_tuples () {
 
 
 void
-RemoteDestAdaptor::meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) {
+RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
 		 << ". Aborting meta message send. Should queue/retry instead?";

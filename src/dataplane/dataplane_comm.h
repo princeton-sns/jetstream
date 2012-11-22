@@ -77,7 +77,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   
   virtual void no_more_tuples();
 
-  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   
   virtual const std::string& typename_as_str() {return generic_name;};
@@ -107,7 +107,7 @@ class IncomingConnectionState {
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
   boost::asio::deadline_timer timer;
-
+  operator_id_t remote_op;
 
 public:
   void got_data_cb (const DataplaneMessage &msg,

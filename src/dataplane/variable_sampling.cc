@@ -23,10 +23,11 @@ VariableSamplingOperator::report_congestion() {
 
   shared_ptr<TupleReceiver> dest = get_dest ();
   if (dest) {
-
     shared_ptr<CongestionMonitor> downstream_congestion = dest->congestion_monitor();
     double congestion = downstream_congestion->capacity_ratio();
-    
+
+
+//    LOG(INFO) << id() << "checking congestion; got " << congestion;
     //can bail on reporting here if is redundant?
     
     DataplaneMessage levelMsg;
@@ -40,7 +41,7 @@ VariableSamplingOperator::report_congestion() {
 }
 
 void
-VariableSamplingOperator::meta_from_downstream(DataplaneMessage & msg) {
+VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
   LOG(INFO) << id() << " got " << msg.Utf8DebugString();
   
   if ( msg.type() == DataplaneMessage::SET_BACKOFF) {
@@ -50,7 +51,7 @@ VariableSamplingOperator::meta_from_downstream(DataplaneMessage & msg) {
 }
 
 void
-CongestionController::meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) {
+CongestionController::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
 
   if (msg.type() == DataplaneMessage::CONGEST_STATUS) { //congestion report
     lock_guard<boost::mutex> critical_section (lock);
@@ -62,7 +63,7 @@ CongestionController::meta_from_upstream(DataplaneMessage & msg, const operator_
       worstCongestion = lev;
       if (!timer) {
         timer = get_timer();
-        timer->expires_from_now(boost::posix_time::millisec(500));
+        timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
         timer->async_wait(boost::bind(&CongestionController::assess_status, this));
       }
     }
@@ -74,10 +75,38 @@ CongestionController::meta_from_upstream(DataplaneMessage & msg, const operator_
 
 void
 CongestionController::assess_status() {
+  lock_guard<boost::mutex> critical_section (lock);
   
-  //foreach pred: send a change-of-status
+  worstCongestion = INFINITY;
   
-  timer->expires_from_now(boost::posix_time::millisec(500));
+  map<operator_id_t, double>::iterator it = reportedLevels.begin();
+  while (it != reportedLevels.end()) {
+    if (it->second < worstCongestion)
+      worstCongestion = it->second;
+    it++;
+  }
+  
+
+  if ( worstCongestion  > 1.01 || worstCongestion < 0.99 ) {
+    targetSampleRate *= worstCongestion;
+    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate;
+      //foreach pred: send a change-of-status
+
+    DataplaneMessage throttle;
+    throttle.set_filter_level(targetSampleRate);
+    throttle.set_type(DataplaneMessage::SET_BACKOFF);
+
+//    LOG(INFO) << id() << " has " << predecessors.size() << " preds";
+
+    for (int i = 0; i < predecessors.size(); ++i) {
+      shared_ptr<TupleSender> pred = predecessors[i];
+//      LOG(INFO) << "sending backoff to pred " << i;
+      pred->meta_from_downstream(throttle);
+    }
+  }
+  
+  
+  timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
   timer->async_wait(boost::bind(&CongestionController::assess_status, this));
 }
 
