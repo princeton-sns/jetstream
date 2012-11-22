@@ -57,6 +57,24 @@ DataPlaneOperator::no_more_tuples () {
 
 
 void
+DataPlaneOperator::meta_from_downstream(DataplaneMessage &msg) {
+  if (pred != NULL)
+    pred->meta_from_downstream(msg);
+}
+
+void
+DataPlaneOperator::meta_from_upstream(DataplaneMessage & msg, operator_id_t pred) {
+  if (dest != NULL)
+    dest->meta_from_upstream(msg, pred);
+}
+
+
+boost::shared_ptr<boost::asio::deadline_timer>
+DataPlaneOperator::get_timer() {
+  return node->get_timer();
+}
+
+void
 OperatorCleanup::cleanup(boost::shared_ptr<DataPlaneOperator> op) {
   cleanup_strand.post( boost::bind(&OperatorCleanup::cleanup_cb, this, op) );
 }

@@ -109,6 +109,11 @@ class Node {
    */
   ControlMessage handle_alter (const AlterTopo& t, ControlMessage& response);
 
+  
+  boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
+    return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
+  }
+
 //TODO include private copy-constructor and operator= here?
 
 };

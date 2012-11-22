@@ -52,6 +52,9 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
       conn->send_msg(msg, err); // just echo back what we got
     }
     break;
+  
+  //  
+    
   default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
                    << conn->get_remote_endpoint() << " for existing dataplane connection";
@@ -354,6 +357,21 @@ RemoteDestAdaptor::no_more_tuples () {
 //  mgr.deferred_cleanup(remoteAddr); //do this synchronously
 }
 
+
+void
+RemoteDestAdaptor::meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
+		 << ". Aborting meta message send. Should queue/retry instead?";
+    return;
+  }
+
+  boost::system::error_code err;
+  
+  //we are on caller's thread so this is thread-safe.
+  force_send(); 
+  conn->send_msg(msg, err);
+}
 
 bool
 RemoteDestAdaptor::wait_for_chain_ready() {

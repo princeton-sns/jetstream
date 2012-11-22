@@ -41,6 +41,14 @@ class TupleReceiver {
     /** Return a longer description of the operator. Should NOT include the typename*/
   virtual std::string long_description() {return "";}
 
+  
+  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred) = 0;
+
+};
+
+class TupleSender {
+  public:
+    virtual void meta_from_downstream(DataplaneMessage & msg) = 0;
 };
 
 typedef std::map<std::string,std::string> operator_config_t;
@@ -48,10 +56,11 @@ typedef std::map<std::string,std::string> operator_config_t;
 typedef std::string operator_err_t;
 const operator_err_t NO_ERR = "";
 
-class DataPlaneOperator : public TupleReceiver {
+class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSender {
  private:
   operator_id_t operID; // note that id() returns a reference, letting us set this
-  boost::shared_ptr<TupleReceiver> dest, pred;
+  boost::shared_ptr<TupleReceiver> dest;
+  boost::shared_ptr<TupleSender> pred;
   protected:   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
 
   private: int tuplesEmitted;
@@ -60,6 +69,9 @@ class DataPlaneOperator : public TupleReceiver {
 
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
+//  Node * get_node() {return node;} //not sure if we should allow operators this much access --asr
+  
+  boost::shared_ptr<boost::asio::deadline_timer> get_timer();
   
  public:
   DataPlaneOperator ():node(0),tuplesEmitted(0)  {}
@@ -69,14 +81,16 @@ class DataPlaneOperator : public TupleReceiver {
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
   
       //these need to be virtual to support the case where an operator has multiple preds
-  virtual void add_pred (boost::shared_ptr<TupleReceiver> d) { pred = d; }
+  virtual void add_pred (boost::shared_ptr<TupleSender> d) { pred = d; }
   virtual void clear_preds () { pred.reset(); }
 
+  boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
+  
+  
 
   /** This will be called before configure
   */
   void set_node (Node * n) { node = n; }
-  boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   
   
   /** A variety of (self-explanatory) debugging aids and metadata */
@@ -117,6 +131,12 @@ class DataPlaneOperator : public TupleReceiver {
    * doesn't let you join with yourself.
    */
   virtual void stop () {};
+  
+  
+  virtual void meta_from_downstream(DataplaneMessage &msg);
+  
+  virtual void meta_from_upstream(DataplaneMessage & msg, const operator_id_t pred);
+
   
   GENERIC_CLNAME
 };
