@@ -2,8 +2,12 @@
 #include "variable_sampling.h"
 #include <glog/logging.h>
 
+#include <boost/interprocess/detail/atomic.hpp>
+
+
 using namespace ::std;
 using namespace boost;
+using namespace boost::interprocess::ipcdetail;
 
 namespace jetstream {
 
@@ -45,10 +49,26 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
   LOG(INFO) << id() << " got " << msg.Utf8DebugString();
   
   if ( msg.type() == DataplaneMessage::SET_BACKOFF) {
-    
-  
+    double frac_to_drop = 1.0 - msg.filter_level();
+    assert( frac_to_drop <= 1);
+    uint32_t new_thresh = frac_to_drop * numeric_limits<uint32_t>::max();
+    atomic_write32(&threshold, new_thresh);
   }
 }
+
+
+operator_err_t
+CongestionController::configure(std::map<std::string,std::string> &config) {
+
+  if (config["interval"].length() > 0) {
+    if (!(stringstream(config["interval"]) >> INTERVAL)) {
+      string msg = "invalid reconfigure interval ('interval'): " + config["INTERVAL"];
+      return operator_err_t(msg);
+    }
+  }
+  return NO_ERR;
+}
+
 
 void
 CongestionController::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
@@ -74,7 +94,7 @@ CongestionController::meta_from_upstream(const DataplaneMessage & msg, const ope
 
 
 void
-CongestionController::assess_status() {
+CongestionController::do_assess() {
   lock_guard<boost::mutex> critical_section (lock);
   
   worstCongestion = INFINITY;
@@ -86,10 +106,14 @@ CongestionController::assess_status() {
     it++;
   }
   
+  //TODO should we clear reportedLevels ?
+  
 
-  if ( worstCongestion  > 1.01 || worstCongestion < 0.99 ) {
+  if ( worstCongestion  > 1.01 || worstCongestion < 0.99 ) { //not quite in balance
     targetSampleRate *= worstCongestion;
     LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate;
+    if (targetSampleRate > 0.999)
+      targetSampleRate = 1; //never send > 1
       //foreach pred: send a change-of-status
 
     DataplaneMessage throttle;
@@ -104,8 +128,11 @@ CongestionController::assess_status() {
       pred->meta_from_downstream(throttle);
     }
   }
-  
-  
+}
+
+void
+CongestionController::assess_status() {
+  do_assess();
   timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
   timer->async_wait(boost::bind(&CongestionController::assess_status, this));
 }

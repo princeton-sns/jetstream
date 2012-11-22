@@ -118,6 +118,22 @@ class ExtendOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 };
 
+
+// given concurrent callers, sends out an ordered stream
+class OrderingOperator: public DataPlaneOperator {
+ private:
+  boost::mutex lock;
+  
+ public:
+
+  virtual void process (boost::shared_ptr<Tuple> t) {
+    boost::lock_guard<boost::mutex> critical_section (lock);
+    emit(t);
+  }
+
+GENERIC_CLNAME
+};
+
 /***
  * Given a data stream, allows some fraction of data through.
  * Config options: seed [an int] and fraction [ a float], representing the fraction

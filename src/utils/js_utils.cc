@@ -125,5 +125,12 @@ add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) 
   return edge;
 }
 
+void
+add_cfg_to_task(TaskMeta* task, std::string optname, std::string val) {
+  TaskMeta_DictEntry* op_cfg = task->add_config();
+  op_cfg->set_opt_name(optname);
+  op_cfg->set_val(val);
+}
+
 
 }

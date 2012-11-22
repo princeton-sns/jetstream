@@ -52,6 +52,9 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id);
 
+void add_cfg_to_task(TaskMeta*, std::string optname, std::string val);
+
+
 inline void extend_tuple(jetstream::Tuple& t, int32_t i) {
   t.add_e()->set_i_val(i);
 }

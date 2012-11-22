@@ -68,8 +68,10 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(StringGrep);
   REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
+  REGISTER_OP(OrderingOperator);
   REGISTER_OP(SampleOperator);
   REGISTER_OP(TRoundingOperator);
+  REGISTER_OP(UnixOperator);
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);

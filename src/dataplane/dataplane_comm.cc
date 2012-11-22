@@ -201,7 +201,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       msec_t wait,
                                       boost::shared_ptr<TupleSender> p)
   : mgr(dcm), iosrv(io), chainIsReady(false), this_buf_size(0),
-    timer(io), wait_for_conn(wait), pred(p) {
+    timer(io), pred(p), wait_for_conn(wait) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();

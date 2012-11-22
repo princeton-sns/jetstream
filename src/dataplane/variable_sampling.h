@@ -21,6 +21,12 @@ class VariableSamplingOperator: public SampleOperator {
   
     virtual void start();
   
+    virtual void stop() {
+      if(timer)
+        timer->cancel();
+    }
+
+  
     //needs to respond to congestion signals
     virtual void meta_from_downstream(const DataplaneMessage & msg);
 
@@ -37,7 +43,7 @@ GENERIC_CLNAME
 class CongestionController: public DataPlaneOperator {
 
 private:
-    static const int INTERVAL = 300; //ms
+     int INTERVAL; //ms
 
 
     std::map<operator_id_t,double> reportedLevels;
@@ -49,11 +55,19 @@ private:
     mutable boost::mutex lock;
     boost::shared_ptr<boost::asio::deadline_timer> timer;
   
+    void assess_status(); //assess and reset timer
   
   
 public:
 
-  CongestionController() : targetSampleRate(1.0),worstCongestion(INFINITY) {}
+  CongestionController() : INTERVAL(300),targetSampleRate(1.0),worstCongestion(INFINITY) {}
+
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+  virtual void stop() {
+      if(timer)
+        timer->cancel();
+    }
 
   virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
   virtual void clear_preds () { predecessors.clear(); }
@@ -64,7 +78,7 @@ public:
 
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
-  void assess_status();
+  void do_assess(); //externally callable, for testing
 
 GENERIC_CLNAME
 };
