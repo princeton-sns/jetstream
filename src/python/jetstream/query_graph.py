@@ -290,8 +290,9 @@ class Cube(Destination):
 
 ##### Useful operators #####
     
-def FileRead(graph, file):
-   cfg = {"file":file}
+def FileRead(graph, file, skip_empty=False):
+   assert isinstance(file, str)
+   cfg = { "file":file, "skip_empty" : str(skip_empty)}
    return graph.add_operator(Operator.OpType.FILE_READ, cfg)  
    
 

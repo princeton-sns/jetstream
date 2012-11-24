@@ -28,6 +28,12 @@ FileRead::configure(map<string,string> &config) {
     LOG(WARNING) << "no file to read, bailing" << endl;
     return operator_err_t("option 'file' not specified");
   }
+
+  boost::algorithm::to_lower(config["skip_empty"]);
+  // TODO which values of config["skip_empty"] convert to which boolean
+  // values?
+  istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
+
   return NO_ERR;
 }
 
@@ -74,6 +80,9 @@ FileRead::operator()() {
   // ios::good checks for failures in addition to eof
   while (running && in_file.good()) {
     getline(in_file, line);
+    if (skip_empty && line.length() == 0) {
+        continue;
+    }
     shared_ptr<Tuple> t( new Tuple);
     Element * e = t->add_e();
     e->set_s_val(line);

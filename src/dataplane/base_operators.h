@@ -36,6 +36,7 @@ class FileRead: public DataPlaneOperator {
 
  protected:
   std::string f_name; //name of file to read
+  bool skip_empty; // option: skip empty lines
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
 
