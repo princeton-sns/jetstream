@@ -25,13 +25,12 @@ class VariableSamplingOperator: public SampleOperator {
       if(timer)
         timer->cancel();
     }
-
   
     //needs to respond to congestion signals
     virtual void meta_from_downstream(const DataplaneMessage & msg);
 
 
-    boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
       return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
     }
   
