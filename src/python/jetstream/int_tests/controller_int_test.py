@@ -11,6 +11,7 @@ from worker import *
 from computation_state import *
 from generic_netinterface import JSClient
 from query_graph import Operator
+from operator_schemas import OpType
 
 
 from jetstream_types_pb2 import *
@@ -100,7 +101,7 @@ class TestController(unittest.TestCase):
     req.type = ControlMessage.ALTER
     req.alter.computationID = 17
     newOp = req.alter.toStart.add()
-    newOp.op_typename = Operator.OpType.UNIX
+    newOp.op_typename = OpType.UNIX
     cfg = newOp.config.add()
     cfg.opt_name = "cmd"
     cfg.val = "cat /etc/shells"
