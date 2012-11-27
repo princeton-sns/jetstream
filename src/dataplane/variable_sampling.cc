@@ -123,7 +123,7 @@ CongestionController::do_assess() {
 
 //    LOG(INFO) << id() << " has " << predecessors.size() << " preds";
 
-    for (int i = 0; i < predecessors.size(); ++i) {
+    for (unsigned int i = 0; i < predecessors.size(); ++i) {
       shared_ptr<TupleSender> pred = predecessors[i];
 //      LOG(INFO) << "sending backoff to pred " << i;
       pred->meta_from_downstream(throttle);

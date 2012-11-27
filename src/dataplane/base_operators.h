@@ -167,6 +167,11 @@ class TRoundingOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 };
 
+/* Doesn't work currently. popen creates half-duplex pipe we need full duplex
+ *
+ * look at: http://stackoverflow.com/questions/6171552/popen-simultaneous-read-and-write
+ * to fix
+ * */
 class UnixOperator: public ThreadedSource {
  public:
  
