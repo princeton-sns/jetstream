@@ -69,6 +69,11 @@ class QueryGraph(object):
     for e in to_drop:
       self.edges.remove(e)
       
+    if oid in self.operators:
+      del self.operators[oid]
+    else:
+      del self.cubes[oid]
+      
   def add_cube(self, name, desc = {}):
     """Add a cube to the graph"""
     c = Cube(self, name, desc, self.nID)
@@ -192,7 +197,10 @@ class QueryGraph(object):
           else:
             input_schema[o] = out_schema 
             worklist.append(o)
-
+      else:
+        self.cubes[n].out_schema (input_schema[n])
+        # TODO need to verify the subscribers, and add them to worklist
+  #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
       
 # This represents the abstract concept of an operator or cube, for building
 # the query graphs. The concrete executable implementations are elsewhere.
@@ -335,6 +343,29 @@ class Cube(Destination):
     else:
       return self.name
 
+  typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
+      Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
+
+  def out_schema(self, in_schema):
+    r = {}
+#    print "in-schema", in_schema
+#    print "dims", self.desc['dims']
+    for name, type, offset in self.desc['dims']:
+      r[offset] = (self.typecode_for_dname[type], name)
+      if offset >= len(in_schema):
+        raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
+            ( self.name, offset + 1,str(in_schema)))
+  
+    for name, type, offset in self.desc['aggs']:
+      r[offset] = (type, name)
+
+
+    for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
+      db_schema = r.get(i, ('undef', 'undef'))
+      if ty != db_schema[0]:
+        raise SchemaException ("Can't put value %s,%s into field %s of type %s" % \
+          (ty,name, db_schema[0], db_schema[1]))
+    return [ ]
 
 ##### Useful operators #####
 

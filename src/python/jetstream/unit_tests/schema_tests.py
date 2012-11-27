@@ -72,8 +72,10 @@ class TestSchemas(unittest.TestCase):
       #add a mismatched edge, string versus  string,time
     reader = jsapi.FileRead(qGraph, "file name")
     qGraph.connect(reader,local_cube)
-
-
+    
+    e_map = qGraph.forward_edge_map()
+    self.assertEquals( len(e_map), 1)
+  
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
