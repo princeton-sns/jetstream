@@ -18,6 +18,19 @@ class TestSchemas(unittest.TestCase):
     except SchemaError as ex:
       self.assertTrue(False, "should not throw, but got " + str(ex))
 
+  def test_randEval(self):
+
+    qGraph = jsapi.QueryGraph()
+    src = jsapi.RandSource(qGraph, 1, 2)
+    ex = jsapi.ExtendOperator(qGraph, "i", ["a count"])
+    eval = jsapi.RandEval(qGraph)
+    qGraph.connect(src,ex)
+    qGraph.connect(ex, eval)
+    try: 
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.assertTrue(False, "should not throw, but got " + str(ex))    
+
   def test_bad_edge(self):
     qGraph = jsapi.QueryGraph()
     reader = jsapi.FileRead(qGraph, "file name")
