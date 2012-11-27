@@ -4,7 +4,7 @@
 # 2) install ssh forward-agent so that you can pass your key along for git 
 # 3) add hosts you are working with to ansible_hosts file under [setup] section 
 # 4) run the following:
-# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts setup_vicci.yml -K --connection=ssh -f 1 -u princeton_jetstream
+# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
 #
 #
 #
@@ -61,11 +61,11 @@
               chdir=/jetstream/deps
               creates=/jetstream/deps/boost_1_52_0
   - name: bootstrap boost
-    command: bootstrap.sh
+    command: ./bootstrap.sh 
               chdir=/jetstream/deps/boost_1_52_0
               creates=/jetstream/deps/boost_1_52_0/project-config.jam
   - name: b2 boost
-    command: b2
+    command: ./b2
               chdir=/jetstream/deps/boost_1_52_0
               creates=/jetstream/deps/boost_1_52_0/stage/lib
      #include: /jetstream/deps/boost_1_52_0
@@ -84,7 +84,7 @@
     command: cp -r ${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit/include /usr/ 
             creates=/usr/include/cppconn/ 
   - name: Install mysql cpp conn lib
-    command: cp -r ${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit/lib/* /usr/lib64/
+    shell: cp -r ${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit/lib/* /usr/lib64/
             creates=/usr/lib64/libmysqlcppconn.so.6.1.1.1
   - name: set tmp dir perms #needed for mysql
     file: path=/tmp state=directory mode=0777
