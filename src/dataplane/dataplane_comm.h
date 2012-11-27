@@ -44,6 +44,8 @@ class RemoteDestAdaptor : public TupleReceiver {
   Edge dest_as_edge;
   DataplaneMessage msg;
   boost::asio::deadline_timer timer;
+  boost::shared_ptr<TupleSender> pred;
+
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -67,7 +69,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
                        boost::asio::io_service & iosrv, const jetstream::Edge&,
-                     msec_t wait_for_conn);
+                     msec_t wait_for_conn, boost::shared_ptr<TupleSender>);
   virtual ~RemoteDestAdaptor() {
     timer.cancel();
     LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
@@ -76,6 +78,9 @@ class RemoteDestAdaptor : public TupleReceiver {
   virtual void process (boost::shared_ptr<Tuple> t);
   
   virtual void no_more_tuples();
+
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
   
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();
@@ -104,7 +109,7 @@ class IncomingConnectionState {
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
   boost::asio::deadline_timer timer;
-
+  operator_id_t remote_op;
 
 public:
   void got_data_cb (const DataplaneMessage &msg,

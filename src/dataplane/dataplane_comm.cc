@@ -52,6 +52,17 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
       conn->send_msg(msg, err); // just echo back what we got
     }
     break;
+  
+  case DataplaneMessage::SET_BACKOFF:
+  case DataplaneMessage::CONGEST_STATUS:
+    {
+      dest->meta_from_upstream(msg, remote_op);
+    }
+    break;
+
+
+  //  
+    
   default:
       LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
                    << conn->get_remote_endpoint() << " for existing dataplane connection";
@@ -187,9 +198,10 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       ConnectionManager &cm,
                                       boost::asio::io_service & io,
                                       const Edge &e,
-                                      msec_t wait)
+                                      msec_t wait,
+                                      boost::shared_ptr<TupleSender> p)
   : mgr(dcm), iosrv(io), chainIsReady(false), this_buf_size(0),
-    timer(io), wait_for_conn(wait) {
+    timer(io), pred(p), wait_for_conn(wait) {
                                           
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
@@ -265,6 +277,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       conn->congestion_monitor()->set_upstream_congestion(status);
       break;
     }
+
+    case DataplaneMessage::SET_BACKOFF:
+    {
+      pred->meta_from_downstream(msg);
+      break;
+    }
+
 
     default:
       LOG(WARNING) << "unexpected incoming message after chain connect: " << msg.Utf8DebugString()
@@ -354,6 +373,21 @@ RemoteDestAdaptor::no_more_tuples () {
 //  mgr.deferred_cleanup(remoteAddr); //do this synchronously
 }
 
+
+void
+RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
+		 << ". Aborting meta message send. Should queue/retry instead?";
+    return;
+  }
+
+  boost::system::error_code err;
+  
+  //we are on caller's thread so this is thread-safe.
+  force_send(); 
+  conn->send_msg(msg, err);
+}
 
 bool
 RemoteDestAdaptor::wait_for_chain_ready() {

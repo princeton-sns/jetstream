@@ -4,7 +4,7 @@
 #include "experiment_operators.h"
 #include "base_subscribers.h"
 #include "rand_source.h"
-
+#include "variable_sampling.h"
 
 
 #include <iostream>
@@ -68,8 +68,10 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(StringGrep);
   REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
+  REGISTER_OP(OrderingOperator);
   REGISTER_OP(SampleOperator);
   REGISTER_OP(TRoundingOperator);
+  REGISTER_OP(UnixOperator);
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);
@@ -84,6 +86,11 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
+  
+   // Congestion response
+  REGISTER_OP(VariableSamplingOperator);
+  REGISTER_OP(CongestionController);
+  
   
   if(cache.count(name) < 1)
   {

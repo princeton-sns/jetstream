@@ -204,12 +204,13 @@ message ControlMessage {
 */ 
 message DataplaneMessage {
   enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; 
-  NO_MORE_DATA = 6; TS_ECHO = 7; CONGEST_STATUS = 8;}
+  NO_MORE_DATA = 6; TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9;}
   required DataplaneType type  = 1;
 
   optional Error error_msg = 2;
   optional Edge chain_link = 3;
   repeated Tuple data = 4;  // Streaming data on the data plane
   optional sfixed64 timestamp = 7;
-  optional double congestion_level = 8; // ratio between capacity and fraction sent. > 1 means uncongested.
+  optional double congestion_level = 8; // ratio between queue capacity and data sent. > 1 means uncongested.
+  optional double filter_level = 9; //the level of filtering to impose. Same units as above.
 }

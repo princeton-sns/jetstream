@@ -102,4 +102,35 @@ std::string fmt(const jetstream::Tuple& t) {
   return buf.str();
 }
 
+
+
+
+TaskMeta* 
+add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name) {
+  TaskMeta* task = topo.add_tostart();
+  TaskID* id = task->mutable_id();
+  id->set_computationid(dest_id.computation_id);
+  id->set_task(dest_id.task_id);
+  task->set_op_typename(name);
+  return task;
+}
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
+  Edge * edge = topo.add_edges();
+  assert(src_id.computation_id ==  dest_id.computation_id);
+  edge->set_computation(src_id.computation_id);
+  edge->set_dest(dest_id.task_id);
+  edge->set_src(src_id.task_id);
+  return edge;
+}
+
+void
+add_cfg_to_task(TaskMeta* task, std::string optname, std::string val) {
+  TaskMeta_DictEntry* op_cfg = task->add_config();
+  op_cfg->set_opt_name(optname);
+  op_cfg->set_val(val);
+}
+
+
 }

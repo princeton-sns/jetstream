@@ -31,10 +31,11 @@ ThreadedSource::process(boost::shared_ptr<Tuple> t) {
 
 void
 ThreadedSource::stop() {
-  LOG(INFO) << "Stopping " << typename_as_str() << " operator " << id();
+  LOG(INFO) << "Stopping " << typename_as_str() << " operator " << id() <<
+    ". Running is " << running;
   if (running) {
     running = false;
-    assert (loopThread->get_id()!=boost::this_thread::get_id());
+    assert (loopThread->get_id() != boost::this_thread::get_id());
     loopThread->join();
   }
 }
@@ -50,10 +51,13 @@ ThreadedSource::operator()() {
   }
   
   do {
-    congested->wait_for_space();
-
-    if (emit_1())
-      break;
+      if (congested->is_congested()) {
+        boost::this_thread::yield();
+        js_usleep(100 * 1000);
+        //don't loop here; need to re-check running
+      }
+      else if (emit_1())
+        break;
   } while (running); //running will be false if we're running synchronously
   
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";

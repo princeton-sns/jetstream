@@ -19,9 +19,13 @@ using namespace std;
 
 
 TEST(Operator, ReadOperator) {
+  // constants describing the test data file
+  enum {TEST_DATA_N_LINES = 19, TEST_DATA_N_EMPTY = 1};
+
   FileRead reader;
   map<string,string> config;
   config["file"] =  "src/tests/data/base_operators_data.txt";
+  config["skip_empty"] = "false";
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   reader.set_dest(rec);
   reader.configure(config);
@@ -32,10 +36,34 @@ TEST(Operator, ReadOperator) {
   }
 
   ASSERT_GT(rec->tuples.size(), (size_t)4);
+  ASSERT_EQ((size_t) TEST_DATA_N_LINES + 1, rec->tuples.size()); // file read adds blank line at end of file
   string s = rec->tuples[0]->e(0).s_val();
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
   ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
+
+
+  // try again, with the option to skip 0-length lines turned on
+  reader.stop();
+  rec->tuples.clear();
+
+  FileRead reader2;
+  config["skip_empty"] = "true";
+  reader2.set_dest(rec);
+  reader2.configure(config);
+  reader2.start();
+
+  // Wait for reader to process entire file (alternatively, call stop() after a while)
+  while (reader2.isRunning()) {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+  }
+
+  ASSERT_EQ((size_t) TEST_DATA_N_LINES - TEST_DATA_N_EMPTY, rec->tuples.size());
+  ASSERT_GT(rec->tuples.size(), (size_t)4);
+  s = rec->tuples[0]->e(0).s_val();
+  ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+  ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
 }
+
 
 
 TEST(Operator, GrepOperator)

@@ -21,6 +21,40 @@ std::string fmt(const jetstream::Tuple& t);
 
 
 
+struct operator_id_t {
+  int32_t computation_id; // which computation
+  int32_t task_id;        // which operator in the computation
+
+  bool operator< (const operator_id_t& rhs) const {
+    return computation_id < rhs.computation_id 
+      || task_id < rhs.task_id;
+  }
+  
+  std::string to_string () {
+    std::ostringstream buf;
+    buf << "(" << computation_id << "," << task_id << ")";
+    return buf.str();
+  }
+    
+  operator_id_t (int32_t comp, int32_t t) : computation_id (comp), task_id (t) {}
+  operator_id_t () : computation_id (0), task_id (0) {}
+};
+
+inline std::ostream& operator<<(std::ostream& out, operator_id_t id) {
+  out << "(" << id.computation_id << "," << id.task_id << ")";
+  return out;
+}
+
+
+TaskMeta* 
+add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name);
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id);
+
+void add_cfg_to_task(TaskMeta*, std::string optname, std::string val);
+
+
 inline void extend_tuple(jetstream::Tuple& t, int32_t i) {
   t.add_e()->set_i_val(i);
 }
@@ -33,6 +67,7 @@ inline void extend_tuple(jetstream::Tuple& t, const std::string& s) {
 inline void extend_tuple_time(jetstream::Tuple& t, time_t time) {
   t.add_e()->set_t_val((int)time);
 }
+
 
 
 }

@@ -1,6 +1,5 @@
 #include "dataplaneoperator.h"
 #include "base_operators.h"
-#include <boost/algorithm/string.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -8,8 +7,11 @@
 #include <stdio.h>
 
 #include <glog/logging.h>
-#include <boost/asio/ip/host_name.hpp>
+
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/interprocess/detail/atomic.hpp>
+
 
 #include "js_utils.h"
 
@@ -26,6 +28,12 @@ FileRead::configure(map<string,string> &config) {
     LOG(WARNING) << "no file to read, bailing" << endl;
     return operator_err_t("option 'file' not specified");
   }
+
+  boost::algorithm::to_lower(config["skip_empty"]);
+  // TODO which values of config["skip_empty"] convert to which boolean
+  // values?
+  istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
+
   return NO_ERR;
 }
 
@@ -72,6 +80,9 @@ FileRead::operator()() {
   // ios::good checks for failures in addition to eof
   while (running && in_file.good()) {
     getline(in_file, line);
+    if (skip_empty && line.length() == 0) {
+        continue;
+    }
     shared_ptr<Tuple> t( new Tuple);
     Element * e = t->add_e();
     e->set_s_val(line);
@@ -283,7 +294,7 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
 void
 SampleOperator::process (boost::shared_ptr<Tuple> t) {
   uint32_t v = gen();
-  if (v >= threshold) {
+  if (v >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
     emit(t);
   }
 }
@@ -385,6 +396,8 @@ const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
+const string OrderingOperator::my_type_name("Ordering operator");
+
 const string SampleOperator::my_type_name("Sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
 const string UnixOperator::my_type_name("Unix command");

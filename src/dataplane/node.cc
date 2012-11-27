@@ -184,7 +184,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
   case ControlMessage::ALTER:
     {
       const AlterTopo &alter = msg.alter();
-      handle_alter(response, alter);
+      handle_alter(alter, response);
       break;
     }
   case ControlMessage::STOP_COMPUTATION:
@@ -306,7 +306,7 @@ unparse_id (const TaskID& id) {
 
 
 ControlMessage
-Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
+Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
 {
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
@@ -416,7 +416,7 @@ Node::handle_alter (ControlMessage& response, const AlterTopo& topo)
       
       if (edge.has_dest_addr()) {   // sending to remote operator or cube
         shared_ptr<RemoteDestAdaptor> xceiver(
-            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait) );
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait, srcOperator) );
         dataConnMgr.register_new_adaptor(xceiver);
         srcOperator->set_dest(xceiver);
       }

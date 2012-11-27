@@ -36,6 +36,7 @@ class FileRead: public DataPlaneOperator {
 
  protected:
   std::string f_name; //name of file to read
+  bool skip_empty; // option: skip empty lines
   boost::shared_ptr<boost::thread> loopThread;
   volatile bool running;
 
@@ -114,6 +115,22 @@ class ExtendOperator: public DataPlaneOperator {
 
   
   virtual ~ExtendOperator() {};
+
+GENERIC_CLNAME
+};
+
+
+// given concurrent callers, sends out an ordered stream
+class OrderingOperator: public DataPlaneOperator {
+ private:
+  boost::mutex lock;
+  
+ public:
+
+  virtual void process (boost::shared_ptr<Tuple> t) {
+    boost::lock_guard<boost::mutex> critical_section (lock);
+    emit(t);
+  }
 
 GENERIC_CLNAME
 };

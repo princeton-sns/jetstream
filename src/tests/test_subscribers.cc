@@ -59,7 +59,7 @@ class SubscriberTest : public ::testing::Test {
 //  cout << topo.Utf8DebugString();
 
     ControlMessage r;
-    node->handle_alter(r, topo);
+    node->handle_alter(topo, r);
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     cout << "alter sent; cube should be present" << endl;
     
@@ -143,7 +143,7 @@ class SubscriberTest : public ::testing::Test {
     
     
     ControlMessage r;
-    node->handle_alter(r, topo);
+    node->handle_alter(topo, r);
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     
     shared_ptr<DataPlaneOperator> dest = node->get_operator( operator_id_t(compID, 2));

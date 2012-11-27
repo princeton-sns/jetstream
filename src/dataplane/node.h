@@ -107,7 +107,12 @@ class Node {
   /* Returns by value; typically the response is very short and so the dynamic alloc
    * overhead isn't worth it.
    */
-  ControlMessage handle_alter (ControlMessage& response, const AlterTopo& t);
+  ControlMessage handle_alter (const AlterTopo& t, ControlMessage& response);
+
+  
+  boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
+    return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
+  }
 
 //TODO include private copy-constructor and operator= here?
 
