@@ -5,6 +5,7 @@ import threading
 
 from controller_api import ControllerAPI
 from jetstream_types_pb2 import *
+from operator_schemas import OpType
 
 from query_graph import *
 
@@ -49,9 +50,9 @@ class LocalController(ControllerAPI):
     return LocalCube()
 
   def instantiate_op(self, op):
-    if op.type == Operator.OpType.UNIX:
+    if op.type == OpType.UNIX:
       return LocalUnix(op.id, op.cfg)
-    elif op.type == Operator.Optype.Fetcher:
+    elif op.type == Optype.Fetcher:
       the_cube = cubes[op.cfg['cube_name']] #FIXME should be a name not an ID here?
       return LocalFetcher(self, the_cube)
     else:

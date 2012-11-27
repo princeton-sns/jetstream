@@ -1,15 +1,17 @@
 import types
 
+
+
 from jetstream_types_pb2 import *
+from operator_schemas import SCHEMAS, OpType,SchemaError
 
 
 class QueryGraph(object):
   """Represents the client's-eye-view of a computation.
- We use the task IDs of operators internally. We also use the same ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
+ We use the task IDs of operators internally. We also use the same numeric ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
  This means, in particular, that you should be able to share a cube across computations. 
  
- Note that cube names are NOT unique across a computation; multiple nodes can and often do
- have cubes with the same name. -- this happens after a clone, e.g.
+ Note that cube names are, as a result, NOT required to be unique across a computation here. However the server does impose this limitation.
 """
 
   def __init__(self):
@@ -19,6 +21,22 @@ class QueryGraph(object):
     self.cubes = {}         # maps id -> value
     self.externalEdges = [] # literal protobuf edges
 
+
+  def get_sources(self):
+    """Returns a list of IDs corresponding to nodes without an in-edge"""
+    non_sources = set([x for (y,x) in self.edges])
+    ret = [x for x in (self.operators.keys() or self.cubes.keys()) if x not in non_sources]
+    return ret
+    
+  def forward_edge_map(self):
+    """Returns a map from each node to its set of forward edges"""
+    ret = {}
+    for (s,d) in self.edges:
+      if s not in ret:
+        ret[s] = [d]
+      else:
+        ret[s].append(d)
+    return ret
 
   def add_operator(self, type, cfg):
     """Add an operator to the graph"""
@@ -32,8 +50,30 @@ class QueryGraph(object):
     self.operators[id] = o
     self.nID += 1
     return id
-    
-    
+
+  def remove(self, o):  # NOTE: this routine is not yet carefully tested -- asr, 11/27/12
+    if isinstance(o, int):
+      oid = o
+      o = self.operators[oid] if oid in self.operators else self.cubes[oid]
+    else:
+      oid = o.get_id()
+      
+    for p in o.preds:    
+      edges.remove ( (oid, p) )
+    to_drop = []
+    for src,dest in self.edges:
+      if src == oid:
+        to_drop.append (  (src,dest) )
+        d = self.operators[dest] if dest in self.operators else self.cubes[dest]
+        d.remove_pred(o)
+    for e in to_drop:
+      self.edges.remove(e)
+      
+    if oid in self.operators:
+      del self.operators[oid]
+    else:
+      del self.cubes[oid]
+      
   def add_cube(self, name, desc = {}):
     """Add a cube to the graph"""
     c = Cube(self, name, desc, self.nID)
@@ -125,13 +165,42 @@ class QueryGraph(object):
     else:
       raise "unexpected param to copy_dest"
 
-
   def get_deploy_pb(self):
+    self.validate_schemas()
     req = ControlMessage()
     req.type = ControlMessage.ALTER  
     self.add_to_PB(req.alter)
     return req     
 
+
+  def validate_schemas(self):
+    worklist = self.get_sources()
+    input_schema = {}
+    for n in worklist:
+      input_schema[n] = ()
+    
+    forward_edges = self.forward_edge_map();
+    for n in worklist:
+#      print "validating schemas for outputs of %d" % n
+      #note that cubes don't have an output schema and subscribers are a special case
+      if n in self.operators:      
+        out_schema = self.operators[n].out_schema( input_schema[n])
+#        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
+        
+        for o in forward_edges.get(n, []):
+      
+          if o in input_schema: #already have a schema:
+            if input_schema[o] != out_schema:
+              err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
+                  % (n, o, str(out_schema), str(input_schema[o]))
+              raise SchemaError(err_msg)
+          else:
+            input_schema[o] = out_schema 
+            worklist.append(o)
+      else:
+        self.cubes[n].out_schema (input_schema[n])
+        # TODO need to verify the subscribers, and add them to worklist
+  #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
       
 # This represents the abstract concept of an operator or cube, for building
 # the query graphs. The concrete executable implementations are elsewhere.
@@ -148,6 +217,9 @@ class Destination(object):
     assert( isinstance(p,Destination) )
 
     self.preds.add(p)
+
+  def remove_pred(self, src):  #note that argument is a Destination, not an ID
+    self.preds.remove(src)
   
   def get_id(self):
     return self.id
@@ -179,28 +251,7 @@ class Destination(object):
 
 class Operator(Destination):
 
-  # Enumeration of already-defined operators
-  class OpType (object):
-    FILE_READ = "FileRead"
-    STRING_GREP = "StringGrep"
-    PARSE = "GenericParse"
-    EXTEND = "ExtendOperator"
-    T_ROUND_OPERATOR = "TRoundingOperator"
     
-    NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
-    SEND_K = "SendK"
-    RATE_RECEIVER = "RateRecordReceiver"
-    RAND_SOURCE = "RandSourceOperator"
-    RAND_EVAL = "RandEvalOperator"
-
-    TIME_SUBSCRIBE = "TimeBasedSubscriber"
-    
-
-    # Supported by Python local controller/worker only
-    UNIX = "Unix"
-    FETCHER = "Fetcher"
-
-  
   def __init__(self, graph, type, cfg, id):
     super(Operator,self).__init__(graph, id)
     self.type = type
@@ -222,6 +273,11 @@ class Operator(Destination):
      
   def set_cfg(self, key, val):
     self.cfg[key] = val
+
+  def out_schema(self, in_schema):
+    if self.type in SCHEMAS:
+      return SCHEMAS[self.type](in_schema, self.cfg)
+    raise SchemaError("Need to define out_schema for %s" % self.type)
 
 
 class Cube(Destination):
@@ -287,54 +343,79 @@ class Cube(Destination):
     else:
       return self.name
 
+  typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
+      Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
+
+  def out_schema(self, in_schema):
+    r = {}
+#    print "in-schema", in_schema
+#    print "dims", self.desc['dims']
+    for name, type, offset in self.desc['dims']:
+      r[offset] = (self.typecode_for_dname[type], name)
+      if offset >= len(in_schema):
+        raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
+            ( self.name, offset + 1,str(in_schema)))
+  
+    for name, type, offset in self.desc['aggs']:
+      r[offset] = (type, name)
+
+
+    for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
+      db_schema = r.get(i, ('undef', 'undef'))
+      if ty != db_schema[0]:
+        raise SchemaException ("Can't put value %s,%s into field %s of type %s" % \
+          (ty,name, db_schema[0], db_schema[1]))
+    return [ ]
 
 ##### Useful operators #####
-    
+
 def FileRead(graph, file, skip_empty=False):
    assert isinstance(file, str)
    cfg = { "file":file, "skip_empty" : str(skip_empty)}
-   return graph.add_operator(Operator.OpType.FILE_READ, cfg)  
-   
+   return graph.add_operator(OpType.FILE_READ, cfg)   
+
 
 def StringGrepOp(graph, pattern):
-   cfg = {"pattern":pattern}
-   return graph.add_operator(Operator.OpType.STRING_GREP, cfg)  
+   cfg = {"pattern":pattern, "id": 0}
+   return graph.add_operator(OpType.STRING_GREP, cfg)  
    
-   
+
 def ExtendOperator(graph, typeStr, fldValsList):
-    cfg = {"types": typeStr}
-    assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
-    i = 0
-    for x in fldValsList:
-      cfg[str(i)] = str(x)
-      i += 1
-    return graph.add_operator(Operator.OpType.EXTEND, cfg)
+  cfg = {"types": typeStr}
+  assert len(fldValsList) == len(typeStr) and len(typeStr) < 11 and len(typeStr) > 0
+  i = 0
+  for x in fldValsList:
+    cfg[str(i)] = str(x)
+    i += 1
+  return graph.add_operator(OpType.EXTEND, cfg)
 
 
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
     cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
-    return graph.add_operator(Operator.OpType.PARSE, cfg)
+    return graph.add_operator(OpType.PARSE, cfg)
 
 
 def RandSource(graph, n, k):
    cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
-   return graph.add_operator(Operator.OpType.RAND_SOURCE, cfg)      
+   return graph.add_operator(OpType.RAND_SOURCE, cfg)      
+
 
 def RandEval(graph):
-  return graph.add_operator(Operator.OpType.RAND_EVAL, {} )
+  return graph.add_operator(OpType.RAND_EVAL, {} )
+
 
 def TRoundOperator(graph, fld, round_to):
    cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
-   return graph.add_operator(Operator.OpType.T_ROUND_OPERATOR, cfg)      
+   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)      
     
     
 def NoOp(graph, file):
    cfg = {}
-   return graph.add_operator(Operator.OpType.EXTEND, cfg)  
+   return graph.add_operator(OpType.EXTEND, cfg)  
 
 class TimeSubscriber(Operator):
   def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = -1):
-    super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
+    super(TimeSubscriber,self).__init__(graph,OpType.TIME_SUBSCRIBE, {}, 0)
     self.filter = my_filter  #maps 
     self.cfg["window_size"] = interval
     self.cfg["sort_order"] = sort_order
@@ -384,12 +465,12 @@ class TimeSubscriber(Operator):
  
 def SendK(graph, k):
    cfg = {"k":str(k)}
-   return graph.add_operator(Operator.OpType.SEND_K, cfg)  
+   return graph.add_operator(OpType.SEND_K, cfg)  
 
 
 def RateRecord(graph):
    cfg = {}
-   return graph.add_operator(Operator.OpType.RATE_RECEIVER, cfg)         
+   return graph.add_operator(OpType.RATE_RECEIVER, cfg)         
 
 def DummySerialize(g):
   return g.add_operator("SerDeOverhead", {})

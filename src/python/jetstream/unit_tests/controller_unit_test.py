@@ -233,7 +233,6 @@ class TestQueryPlanner(unittest.TestCase):
       local_cube.add_dim("state", Element.STRING, 0)
       local_cube.add_dim("time", Element.TIME, 1)
       local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
-      local_cube.set_overwrite(True)  #fresh results
   
       pull_op = jsapi.TimeSubscriber(g, {}, 1000)
       pull_op.set_cfg("ts_field", 1)
@@ -250,6 +249,8 @@ class TestQueryPlanner(unittest.TestCase):
       nID = NodeID()
       nID.address, nID.portno = node
       src.instantiate_on(nID)
+
+    g.validate_schemas()
 
     err = planner.take_raw_topo(g.get_deploy_pb().alter)
     self.assertEquals(len(err), 0)  

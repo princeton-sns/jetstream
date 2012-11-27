@@ -46,10 +46,11 @@ VariableSamplingOperator::report_congestion() {
 
 void
 VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
-  LOG(INFO) << id() << " got " << msg.Utf8DebugString();
   
   if ( msg.type() == DataplaneMessage::SET_BACKOFF) {
     double frac_to_drop = 1.0 - msg.filter_level();
+    LOG(INFO) << id() << " setting filter level to " << msg.filter_level();
+
     assert( frac_to_drop <= 1);
     uint32_t new_thresh = frac_to_drop * numeric_limits<uint32_t>::max();
     atomic_write32(&threshold, new_thresh);

@@ -5,6 +5,7 @@ import unittest
 
 from local_controller import LocalController
 from query_graph import QueryGraph,Operator
+from operator_schemas import OpType
 from jetstream_types_pb2 import *
 
 
@@ -31,7 +32,7 @@ class TestLocalController(unittest.TestCase):
     
     n = self.server.get_a_node()
     g = QueryGraph()
-    op = g.add_operator(Operator.OpType.UNIX, {"cmd":"cat /etc/shells"})
+    op = g.add_operator(OpType.UNIX, {"cmd":"cat /etc/shells"})
     cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
     cube.instantiate_on(n)
@@ -49,7 +50,7 @@ class TestLocalController(unittest.TestCase):
 
   def test_clone_back(self):
     g = QueryGraph()
-    op = g.add_operator(Operator.OpType.UNIX, {"cmd":"cat /etc/shells"})
+    op = g.add_operator(OpType.UNIX, {"cmd":"cat /etc/shells"})
     cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
     self.assertEquals(g.nID, 3) #cubes have operator numbers
@@ -70,7 +71,7 @@ class TestLocalController(unittest.TestCase):
     n2.address = "dummy host"
     
     g = QueryGraph()
-    op = g.add_operator(Operator.OpType.UNIX,{"cmd":"cat /etc/shells"})
+    op = g.add_operator(OpType.UNIX,{"cmd":"cat /etc/shells"})
     cube = g.add_cube("storeddata", {})
     g.connect(op, cube)
     
