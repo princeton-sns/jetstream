@@ -342,6 +342,11 @@ UnixOperator::configure (std::map<std::string,std::string> &config) {
   }
   pipe = popen(cmd.c_str(), "r+");
 
+  if(NULL == pipe) {
+    LOG(WARNING) << "popen failed return = " << pipe <<"; errno =" <<errno <<"; strerror=" << strerror(errno);
+    return operator_err_t("popen failed");
+  }
+
   return NO_ERR;
 }
 
