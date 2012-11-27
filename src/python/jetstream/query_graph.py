@@ -3,7 +3,7 @@ import types
 
 
 from jetstream_types_pb2 import *
-from operator_schemas import SCHEMAS, OpType
+from operator_schemas import SCHEMAS, OpType,SchemaError
 
 
 class QueryGraph(object):
@@ -50,8 +50,25 @@ class QueryGraph(object):
     self.operators[id] = o
     self.nID += 1
     return id
-    
-    
+
+  def remove(self, o):  # NOTE: this routine is not yet carefully tested -- asr, 11/27/12
+    if isinstance(o, int):
+      oid = o
+      o = self.operators[oid] if oid in self.operators else self.cubes[oid]
+    else:
+      oid = o.get_id()
+      
+    for p in o.preds:    
+      edges.remove ( (oid, p) )
+    to_drop = []
+    for src,dest in self.edges:
+      if src == oid:
+        to_drop.append (  (src,dest) )
+        d = self.operators[dest] if dest in self.operators else self.cubes[dest]
+        d.remove_pred(o)
+    for e in to_drop:
+      self.edges.remove(e)
+      
   def add_cube(self, name, desc = {}):
     """Add a cube to the graph"""
     c = Cube(self, name, desc, self.nID)
@@ -159,18 +176,18 @@ class QueryGraph(object):
     
     forward_edges = self.forward_edge_map();
     for n in worklist:
-      print "validating schemas for outputs of %d" % n
+#      print "validating schemas for outputs of %d" % n
       #note that cubes don't have an output schema and subscribers are a special case
       if n in self.operators:      
         out_schema = self.operators[n].out_schema( input_schema[n])
-        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
+#        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
         
         for o in forward_edges.get(n, []):
       
           if o in input_schema: #already have a schema:
             if input_schema[o] != out_schema:
               err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
-                  % (n, str(out_schema), str(input_schema[o]))
+                  % (n, o, str(out_schema), str(input_schema[o]))
               raise SchemaError(err_msg)
           else:
             input_schema[o] = out_schema 
@@ -192,6 +209,9 @@ class Destination(object):
     assert( isinstance(p,Destination) )
 
     self.preds.add(p)
+
+  def remove_pred(self, src):  #note that argument is a Destination, not an ID
+    self.preds.remove(src)
   
   def get_id(self):
     return self.id
@@ -325,13 +345,13 @@ def FileRead(graph, file, skip_empty=False):
 
 
 def StringGrepOp(graph, pattern):
-   cfg = {"pattern":pattern}
+   cfg = {"pattern":pattern, "id": 0}
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
 
 def ExtendOperator(graph, typeStr, fldValsList):
   cfg = {"types": typeStr}
-  assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
+  assert len(fldValsList) == len(typeStr) and len(typeStr) < 11 and len(typeStr) > 0
   i = 0
   for x in fldValsList:
     cfg[str(i)] = str(x)
