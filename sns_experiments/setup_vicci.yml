@@ -1,0 +1,119 @@
+---
+# Instructions:
+# 1) install ansible 
+# 2) install ssh forward-agent so that you can pass your key along for git 
+# 3) add hosts you are working with to ansible_hosts file under [setup] section 
+# 4) run the following:
+# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts setup_vicci.yml -K --connection=ssh -f 1 -u princeton_jetstream
+#
+#
+#
+# This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
+# mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
+# it could run unit test.
+
+
+
+###initial packages###
+- hosts: setup
+  vars:
+    js_deps: /jetstream/deps
+    js_checkout: /jetstream/js
+  tasks:
+  - name: install cmake
+    yum: name=cmake state=present
+  - name: install gtest
+    yum: name=gtest state=present
+  - name: install libgtest-dev
+    yum: name=gtest-devel state=present
+  - name: install glog
+    yum: name=glog-devel state=present
+  - name: install mysql
+    yum: name=mysql-server state=present
+  - name: install mysqldb python 
+    yum: name=MySQL-python state=present
+  - name: install mysqlc++ 
+    yum: name=mysql-connector-c++-devel state=present
+  - name: install git 
+    yum: name=git state=present
+  - name: install gcc 
+    yum: name=gcc state=present
+  - name: install gcc-c++ 
+    yum: name=gcc-c++ state=present
+  - name: install make 
+    yum: name=make state=present
+  - name: install wget 
+    yum: name=wget state=present
+  - name: install tar
+    yum: name=tar state=present
+  - name: install bzip2-devel #for boost compile
+    yum: name=bzip2-devel state=present
+  - name: install python-devel #for boost compile
+    yum: name=python-devel state=present
+  - name: make sure jetstream deps dir exists
+    file: dest=/jetstream/deps state=directory mode=777
+  - name: download boost
+    command: wget http://downloads.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.gz -O boost_1_52_0.tar.gz 
+              chdir=/jetstream/deps
+              creates=/jetstream/deps/boost_1_52_0.tar.gz
+  - name: untar boost
+    command: tar -xzvf boost_1_52_0.tar.gz
+              chdir=/jetstream/deps
+              creates=/jetstream/deps/boost_1_52_0
+  - name: bootstrap boost
+    command: bootstrap.sh
+              chdir=/jetstream/deps/boost_1_52_0
+              creates=/jetstream/deps/boost_1_52_0/project-config.jam
+  - name: b2 boost
+    command: b2
+              chdir=/jetstream/deps/boost_1_52_0
+              creates=/jetstream/deps/boost_1_52_0/stage/lib
+     #include: /jetstream/deps/boost_1_52_0
+     #lib: /jetstream/deps/boost_1_52_0/stage/lib
+#mysql cpp connector
+  - name: download mysql cpp conn
+    command: wget http://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz/from/http://cdn.mysql.com/ -O mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz 
+            chdir=${js_deps} 
+            creates=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
+  - name: untar mysql cpp conn
+    command: tar -xzvf mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
+            chdir=${js_deps} 
+            creates=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit
+#install mysql cpp connector system wide
+  - name: Install mysql cpp conn include
+    command: cp -r ${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit/include /usr/ 
+            creates=/usr/include/cppconn/ 
+  - name: Install mysql cpp conn lib
+    command: cp -r ${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit/lib/* /usr/lib64/
+            creates=/usr/lib64/libmysqlcppconn.so.6.1.1.1
+  - name: set tmp dir perms #needed for mysql
+    file: path=/tmp state=directory mode=0777
+  - name: start mysql
+    service: name=mysqld state=started
+  - name: create mysql db test_cube
+    mysql_db: name=test_cube state=present login_user=root login_password=""
+#protobufs
+  - name: make sure protobufs dir exists
+    file: dest=${js_deps}/protobufs state=directory mode=777
+  - name: download protobufs
+    command: wget http://archive.ubuntu.com/ubuntu/pool/main/p/protobuf/protobuf_2.4.1.orig.tar.gz -O protobuf_2.4.1.orig.tar.gz 
+            chdir=${js_deps} 
+            creates=${js_deps}/protobuf_2.4.1.orig.tar.gz
+  - name: untar protobufs
+    command: tar -xzvf protobuf_2.4.1.orig.tar.gz
+            chdir=${js_deps} 
+            creates=${js_deps}/protobuf-2.4.1
+  - name: configure protobuf
+    command: ./configure --prefix=${js_deps}/protobufs
+            chdir=${js_deps}/protobuf-2.4.1
+            creates=${js_deps}/protobuf-2.4.1/config.h
+  - name: make protobuf
+    command: make install
+            chdir=${js_deps}/protobuf-2.4.1
+            creates=${js_deps}/protobufs/include
+#js
+  - name: make sure jetstream dir exists
+    file: dest=${js_checkout} state=directory mode=777
+
+
+
