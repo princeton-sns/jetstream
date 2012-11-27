@@ -19,8 +19,8 @@ const int compID = 4;
 
 
 TEST(Sampling, TwoLocalChains) {
-  const int CHAINS = 2;
-  int K = 100;
+  const unsigned int CHAINS = 2;
+  unsigned int K = 100;
   ostringstream fmt;
   fmt << K;
   string k_as_str = fmt.str();
@@ -47,7 +47,7 @@ TEST(Sampling, TwoLocalChains) {
   add_edge_to_alter(topo,  orderer_id, receiver_id);
 
   
-  for (int i=0; i < CHAINS; ++i) {
+  for (unsigned int i=0; i < CHAINS; ++i) {
     chainHeadIDs[i] = operator_id_t(compID, nextOpID++);
     TaskMeta* task  = add_operator_to_alter(topo, chainHeadIDs[i], "SendK");
     // Send some tuples, e.g. k = 5
@@ -86,11 +86,11 @@ TEST(Sampling, TwoLocalChains) {
   
   shared_ptr<SendK> chainHeads[2];
   
-  for (int i =0; i < CHAINS; ++i) {
+  for (unsigned int i =0; i < CHAINS; ++i) {
     chainHeads[i] =  boost::dynamic_pointer_cast<SendK>(node.get_operator( chainHeadIDs[i] ));
   }
 
-  int tries = 0;
+  unsigned int tries = 0;
   while (tries++ < 5 && dest->tuples.size() < CHAINS * K) {
     js_usleep(50 * 1000);
   }
@@ -108,13 +108,13 @@ TEST(Sampling, TwoLocalChains) {
 
   cout << "doing restarts" << endl;
   //restart sends
-  for (int i =0; i < CHAINS; ++i) {
+  for (unsigned int i =0; i < CHAINS; ++i) {
     chainHeads[i]->reset();
     chainHeads[i]->start();
   }
   
   //should get only half again what we got before, due to backoff
-  int expected_after_sampling = 3 * CHAINS * K /2;
+  unsigned int expected_after_sampling = 3 * CHAINS * K /2;
   tries = 0;
  
   while (tries++ < 5 && dest->tuples.size() < expected_after_sampling) {
