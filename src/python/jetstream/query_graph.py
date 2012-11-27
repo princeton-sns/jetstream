@@ -3,13 +3,20 @@ import types
 from jetstream_types_pb2 import *
 
 
+class SchemaError(Exception):
+  def __init__(self, value):
+    self.value = value
+
+  def __str__(self):
+    return repr(self.value)
+   
+
 class QueryGraph(object):
   """Represents the client's-eye-view of a computation.
- We use the task IDs of operators internally. We also use the same ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
+ We use the task IDs of operators internally. We also use the same numeric ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
  This means, in particular, that you should be able to share a cube across computations. 
  
- Note that cube names are NOT unique across a computation; multiple nodes can and often do
- have cubes with the same name. -- this happens after a clone, e.g.
+ Note that cube names are, as a result, NOT required to be unique across a computation here. However the server does impose this limitation.
 """
 
   def __init__(self):
@@ -19,6 +26,22 @@ class QueryGraph(object):
     self.cubes = {}         # maps id -> value
     self.externalEdges = [] # literal protobuf edges
 
+
+  def get_sources(self):
+    """Returns a list of IDs corresponding to nodes without an in-edge"""
+    non_sources = set([x for (y,x) in self.edges])
+    ret = [x for x in (self.operators.keys() or self.cubes.keys()) if x not in non_sources]
+    return ret
+    
+  def forward_edge_map(self):
+    """Returns a map from each node to its set of forward edges"""
+    ret = {}
+    for (s,d) in self.edges:
+      if s not in ret:
+        ret[s] = [d]
+      else:
+        ret[s].append(d)
+    return ret
 
   def add_operator(self, type, cfg):
     """Add an operator to the graph"""
@@ -125,12 +148,35 @@ class QueryGraph(object):
     else:
       raise "unexpected param to copy_dest"
 
-
   def get_deploy_pb(self):
+    self.validate_schemas()
     req = ControlMessage()
     req.type = ControlMessage.ALTER  
     self.add_to_PB(req.alter)
     return req     
+
+
+  def validate_schemas(self):
+    worklist = self.get_sources()
+    input_schema = {}
+    for n in worklist:
+      input_schema[n] = ()
+    
+    forward_edges = self.forward_edge_map();
+    for n in worklist:
+      #note that cubes don't have an output schema and subscribers are a special case
+      if n in self.operators:      
+        out_schema = self.operators[n].out_schema( input_schema[n])
+        
+        for o in forward_edges[n]:
+      
+          if o in input_schema: #already have a schema:
+            if input_schema[o] != out_schema:
+              err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
+                  % (n, str(out_schema), str(input_schema[o]))
+              raise SchemaError(err_msg)
+          else:
+            input_schema[o] = out_schema  
 
       
 # This represents the abstract concept of an operator or cube, for building
@@ -199,8 +245,14 @@ class Operator(Destination):
     # Supported by Python local controller/worker only
     UNIX = "Unix"
     FETCHER = "Fetcher"
-
   
+  SCHEMAS = {}
+  SCHEMAS[OpType.SEND_K] =  lambda x: [('I','K')]
+  SCHEMAS[OpType.RAND_SOURCE] = lambda x: [('S','state')]
+  SCHEMAS[OpType.RATE_RECEIVER] = lambda x: x
+#  SCHEMAS[NO_OP] = lambda x: x
+
+    
   def __init__(self, graph, type, cfg, id):
     super(Operator,self).__init__(graph, id)
     self.type = type
@@ -222,6 +274,11 @@ class Operator(Destination):
      
   def set_cfg(self, key, val):
     self.cfg[key] = val
+
+  def out_schema(self, in_schema):
+    if self.type in self.SCHEMAS:
+      return self.SCHEMAS[self.type]
+    raise SchemaError("Need to define out_schema for %s" % self.type)
 
 
 class Cube(Destination):
@@ -290,25 +347,31 @@ class Cube(Destination):
 
 ##### Useful operators #####
     
-def FileRead(graph, file, skip_empty=False):
-   assert isinstance(file, str)
-   cfg = { "file":file, "skip_empty" : str(skip_empty)}
-   return graph.add_operator(Operator.OpType.FILE_READ, cfg)  
-   
+class FileRead(Operator):
+  def __init__(self, graph, file, skip_empty=False):
+    cfg = { "file":file, "skip_empty" : str(skip_empty)}
+    assert isinstance(file, str)
+    super(FileRead,self).__init__(graph, Operator.OpType.FILE_READ, cfg, 0)
+    self.id = graph.add_existing_operator(self)
+  
+  def out_schema(self, in_schema):
+    return [("S","")]
 
 def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern}
    return graph.add_operator(Operator.OpType.STRING_GREP, cfg)  
    
    
-def ExtendOperator(graph, typeStr, fldValsList):
+class ExtendOperator(Operator):
+  def __init__(self,graph, typeStr, fldValsList):
     cfg = {"types": typeStr}
     assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
     i = 0
     for x in fldValsList:
       cfg[str(i)] = str(x)
       i += 1
-    return graph.add_operator(Operator.OpType.EXTEND, cfg)
+    super(ExtendOperator,self).__init__(graph, Operator.OpType.EXTEND, cfg, 0)
+    self.id = graph.add_existing_operator(self)
 
 
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
@@ -320,13 +383,26 @@ def RandSource(graph, n, k):
    cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
    return graph.add_operator(Operator.OpType.RAND_SOURCE, cfg)      
 
-def RandEval(graph):
-  return graph.add_operator(Operator.OpType.RAND_EVAL, {} )
+class RandEval(Operator):
+  def __init__(self,graph):
+    super(RandEval,self).__init__(graph, Operator.OpType.RAND_EVAL, {}, 0)
+    self.id = graph.add_existing_operator(self)  
 
-def TRoundOperator(graph, fld, round_to):
-   cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
-   return graph.add_operator(Operator.OpType.T_ROUND_OPERATOR, cfg)      
-    
+
+
+class TRoundOperator(Operator):
+  def __init__(self, graph, fld, round_to):
+    cfg = {"fld_offset":fld, "round_to":str(round_to)} # "rate":str(rate)
+    super(TRoundOperator,self).__init__(graph, Operator.OpType.T_ROUND_OPERATOR, cfg, 0)
+    self.id = graph.add_existing_operator(self)
+
+  def out_schema(self, in_schema):
+    t = in_schema[fld][0]
+    if t != "I":
+      raise SchemaError("rounding operator requires that field %d be an int, instead was %s" % (fld,t))
+    return in_schema
+
+
     
 def NoOp(graph, file):
    cfg = {}
