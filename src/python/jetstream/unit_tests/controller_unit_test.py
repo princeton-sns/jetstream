@@ -251,6 +251,8 @@ class TestQueryPlanner(unittest.TestCase):
       nID.address, nID.portno = node
       src.instantiate_on(nID)
 
+    g.validate_schemas()
+
     err = planner.take_raw_topo(g.get_deploy_pb().alter)
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)

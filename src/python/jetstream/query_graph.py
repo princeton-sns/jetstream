@@ -1,15 +1,10 @@
 import types
 
+
+
 from jetstream_types_pb2 import *
+from operator_schemas import SCHEMAS, OpType
 
-
-class SchemaError(Exception):
-  def __init__(self, value):
-    self.value = value
-
-  def __str__(self):
-    return repr(self.value)
-   
 
 class QueryGraph(object):
   """Represents the client's-eye-view of a computation.
@@ -164,11 +159,13 @@ class QueryGraph(object):
     
     forward_edges = self.forward_edge_map();
     for n in worklist:
+      print "validating schemas for outputs of %d" % n
       #note that cubes don't have an output schema and subscribers are a special case
       if n in self.operators:      
         out_schema = self.operators[n].out_schema( input_schema[n])
+        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
         
-        for o in forward_edges[n]:
+        for o in forward_edges.get(n, []):
       
           if o in input_schema: #already have a schema:
             if input_schema[o] != out_schema:
@@ -176,7 +173,8 @@ class QueryGraph(object):
                   % (n, str(out_schema), str(input_schema[o]))
               raise SchemaError(err_msg)
           else:
-            input_schema[o] = out_schema  
+            input_schema[o] = out_schema 
+            worklist.append(o)
 
       
 # This represents the abstract concept of an operator or cube, for building
@@ -225,33 +223,6 @@ class Destination(object):
 
 class Operator(Destination):
 
-  # Enumeration of already-defined operators
-  class OpType (object):
-    FILE_READ = "FileRead"
-    STRING_GREP = "StringGrep"
-    PARSE = "GenericParse"
-    EXTEND = "ExtendOperator"
-    T_ROUND_OPERATOR = "TRoundingOperator"
-    
-    NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
-    SEND_K = "SendK"
-    RATE_RECEIVER = "RateRecordReceiver"
-    RAND_SOURCE = "RandSourceOperator"
-    RAND_EVAL = "RandEvalOperator"
-
-    TIME_SUBSCRIBE = "TimeBasedSubscriber"
-    
-
-    # Supported by Python local controller/worker only
-    UNIX = "Unix"
-    FETCHER = "Fetcher"
-  
-  SCHEMAS = {}
-  SCHEMAS[OpType.SEND_K] =  lambda x: [('I','K')]
-  SCHEMAS[OpType.RAND_SOURCE] = lambda x: [('S','state')]
-  SCHEMAS[OpType.RATE_RECEIVER] = lambda x: x
-#  SCHEMAS[NO_OP] = lambda x: x
-
     
   def __init__(self, graph, type, cfg, id):
     super(Operator,self).__init__(graph, id)
@@ -276,8 +247,8 @@ class Operator(Destination):
     self.cfg[key] = val
 
   def out_schema(self, in_schema):
-    if self.type in self.SCHEMAS:
-      return self.SCHEMAS[self.type]
+    if self.type in SCHEMAS:
+      return SCHEMAS[self.type](in_schema, self.cfg)
     raise SchemaError("Need to define out_schema for %s" % self.type)
 
 
@@ -346,71 +317,54 @@ class Cube(Destination):
 
 
 ##### Useful operators #####
-    
-class FileRead(Operator):
-  def __init__(self, graph, file, skip_empty=False):
-    cfg = { "file":file, "skip_empty" : str(skip_empty)}
-    assert isinstance(file, str)
-    super(FileRead,self).__init__(graph, Operator.OpType.FILE_READ, cfg, 0)
-    self.id = graph.add_existing_operator(self)
-  
-  def out_schema(self, in_schema):
-    return [("S","")]
+
+def FileRead(graph, file, skip_empty=False):
+   assert isinstance(file, str)
+   cfg = { "file":file, "skip_empty" : str(skip_empty)}
+   return graph.add_operator(OpType.FILE_READ, cfg)   
+
 
 def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern}
-   return graph.add_operator(Operator.OpType.STRING_GREP, cfg)  
+   return graph.add_operator(OpType.STRING_GREP, cfg)  
    
-   
-class ExtendOperator(Operator):
-  def __init__(self,graph, typeStr, fldValsList):
-    cfg = {"types": typeStr}
-    assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
-    i = 0
-    for x in fldValsList:
-      cfg[str(i)] = str(x)
-      i += 1
-    super(ExtendOperator,self).__init__(graph, Operator.OpType.EXTEND, cfg, 0)
-    self.id = graph.add_existing_operator(self)
+
+def ExtendOperator(graph, typeStr, fldValsList):
+  cfg = {"types": typeStr}
+  assert len(fldValsList) == len(typeStr) and len(typeStr) < 11
+  i = 0
+  for x in fldValsList:
+    cfg[str(i)] = str(x)
+    i += 1
+  return graph.add_operator(OpType.EXTEND, cfg)
 
 
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
     cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
-    return graph.add_operator(Operator.OpType.PARSE, cfg)
+    return graph.add_operator(OpType.PARSE, cfg)
 
 
 def RandSource(graph, n, k):
    cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
-   return graph.add_operator(Operator.OpType.RAND_SOURCE, cfg)      
-
-class RandEval(Operator):
-  def __init__(self,graph):
-    super(RandEval,self).__init__(graph, Operator.OpType.RAND_EVAL, {}, 0)
-    self.id = graph.add_existing_operator(self)  
+   return graph.add_operator(OpType.RAND_SOURCE, cfg)      
 
 
-
-class TRoundOperator(Operator):
-  def __init__(self, graph, fld, round_to):
-    cfg = {"fld_offset":fld, "round_to":str(round_to)} # "rate":str(rate)
-    super(TRoundOperator,self).__init__(graph, Operator.OpType.T_ROUND_OPERATOR, cfg, 0)
-    self.id = graph.add_existing_operator(self)
-
-  def out_schema(self, in_schema):
-    t = in_schema[fld][0]
-    if t != "I":
-      raise SchemaError("rounding operator requires that field %d be an int, instead was %s" % (fld,t))
-    return in_schema
+def RandEval(graph):
+  return graph.add_operator(OpType.RAND_EVAL, {} )
 
 
+def TRoundOperator(graph, fld, round_to):
+   cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
+   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)      
+    
     
 def NoOp(graph, file):
    cfg = {}
-   return graph.add_operator(Operator.OpType.EXTEND, cfg)  
+   return graph.add_operator(OpType.EXTEND, cfg)  
 
 class TimeSubscriber(Operator):
   def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = -1):
-    super(TimeSubscriber,self).__init__(graph,Operator.OpType.TIME_SUBSCRIBE, {}, 0)
+    super(TimeSubscriber,self).__init__(graph,OpType.TIME_SUBSCRIBE, {}, 0)
     self.filter = my_filter  #maps 
     self.cfg["window_size"] = interval
     self.cfg["sort_order"] = sort_order
@@ -460,12 +414,12 @@ class TimeSubscriber(Operator):
  
 def SendK(graph, k):
    cfg = {"k":str(k)}
-   return graph.add_operator(Operator.OpType.SEND_K, cfg)  
+   return graph.add_operator(OpType.SEND_K, cfg)  
 
 
 def RateRecord(graph):
    cfg = {}
-   return graph.add_operator(Operator.OpType.RATE_RECEIVER, cfg)         
+   return graph.add_operator(OpType.RATE_RECEIVER, cfg)         
 
 def DummySerialize(g):
   return g.add_operator("SerDeOverhead", {})
