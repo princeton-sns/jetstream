@@ -22,6 +22,8 @@
     copy: src=deploy_key dest=/root/.ssh/id_rsa mode=0700
   - name: copy deploy key.pub
     copy: src=deploy_key.pub dest=/root/.ssh/id_rsa.pub mode=0700
+  - name: copy known host
+    copy: src=known_hosts dest=/root/.ssh/known_hosts mode=0700
   - name: checkout jetstream
     git: repo=git@bitbucket.org:mfreed/jetstream.git dest=${js_checkout}
   - name: make sure jetstream build dir exists
