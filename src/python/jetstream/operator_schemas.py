@@ -19,6 +19,7 @@ class OpType (object):
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
   RATE_RECEIVER = "RateRecordReceiver"
+  ECHO = "EchoOperator"
   RAND_SOURCE = "RandSourceOperator"
   RAND_EVAL = "RandEvalOperator"
 
@@ -85,6 +86,7 @@ SCHEMAS[OpType.PARSE] = validate_parse
 SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
 
+SCHEMAS[OpType.ECHO] = lambda schema,cfg: schema 
 SCHEMAS[OpType.SEND_K] =  lambda schema,cfg: [('I','K')]
 SCHEMAS[OpType.RATE_RECEIVER] = lambda schema,cfg: schema
 SCHEMAS[OpType.RAND_SOURCE] = lambda schema,cfg: [('S','state'), ('T', 'timestamp')]

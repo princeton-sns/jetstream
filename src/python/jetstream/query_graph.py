@@ -504,5 +504,5 @@ def DummySerialize(g):
   
 
 def Echo(g):
-  return g.add_operator("EchoOperator", {})
+  return g.add_operator(OpType.ECHO, {})
   
