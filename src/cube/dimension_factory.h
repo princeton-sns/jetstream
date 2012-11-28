@@ -28,8 +28,12 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
   static boost::shared_ptr<jetstream::cube::MysqlDimension> create(jetstream::CubeSchema_Dimension _schema)
   {
     if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME){
-//      boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeHierarchy>();
         boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<jetstream::cube::MysqlDimensionTime>();
+        obj->init(_schema);
+      return obj;
+    }
+    else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_HIERARCHY){
+        boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeHierarchy>();
         obj->init(_schema);
       return obj;
     }

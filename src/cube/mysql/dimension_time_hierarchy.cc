@@ -32,6 +32,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionTimeHierarchy::get_key(Tuple con
 
 vector<string> MysqlDimensionTimeHierarchy::get_column_names() const {
   vector<string> decl;
+  decl.push_back(get_base_column_name()+"_time");
   decl.push_back(get_base_column_name()+"_year");
   decl.push_back(get_base_column_name()+"_month");
   decl.push_back(get_base_column_name()+"_day");
@@ -44,6 +45,7 @@ vector<string> MysqlDimensionTimeHierarchy::get_column_names() const {
 
 vector<string> MysqlDimensionTimeHierarchy::get_column_types() const {
   vector<string> decl;
+  decl.push_back("DATETIME");
   decl.push_back("SMALLINT"); //Y
   decl.push_back("TINYINT"); //M
   decl.push_back("TINYINT"); //D
@@ -62,14 +64,18 @@ void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(shared_ptr<sql::Pre
   if(e->has_t_val()) {
     struct tm temptm;
     time_t clock = e->t_val();
-    localtime_r(&clock, &temptm);
-    pstmt->setInt(field_index, temptm.tm_year);
-    pstmt->setInt(field_index+1, temptm.tm_mon);
-    pstmt->setInt(field_index+2, temptm.tm_mday);
-    pstmt->setInt(field_index+3, temptm.tm_hour);
-    pstmt->setInt(field_index+4, temptm.tm_min);
-    pstmt->setInt(field_index+5, temptm.tm_sec);
-    field_index += 6;
+    char timestring[30];
+    localtime_r(&clock, &temptm); 
+    strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
+    
+    pstmt->setString(field_index, timestring);
+    pstmt->setInt(field_index+1, temptm.tm_year+1900);
+    pstmt->setInt(field_index+2, temptm.tm_mon+1);
+    pstmt->setInt(field_index+3, temptm.tm_mday);
+    pstmt->setInt(field_index+4, temptm.tm_hour);
+    pstmt->setInt(field_index+5, temptm.tm_min);
+    pstmt->setInt(field_index+6, temptm.tm_sec);
+    field_index += 7;
     return;
   }
 
@@ -82,16 +88,12 @@ string MysqlDimensionTimeHierarchy::get_where_clause(jetstream::Tuple const &t, 
 
   if(e.has_t_val()) {
     struct tm temptm;
+    char timestring[30];
     time_t clock = e.t_val();
     localtime_r(&clock, &temptm);
-    string sql = "`"+get_base_column_name() + "_year` "+ op +" "+boost::lexical_cast<string>(temptm.tm_year)+" AND ";
-    sql += "`"+get_base_column_name() + "_month` "+ op +" "+boost::lexical_cast<string>(temptm.tm_mon)+" AND ";
-    sql += "`"+get_base_column_name() + "_day` "+ op +" "+boost::lexical_cast<string>(temptm.tm_mday)+" AND ";
-    sql += "`"+get_base_column_name() + "_hour` "+ op +" "+boost::lexical_cast<string>(temptm.tm_hour)+" AND ";
-    sql += "`"+get_base_column_name() + "_minute` "+ op +" "+boost::lexical_cast<string>(temptm.tm_min)+" AND ";
-    sql += "`"+get_base_column_name() + "_second` "+ op +" "+boost::lexical_cast<string>(temptm.tm_sec);
+    strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     tuple_index += 1;
-    return sql;
+    return "`"+get_base_column_name() + "_time` "+ op +" \""+timestring+"\"";
   }
 
   if(!is_optional)
@@ -103,44 +105,72 @@ string MysqlDimensionTimeHierarchy::get_where_clause(jetstream::Tuple const &t, 
 
 void MysqlDimensionTimeHierarchy::populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
   jetstream::Element *elem = t->add_e();
-  struct tm temptm;
-  temptm.tm_year = resultset->getInt(column_index);
-  temptm.tm_mon = resultset->getInt(column_index+1);
-  temptm.tm_mday = resultset->getInt(column_index+2);
-  temptm.tm_hour = resultset->getInt(column_index+3);
-  temptm.tm_min = resultset->getInt(column_index+4);
-  temptm.tm_sec = resultset->getInt(column_index+5);
-  temptm.tm_isdst = -1; //Make mktime figure it out
+  
+  string timestring = resultset->getString(column_index);
+  if (timestring != "0000-00-00 00:00:00") {
+    struct tm temptm;
+    temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
+    
+    if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL) {
+      elem->set_t_val(mktime(&temptm));
+    }
+    else {
+      LOG(FATAL)<<"Error in time conversion";
+    }
 
-  time_t time = mktime(&temptm);
-  if (time > 0) {
-    elem->set_t_val(time);
+    column_index += 7;
+    return;
   }
-  else {
-    LOG(FATAL)<<"Error in time conversion";
-  }
+  else
+  {
+    /* happens with rollups */
+    struct tm temptm;
+    temptm.tm_year = resultset->getInt(column_index+1)-1900;
+    temptm.tm_mon = resultset->getInt(column_index+2)-1;
+    temptm.tm_mday = resultset->getInt(column_index+3);
+    temptm.tm_hour = resultset->getInt(column_index+4);
+    temptm.tm_min = resultset->getInt(column_index+5);
+    temptm.tm_sec = resultset->getInt(column_index+6);
+    temptm.tm_isdst = -1; //Make mktime figure it out
 
-  column_index+=6;
+    time_t time = mktime(&temptm);
+    if (time > 0) {
+      elem->set_t_val(time);
+    }
+    else {
+      LOG(FATAL)<<"Error in time conversion";
+    }
+
+    column_index+=7;
+    return;
+  }
 }
 
-string MysqlDimensionTimeHierarchy::get_select_clause_for_rollup(unsigned int const level) const {
-
+string 
+MysqlDimensionTimeHierarchy::get_select_clause_for_rollup(unsigned int const level) const {
   vector<string>cols = get_column_names();
   vector<string>vals;
+  vector<string>time_vals;
   
   for(unsigned int i=0; i<6;++i)
   {
     if(i<level)
     {
-      vals.push_back(cols[i]);
+      vals.push_back(cols[i+1]);
+      time_vals.push_back(cols[i+1]);
     }
     else
     {
+      if(i == 0)
+        time_vals.push_back("0000");
+      else
+        time_vals.push_back("00");
       vals.push_back("0");
     }
   }
   string sel = boost::algorithm::join(vals, ", ");
-  return sel+", "+boost::lexical_cast<std::string>((level > MysqlDimensionTimeHierarchy::LEVEL_SECOND? MysqlDimensionTimeHierarchy::LEVEL_SECOND:level));
+  string time_sel = "CONCAT("+time_vals[0]+", \"-\", "+time_vals[1]+", \"-\", "+time_vals[2]+", \" \", "+time_vals[3]+", \":\", "+time_vals[4]+", \":\", "+time_vals[5]+")";
+  return time_sel+","+sel+", "+boost::lexical_cast<std::string>((level > MysqlDimensionTimeHierarchy::LEVEL_SECOND? MysqlDimensionTimeHierarchy::LEVEL_SECOND:level));
 
 }
     
@@ -150,7 +180,7 @@ string MysqlDimensionTimeHierarchy::get_groupby_clause_for_rollup(unsigned int c
   
   for(unsigned int i=0; i<level;++i)
   {
-    vals.push_back(cols[i]);
+    vals.push_back(cols[i+1]);
   }
   
   return boost::algorithm::join(vals, ", ");

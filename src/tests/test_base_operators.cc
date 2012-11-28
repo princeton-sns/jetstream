@@ -181,7 +181,7 @@ TEST(Operator,ParseOperator) {
   cfg["field_to_parse"] = "0";
   cfg["types"] = "S";
   operator_err_t err = parse2.configure(cfg);
-  ASSERT_GT(err.length(), 1);
+  ASSERT_GT(err.length(), 1U);
   
 }
 

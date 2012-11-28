@@ -19,7 +19,7 @@ class CubeTest : public ::testing::Test {
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
-      dim->set_type(CubeSchema_Dimension_DimensionType_TIME);
+      dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
       dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
@@ -928,7 +928,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
 
 }
 //  Disabled because we ren't using the time hierarchy right now.
-TEST_F(CubeTest, DISABLED_MysqlTestTimeRollup) {
+TEST_F(CubeTest, MysqlTestTimeRollup) {
 
   boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
 
