@@ -24,6 +24,8 @@
     yum: name=cmake state=present
   - name: install gtest
     yum: name=gtest state=present
+  - name: install python setup tools
+    yum: name=python-setuptools state=present
   - name: install libgtest-dev
     yum: name=gtest-devel state=present
   - name: install glog
@@ -111,6 +113,9 @@
     command: make install
             chdir=${js_deps}/protobuf-2.4.1
             creates=${js_deps}/protobufs/include
+  - name: install python protobuf
+    command: python setup.py install
+            chdir=${js_deps}/protobuf-2.4.1/python
 #js
   - name: make sure jetstream dir exists
     file: dest=${js_checkout} state=directory mode=777
