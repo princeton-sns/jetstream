@@ -111,8 +111,8 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("dataplane_port"))
     config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
 
-  if (input_opts.count("controlplane_port"))
-    config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
+//  if (input_opts.count("controlplane_port"))
+ //   config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
 
   if (input_opts.count("webinterface_port"))
     config.webinterface_port = input_opts["webinterface_port"].as<port_t>();

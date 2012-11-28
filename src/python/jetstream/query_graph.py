@@ -25,8 +25,7 @@ class QueryGraph(object):
   def get_sources(self):
     """Returns a list of IDs corresponding to nodes without an in-edge"""
     non_sources = set([x for (y,x) in self.edges])
-    ret = [x for x in (self.operators.keys() or self.cubes.keys()) if x not in non_sources]
-    return ret
+    return [x for x in (self.operators.keys() + self.cubes.keys()) if x not in non_sources]
     
   def forward_edge_map(self):
     """Returns a map from each node to its set of forward edges"""
@@ -59,7 +58,7 @@ class QueryGraph(object):
       oid = o.get_id()
       
     for p in o.preds:    
-      edges.remove ( (oid, p) )
+      self.edges.remove ( (p.id,oid) )
     to_drop = []
     for src,dest in self.edges:
       if src == oid:
@@ -174,31 +173,38 @@ class QueryGraph(object):
 
 
   def validate_schemas(self):
-    worklist = self.get_sources()
+    worklist = self.get_sources()  #worklist is a list of IDs
+#    print "initial source operators",worklist
     input_schema = {}
     for n in worklist:
       input_schema[n] = ()
     
     forward_edges = self.forward_edge_map();
     for n in worklist:
+      
 #      print "validating schemas for outputs of %d" % n
       #note that cubes don't have an output schema and subscribers are a special case
-      if n in self.operators:      
+      if n in self.operators:     
+#        print "found operator",n,"of type",self.operators[n].type 
+        n_type = self.operators[n].type
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
-        
-        for o in forward_edges.get(n, []):
-      
-          if o in input_schema: #already have a schema:
-            if input_schema[o] != out_schema:
-              err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
-                  % (n, o, str(out_schema), str(input_schema[o]))
-              raise SchemaError(err_msg)
-          else:
-            input_schema[o] = out_schema 
-            worklist.append(o)
       else:
-        self.cubes[n].out_schema (input_schema[n])
+        n_type = self.cubes[n].name + " cube"    
+        out_schema = self.cubes[n].out_schema (input_schema[n])
+        
+#        print "out-schema for",n,n_type,"is",out_schema
+  
+      for o in forward_edges.get(n, []):
+    
+        if o in input_schema: #already have a schema:
+          if input_schema[o] != out_schema:
+            err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
+                % (n, o, str(out_schema), str(input_schema[o]))
+            raise SchemaError(err_msg)
+        else:
+          input_schema[o] = out_schema 
+          worklist.append(o)
         # TODO need to verify the subscribers, and add them to worklist
   #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
       
@@ -297,7 +303,7 @@ class Cube(Destination):
       self.desc['dims'] = []
     if 'aggs' not in self.desc:
       self.desc['aggs'] = []
-
+    self.cached_schema = None
 
   def add_dim(self, dim_name, dim_type, offset):
     self.desc['dims'].append(  (dim_name, dim_type, offset) )
@@ -346,27 +352,45 @@ class Cube(Destination):
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
       Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
 
-  def out_schema(self, in_schema):
+  typecode_for_aname = { 'string':'S', 'count':'I' }
+
+  def out_schema_map(self):
+#    if self.cached_schema is not None:
+#      return self.cached_schema
     r = {}
-#    print "in-schema", in_schema
-#    print "dims", self.desc['dims']
     for name, type, offset in self.desc['dims']:
       r[offset] = (self.typecode_for_dname[type], name)
-      if offset >= len(in_schema):
-        raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
-            ( self.name, offset + 1,str(in_schema)))
   
     for name, type, offset in self.desc['aggs']:
-      r[offset] = (type, name)
-
+      r[offset] = (self.typecode_for_aname.get(type, "undef:"+type) , name)      
+    return r
+    
+    
+  def out_schema(self, in_schema):
+    r = self.out_schema_map()
+    
+#    print "in-schema", in_schema
+#    print "dims", self.desc['dims']
+    max_dim = max([ off for _,_,off in self.desc['dims']])
+    if max_dim >= len(in_schema) and len(in_schema) > 0:
+      raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
+          ( self.name, max_dim + 1,str(in_schema)))
 
     for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
       db_schema = r.get(i, ('undef', 'undef'))
       if ty != db_schema[0]:
         raise SchemaException ("Can't put value %s,%s into field %s of type %s" % \
           (ty,name, db_schema[0], db_schema[1]))
-    return [ ]
 
+    ret = []
+    for k in range(0, max(r.keys()) +1 ):
+      if k in r:
+        ret.append ( r[k] )
+      else:
+        ret.append ( ('undef', 'undef') )
+#    print "cube",self.name,"has schema", ret
+    return ret
+    
 ##### Useful operators #####
 
 def FileRead(graph, file, skip_empty=False):
@@ -458,7 +482,10 @@ class TimeSubscriber(Operator):
     self.cfg["slice_tuple"] = serialized_filter
     
     my_meta = Operator.add_to_PB(self,alter)
-    
+
+  def out_schema(self, in_schema):
+#    print "time subscriber schema"
+    return in_schema  #everything is just passed through    
     
     
 ##### Test operators #####
@@ -477,5 +504,5 @@ def DummySerialize(g):
   
 
 def Echo(g):
-  return g.add_operator("EchoOperator", {})
+  return g.add_operator(OpType.ECHO, {})
   

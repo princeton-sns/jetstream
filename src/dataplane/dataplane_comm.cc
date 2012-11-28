@@ -110,7 +110,8 @@ IncomingConnectionState::congestion_recheck_cb() {
 
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
-                                         shared_ptr<TupleReceiver> dest) {
+                                         shared_ptr<TupleReceiver> dest,
+                                         operator_id_t srcOpID) {
   
   boost::shared_ptr<IncomingConnectionState> incomingConn;
   {
@@ -122,7 +123,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
                  << " to " << dest->id_as_str() << "but there already is a connection";
     }
     incomingConn = boost::shared_ptr<IncomingConnectionState> (
-          new IncomingConnectionState(c, dest, iosrv, *this));
+          new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
   }
   
@@ -146,14 +147,16 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
      
 void
 DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
-                                          string future_op) {
+                                          string future_op,
+                                          operator_id_t srcOpID) {
 /*  if (pendingConns.find(future_op) != pendingConns.end()) {
     //TODO this can probably happen if the previous connection died. Can we check for that?
     LOG(FATAL) << "trying to connect remote conn to " << future_op << "but there already is such a connection";
   }*/
   lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
-  pendingConns[future_op].push_back(c);
+  
+  pendingConns[future_op].push_back( PendingConn(c, srcOpID) );
 }
 
 
@@ -164,11 +167,11 @@ DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
   {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
     string op_id = dest->id_as_str();
-    map<string, vector<shared_ptr<ClientConnection> > >::iterator pending_conn = pendingConns.find(op_id);
+    map<string, vector<PendingConn> >::iterator pending_conn = pendingConns.find(op_id);
     if (pending_conn != pendingConns.end()) {
-      vector<shared_ptr<ClientConnection> > & conns = pending_conn->second;
+      vector< PendingConn > & conns = pending_conn->second;
       for (u_int i = 0; i < conns.size(); ++i)
-        enable_connection(conns[i], dest);
+        enable_connection(conns[i].conn, dest, conns[i].src);
       pendingConns.erase(pending_conn);
     }
   }
@@ -178,12 +181,12 @@ DataplaneConnManager::close() {
   lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
 
   //TODO: gracefully stop connections
-  std::map<std::string, vector< boost::shared_ptr<ClientConnection> > >::iterator iter;
+  std::map<std::string, vector< PendingConn > >::iterator iter;
 
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
-    vector<shared_ptr<ClientConnection> > & conns = iter->second;
+    vector<PendingConn> & conns = iter->second;
     for (u_int i = 0; i < conns.size(); ++i)
-      conns[i]->close_async(no_op_v);
+      conns[i].conn->close_async(no_op_v);
   }
 
   std::map<tcp::endpoint, boost::shared_ptr<IncomingConnectionState> >::iterator live_iter;

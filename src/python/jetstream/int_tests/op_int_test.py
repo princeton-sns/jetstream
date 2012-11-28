@@ -131,7 +131,7 @@ class TestOpIntegration(unittest.TestCase):
     resp = ControlMessage()
     resp.ParseFromString(buf)
     workersEp = resp.nodes
-    assert(len(workersEp) == numWorkers)
+    self.assertEquals(len(workersEp), numWorkers)
   
     # Issue a query that runs an operator on each worker: send some tuples from a
     # source, filter them through the remaining workers and collect at the end.

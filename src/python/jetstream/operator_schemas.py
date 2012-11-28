@@ -19,6 +19,7 @@ class OpType (object):
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
   RATE_RECEIVER = "RateRecordReceiver"
+  ECHO = "EchoOperator"
   RAND_SOURCE = "RandSourceOperator"
   RAND_EVAL = "RandEvalOperator"
 
@@ -42,12 +43,22 @@ def validate_grep(in_schema, cfg):
     raise SchemaError("Can't grep on field %d of %s" % (fld, str(in_schema)))
   return in_schema
 
-def validate_Extend(in_schema, cfg):
-  print "extend with cfg",cfg
+def validate_parse(in_schema, cfg):
+#  types':"DSS", 'field_to_parse
+  field_to_parse = int( cfg['field_to_parse'])
+  ret = []
+  ret.extend( in_schema[0:field_to_parse] )
+  for c in cfg['types']:
+    ret.append ( (c, ''))
+  ret.extend( in_schema[field_to_parse+1:] )
+  return ret
+
+def validate_extend(in_schema, cfg):
+#  print "extend with cfg",cfg
   newS = []
   newS.extend(in_schema)
   for x in cfg['types']:
-    newS.append( (x, '') )
+    newS.append( (x.upper(), '') )
   return newS
 
 def validate_TRound(in_schema, cfg):
@@ -60,21 +71,28 @@ def validate_TRound(in_schema, cfg):
   if t != "T":
     raise SchemaError("rounding operator requires that field %d be a time, instead was %s" % (fld_offset,t))
   return in_schema
+
+def validate_RandEval(in_schema, cfg):
+  in_types = [ty for ty,name in in_schema[0:3]]
+  if in_types != ['S','T', 'I']:
+    raise SchemaError("rand eval requires inputs Str, Time, Int. Got %s" % str(in_schema))
     
+  return []    
   
 SCHEMAS = {}
 SCHEMAS[OpType.FILE_READ] = validate_FileRead
 SCHEMAS[OpType.STRING_GREP] = validate_grep
-# TODO PARSE
-SCHEMAS[OpType.EXTEND] = validate_Extend
+SCHEMAS[OpType.PARSE] = validate_parse
+SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
 
+SCHEMAS[OpType.ECHO] = lambda schema,cfg: schema 
 SCHEMAS[OpType.SEND_K] =  lambda schema,cfg: [('I','K')]
 SCHEMAS[OpType.RATE_RECEIVER] = lambda schema,cfg: schema
 SCHEMAS[OpType.RAND_SOURCE] = lambda schema,cfg: [('S','state'), ('T', 'timestamp')]
-
+SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
 
-
+SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
 

@@ -9,6 +9,7 @@
 
 import asyncore
 import asynchat
+import ConfigParser
 
 import logging
 import re
@@ -31,6 +32,17 @@ from query_planner import QueryPlanner
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
 
+NOSECTION = 'nosection'
+class FakeSecHead(object):
+   def __init__(self, fp):
+     self.fp = fp
+     self.sechead = '[' + NOSECTION + ']\n'
+   def readline(self):
+     if self.sechead:
+       try: return self.sechead
+       finally: self.sechead = None
+     else: return self.fp.readline()
+
 logger = logging.getLogger('JetStream')
 DEFAULT_BIND_PORT = 3456
 def main():
@@ -41,18 +53,29 @@ def main():
                   help="read config from FILE", metavar="FILE")
 
   (options, args) = parser.parse_args()
-  if options.config_file is not None:
-    config = ConfigParser.ConfigParser()
-    config.read(options.config_file)
 
-  serv = get_server_on_this_node()
-  start_web_interface(serv)
+  config = ConfigParser.SafeConfigParser( {'controller_web_port': "8081", \
+               'controller_addr':""} )
+  
+  if options.config_file is not None:
+    fp = open(options.config_file)
+    config.readfp( FakeSecHead (fp))
+    fp.close()
+
+  addr = config.get(NOSECTION, 'controller_addr')
+  if len(addr) > 0:
+    endpoint, bind_port = addr.split(':')
+    bind_port = int(bind_port)
+  else:
+    (endpoint,bind_port) = "", DEFAULT_BIND_PORT
+  
+  serv = get_server_on_this_node(endpoint, bind_port)
+  start_web_interface(serv, config.getint(NOSECTION, 'controller_web_port'))
   serv.evtloop()
 
   
-def get_server_on_this_node ():  
-  bind_port = DEFAULT_BIND_PORT
-  endpoint = ("", bind_port) #all interfaces?
+def get_server_on_this_node (endpoint_i = "", bind_port = DEFAULT_BIND_PORT):  
+  endpoint = (endpoint_i, bind_port) #all interfaces?
   server = Controller(endpoint)
   return server
 

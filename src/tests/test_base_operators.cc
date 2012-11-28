@@ -174,6 +174,15 @@ TEST(Operator,ParseOperator) {
   ASSERT_EQ(7, result->e(2).i_val());
   ASSERT_EQ(1.2, result->e(3).d_val());
   
+//  cout << "finished valid test; no"
+  
+  GenericParse parse2;
+  cfg["pattern"] = "(\\w+";
+  cfg["field_to_parse"] = "0";
+  cfg["types"] = "S";
+  operator_err_t err = parse2.configure(cfg);
+  ASSERT_GT(err.length(), 1);
+  
 }
 
 TEST(Operator, ExtendOperator) {

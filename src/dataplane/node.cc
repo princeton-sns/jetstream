@@ -251,6 +251,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   case DataplaneMessage::CHAIN_CONNECT:
     {
       const Edge& e = msg.chain_link();
+      operator_id_t srcOpID = operator_id_t(e.computation(), e.src());
       //TODO can sanity-check that e is for us here.
       std::string dest_as_str;
       shared_ptr<TupleReceiver> dest;
@@ -275,14 +276,14 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         // before sending the READY.
         LOG(INFO) << "Chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
        
-        dataConnMgr.enable_connection(c, dest);
+        dataConnMgr.enable_connection(c, dest, srcOpID);
 
         //TODO do we log the error or ignore it?
       }
       else {
         LOG(INFO) << "Chain request for " << dest_as_str<< " that isn't ready yet";
         
-        dataConnMgr.pending_connection(c, dest_as_str);
+        dataConnMgr.pending_connection(c, dest_as_str, srcOpID);
       }      
     }
     break;
