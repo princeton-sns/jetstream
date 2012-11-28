@@ -54,7 +54,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  config = ConfigParser.SafeConfigParser( {'controller_web_port': 8081, \
+  config = ConfigParser.SafeConfigParser( {'controller_web_port': "8081", \
                'controller_addr':""} )
   
   if options.config_file is not None:
