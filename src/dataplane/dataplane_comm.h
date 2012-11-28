@@ -118,8 +118,9 @@ public:
   IncomingConnectionState(boost::shared_ptr<ClientConnection> c,
                           boost::shared_ptr<TupleReceiver> d,
                           boost::asio::io_service & i,
-                          DataplaneConnManager& m):
-      conn(c),dest(d), iosrv(i), mgr(m), timer(iosrv) {
+                          DataplaneConnManager& m,
+                          operator_id_t srcOpID):
+      conn(c),dest(d), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
       mon = dest->congestion_monitor();
   }
   
@@ -145,6 +146,14 @@ public:
 };
 
 
+struct PendingConn {
+  boost::shared_ptr<ClientConnection>  conn;
+  operator_id_t src;
+  
+  PendingConn(boost::shared_ptr<ClientConnection>  c, operator_id_t s):
+    conn(c), src(s) {}
+};
+
 
 /**
  * Instances of this class are responsible for managing incoming data on the
@@ -155,10 +164,10 @@ public:
 class DataplaneConnManager {
 
 /**
-Internally, we identify endpoints by a string consisting of an address:port pair
+Internally, we identify endpoints by a string consisting of either an operator ID or a cube name
 */
  private:
-  std::map<std::string, std::vector<boost::shared_ptr<ClientConnection> > > pendingConns;
+  std::map<std::string, std::vector<PendingConn> > pendingConns;
   
     /** Maps from remote endpoint to the local client-connection associated with it.
     * Note that the connection-to-destination mapping is implicit in the callback
@@ -181,12 +190,14 @@ Internally, we identify endpoints by a string consisting of an address:port pair
  
     // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
-                          boost::shared_ptr<TupleReceiver> dest);
+                          boost::shared_ptr<TupleReceiver> dest,
+                          operator_id_t srcOpID);
                      
 
     // called to attach income connection c to an operator that doesn't yet exist
   void pending_connection (boost::shared_ptr<ClientConnection> c,
-                          std::string future_op);
+                          std::string future_op,
+                          operator_id_t srcOpID);
 
     // called when an operator is created
   void created_operator (boost::shared_ptr<TupleReceiver> dest);
