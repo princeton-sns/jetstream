@@ -118,10 +118,13 @@ CongestionController::do_assess() {
 
   if ( worstCongestion  > 1.01 || worstCongestion < 0.99 ) { //not quite in balance
     targetSampleRate *= worstCongestion;
-    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate;
     if (targetSampleRate > 0.999)
       targetSampleRate = 1; //never send > 1
-      //foreach pred: send a change-of-status
+
+    if (targetSampleRate < 0.001 && worstCongestion != 0)
+      targetSampleRate = 0.001; //never back off more than a factor of a thousand
+    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate;
+
 
     DataplaneMessage throttle;
     throttle.set_filter_level(targetSampleRate);

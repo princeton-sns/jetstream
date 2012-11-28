@@ -152,8 +152,12 @@ StringGrep::long_description() {
 operator_err_t
 GenericParse::configure(std::map<std::string,std::string> &config) {
   string pattern = config["pattern"];
-  re.assign(pattern);
   
+  try {
+    re.assign(pattern);
+  } catch( regex_error e) {
+    return operator_err_t("regex " + pattern + " did not compile:" + e.std::exception::what());
+  }
   
   istringstream(config["field_to_parse"]) >> fld_to_parse;
   if (fld_to_parse < 0 || fld_to_parse > 100) {
@@ -161,9 +165,9 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   }
 
   field_types = boost::to_upper_copy(config["types"]);
-  static boost::regex re("[SDI]+");
+  static boost::regex fld_types("[SDI]+");
   
-  if (!regex_match(field_types, re)) {
+  if (!regex_match(field_types, fld_types)) {
     LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
     return operator_err_t("Invalid types for regex fields; got " + field_types);
   }
@@ -219,6 +223,12 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   boost::smatch matchResults;
   bool found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
   if (found) {
+  
+    if (matchResults.size() != field_types.length() + 1) {
+      LOG(FATAL) << "regex for " << id() << " has " << matchResults.size() <<
+          "fields but we only have " << field_types.length() << "types.";
+    }
+  
     for (size_t fld = 1; fld < matchResults.size(); ++ fld) {
       string s = matchResults.str(fld);
       char typecode = field_types[fld-1];
@@ -236,6 +246,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     e->CopyFrom(t->e(i));
   }  
   emit (t2);
+  
 }
 
 void
