@@ -42,7 +42,7 @@ def main():
 
   (options, args) = parser.parse_args()
   if options.config_file is not None:
-    config = ConfigParser.ConfigParser()
+    config = ConfigParser.SafeConfigParser()
     config.read(options.config_file)
 
   serv = get_server_on_this_node()
@@ -50,9 +50,8 @@ def main():
   serv.evtloop()
 
   
-def get_server_on_this_node ():  
-  bind_port = DEFAULT_BIND_PORT
-  endpoint = ("", bind_port) #all interfaces?
+def get_server_on_this_node (endpoint_i = "", bind_port = DEFAULT_BIND_PORT):  
+  endpoint = (endpoint_i, bind_port) #all interfaces?
   server = Controller(endpoint)
   return server
 

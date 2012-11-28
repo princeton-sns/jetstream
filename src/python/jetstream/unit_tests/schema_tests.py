@@ -2,7 +2,7 @@
 import unittest
 
 import query_graph as jsapi
-from operator_schemas import OpType,SchemaError
+from operator_schemas import *
 from jetstream_types_pb2 import *
 
 class TestSchemas(unittest.TestCase):
@@ -61,7 +61,12 @@ class TestSchemas(unittest.TestCase):
     else:
       self.assertTrue(False, "should throw, but didn't")            
         
-  
+  def test_parse_schema(self):
+    in_schema = [('I','a number'), ('S', 'to parse') ]
+    cfg = {'types':"DSS", 'field_to_parse':1}
+    
+    out_types = [ ty for ty,_ in validate_parse(in_schema,cfg) ]
+    self.assertEquals(out_types, ['I', 'D', 'S', 'S'])
 
   def test_cubeInsert(self):
 

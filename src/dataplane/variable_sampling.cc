@@ -11,21 +11,19 @@ using namespace boost::interprocess::ipcdetail;
 
 namespace jetstream {
 
+
+
 void
-VariableSamplingOperator::start() {
-
-  timer = get_timer();
+PeriodicCongestionReporter::start(boost::shared_ptr<boost::asio::deadline_timer> t) {  
+  timer = t;
   timer->expires_from_now(boost::posix_time::millisec(REPORT_INTERVAL));
-  timer->async_wait(boost::bind(&VariableSamplingOperator::report_congestion, this));
-
-//  set_timer_task(boost::bind(VariableSamplingOperator::report_status, this ), 500);
-
+  timer->async_wait(boost::bind(&PeriodicCongestionReporter::report_congestion, this));
 }
 
-void
-VariableSamplingOperator::report_congestion() {
 
-  shared_ptr<TupleReceiver> dest = get_dest ();
+void
+PeriodicCongestionReporter::report_congestion() {
+
   if (dest) {
     shared_ptr<CongestionMonitor> downstream_congestion = dest->congestion_monitor();
     double congestion = downstream_congestion->capacity_ratio();
@@ -37,12 +35,20 @@ VariableSamplingOperator::report_congestion() {
     DataplaneMessage levelMsg;
     levelMsg.set_congestion_level(congestion);
     levelMsg.set_type(DataplaneMessage::CONGEST_STATUS);
-    dest->meta_from_upstream( levelMsg, id());
+    dest->meta_from_upstream( levelMsg, parent->id());
   }
   timer->expires_from_now(boost::posix_time::millisec(REPORT_INTERVAL));
-  timer->async_wait(boost::bind(&VariableSamplingOperator::report_congestion, this));
+  timer->async_wait(boost::bind(&PeriodicCongestionReporter::report_congestion, this));
   
 }
+
+void
+VariableSamplingOperator::start() {
+  reporter.set_dest(get_dest());
+  reporter.start(get_timer());
+}
+
+
 
 void
 VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {

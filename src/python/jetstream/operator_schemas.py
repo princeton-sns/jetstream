@@ -42,7 +42,17 @@ def validate_grep(in_schema, cfg):
     raise SchemaError("Can't grep on field %d of %s" % (fld, str(in_schema)))
   return in_schema
 
-def validate_Extend(in_schema, cfg):
+def validate_parse(in_schema, cfg):
+#  types':"DSS", 'field_to_parse
+  field_to_parse = int( cfg['field_to_parse'])
+  ret = []
+  ret.extend( in_schema[0:field_to_parse] )
+  for c in cfg['types']:
+    ret.append ( (c, ''))
+  ret.extend( in_schema[field_to_parse+1:] )
+  return ret
+
+def validate_extend(in_schema, cfg):
 #  print "extend with cfg",cfg
   newS = []
   newS.extend(in_schema)
@@ -71,8 +81,8 @@ def validate_RandEval(in_schema, cfg):
 SCHEMAS = {}
 SCHEMAS[OpType.FILE_READ] = validate_FileRead
 SCHEMAS[OpType.STRING_GREP] = validate_grep
-# TODO PARSE
-SCHEMAS[OpType.EXTEND] = validate_Extend
+SCHEMAS[OpType.PARSE] = validate_parse
+SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
 
 SCHEMAS[OpType.SEND_K] =  lambda schema,cfg: [('I','K')]

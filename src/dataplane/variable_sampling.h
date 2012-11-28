@@ -6,24 +6,53 @@
 
 namespace jetstream {
 
-class VariableSamplingOperator: public SampleOperator {
-  private:
-    boost::shared_ptr<boost::asio::deadline_timer> timer;
-    double last_reported_congestion;
+
+class PeriodicCongestionReporter {
+
+private:
     static const int REPORT_INTERVAL = 100; //ms
+
+    double last_reported_congestion;
+    DataPlaneOperator * parent;
+    boost::shared_ptr<boost::asio::deadline_timer> timer;
+
+    boost::shared_ptr<TupleReceiver> dest;
   
     void report_congestion();
+
+public:
+
+  PeriodicCongestionReporter (DataPlaneOperator * p):
+        last_reported_congestion(INFINITY), parent(p) {
+  } ;
+  
+  void stop() {
+      if(timer)
+        timer->cancel();
+  }
+  
+  void set_dest(boost::shared_ptr<TupleReceiver> d) {
+    dest = d;
+  }
+  
+  void start(boost::shared_ptr<boost::asio::deadline_timer> t);
+
+
+};
+
+class VariableSamplingOperator: public SampleOperator {
+  private:
+    PeriodicCongestionReporter reporter;
 //    boost::shared_ptr<CongestionMonitor> downstream_congestion;
 
   public:
   
-    VariableSamplingOperator(): last_reported_congestion(INFINITY) {}
+    VariableSamplingOperator():reporter(this) {}
   
     virtual void start();
   
     virtual void stop() {
-      if(timer)
-        timer->cancel();
+      reporter.stop();
     }
   
     //needs to respond to congestion signals
