@@ -82,5 +82,5 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
 
-
+SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
 

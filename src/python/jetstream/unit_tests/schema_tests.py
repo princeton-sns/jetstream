@@ -79,7 +79,6 @@ class TestSchemas(unittest.TestCase):
     except SchemaError as ex:
       self.assertTrue(False, "should not throw, but got " + str(ex))
 
-
     qGraph.remove(src)
         
       #add a mismatched edge, string versus  string,time
@@ -96,6 +95,42 @@ class TestSchemas(unittest.TestCase):
     else:
       self.assertTrue(False, "should throw, but didn't")            
         
+  def test_cubeSubscribe(self):
+  
+    qGraph = jsapi.QueryGraph()
+    local_cube = qGraph.add_cube("results")
+    local_cube.add_dim("state", Element.STRING, 0)
+    local_cube.add_dim("time", Element.TIME, 1)
+    local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)    
+
+    sub = jsapi.TimeSubscriber(qGraph, {}, 1000, "-count") #pull every second
+    eval_op = jsapi.RandEval(qGraph)
+
+    qGraph.connect(local_cube, sub)
+    qGraph.connect(sub, eval_op)
+    
+    try: 
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.assertTrue(False, "should not throw, but got " + str(ex))
+      
+    sub2 = jsapi.TimeSubscriber(qGraph, {}, 1000, "-count") #pull every second
+    rounder = jsapi.TRoundOperator(qGraph,0, 2)
+    qGraph.connect(sub2, rounder)
+    qGraph.connect(local_cube, sub2)
+  
+#    self.assertTrue(1 not in qGraph.operators)
+  
+    try: 
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.assertTrue("requires that field 0 be a time" in str(ex) )
+      print "got expected err:", str(ex)
+    else:
+      self.assertTrue(False, "should throw, but didn't")   
+    qGraph.remove(sub2)
+    qGraph.remove(rounder)
+
     
 
 
