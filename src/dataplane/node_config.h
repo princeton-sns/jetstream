@@ -8,9 +8,8 @@ namespace jetstream {
 class NodeConfig {
  public:
   std::string config_file;
-  std::vector<std::pair<std::string, port_t> > controllers; // Domain, port
-//  port_t controlplane_myport;  // Host byte order
-  port_t dataplane_myport;     // Host byte order
+  std::vector<std::pair<std::string, port_t> > controllers; // hostname, port
+  std::pair<std::string, port_t> dataplane_ep;  // hostname, port
   port_t webinterface_port;     // Host byte order
   msec_t heartbeat_time;       // Time between heartbeats, in miliseconds
   u_int  thread_pool_size;
@@ -22,7 +21,7 @@ class NodeConfig {
   std::string cube_db_name;
   size_t cube_max_elements_in_batch;
   NodeConfig () 
-    : dataplane_myport (0), webinterface_port (0),
+    : dataplane_ep("0.0.0.0", 0), webinterface_port (0),
     heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000),sendQueueSize(1E5),
     cube_db_host("localhost"), cube_db_user("root"), cube_db_pass(""), cube_db_name("test_cube"),
     cube_max_elements_in_batch(1)

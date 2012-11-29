@@ -91,8 +91,8 @@ LivenessManager::ConnectionNotification::send_notification (const boost::system:
   // Assume the dataplane endpoint uses the same local address as the liveness
   // connection, but a different port specified in the config
   ep->set_address(conn->get_local_endpoint().address().to_string());
-  assert(config.dataplane_myport != 0);
-  ep->set_portno(config.dataplane_myport);
+  assert(config.dataplane_ep.second != 0);
+  ep->set_portno(config.dataplane_ep.second);
   
   boost::system::error_code send_error;
   conn->send_msg(req, send_error);

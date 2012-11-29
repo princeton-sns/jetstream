@@ -35,12 +35,10 @@ parse_config (program_options::variables_map *inputopts,
   // Options from both cmd line and config file
   options_description conf_opts("Configuration file and command line options");
   conf_opts.add_options()
-    ("controller_addr,a", value<vector<string> >()->composing(),
+    ("controller_ep,a", value<vector<string> >()->composing(),
      "hostname:port of controller (can supply multiple entries)")
-    ("dataplane_port,d", value<port_t>(), 
-     "my dataplane port number")
-    ("controlplane_port,c", value<port_t>(), 
-     "my controlplane port number")
+    ("dataplane_ep,d", value<vector<string> >()->composing(),
+     "hostname:port of dataplane worker (use 0.0.0.0 for generic worker)")
     ("webinterface_port,w", value<port_t>(), 
      "my web interface port number")
     ("heartbeat_time,t", value<msec_t>(), 
@@ -108,12 +106,6 @@ parse_config (program_options::variables_map *inputopts,
   };
 
   // Configuration variables
-  if (input_opts.count("dataplane_port"))
-    config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
-
-//  if (input_opts.count("controlplane_port"))
- //   config.controlplane_myport = input_opts["controlplane_port"].as<port_t>();
-
   if (input_opts.count("webinterface_port"))
     config.webinterface_port = input_opts["webinterface_port"].as<port_t>();
 
@@ -127,9 +119,36 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("cube_max_elements_in_batch"))
     config.cube_max_elements_in_batch = input_opts["cube_max_elements_in_batch"].as<size_t>();
 
+
+  //if (input_opts.count("dataplane_port"))
+  //  config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
+
+  if (input_opts.count("dataplane_ep")) {
+    string addr = input_opts["dataplane_ep"].as<string>();
+    vector<string> a;
+    split(a, addr, is_any_of(":"));
+    if (a.size() != 2) {
+      cerr << argv[0] << ": incorrect format for worker address:"
+	   << addr << endl;
+      cout << opts << endl;
+      return 1;
+    }
+
+    long tmpport = lexical_cast<long> (a[1]);
+    if (tmpport > MAX_UINT16) {
+      cerr << argv[0] << ": invalid port for worker address"
+	   << addr << endl;
+      cout << opts << endl;
+      return 1;
+    }
+    
+    config.dataplane_ep = make_pair(a[0], lexical_cast<port_t> (a[1]));
+  }
+
+
   // Configuration variables
-  if (input_opts.count("controller_addr")) {
-    vector<string> addrs = input_opts["controller_addr"].as<vector<string> >();
+  if (input_opts.count("controller_ep")) {
+    vector<string> addrs = input_opts["controller_ep"].as<vector<string> >();
     if (!addrs.size()) {
       cerr << argv[0] << ": no controller addresses given" << endl;
       cout << opts << endl;

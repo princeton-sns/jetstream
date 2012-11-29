@@ -140,7 +140,7 @@ TEST(Node,DuplicateStart) {
   n.start();
 
   tcp::endpoint e = n.get_listening_endpoint();
-  cfg.dataplane_myport = e.port();
+  cfg.dataplane_ep.second = e.port();
   Node n2(cfg, err);
   n2.start();
 
