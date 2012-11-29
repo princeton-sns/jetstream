@@ -47,7 +47,10 @@ class CWorker (object):
 
 
   def get_dataplane_ep (self):
-    return (self.lastHB.dataplane_addr.address, self.lastHB.dataplane_addr.portno)
+    # Workers behind a NAT (e.g., VICCI nodes) may not know their public IP, so
+    # overwrite it with what the controller thinks is the IP for now.
+    return (self.endpoint[0], self.lastHB.dataplane_addr.portno)
+    #return (self.lastHB.dataplane_addr.address, self.lastHB.dataplane_addr.portno)
 
   def add_assignment (self, wa):
     assert wa.compID not in self.assignments
