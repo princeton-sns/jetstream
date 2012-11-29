@@ -37,7 +37,7 @@ parse_config (program_options::variables_map *inputopts,
   conf_opts.add_options()
     ("controller_ep,a", value<vector<string> >()->composing(),
      "hostname:port of controller (can supply multiple entries)")
-    ("dataplane_ep,d", value<vector<string> >()->composing(),
+    ("dataplane_ep,d", value<string>(),
      "hostname:port of dataplane worker (use 0.0.0.0 for generic worker)")
     ("webinterface_port,w", value<port_t>(), 
      "my web interface port number")
