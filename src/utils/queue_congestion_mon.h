@@ -11,7 +11,7 @@ namespace jetstream {
 class QueueCongestionMonitor: public CongestionMonitor {
 
  private:
-  boost::uint32_t maxQueue;
+  boost::uint32_t queueTarget;
   boost::uint32_t queueLen;
   boost::uint32_t prevQueueLen;
   boost::uint32_t insertsInPeriod;
@@ -23,11 +23,17 @@ class QueueCongestionMonitor: public CongestionMonitor {
 
   
  public:
-    QueueCongestionMonitor(uint32_t max_q, const std::string& nm):
-      maxQueue(max_q), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
+    QueueCongestionMonitor(uint32_t qTarg, const std::string& nm):
+      queueTarget(qTarg), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
         prevRatio(INFINITY), upstream_status(INFINITY),name(nm)  { }
     
     virtual double capacity_ratio();
+  
+  
+    int queue_length() {
+      int qLen =  boost::interprocess::ipcdetail::atomic_read32(&queueLen);
+      return qLen;
+    }
   
     virtual ~QueueCongestionMonitor() {};
   
@@ -47,7 +53,7 @@ class QueueCongestionMonitor: public CongestionMonitor {
     }
   
     void set_queue_size(uint32_t s) {
-      maxQueue = s;
+      queueTarget = s;
     }
 
 };

@@ -83,6 +83,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(RandSourceOperator);
   REGISTER_OP(RandEvalOperator);
   REGISTER_OP(MockCongestion);
+  REGISTER_OP(FixedRateQueue);
   
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);

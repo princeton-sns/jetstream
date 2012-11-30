@@ -11,35 +11,6 @@ using namespace boost::posix_time;
 namespace jetstream {
 
 
-operator_err_t
-ContinuousSendK::configure (std::map<std::string,std::string> &config) {
-  if (config["k"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["k"]) >> k)) {
-      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.");
-    }
-  } else {
-    // Send one tuple by default
-    k = 1;
-  }
-
-  if (config["period"].length() > 0) {
-    if (!(stringstream(config["period"]) >> period)) {
-      LOG(WARNING) << "invalid send period (msecs): " << config["period"] << endl;
-      return operator_err_t("Invalid send period (msecs) '" + config["period"] + "' is not a number.");
-    }
-  } else {
-    // Wait one second by default
-    period = 1000;
-  }
-  
-  send_now = config["send_now"].length() > 0;
-  t = boost::shared_ptr<Tuple>(new Tuple);
-  t->add_e()->set_s_val("foo");  
-  
-  return NO_ERR;
-}
 
 operator_err_t
 SendK::configure (std::map<std::string,std::string> &config) {
@@ -67,19 +38,49 @@ SendK::configure (std::map<std::string,std::string> &config) {
 
 bool
 SendK::emit_1() {
-
   emit(t);
 //  cout << "sendk. N=" << n<< " and k = " << k<<endl;
   return (++n > k);
   
 }
 
+operator_err_t
+ContinuousSendK::configure (std::map<std::string,std::string> &config) {
+  if (config["k"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["k"]) >> k)) {
+      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
+      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.");
+    }
+  } else {
+    // Send one tuple by default
+    k = 1;
+  }
+
+  if (config["period"].length() > 0) {
+    if (!(stringstream(config["period"]) >> period)) {
+      LOG(WARNING) << "invalid send period (msecs): " << config["period"] << endl;
+      return operator_err_t("Invalid send period (msecs) '" + config["period"] + "' is not a number.");
+    }
+  } else {
+    // Wait one second by default
+    period = 1000;
+  }
+  
+//  send_now = config["send_now"].length() > 0;
+  t = boost::shared_ptr<Tuple>(new Tuple);
+  t->add_e()->set_s_val("foo");  
+  
+  return NO_ERR;
+}
+
+
 bool
 ContinuousSendK::emit_1() {
-
+//  cout << " continuous-send is sending" << endl;
   emit(t);
   boost::this_thread::sleep(boost::posix_time::milliseconds(period));
-  return false;
+  return false; //never break out of loop
 }
 
 
@@ -193,6 +194,74 @@ MockCongestion::MockCongestion(): congestion(INFINITY) {
 }
 
 
+operator_err_t
+FixedRateQueue::configure(std::map<std::string,std::string> &config) {
+  if (config["ms_wait"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["ms_wait"]) >> ms_per_dequeue)) {
+      LOG(WARNING) << "invalid time_wait per dequeue: " << config["ms_wait"]<< " for " << id() << endl;
+      return operator_err_t("Invalid time_wait per dequeue: '" + config["ms_wait"] + "' is not a number.");
+    }
+  } else
+    return operator_err_t(id().to_string() + ": Must set parameter ms_wait");
+//    ms_per_dequeue = 500;
+
+  int max_q_len = 0;
+  if (config["queue_length"].length() > 0) {
+    // stringstream overloads the '!' operator to check the fail or bad bit
+    if (!(stringstream(config["queue_length"]) >> max_q_len)) {
+      LOG(WARNING) << "invalid queue length: " << config["queue_length"]<< " for " << id() << endl;
+      return operator_err_t("Invalid  queue length: '" + config["queue_length"] + "' is not a number.");
+    }
+  } else
+    return operator_err_t(id().to_string() + ": Must set parameter queue_length");
+
+
+  mon = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(max_q_len, id().to_string()));
+
+  return NO_ERR;
+}
+
+void FixedRateQueue::start() {
+  running = true;
+  timer = get_timer();
+  timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
+  timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
+}
+
+
+void
+FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
+  boost::lock_guard<boost::mutex> lock (mutex);
+  q.push(t);
+  mon->report_insert(t.get(), 1);
+}
+
+void
+FixedRateQueue::process1() {
+
+  if (!running) {
+    return; //spurious wakeup, e.g. on close
+  }
+
+  //deqeue
+  boost::shared_ptr<Tuple> t;
+  {
+    boost::lock_guard<boost::mutex> lock (mutex);
+    if (! q.empty())
+      t = q.front();
+    q.pop();
+  }
+//  cout << "dequeue, length = " << q.size() << endl;
+  if (t) {
+    mon->report_delete(t.get(), 1);
+    emit(t);
+  }
+
+  timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
+  timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
+}
+
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
@@ -201,7 +270,7 @@ const string RateRecordReceiver::my_type_name("Rate recorder");
 const string SerDeOverhead::my_type_name("Dummy serializer");
 const string EchoOperator::my_type_name("Echo");
 const string MockCongestion::my_type_name("Mock Congestion");
-
+const string FixedRateQueue::my_type_name("Fixed rate queue");
 
 
 }

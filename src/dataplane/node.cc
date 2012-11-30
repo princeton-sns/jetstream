@@ -112,17 +112,20 @@ Node::stop ()
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   
-  iosrv->stop();
-  LOG(INFO) << "io service stopped" << endl;
-  
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter = operators.begin();
 
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
-  for (iter = operators.begin(); iter != operators.end(); iter++) {
-    iter->second->stop();
+  while (iter != operators.end()) {
+    LOG(INFO) << " stopping " << iter->first << "(" << iter->second->typename_as_str() << ")";
+    shared_ptr<DataPlaneOperator> op = iter->second;
+    iter++;
+    op->stop(); //note that stop will sometimes remove the operator from the table so we advance iterator first;
   }
+  
+  iosrv->stop();
+  LOG(INFO) << "io service stopped" << endl;
   
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.

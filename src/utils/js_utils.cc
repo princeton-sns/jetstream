@@ -9,6 +9,7 @@
 #endif
 
 
+#include <glog/logging.h>
 
 using namespace jetstream;
 
@@ -118,7 +119,8 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
   Edge * edge = topo.add_edges();
-  assert(src_id.computation_id ==  dest_id.computation_id);
+  LOG_IF(FATAL, src_id.computation_id !=  dest_id.computation_id) << "can't add edge from "
+    << src_id << " to " << dest_id;
   edge->set_computation(src_id.computation_id);
   edge->set_dest(dest_id.task_id);
   edge->set_src(src_id.task_id);

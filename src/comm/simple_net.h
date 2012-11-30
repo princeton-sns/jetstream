@@ -1,4 +1,4 @@
-#ifndef Jetstream_simple_net_h
+#ifndef JetStream_simple_net_h
 #define JetStream_simple_net_h
 
 #include <boost/asio.hpp>

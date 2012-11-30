@@ -46,6 +46,8 @@ void
 VariableSamplingOperator::start() {
   reporter.set_dest(get_dest());
   reporter.start(get_timer());
+  atomic_write32(&threshold, 0); //start fully choked
+
 }
 
 
@@ -85,6 +87,10 @@ CongestionController::meta_from_upstream(const DataplaneMessage & msg, const ope
 
     double lev = msg.congestion_level();
     reportedLevels[pred] = lev;
+    timeOfReport[pred] = time(NULL);
+
+//    LOG(INFO) << "Congestion at " << pred << " - " << lev;
+
     
     if (lev < worstCongestion) {
       worstCongestion = lev;
@@ -105,25 +111,36 @@ CongestionController::do_assess() {
   lock_guard<boost::mutex> critical_section (lock);
   
   worstCongestion = INFINITY;
-  
+  time_t now = time(NULL);
   map<operator_id_t, double>::iterator it = reportedLevels.begin();
   while (it != reportedLevels.end()) {
-    if (it->second < worstCongestion)
-      worstCongestion = it->second;
-    it++;
+    time_t reportTime = timeOfReport[it->first];
+    if (reportTime + REPORT_TIMEOUT < now) {
+      operator_id_t toDel = it->first;
+      it ++;
+      reportedLevels.erase(toDel);
+      timeOfReport.erase(toDel);
+    }
+    else {
+      if (it->second < worstCongestion)
+        worstCongestion = it->second;
+      it++;
+    }
   }
   
   //TODO should we clear reportedLevels ?
   
+
+  if (targetSampleRate < 0.001 && worstCongestion != 0)
+    targetSampleRate = 0.001; //never back off more than a factor of a thousand
 
   if ( worstCongestion  > 1.01 || worstCongestion < 0.99 ) { //not quite in balance
     targetSampleRate *= worstCongestion;
     if (targetSampleRate > 0.999)
       targetSampleRate = 1; //never send > 1
 
-    if (targetSampleRate < 0.001 && worstCongestion != 0)
-      targetSampleRate = 0.001; //never back off more than a factor of a thousand
-    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate;
+    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate
+    << " and sending to "  <<  predecessors.size() << " preds";
 
 
     DataplaneMessage throttle;
@@ -145,6 +162,13 @@ CongestionController::assess_status() {
   do_assess();
   timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
   timer->async_wait(boost::bind(&CongestionController::assess_status, this));
+}
+
+std::string
+CongestionController::long_description() {
+  ostringstream o;
+  o << "selectivity = " << targetSampleRate;
+  return o.str();
 }
 
 

@@ -22,7 +22,7 @@ QueueCongestionMonitor::capacity_ratio() {
       inserts = newi;
     
     int32_t queueDelta = queueLen - prevQueueLen; //negative implies queue is shrinking
-    int32_t availRoom = maxQueue/2 - queueLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
+    int32_t availRoom = queueTarget - queueLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
     if (  ((int32_t)inserts ) < -availRoom) // Signed compare: queue won't drain fast enough enough room even with no inserts
       prevRatio = 0; //should stop sends altogether to let things drain
     else
