@@ -46,18 +46,23 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   }
 
   // Setup incoming connection listener
-  asio::ip::tcp::endpoint listen_port (asio::ip::tcp::v4(), 
-				       config.dataplane_myport);
+  asio::ip::address localAddr = asio::ip::address::from_string(config.dataplane_ep.first, error);
+  if (error) {
+    LOG(FATAL) << "Local worker address " << config.dataplane_ep.first << " is invalid, aborting" << endl;
+  }
+
+  asio::ip::tcp::endpoint localEp (localAddr, 
+				   config.dataplane_ep.second);
 
   listeningSock = shared_ptr<ServerConnection>
-    (new ServerConnection(iosrv, listen_port, error));
+    (new ServerConnection(iosrv, localEp, error));
   if (error) {
     LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
     return;
   }
   // Update the listener port in the config in case the user specified 0. The config
   // is used by other modules, e.g. the liveness manager.
-  config.dataplane_myport = listeningSock->get_local_endpoint().port();
+  config.dataplane_ep.second = listeningSock->get_local_endpoint().port();
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
   if (error) {
