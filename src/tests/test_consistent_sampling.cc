@@ -203,7 +203,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   ASSERT_LT(targetLen /2, qLen);
   ASSERT_GT(2 * targetLen, qLen);
 
-  int SECOND_HALF_WAIT = 1; //seconds
+  int SECOND_HALF_WAIT = 5; //seconds
 
   {
     AlterTopo topo;  
@@ -220,7 +220,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
     
     add_edge_to_alter(topo,  chainHeadIDs[i], filterID);
     
-    Edge * e = add_edge_to_alter(topo,  filterID, c_controller_id);
+    Edge * e = add_edge_to_alter(topo,  filterID, stub_id);
     NodeID * destIP = e->mutable_dest_addr();
     const boost::asio::ip::tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
     destIP->set_portno(dest_node_addr.port());
@@ -233,13 +233,17 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   js_usleep(1000 * 1000 * SECOND_HALF_WAIT);
   
   int expected_tuples = SECOND_HALF_WAIT * 1000 * 2 / queueWait + dest_tuples_halfway;
-  
+  /**
+    The rate-limited source [on node0] will send  1000/queueWait tuples per second.
+    The idea of the test is that the non-rate-limited source should be throttled
+    down to the same rate. Hence the definition of expected above.
+  */
   int dest_tuples_end = dest->tuples.size();
   cout << "dest received " << dest_tuples_end << " tuples" <<
     " and expected "<< expected_tuples << endl;
 
-  ASSERT_LT(expected_tuples  - 10,  dest_tuples_end);
-  ASSERT_GT(expected_tuples  + 10,  dest_tuples_end);
+  ASSERT_LT(expected_tuples * 0.9,  dest_tuples_end);
+  ASSERT_GT(expected_tuples * 1.1,  dest_tuples_end);
 
   cout << "end of test" << endl;
 }

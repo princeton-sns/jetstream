@@ -57,7 +57,7 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
   
   if ( msg.type() == DataplaneMessage::SET_BACKOFF) {
     double frac_to_drop = 1.0 - msg.filter_level();
-    LOG(INFO) << id() << " setting filter level to " << msg.filter_level();
+    VLOG(1) << id() << " setting filter level to " << msg.filter_level();
 
     assert( frac_to_drop <= 1);
     uint32_t new_thresh = frac_to_drop * numeric_limits<uint32_t>::max();
@@ -139,7 +139,7 @@ CongestionController::do_assess() {
     if (targetSampleRate > 0.999)
       targetSampleRate = 1; //never send > 1
 
-    LOG(INFO)<< id() << " setting filter target level to "<< targetSampleRate
+    LOG_EVERY_N(INFO, 5)<< id() << " setting filter target level to "<< targetSampleRate
     << " and sending to "  <<  predecessors.size() << " preds";
 
 

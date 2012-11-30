@@ -437,12 +437,12 @@ NodeTwoNodesTest::TearDown() {
     sockets[i]->close();
   }
 
-  cout << "control sockets closed" << endl;
-  js_usleep(500 * 1000);
+//  cout << "control sockets closed" << endl;
+//  js_usleep(500 * 1000);
 
   for (int i =0; i < 2; ++i) {
     nodes[i]->stop();
-    cout << "stopped node " << i << endl;
+//    cout << "stopped node " << i << endl;
     js_usleep(500 * 1000);
     
   }

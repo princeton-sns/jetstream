@@ -118,7 +118,7 @@ Node::stop ()
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
   while (iter != operators.end()) {
-    LOG(INFO) << " stopping " << iter->first << "(" << iter->second->typename_as_str() << ")";
+    LOG(INFO) << " stopping " << iter->first << " (" << iter->second->typename_as_str() << ")";
     shared_ptr<DataPlaneOperator> op = iter->second;
     iter++;
     op->stop(); //note that stop will sometimes remove the operator from the table so we advance iterator first;
