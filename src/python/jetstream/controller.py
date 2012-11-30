@@ -61,6 +61,9 @@ def main():
     fp = open(options.config_file)
     config.readfp( FakeSecHead (fp))
     fp.close()
+  else:
+    config.add_section(NOSECTION)
+  
 
   addr = config.get(NOSECTION, 'controller_addr')
   if len(addr) > 0:

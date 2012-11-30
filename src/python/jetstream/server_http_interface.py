@@ -9,7 +9,7 @@ logger = logging.getLogger('JetStream')
 
 import BaseHTTPServer
 
-SERV_PORT = 8001
+SERV_PORT = 8082
 def start_web_interface(js_server, port = SERV_PORT):
   web_interface = JSHttpServer(js_server, port)
   iface_thread = threading.Thread(group = None, target = web_interface.serve_forever, args = ())
