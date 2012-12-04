@@ -345,6 +345,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
     VLOG(1) << "create returned " << err;
 
     if (err == NO_ERR) {
+      LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";
+
           // Record the outcome of creating the operator in the response message
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
@@ -352,6 +354,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       operators_to_start.push_back(id);    
     }
     else {
+      LOG(WARNING) << "aborting creation of " << id << ": " + err;
       respTopo->add_tasktostop()->CopyFrom(task.id());
       
       //teardown started operators
@@ -551,7 +554,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   if (d == NULL) {
-    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+    LOG(WARNING) <<" failed to create operator object. Type was "<<op_typename <<endl;
     return operator_err_t("Loader failed to create operator of type " + op_typename);
   }
   
@@ -560,7 +563,6 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
-    LOG(INFO) << "creating operator " << name << " of type " << op_typename;
     unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     operators[name] = d; //TODO check for name in use?
   }
