@@ -19,7 +19,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, config),
-    webInterface (conf.webinterface_port, *this),
+    webInterface (conf.dataplane_ep.first, conf.webinterface_port, *this),
     cubeMgr(conf),
     dataConnMgr(*iosrv, config),
     operator_cleanup(*iosrv),

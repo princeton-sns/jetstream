@@ -10,18 +10,18 @@ logger = logging.getLogger('JetStream')
 import BaseHTTPServer
 
 SERV_PORT = 8082
-def start_web_interface(js_server, port = SERV_PORT):
-  web_interface = JSHttpServer(js_server, port)
+def start_web_interface(js_server, endpt, port = SERV_PORT):
+  web_interface = JSHttpServer(js_server, endpt, port)
   iface_thread = threading.Thread(group = None, target = web_interface.serve_forever, args = ())
   iface_thread.daemon = True
   iface_thread.start()
 
 class JSHttpServer(BaseHTTPServer.HTTPServer):
-  def __init__(self, js_server, port):
+  def __init__(self, js_server, endpt, port):
     self.js_server = js_server
     self.allow_reuse_address = True
-    BaseHTTPServer.HTTPServer.__init__(self, ("", port), JSWebInterface)
-    logger.info("Web interface started on port %d" % port)
+    BaseHTTPServer.HTTPServer.__init__(self, (endpt, port), JSWebInterface)
+    logger.info("Web interface started on port %d of: %s" % (port, endpt))
 
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
   """A simple HTTP status page for the server"""

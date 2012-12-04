@@ -122,7 +122,7 @@ TEST(Node,WebIfaceStartStop)
   Node node(cfg, error);
   ASSERT_TRUE(error == 0);
 
-  NodeWebInterface iface((port_t) 8081, node);
+  NodeWebInterface iface("0.0.0.0", (port_t) 8081, node);
   
   for(int i=0; i < 10; ++i) {
     iface.start();

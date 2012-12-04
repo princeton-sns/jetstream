@@ -8,9 +8,10 @@ using namespace boost;
 
 const int MAX_ROWS_TO_SHOW = 10;
 
-NodeWebInterface::NodeWebInterface (port_t webPortno, Node &n) 
+NodeWebInterface::NodeWebInterface (const std::string& addr, port_t webPortno, Node &n)
   : mongoose_ctxt (NULL),
     portno (webPortno),
+    bind_addr(addr),
     node (n)
 {
 }
