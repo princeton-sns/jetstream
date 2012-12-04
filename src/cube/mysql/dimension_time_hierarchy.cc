@@ -21,7 +21,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionTimeHierarchy::get_key(Tuple con
     struct tm temptm;
     char timestring[30];
     time_t clock = e->t_val();
-    localtime_r(&clock, &temptm);
+    gmtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     return timestring;
   }
@@ -65,7 +65,7 @@ void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(shared_ptr<sql::Pre
     struct tm temptm;
     time_t clock = e->t_val();
     char timestring[30];
-    localtime_r(&clock, &temptm); 
+    gmtime_r(&clock, &temptm); 
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     
     pstmt->setString(field_index, timestring);
@@ -90,7 +90,7 @@ string MysqlDimensionTimeHierarchy::get_where_clause(jetstream::Tuple const &t, 
     struct tm temptm;
     char timestring[30];
     time_t clock = e.t_val();
-    localtime_r(&clock, &temptm);
+    gmtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     tuple_index += 1;
     return "`"+get_base_column_name() + "_time` "+ op +" \""+timestring+"\"";
@@ -107,24 +107,21 @@ void MysqlDimensionTimeHierarchy::populate_tuple(boost::shared_ptr<jetstream::Tu
   jetstream::Element *elem = t->add_e();
   
   string timestring = resultset->getString(column_index);
-  if (timestring != "0000-00-00 00:00:00") {
-    struct tm temptm;
-    temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
-    
-    if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL) {
-      elem->set_t_val(mktime(&temptm));
-    }
-    else {
-      LOG(FATAL)<<"Error in time conversion";
-    }
-
-    column_index += 7;
-    return;
+  struct tm temptm;
+  //temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
+  
+  if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL) {
+    elem->set_t_val(timegm(&temptm));
   }
-  else
-  {
-    /* happens with rollups */
-    struct tm temptm;
+  else {
+    LOG(FATAL)<<"Error in time conversion";
+  }
+
+  column_index += 7;
+  return;
+    /* happens with rollups--now it doesn't should this go away? */
+    
+    /*struct tm temptm;
     temptm.tm_year = resultset->getInt(column_index+1)-1900;
     temptm.tm_mon = resultset->getInt(column_index+2)-1;
     temptm.tm_mday = resultset->getInt(column_index+3);
@@ -142,8 +139,7 @@ void MysqlDimensionTimeHierarchy::populate_tuple(boost::shared_ptr<jetstream::Tu
     }
 
     column_index+=7;
-    return;
-  }
+    return;*/
 }
 
 string 

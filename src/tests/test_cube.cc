@@ -4,6 +4,7 @@
 #include "mysql_cube.h"
 #include "base_subscribers.h"
 #include "cube_iterator_impl.h"
+#include "time_rollup_manager.h"
 
 #include <gtest/gtest.h>
 
@@ -904,13 +905,13 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   boost::shared_ptr<Tuple> ptrTup = *it;
   ASSERT_TRUE(ptrTup);
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
-  ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
-  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(2).s_val().c_str());
-  ASSERT_EQ(1, ptrTup->e(3).i_val());
-  ASSERT_EQ(0, ptrTup->e(4).i_val());
-  ASSERT_EQ(0, ptrTup->e(5).i_val());
-  ASSERT_EQ(15, ptrTup->e(6).i_val());
-  ASSERT_EQ(100, ptrTup->e(7).i_val());
+  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  //ASSERT_EQ(1, ptrTup->e(2).i_val());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  //ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(15, ptrTup->e(3).i_val());
+  ASSERT_EQ(100, ptrTup->e(4).i_val());
 
 
   //doesn't exist
@@ -940,9 +941,9 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   //make it even on the minute
   time_t time_entered = time(NULL);
   struct tm temptm;
-  localtime_r(&time_entered, &temptm);
+  gmtime_r(&time_entered, &temptm);
   temptm.tm_sec=0;
-  time_entered = mktime(&temptm);
+  time_entered = timegm(&temptm);
 
   list<int> rscs;
   rscs.push_back(1);
@@ -983,13 +984,13 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   boost::shared_ptr<Tuple> ptrTup = *it;
   ASSERT_TRUE(ptrTup);
   ASSERT_EQ(time_entered+1, ptrTup->e(0).t_val());
-  ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
-  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(2).s_val().c_str());
-  ASSERT_EQ(1, ptrTup->e(3).i_val());
-  ASSERT_EQ(0, ptrTup->e(4).i_val());
-  ASSERT_EQ(0, ptrTup->e(5).i_val());
-  ASSERT_EQ(100, ptrTup->e(6).i_val());
-  ASSERT_EQ(5, ptrTup->e(7).i_val());
+  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  //ASSERT_EQ(1, ptrTup->e(2).i_val());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  //ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(100, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
 
   levels.clear();
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
@@ -1009,12 +1010,60 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   ptrTup = *it;
   ASSERT_TRUE(ptrTup);
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
-  ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
-  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(2).s_val().c_str());
-  ASSERT_EQ(1, ptrTup->e(3).i_val());
-  ASSERT_EQ(0, ptrTup->e(4).i_val());
-  ASSERT_EQ(0, ptrTup->e(5).i_val());
-  ASSERT_EQ(200, ptrTup->e(6).i_val());
-  ASSERT_EQ(5, ptrTup->e(7).i_val());
+  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  //ASSERT_EQ(1, ptrTup->e(2).i_val());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  //ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(200, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
+
+}
+
+
+TEST_F(CubeTest, TimeRollupManager) {
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
+  cube->destroy();
+  cube->create();
+
+  jetstream::Element *e;
+  
+  list<unsigned int> levels;
+  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_YEAR);
+  levels.push_back(1);
+  levels.push_back(1);
+  
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+  e=empty.add_e(); //url
+  e=empty.add_e(); //rc
+
+  TimeRollupManager trm(cube, levels, empty, empty, 0);
+
+  struct tm timetm;
+  timetm.tm_year = 101;
+  timetm.tm_mon = 1;
+  timetm.tm_mday = 1;
+  timetm.tm_hour = 2;
+  timetm.tm_min = 1;
+  timetm.tm_sec = 2;
+
+  time_t floor = trm.time_floor(timegm(&timetm));
+
+  struct tm floortm;
+  floortm.tm_year = 101;
+  floortm.tm_mon = 0;
+  floortm.tm_mday = 1;
+  floortm.tm_hour = 0;
+  floortm.tm_min = 0;
+  floortm.tm_sec = 0;
+  floortm.tm_isdst=-1;
+
+
+  cout << "orig" <<timegm(&timetm) << endl;
+  cout <<floortm.tm_year<<" "<<floortm.tm_mon<<" "<<floortm.tm_mday<<" "<<floortm.tm_hour<<" "<<floortm.tm_min<<" "<<floortm.tm_sec<<" "<<endl;
+
+  ASSERT_EQ(timegm(&floortm), floor);
+
 
 }

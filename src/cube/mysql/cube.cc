@@ -578,8 +578,8 @@ jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::Re
     dimensions[i]->populate_tuple(result, res, column_index);
 
     if(rollup) {
-      jetstream::Element *elem = result->add_e();
-      elem->set_i_val(res->getInt(column_index));
+      //jetstream::Element *elem = result->add_e();
+      //elem->set_i_val(res->getInt(column_index));
       ++column_index;
     }
   }

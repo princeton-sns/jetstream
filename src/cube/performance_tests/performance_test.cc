@@ -122,7 +122,7 @@ int main(int argc, const char **argv)
     
     jetstream::Element *e;
     struct tm temptm;
-    temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
+    //temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
 
     while ( myfile.good())
     {
@@ -133,7 +133,7 @@ int main(int argc, const char **argv)
       e=t->mutable_e(0);
       if(strptime(time.c_str(),"%d/%b/%Y:%H:%M:%S", &temptm)!= NULL)
       {
-        e->set_t_val(mktime(&temptm));
+        e->set_t_val(timegm(&temptm));
       }
       else
       {
