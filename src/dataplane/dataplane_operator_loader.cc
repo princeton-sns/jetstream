@@ -70,6 +70,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(OrderingOperator);
   REGISTER_OP(SampleOperator);
+  REGISTER_OP(HashSampleOperator);
   REGISTER_OP(TRoundingOperator);
   REGISTER_OP(UnixOperator);
 
