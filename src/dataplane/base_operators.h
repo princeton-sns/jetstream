@@ -169,6 +169,31 @@ GENERIC_CLNAME
 };
 
 
+
+/***
+ * Given a data stream, allows some fraction of data through.
+ * Config options: seed [an int] and fraction [ a float], representing the fraction
+ * to drop.  (So fraction == 0 means 'allow all')
+ */
+class HashSampleOperator: public DataPlaneOperator {
+ public:
+//  boost::random::mt19937 gen;
+  uint32_t threshold; //drop tuples if rand >= threshhold. So thresh = 0 means pass all
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+
+  
+  HashSampleOperator(): hash_field(0), hash_type(' ') {}
+  
+  virtual ~HashSampleOperator() {}
+  
+ private:
+  int hash_field;
+  char hash_type;
+
+GENERIC_CLNAME
+};
+
 //rounds time fields
 class TRoundingOperator: public DataPlaneOperator {
  public:

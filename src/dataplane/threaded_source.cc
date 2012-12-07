@@ -12,7 +12,10 @@ void
 ThreadedSource::start() {
   if (send_now) {
     boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-    congested->wait_for_space();
+    while (congested->is_congested()) {
+      boost::this_thread::yield();
+      js_usleep(100 * 1000);
+    }
     while (! emit_1())
       ;
   }
@@ -61,7 +64,7 @@ ThreadedSource::operator()() {
   } while (running); //running will be false if we're running synchronously
   
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
-  if (exit_at_end)
+  if (exit_at_end && running)
     no_more_tuples();
 }
 

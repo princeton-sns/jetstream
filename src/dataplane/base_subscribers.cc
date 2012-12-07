@@ -136,6 +136,12 @@ TimeBasedSubscriber::operator()() {
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   while (running)  {
+  
+    if(congested->is_congested()) {
+      js_usleep(1000 * 10);
+      continue;
+    }
+  
     VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
     while ( it != cube->end()) {
@@ -144,8 +150,7 @@ TimeBasedSubscriber::operator()() {
     }
 
     js_usleep(1000 * windowSizeMs);
-    congested->wait_for_space();
-    
+  
     if (ts_field >= 0) {
       next_window_start_time = max.e(ts_field).t_val();
       min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);

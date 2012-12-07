@@ -1,14 +1,18 @@
 #ifndef JetStream_experiment_operators_h
 #define JetStream_experiment_operators_h
 
-#include "dataplaneoperator.h"
-#include "threaded_source.h"
-
 #include <string>
 #include <iostream>
-// #include <boost/thread/thread.hpp>
+#include <queue>
+
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#include "dataplaneoperator.h"
+#include "threaded_source.h"
+#include "queue_congestion_mon.h"
+
+// #include <boost/thread/thread.hpp>
 
 
 namespace jetstream {
@@ -96,7 +100,7 @@ GENERIC_CLNAME
 /***
  * Operator for periodically emitting a specified number of generic tuples.
  */
-class ContinuousSendK: public DataPlaneOperator {
+class ContinuousSendK: public ThreadedSource {
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
@@ -105,11 +109,7 @@ class ContinuousSendK: public DataPlaneOperator {
   virtual bool emit_1() ;
   boost::shared_ptr<Tuple> t;
   u_long k;       // Number of tuples to send
-  msec_t period;  // Time to wait before sending next k tuples
-  boost::shared_ptr<boost::thread> loopThread;
-  volatile bool running;
-  volatile bool send_now;
-  
+  msec_t period;  // Time to wait before sending next k tuples  
 
 GENERIC_CLNAME
 };  
@@ -154,6 +154,43 @@ private:
 
 GENERIC_CLNAME
 };  
+
+
+/***
+ * Operator for artificially imposing congestion.
+ */
+class FixedRateQueue: public DataPlaneOperator {
+ public:
+
+  FixedRateQueue() : running(false) {}
+  
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void start();
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void stop() { running = false; timer->cancel(); }
+
+  void process1();
+  
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return mon;
+  }
+  
+  int queue_length() {
+    return mon->queue_length();
+  }
+  
+private:
+  bool running;
+  int ms_per_dequeue;
+  boost::shared_ptr<boost::asio::deadline_timer> timer;
+  std::queue< boost::shared_ptr<Tuple> > q;
+  boost::mutex mutex;
+  boost::shared_ptr<QueueCongestionMonitor> mon;
+
+
+GENERIC_CLNAME
+};  
+
 
   
 }

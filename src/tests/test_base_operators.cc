@@ -245,6 +245,41 @@ TEST(Operator, SampleOperator) {
 }
 
 
+TEST(Operator, HashSampleOperator) {
+  int ROUNDS = 100, T_PER_ROUND = 100;
+  HashSampleOperator op;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  operator_config_t cfg;
+  cfg["fraction"] = "0.5";
+  cfg["hash_field"] = "0";
+  cfg["hash_type"] = "I";
+
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(rec);
+
+  int rounds_with_data = 0;
+  for (int i=0; i < ROUNDS; ++i) {
+  
+    boost::shared_ptr<Tuple> t(new Tuple);
+    extend_tuple(*t, i);
+
+    int processed_before = rec->tuples.size();
+    for (int j = 0; j < T_PER_ROUND; ++j) {
+      op.process(t);
+    }
+    int processed_in_round = rec->tuples.size() - processed_before;
+    if (processed_in_round > 0)
+      rounds_with_data ++;
+    ASSERT_EQ(0, processed_in_round % T_PER_ROUND); //all or none
+  }
+  cout << "done! " << rounds_with_data << " of " << ROUNDS << "values passed the hash" << endl;
+  ASSERT_GT(  0.6 * ROUNDS, rounds_with_data);
+  ASSERT_LT(  0.4 * ROUNDS, rounds_with_data);
+
+}
+
+
 TEST(Operator, TRoundingOperator) {
   TRoundingOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);

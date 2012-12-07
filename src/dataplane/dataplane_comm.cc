@@ -100,13 +100,25 @@ void
 IncomingConnectionState::congestion_recheck_cb() {
   VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
   double level = mon->capacity_ratio();
-  report_congestion_upstream(level);
+  if (conn->is_connected()) {
+    report_congestion_upstream(level);
 //  if (!mon->is_congested()) // only report if congestion went away
 //    report_congestion_upstream(0);
 //  else
-  register_congestion_recheck();
+    register_congestion_recheck();
+  }
 }
 
+
+
+void
+IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
+  if (conn->is_connected()) {
+//    LOG(INFO) << "propagating meta downstream";
+    boost::system::error_code error;
+    conn->send_msg(msg, error);
+  }
+}
 
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
@@ -125,6 +137,8 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
     incomingConn = boost::shared_ptr<IncomingConnectionState> (
           new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
+    dest->add_pred(incomingConn);
+    
   }
   
   boost::system::error_code error;

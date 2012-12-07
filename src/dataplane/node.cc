@@ -19,7 +19,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     iosrv (new asio::io_service()),
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, config),
-    webInterface (conf.webinterface_port, *this),
+    webInterface (conf.dataplane_ep.first, conf.webinterface_port, *this),
     cubeMgr(conf),
     dataConnMgr(*iosrv, config),
     operator_cleanup(*iosrv),
@@ -117,17 +117,20 @@ Node::stop ()
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   
-  iosrv->stop();
-  LOG(INFO) << "io service stopped" << endl;
-  
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter = operators.begin();
 
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
-  for (iter = operators.begin(); iter != operators.end(); iter++) {
-    iter->second->stop();
+  while (iter != operators.end()) {
+    LOG(INFO) << " stopping " << iter->first << " (" << iter->second->typename_as_str() << ")";
+    shared_ptr<DataPlaneOperator> op = iter->second;
+    iter++;
+    op->stop(); //note that stop will sometimes remove the operator from the table so we advance iterator first;
   }
+  
+  iosrv->stop();
+  LOG(INFO) << "io service stopped" << endl;
   
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
@@ -342,6 +345,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
     VLOG(1) << "create returned " << err;
 
     if (err == NO_ERR) {
+      LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";
+
           // Record the outcome of creating the operator in the response message
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
@@ -349,6 +354,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       operators_to_start.push_back(id);    
     }
     else {
+      LOG(WARNING) << "aborting creation of " << id << ": " + err;
       respTopo->add_tasktostop()->CopyFrom(task.id());
       
       //teardown started operators
@@ -548,7 +554,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 {
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   if (d == NULL) {
-    LOG(WARNING) <<" failed to create operator. Type was "<<op_typename <<endl;
+    LOG(WARNING) <<" failed to create operator object. Type was "<<op_typename <<endl;
     return operator_err_t("Loader failed to create operator of type " + op_typename);
   }
   
@@ -557,7 +563,6 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
-    LOG(INFO) << "creating operator " << name << " of type " << op_typename;
     unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     operators[name] = d; //TODO check for name in use?
   }

@@ -12,9 +12,6 @@ using namespace jetstream;
 using namespace boost;
 using namespace ::std;
 
-const int compID = 4;
-
-
 TEST(CongestMon, QueueMon) {
   int TOTAL_ELEMS = 10;
   int elements[TOTAL_ELEMS];
@@ -33,9 +30,15 @@ TEST(CongestMon, QueueMon) {
   js_usleep(1000 * 200);
   cout << "getting ratio" <<endl;
   
+  ASSERT_EQ(mon.queue_length(), TOTAL_ELEMS/2);
+  
   double lev = mon.capacity_ratio();
-  ASSERT_DOUBLE_EQ(0.5, lev);
   cout << "congestion ratio: " << lev << endl;
+/**
+ '1' is the right answer here. Given that the queue is half-empty, if the insert
+ rate remains the same then the queue will fill up.
+ */
+   ASSERT_DOUBLE_EQ(1, lev);
 
 
 }

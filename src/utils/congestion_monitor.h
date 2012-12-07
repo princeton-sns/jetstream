@@ -17,13 +17,13 @@ class CongestionMonitor {
     bool is_congested() {return capacity_ratio() < 1;}
 
     virtual ~CongestionMonitor() {};
-  
+  /*
     void wait_for_space() {
       while (is_congested()) {
         boost::this_thread::yield();
         js_usleep(100 * 1000);
       }
-    }
+    }*/
 
 
 };

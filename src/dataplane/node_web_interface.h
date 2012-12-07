@@ -13,6 +13,7 @@ class NodeWebInterface {
  private:
   mg_context *mongoose_ctxt;
   port_t portno;
+  std::string bind_addr;
   Node &node;
   
   void make_base_page (std::ostream &buf);
@@ -23,7 +24,7 @@ class NodeWebInterface {
     { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }
   
  public:
-  NodeWebInterface (port_t webPortno, Node &n);
+  NodeWebInterface (const std::string& addr, port_t webPortno, Node &n);
   ~NodeWebInterface() { stop(); }
  
   void start ();

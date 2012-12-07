@@ -322,6 +322,81 @@ SampleOperator::configure (std::map<std::string,std::string> &config) {
 }
 
 
+/* This code is taken from the wikipedia page on the Jenkins Hash algorithms
+and from http://www.burtleburtle.net/bob/hash/doobs.html .  The code is in the 
+public domain and is therefore usable without legal incumbrence.  --ASR, 12/5/12
+*/
+uint32_t jenkins_one_at_a_time_hash(const char *key, size_t len)
+{
+    uint32_t hash, i;
+    for(hash = i = 0; i < len; ++i)
+    {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    return hash;
+}
+
+void
+HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
+
+  uint32_t hashval = 0;
+  const Element& e = t->e(hash_field);
+  switch(hash_type) {
+    case 'I': {
+      int val = e.i_val();
+      hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
+      break;
+    }
+    case 'D': {
+      double val = e.d_val();
+      hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
+      break;
+    }
+    
+    case 'S': {
+      const string& val = e.s_val();
+      hashval = jenkins_one_at_a_time_hash(val.c_str(), val.length());
+      break;
+    }
+    
+    case 'T': {
+      time_t val = e.t_val();
+      hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
+      break;
+    }
+    
+    default:
+      LOG(FATAL) << "must specify hash field type; was " << hash_type;
+  }
+  if (hashval >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
+    emit(t);
+  }
+  
+}
+
+
+operator_err_t
+HashSampleOperator::configure (std::map<std::string,std::string> &config) {
+  double frac_to_drop = 0;
+  istringstream(config["fraction"]) >> frac_to_drop;
+  threshold = frac_to_drop * numeric_limits<uint32_t>::max();
+
+  if( !istringstream(config["hash_field"]) >> hash_field) {
+    return operator_err_t("hash_field must be an int");
+  }
+  if(config["hash_type"].length() < 1) {
+    return operator_err_t("hash_type must be defined");
+  } else
+    hash_type = config["hash_type"][0];
+  return NO_ERR;
+}
+
+
 void
 TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
   time_t old_val = t->e(fld_offset).t_val();
@@ -446,6 +521,7 @@ const string TimestampOperator::my_type_name("Timestamp operator");
 const string OrderingOperator::my_type_name("Ordering operator");
 
 const string SampleOperator::my_type_name("Sample operator");
+const string HashSampleOperator::my_type_name("Hash-sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
 const string UnixOperator::my_type_name("Unix command");
 

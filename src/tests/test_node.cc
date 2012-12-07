@@ -18,6 +18,9 @@ using namespace boost::asio;
 using namespace boost::asio::ip;
 using namespace jetstream;
 
+#include "two_nodes.h"
+
+
 int COMP_ID = 17;
 
 //helper method to fill in an AlterTopo with a pair of operators
@@ -393,62 +396,58 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
 }
 
 
-class NodeTwoNodesTest : public ::testing::Test {
+
+void
+NodeTwoNodesTest::SetUp() {
+  ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
+  ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
+  acceptor.listen();
+  pair<string, port_t> p("127.0.0.1", concrete_end.port());
 
 
-public:
-
-  virtual void SetUp() {
-    ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
-    ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
-    acceptor.listen();
-    pair<string, port_t> p("127.0.0.1", concrete_end.port());
-
-
-    NodeConfig cfg;
-    cfg.heartbeat_time = 2000;
-    cfg.controllers.push_back(p);
-    
-    boost::system::error_code err;
-
-    for (int i = 0; i < 2; ++i) {
-
-      boost::system::error_code error;
-      nodes[i] = shared_ptr<Node>(new Node(cfg, error));
-      EXPECT_TRUE(error == 0);
-      nodes[i]->start();
-    
-      sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
-      acceptor.accept(*sockets[i], err);
-      connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
-      connections[i]->get_ctrl_msg();
-    }
-    cout << "created nodes, got heartbeats" << endl;
-  }
+  NodeConfig cfg;
+  cfg.heartbeat_time = 2000;
+  cfg.controllers.push_back(p);
   
-  virtual void tearDown() {
-    boost::system::error_code err;
+  boost::system::error_code err;
 
-    cout << "done with test; tearing down" << endl;
-    // Close sockets to avoid badness related to io_service destruction
-    for (int i =0; i < 2; ++i) {
-      sockets[i]->shutdown(tcp::socket::shutdown_both, err);
-      sockets[i]->close();
-    }
+  for (int i = 0; i < 2; ++i) {
 
-    for (int i =0; i < 2; ++i) {
-      nodes[i]->stop();
-    }
+    boost::system::error_code error;
+    nodes[i] = shared_ptr<Node>(new Node(cfg, error));
+    EXPECT_TRUE(error == 0);
+    nodes[i]->start();
+  
+    sockets[i] = shared_ptr<tcp::socket>(new tcp::socket(io_service));
+    acceptor.accept(*sockets[i], err);
+    connections[i] = shared_ptr<SimpleNet>(new SimpleNet(*sockets[i]));
+    connections[i]->get_ctrl_msg();
+  }
+  cout << "created nodes, got heartbeats" << endl;
+}
+
+void
+NodeTwoNodesTest::TearDown() {
+  boost::system::error_code err;
+
+  cout << "done with test; tearing down" << endl;
+  // Close 'control' sockets first to avoid badness related to io_service destruction
+  for (int i =0; i < 2; ++i) {
+    sockets[i]->shutdown(tcp::socket::shutdown_both, err);
+    sockets[i]->close();
   }
 
-protected:
-  asio::io_service io_service;
-  shared_ptr<tcp::socket> sockets[2];
-  shared_ptr<SimpleNet> connections[2];
-  shared_ptr<Node> nodes[2];
+//  cout << "control sockets closed" << endl;
+//  js_usleep(500 * 1000);
 
-
-};
+  for (int i =0; i < 2; ++i) {
+    nodes[i]->stop();
+//    cout << "stopped node " << i << endl;
+    js_usleep(500 * 1000);
+    
+  }
+  cout << "nodes stopped, leaving TearDown" << endl;
+}
 
 
 // This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.

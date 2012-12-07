@@ -27,6 +27,7 @@ public:
   } ;
   
   void stop() {
+      dest.reset();
       if(timer)
         timer->cancel();
   }
@@ -72,9 +73,12 @@ class CongestionController: public DataPlaneOperator {
 
 private:
      int INTERVAL; //ms
+     static const int REPORT_TIMEOUT = 4; //seconds
 
 
     std::map<operator_id_t,double> reportedLevels;
+    std::map<operator_id_t,time_t> timeOfReport;
+
 
     std::vector<boost::shared_ptr<TupleSender> > predecessors;
   
@@ -92,6 +96,10 @@ public:
 
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
+  virtual void start() {
+    do_assess();
+  }
+
   virtual void stop() {
       if(timer)
         timer->cancel();
@@ -107,6 +115,9 @@ public:
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   void do_assess(); //externally callable, for testing
+
+  virtual std::string long_description();
+
 
 GENERIC_CLNAME
 };

@@ -54,13 +54,16 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  config = ConfigParser.SafeConfigParser( {'controller_web_port': "8081", \
+  config = ConfigParser.SafeConfigParser( {'controller_web_port': "8082", \
                'controller_addr':""} )
   
   if options.config_file is not None:
     fp = open(options.config_file)
     config.readfp( FakeSecHead (fp))
     fp.close()
+  else:
+    config.add_section(NOSECTION)
+  
 
   addr = config.get(NOSECTION, 'controller_addr')
   if len(addr) > 0:
@@ -70,7 +73,7 @@ def main():
     (endpoint,bind_port) = "", DEFAULT_BIND_PORT
   
   serv = get_server_on_this_node(endpoint, bind_port)
-  start_web_interface(serv, config.getint(NOSECTION, 'controller_web_port'))
+  start_web_interface(serv, endpoint, config.getint(NOSECTION, 'controller_web_port'))
   serv.evtloop()
 
   

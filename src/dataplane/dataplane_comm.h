@@ -102,7 +102,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 };
   
 
-class IncomingConnectionState {
+class IncomingConnectionState: public TupleSender {
   boost::shared_ptr<ClientConnection> conn;
   boost::shared_ptr<TupleReceiver> dest;
   boost::shared_ptr<CongestionMonitor> mon;
@@ -126,6 +126,7 @@ public:
   
   void close_async() {
     conn->close_async(no_op_v);
+    timer.cancel();    
   }
   
   boost::asio::ip::tcp::endpoint get_remote_endpoint() {
@@ -142,6 +143,9 @@ public:
   virtual ~IncomingConnectionState() {
     timer.cancel();
   }
+  
+  virtual void meta_from_downstream(const DataplaneMessage & msg);
+  
   
 };
 

@@ -49,7 +49,7 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
   boost::thread::id tid = boost::this_thread::get_id();
 
   if(connectionPool.count(tid) == 0) {
-    LOG(INFO) << "creating new SQL connection for thread " << tid;
+    VLOG(1) << "creating new SQL connection for thread " << tid;
     shared_ptr<ThreadConnection> tc(new ThreadConnection());
 
     sql::Driver * driver = sql::mysql::get_driver_instance();
