@@ -243,7 +243,10 @@ class Controller (ControllerAPI, JSServer):
     
     compID = altertopo.computationID
     if compID not in self.computations:
-      print "WARNING: Invalid computation id %d in ALTER_RESPONSE message" % (compID)
+      #there's a race here if the job is being shut down and this is the death notice
+      # instead of tracking created jobs, we just check if anything started
+      if len(altertopo.toStart) > 0:
+        logger.warning("Invalid computation id %d in ALTER_RESPONSE message reporting starts" % (compID))
       return
     # Let the computation know which parts of the assignment were started/created
     actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)

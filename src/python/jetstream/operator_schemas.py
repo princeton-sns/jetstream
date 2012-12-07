@@ -82,7 +82,11 @@ def validate_RandEval(in_schema, cfg):
     
   return []    
   
-SCHEMAS = {}
+# Schemas are represented as a function that maps from an input schema and configuration
+# to an output schema
+# A schema itself is a list of pairs, where the first element is a typecode [I,D,S, or T]
+# and the second field is a name for that element.
+SCHEMAS = {} 
 SCHEMAS[OpType.FILE_READ] = validate_FileRead
 SCHEMAS[OpType.STRING_GREP] = validate_grep
 SCHEMAS[OpType.PARSE] = validate_parse
