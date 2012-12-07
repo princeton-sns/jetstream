@@ -413,6 +413,12 @@ def ExtendOperator(graph, typeStr, fldValsList):
     i += 1
   return graph.add_operator(OpType.EXTEND, cfg)
 
+def TimestampOperator(graph, typeStr):
+  cfg = {"type": typeStr}
+  assert len(typeStr) < 3 and len(typeStr) > 0
+  return graph.add_operator(OpType.TIMESTAMP, cfg)
+
+
 
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
     cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
@@ -487,7 +493,10 @@ class TimeSubscriber(Operator):
 #    print "time subscriber schema"
     return in_schema  #everything is just passed through    
     
-    
+ 
+ def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, bucket_size):
+   cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "bucket_size_ms":str(bucket_size_ms)}
+   return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)    
 ##### Test operators #####
  
 def SendK(graph, k):

@@ -178,4 +178,117 @@ TimeBasedSubscriber::long_description() {
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 
 
+
+operator_err_t
+LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
+
+  if ((config["time_tuple_index"].length() < 1) ||
+      !(stringstream(config["time_tuple_index"]) >> time_tuple_index)) {
+
+    return operator_err_t("must have a numeric time tuple index");
+  }
+
+  if ((config["hostname_tuple_index"].length() < 1) ||
+      !(stringstream(config["hostname_tuple_index"]) >> hostname_tuple_index)) {
+
+    return operator_err_t("must have a numeric hostname tuple index");
+  }
+
+  bucket_size_ms=100;
+
+  if (config.find("bucket_size_ms") != config.end())
+    bucket_size_ms = boost::lexical_cast<unsigned int>(config["bucket_size_ms"]);
+
+  return NO_ERR;
+}
+
+jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update)
+{
+  string hostname = update->e(hostname_tuple_index).s_val();
+  map<unsigned int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
+  map<unsigned int, unsigned int> &bucket_map_skew = stats_before_skew[hostname];
+  double tuple_time_ms = update->e(time_tuple_index).d_val();
+  
+  make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_before_ms);
+
+  return SEND;
+}
+
+void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value) {
+
+  string hostname = update->e(hostname_tuple_index).s_val();
+  map<unsigned int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
+  map<unsigned int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
+  double tuple_time_ms = update->e(time_tuple_index).d_val();
+  
+  make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_after_ms);
+}
+
+void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
+                                 boost::shared_ptr<jetstream::Tuple> const &old_value)
+{
+  assert(0);
+}
+
+
+void LatencyMeasureSubscriber::make_stats(double tuple_time_ms,  map<unsigned int, unsigned int> &bucket_map_rt,
+     map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms)
+{
+  double current_time_ms = (double)(get_usec()/1000); 
+  double latency_rt_ms = current_time_ms-tuple_time_ms;
+  
+  assert(latency_rt_ms > 0);
+  unsigned int bucket_rt = (unsigned int) (latency_rt_ms / bucket_size_ms)  ;
+  bucket_map_rt[bucket_rt] += 1;
+
+  if(tuple_time_ms > max_seen_tuple_ms) {
+    max_seen_tuple_ms = tuple_time_ms; 
+  }
+  else { 
+    double latency_skew_ms = max_seen_tuple_ms-tuple_time_ms;
+    assert(latency_skew_ms > 0);
+    unsigned int bucket_skew = (unsigned int) (latency_skew_ms / bucket_size_ms);
+    bucket_map_skew[bucket_skew] += 1;
+  }
+}
+
+void
+LatencyMeasureSubscriber::start() {
+  running = true;
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+}
+
+void 
+LatencyMeasureSubscriber::operator()() {
+  while (running)  {
+    std::stringstream line;
+    line<<"Stats before entry into cube. Wrt real-time" << endl;
+    print_stats(stats_before_rt, line);
+    line<<"Stats after entry into cube. Wrt real-time" << endl;
+    print_stats(stats_after_rt, line);
+
+    boost::shared_ptr<jetstream::Tuple> tuple(new jetstream::Tuple());
+    tuple->add_e()->set_s_val(line.str());
+
+    emit(tuple);
+    js_usleep(1000000);
+  }
+}
+
+void LatencyMeasureSubscriber::print_stats(std::map<std::string, std::map<unsigned int, unsigned int> > & stats,  std::stringstream& line)
+{
+  std::map<std::string, std::map<unsigned int, unsigned int> >::iterator stats_it;
+  for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it)
+  {
+    line << "Hostname: "<< (*stats_it).first <<endl;
+    std::map<unsigned int, unsigned int>::iterator latency_it;
+    for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
+      line<< "Latency: " << (*latency_it).first*bucket_size_ms<< " count: " << (*latency_it).second<<endl;
+    }
+  }
+}
+
+
 } //end namespace

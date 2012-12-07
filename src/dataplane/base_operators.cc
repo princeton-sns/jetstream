@@ -407,11 +407,42 @@ UnixOperator::emit_1() {
   return true; //we're done if we failed to read.
 }
 
+operator_err_t
+TimestampOperator::configure (std::map<std::string,std::string> &config) {
+  if("s" == config["type"]) 
+    type = S;
+  else if("ms" == config["type"])
+    type = MS;
+  else if("us" == config["type"])
+    type = US;
+  else
+    return operator_err_t("type is not s, ms, us");
+  return NO_ERR;
+}
+
+void
+TimestampOperator::process (boost::shared_ptr<Tuple> t) {
+  Element * e = t->add_e();
+  if(type == S) {
+    sec_t time = get_sec();
+    e->set_i_val(time);
+  }
+  if(type == MS) {
+    usec_t time = get_usec();
+    e->set_d_val((double)(time/1000));
+  }
+  if(type == MS) {
+    usec_t time = get_usec();
+    e->set_d_val((double)time);
+  }
+  emit(t);
+}
 
 const string FileRead::my_type_name("FileRead operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
+const string TimestampOperator::my_type_name("Timestamp operator");
 const string OrderingOperator::my_type_name("Ordering operator");
 
 const string SampleOperator::my_type_name("Sample operator");

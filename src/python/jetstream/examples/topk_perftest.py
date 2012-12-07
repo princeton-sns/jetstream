@@ -102,15 +102,27 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     if is_first_run:
       eval_op.set_cfg("append", "false")
       is_first_run = False
-  
+ 
+  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 3, 100);
+  echo_op = jsapi.Echo();
+
+
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
+  
+  g.connect(final_cube, latency_measure_op)  
+  g.connect(latency_measure_op, echo_op)  
   
   
   n = len(all_nodes)
   for node,k in zip(all_nodes, range(0,n)):
     src = jsapi.RandSource(g, n, k)
     src.set_cfg("rate", rate)
+    timestamp= jsapi.ExtendOperator(g, "ms")
+    host_extend = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"])
+    g.connect(src, timestamp)
+    g.connect(timestamp, host_extend)
+
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
 
@@ -127,13 +139,13 @@ def get_graph(root_node, all_nodes, options, rate=1000):
       pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
       pull_op.set_cfg("ts_field", 1)
       pull_op.set_cfg("window_offset", OFFSET) #pull every three seconds, trailing by one
-      g.connect(src, local_cube)  
+      g.connect(host_extend, local_cube)  
       g.connect(local_cube, pull_op)
       g.connect(pull_op, extend_op)
       local_cube.instantiate_on(node)    
       g.connect(extend_op, round_op)
     else:
-      g.connect(src, round_op)
+      g.connect(host_extend, round_op)
     
     src.instantiate_on(node)
 

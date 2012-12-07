@@ -14,6 +14,7 @@ class OpType (object):
   STRING_GREP = "StringGrep"
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
+  TIMESTAMP = "TimestampOperator"
   T_ROUND_OPERATOR = "TRoundingOperator"
   
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
@@ -24,6 +25,7 @@ class OpType (object):
   RAND_EVAL = "RandEvalOperator"
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
+  LATENCY_MEASURE_SUBSCRIBE = "LatencyMeasureSubscriber"
   
 
   # Supported by Python local controller/worker only
