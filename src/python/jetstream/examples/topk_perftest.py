@@ -47,7 +47,7 @@ def main():
   
   print "Using",root_node,"as aggregator"
   #### Finished building in memory, now to deploy
-  node_count = len(node_count)
+  node_count = len(all_nodes)
   
 #  for bw in [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000]:
   for bw in [15000, 25000, 50 * 1000, 75 * 1000, 150 * 1000, 250 * 1000]:
@@ -80,18 +80,22 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   global is_first_run
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
-
+  LOCAL_AGG = not options.NO_LOCAL
 
   final_cube = g.add_cube("final_results")
   final_cube.add_dim("state", Element.STRING, 0)
   final_cube.add_dim("time", Element.TIME, 1)
   final_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
-  if not options.NO_LOCAL:
+  if LOCAL_AGG:
     final_cube.add_agg("sources", jsapi.Cube.AggType.STRING, 3)
   
   final_cube.set_overwrite(True)  #fresh results  
 
   final_cube.instantiate_on(root_node)
+
+  sampling_balancer =jsapi.SamplingController(g)
+  sampling_balancer.instantiate_on(root_node)
+  
 
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
   pull_op.set_cfg("ts_field", 1)
@@ -103,10 +107,10 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     if is_first_run:
       eval_op.set_cfg("append", "false")
       is_first_run = False
-  
+
+  g.connect(sampling_balancer, final_cube)  
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
-  
   
   n = len(all_nodes)
   for node,k in zip(all_nodes, range(0,n)):
@@ -114,8 +118,9 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     src.set_cfg("rate", rate)
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
+    sample_op = jsapi.VariableSampling(g)
 
-    if not options.NO_LOCAL:
+    if LOCAL_AGG:   # local aggregation
       extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
 
 
@@ -132,13 +137,14 @@ def get_graph(root_node, all_nodes, options, rate=1000):
       g.connect(local_cube, pull_op)
       g.connect(pull_op, extend_op)
       local_cube.instantiate_on(node)    
-      g.connect(extend_op, round_op)
+      g.connect(extend_op, sample_op)
     else:
-      g.connect(src, round_op)
+      g.connect(src, sample_op)
     
     src.instantiate_on(node)
 
-    g.connect(round_op, final_cube)
+    g.connect(sample_op, round_op)
+    g.connect(round_op, sampling_balancer)
   return g
 
 

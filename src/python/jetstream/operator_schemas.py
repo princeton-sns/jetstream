@@ -15,6 +15,9 @@ class OpType (object):
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
   T_ROUND_OPERATOR = "TRoundingOperator"
+  VARIABLE_SAMPLING = "VariableSamplingOperator"
+  CONGEST_CONTROL = "CongestionController"
+  
   
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -85,6 +88,10 @@ SCHEMAS[OpType.STRING_GREP] = validate_grep
 SCHEMAS[OpType.PARSE] = validate_parse
 SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
+
+SCHEMAS[OpType.VARIABLE_SAMPLING] = lambda schema,cfg: schema 
+SCHEMAS[OpType.CONGEST_CONTROL] = lambda schema,cfg: schema 
+
 
 SCHEMAS[OpType.ECHO] = lambda schema,cfg: schema 
 SCHEMAS[OpType.SEND_K] =  lambda schema,cfg: [('I','K')]

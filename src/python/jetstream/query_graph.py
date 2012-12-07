@@ -171,6 +171,11 @@ class QueryGraph(object):
     self.add_to_PB(req.alter)
     return req     
 
+  def node_type(self, id):
+    if id in self.operators:
+      return self.operators[id].type
+    else:
+      return self.cubes[id].name + " cube"
 
   def validate_schemas(self):
     worklist = self.get_sources()  #worklist is a list of IDs
@@ -186,21 +191,19 @@ class QueryGraph(object):
       #note that cubes don't have an output schema and subscribers are a special case
       if n in self.operators:     
 #        print "found operator",n,"of type",self.operators[n].type 
-        n_type = self.operators[n].type
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
       else:
-        n_type = self.cubes[n].name + " cube"    
         out_schema = self.cubes[n].out_schema (input_schema[n])
         
-#        print "out-schema for",n,n_type,"is",out_schema
+      print "out-schema for",n,self.node_type(n),"is",out_schema
   
       for o in forward_edges.get(n, []):
-    
+        
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
-            err_msg = "Edge from %d to %d (%s) doesn't match existing schema %s" \
-                % (n, o, str(out_schema), str(input_schema[o]))
+            err_msg = "Edge from %d of type %s to %d of type %s (%s) doesn't match existing schema %s" \
+                % (n,self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
           input_schema[o] = out_schema 
@@ -506,3 +509,8 @@ def DummySerialize(g):
 def Echo(g):
   return g.add_operator(OpType.ECHO, {})
   
+def VariableSampling(g):
+  return g.add_operator(OpType.VARIABLE_SAMPLING, {})
+  
+def SamplingController(g):
+  return g.add_operator(OpType.CONGEST_CONTROL, {})

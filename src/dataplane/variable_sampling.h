@@ -27,6 +27,7 @@ public:
   } ;
   
   void stop() {
+      dest.reset();
       if(timer)
         timer->cancel();
   }
