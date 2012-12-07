@@ -62,7 +62,7 @@ def main():
 
     cid = server.deploy_pb(req)
     if type(cid) == types.IntType:
-      print "Computation running; ID =",cid
+      print time.ctime(),"Computation running; ID =",cid
     else:
       print "computation failed",cid
       break  
