@@ -634,6 +634,10 @@ void stop_test(int i, boost::shared_ptr<Node>* nodes) {
 TEST_F(NodeTwoNodesTest, SuddenStopDest)  {
   stop_test(0, nodes);
       //operator should have been torn down on source node
+  int i = 0;
+  while ( i++ < 5 && nodes[1]->operator_count() > 0) {
+    js_usleep(100 * 1000);
+  }
   ASSERT_EQ(0, nodes[1]->operator_count());
   
 }
