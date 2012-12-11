@@ -157,6 +157,8 @@ class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
     std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_rt; //hostname=>bucket=>count
     std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_skew; //hostname=>bucket=>count
 
+    unsigned int get_bucket(double latency); 
+
     void make_stats(double tuple_time_ms,  std::map<unsigned int, unsigned int> &bucket_map_rt,
      std::map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms);
     

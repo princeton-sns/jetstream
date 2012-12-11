@@ -237,15 +237,28 @@ void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> 
   assert(0);
 }
 
+unsigned int LatencyMeasureSubscriber::get_bucket(double latency) {
+  assert(latency >= 0);
+
+  if(latency < 100)
+  {
+    return (unsigned int)  (latency/10)*10;
+  }
+  if(latency <1000)
+  {
+    return (unsigned int)  (latency/100)*100;
+  }
+  return (unsigned int)  (latency/1000)*1000;
+}
 
 void LatencyMeasureSubscriber::make_stats(double tuple_time_ms,  map<unsigned int, unsigned int> &bucket_map_rt,
      map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms)
 {
   double current_time_ms = (double)(get_usec()/1000); 
   double latency_rt_ms = current_time_ms-tuple_time_ms;
-  
-  assert(latency_rt_ms > 0);
-  unsigned int bucket_rt = (unsigned int) (latency_rt_ms / bucket_size_ms)  ;
+ 
+  //LOG(INFO) << "Latency: " << current_time_ms << " - " << tuple_time_ms << " = " << latency_rt_ms;
+  unsigned int bucket_rt = get_bucket(latency_rt_ms);
   bucket_map_rt[bucket_rt] += 1;
 
   if(tuple_time_ms > max_seen_tuple_ms) {
@@ -253,8 +266,7 @@ void LatencyMeasureSubscriber::make_stats(double tuple_time_ms,  map<unsigned in
   }
   else { 
     double latency_skew_ms = max_seen_tuple_ms-tuple_time_ms;
-    assert(latency_skew_ms > 0);
-    unsigned int bucket_skew = (unsigned int) (latency_skew_ms / bucket_size_ms);
+    unsigned int bucket_skew = get_bucket(latency_skew_ms);
     bucket_map_skew[bucket_skew] += 1;
   }
 }
@@ -290,7 +302,7 @@ void LatencyMeasureSubscriber::print_stats(std::map<std::string, std::map<unsign
     line << "Hostname: "<< (*stats_it).first <<endl;
     std::map<unsigned int, unsigned int>::iterator latency_it;
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
-      line<< "Latency: " << (*latency_it).first*bucket_size_ms<< " count: " << (*latency_it).second<<endl;
+      line<< "Latency: " << (*latency_it).first<< " count: " << (*latency_it).second<<endl;
     }
   }
 }

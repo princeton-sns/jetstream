@@ -73,6 +73,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(HashSampleOperator);
   REGISTER_OP(TRoundingOperator);
   REGISTER_OP(UnixOperator);
+  REGISTER_OP(TimestampOperator);
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);
@@ -88,6 +89,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
+  REGISTER_OP(LatencyMeasureSubscriber);
   
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
