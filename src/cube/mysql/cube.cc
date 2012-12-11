@@ -290,6 +290,7 @@ string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(std::string sql) {
   try {
+    VLOG(2) << "Create Prepared Statement sql: " << sql;
     boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
     shared_ptr<sql::PreparedStatement> stmnt(tc->connection->prepareStatement(sql));
     return stmnt;
