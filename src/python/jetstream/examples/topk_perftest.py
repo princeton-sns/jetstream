@@ -25,10 +25,14 @@ def main():
   parser.add_option("-a", "--controller", dest="controller",
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true", 
-                  help="whether to show PB without running", default=False)
+                  help="shows PB without running", default=False)
 
   parser.add_option("-n", "--no-local", dest="NO_LOCAL", action="store_true", 
                   help="whether to do no local buffering", default=False)
+
+  parser.add_option("-s", "--sampling", dest="SAMPLE", action="store_true", 
+                  help="enables sampling, uses blocking instead for flow control", default=False)
+
 
 
   parser.add_option("-o", "--log_out_file", dest="perflog", 
@@ -81,6 +85,7 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
   LOCAL_AGG = not options.NO_LOCAL
+  
 
   final_cube = g.add_cube("final_results")
   final_cube.add_dim("state", Element.STRING, 0)
@@ -93,8 +98,10 @@ def get_graph(root_node, all_nodes, options, rate=1000):
 
   final_cube.instantiate_on(root_node)
 
-  sampling_balancer =jsapi.SamplingController(g)
-  sampling_balancer.instantiate_on(root_node)
+  if options.SAMPLE:
+    sampling_balancer =jsapi.SamplingController(g)
+    sampling_balancer.instantiate_on(root_node)
+    g.connect(sampling_balancer, final_cube)  
   
 
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
@@ -108,7 +115,6 @@ def get_graph(root_node, all_nodes, options, rate=1000):
       eval_op.set_cfg("append", "false")
       is_first_run = False
 
-  g.connect(sampling_balancer, final_cube)  
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
   
@@ -118,7 +124,6 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     src.set_cfg("rate", rate)
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
-    sample_op = jsapi.VariableSampling(g)
 
     if LOCAL_AGG:   # local aggregation
       extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
@@ -137,14 +142,21 @@ def get_graph(root_node, all_nodes, options, rate=1000):
       g.connect(local_cube, pull_op)
       g.connect(pull_op, extend_op)
       local_cube.instantiate_on(node)    
-      g.connect(extend_op, sample_op)
+      last_local = extend_op
     else:
-      g.connect(src, sample_op)
+      last_local = src
     
     src.instantiate_on(node)
 
-    g.connect(sample_op, round_op)
-    g.connect(round_op, sampling_balancer)
+    if options.SAMPLE:  
+      sample_op = jsapi.VariableSampling(g)
+      g.connect(last_local, sample_op)
+      g.connect(sample_op, round_op)
+      g.connect(round_op, sampling_balancer)
+    else:
+      g.connect(last_local, round_op)
+      g.connect(round_op, final_cube)
+      
   return g
 
 
