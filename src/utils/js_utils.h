@@ -7,7 +7,6 @@
 #include "jetstream_types.pb.h"
 
 namespace jetstream {
-
 void         jetstream_init ();
 void         refresh_time ();
 sec_t        get_sec ();

@@ -75,10 +75,13 @@ void
 LivenessManager::ConnectionNotification::send_notification (const boost::system::error_code &error)
 {
   if (error || !is_connected()) {
-    LOG(WARNING) << "Send notification "
-		 << conn_debug_str()
-		 << ": connected " << is_connected()
-		 << ": error " << error.message() << endl;
+    if (error != boost::system::errc::operation_canceled) {
+    
+      LOG(WARNING) << "Send notification "
+       << conn_debug_str()
+       << ": connected " << is_connected()
+       << ": error " << error.message() << "(" << error.value() << ")" << endl;
+    }
     return;
   }
 

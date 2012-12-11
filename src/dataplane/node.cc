@@ -185,6 +185,14 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
 {
  // VLOG(1) << "got message: " << msg.Utf8DebugString() <<endl;
   
+  if (error) {
+  
+    if (error.value() != boost::system::errc::connection_reset)
+      LOG(WARNING) << "Monitoring connection failed: " << error.message();
+    return;
+  }
+  
+  
   boost::system::error_code send_error;
   ControlMessage response;
 
@@ -621,3 +629,4 @@ Node::make_op_list() {
   }
   return s.str();
 }
+

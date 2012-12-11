@@ -30,6 +30,9 @@ class Node;
 class TupleSender {
   public:
     virtual void meta_from_downstream(const DataplaneMessage & msg) = 0;
+    virtual void chain_is_broken() = 0;
+    virtual std::string id_as_str() = 0;
+  
 };
 
 class TupleReceiver {
@@ -136,6 +139,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
    */
   virtual void stop () {};
   
+  virtual void chain_is_broken();
   
   virtual void meta_from_downstream(const DataplaneMessage &msg);
   

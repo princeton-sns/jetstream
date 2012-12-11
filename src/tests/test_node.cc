@@ -450,6 +450,16 @@ NodeTwoNodesTest::TearDown() {
 }
 
 
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id, const Node& dest_node) {
+  Edge * e = add_edge_to_alter(topo,  src_id, dest_id);
+  NodeID * destIP = e->mutable_dest_addr();
+  const boost::asio::ip::tcp::endpoint& dest_node_addr = dest_node.get_listening_endpoint();
+  destIP->set_portno(dest_node_addr.port());
+  destIP->set_address("127.0.0.1");
+  return e;
+}
+
 // This test is similar to ReceiveDataNotYetReady but uses real dataplane nodes.
 // Thus it can test the following scenario: an operator on one node attempts to
 // send data to a remote operator on the second node before receiving CHAIN_READY.
@@ -464,26 +474,12 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
   string kStr = "5";
   AlterTopo topo;
   topo.set_computationid(src_id.computation_id);
-  TaskMeta* task = topo.add_tostart();
-  task->set_op_typename("SendK");
-  // Send some tuples, e.g. k = 5
-  TaskMeta_DictEntry* op_cfg = task->add_config();
-  op_cfg->set_opt_name("k");
-  op_cfg->set_val(kStr);
 
-  TaskID* id = task->mutable_id();
-  id->set_computationid(src_id.computation_id);
-  id->set_task(src_id.task_id);
-  Edge * e = topo.add_edges();
-  e->set_src(src_id.task_id);
-  e->set_dest(dest_id.task_id);
-  e->set_computation(src_id.computation_id);
-  // Provide remote destination info for the edge
-  NodeID * dest_node = e->mutable_dest_addr();
-  const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
-  dest_node->set_portno(dest_node_addr.port());
-  dest_node->set_address("127.0.0.1");
- 
+  TaskMeta* task =  add_operator_to_alter(topo, src_id, "SendK");
+  // Send some tuples, e.g. k = 5
+  add_cfg_to_task(task, "k", kStr);
+  add_edge_to_alter(topo, src_id, dest_id, *nodes[0]);
+
   ControlMessage r;
   nodes[1]->handle_alter(topo, r);  //starting on node 0, ordering it to send to node 1
   
@@ -531,6 +527,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     add_operator_to_alter(dest_topo, congest_op_id, "MockCongestion");
     add_edge_to_alter(dest_topo, congest_op_id, dest_id);
     nodes[0]->handle_alter(dest_topo, response);
+    ASSERT_FALSE(response.has_error_msg());
   }
 
   EXPECT_EQ(2, nodes[0]->operator_count());
@@ -550,20 +547,12 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     send_topo.set_computationid(src_op_id.computation_id);
     TaskMeta* task  = add_operator_to_alter(send_topo, src_op_id, "SendK");
     // Send some tuples, e.g. k = 5
-    TaskMeta_DictEntry* op_cfg = task->add_config();
-    op_cfg->set_opt_name("k");
-    op_cfg->set_val("5");
-    op_cfg = task->add_config();
-    op_cfg->set_opt_name("exit_at_end");
-    op_cfg->set_val("false");
-    Edge* e = add_edge_to_alter(send_topo,  src_op_id, congest_op_id);
+    add_cfg_to_task(task, "k", "5");
+    add_cfg_to_task(task, "exit_at_end", "false");
+    add_edge_to_alter(send_topo,  src_op_id, congest_op_id, *nodes[0]);
     
-    NodeID * dest_node = e->mutable_dest_addr();
-    const tcp::endpoint& dest_node_addr = nodes[0]->get_listening_endpoint();
-    dest_node->set_portno(dest_node_addr.port());
-    dest_node->set_address("127.0.0.1");
-
     nodes[1]->handle_alter(send_topo, response);
+    ASSERT_FALSE(response.has_error_msg());
   }
   shared_ptr<SendK> src_op =  boost::dynamic_pointer_cast<SendK>(nodes[1]->get_operator( src_op_id ));
   
@@ -596,8 +585,50 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   }
 
   ASSERT_EQ(2 * k, dest->tuples.size());
-  
-  
 }
 
 
+TEST_F(NodeTwoNodesTest, SuddenStop)  {
+
+  operator_id_t dest_id(1,1), src_op_id(1,2);
+
+  ControlMessage response;
+
+    //Set up destination
+  {
+    AlterTopo dest_topo;
+    dest_topo.set_computationid(dest_id.computation_id);
+
+    add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
+    nodes[0]->handle_alter(dest_topo, response);
+    ASSERT_FALSE(response.has_error_msg());
+  }
+  
+  shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
+            nodes[0]->get_operator( dest_id ));
+
+  {
+    AlterTopo send_topo;
+    send_topo.set_computationid(src_op_id.computation_id);
+    TaskMeta* task  = add_operator_to_alter(send_topo, src_op_id, "ContinuousSendK");
+    add_cfg_to_task(task, "period",  "20"); //one tuple every 20 ms: 50 /sec
+    add_edge_to_alter(send_topo,  src_op_id, dest_id, *nodes[0]);
+
+    nodes[1]->handle_alter(send_topo, response);
+    ASSERT_FALSE(response.has_error_msg());
+  }
+
+  js_usleep(100 * 1000);  //make sure we're running.
+
+  int tuple_count = dest->tuples.size();
+  ASSERT_LT(1, tuple_count);
+  cout << "-----------doing stop after " << tuple_count << " tuples received -----------" << endl;
+  //FIXME: do we need to close ctrl connection here?
+  nodes[0]->stop();
+  js_usleep(200 * 1000);  //wait and make sure nothing pops on sender side
+  cout << "-----------cleaning up source-----------" << endl;
+  
+  //TODO check that send operator is stopped?
+
+
+}

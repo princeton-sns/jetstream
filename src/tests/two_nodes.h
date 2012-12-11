@@ -33,6 +33,13 @@ protected:
 
 };
 
+
+//declared in this file because it requires access to inside of Node class
+Edge *
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id, const Node& dest_node);
+
+  
+
 //}
 
 #endif
