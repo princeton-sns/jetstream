@@ -12,7 +12,8 @@ void
 IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
                                    const boost::system::error_code &error) {
   if (error) {
-    LOG(WARNING) << "error trying to read data: " << error.message();
+    if (error != boost::system::errc::operation_canceled) 
+      LOG(WARNING) << "error trying to read data: " << error.message();
     return;
   }
   
@@ -271,7 +272,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
   if (error) {
-    LOG(WARNING) << error.message() << " code = " << error.value();
+    if (error != boost::system::errc::operation_canceled) 
+      LOG(WARNING) << error.message() << " code = " << error.value();
     return;
   }
 

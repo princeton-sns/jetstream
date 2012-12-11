@@ -52,7 +52,9 @@ ConnectedSocket::get_fourtuple () const
 void
 ConnectedSocket::fail (const boost::system::error_code &error)
 {
-  LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
+  //TODO can we remove this logging statement? It's redundant with downstream I think --asr
+  if (error != boost::system::errc::operation_canceled)
+    LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
 
   sendQueue.clear();
   close_now();
