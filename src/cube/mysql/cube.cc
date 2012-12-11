@@ -290,6 +290,7 @@ string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(std::string sql) {
   try {
+    VLOG(2) << "Create Prepared Statement sql: " << sql;
     boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
     shared_ptr<sql::PreparedStatement> stmnt(tc->connection->prepareStatement(sql));
     return stmnt;
@@ -578,8 +579,8 @@ jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::Re
     dimensions[i]->populate_tuple(result, res, column_index);
 
     if(rollup) {
-      jetstream::Element *elem = result->add_e();
-      elem->set_i_val(res->getInt(column_index));
+      //jetstream::Element *elem = result->add_e();
+      //elem->set_i_val(res->getInt(column_index));
       ++column_index;
     }
   }

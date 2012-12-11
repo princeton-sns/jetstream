@@ -295,6 +295,9 @@ class Cube(Destination):
     COUNT = "count"
     AVERAGE = "avg"
     STRING = "string"
+    MIN_I = "min_i"
+    MIN_D = "min_d"
+    MIN_T = "min_t"
     
 
   def __init__(self, graph, name, desc, id):
@@ -355,7 +358,7 @@ class Cube(Destination):
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
       Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
 
-  typecode_for_aname = { 'string':'S', 'count':'I' }
+  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T' }
 
   def in_schema_map(self):
     """ Returns a map from offset-in-input-tuple to field-type,name pair"""
@@ -426,6 +429,12 @@ def ExtendOperator(graph, typeStr, fldValsList):
     cfg[str(i)] = str(x)
     i += 1
   return graph.add_operator(OpType.EXTEND, cfg)
+
+def TimestampOperator(graph, typeStr):
+  cfg = {"type": typeStr}
+  assert len(typeStr) < 3 and len(typeStr) > 0
+  return graph.add_operator(OpType.TIMESTAMP, cfg)
+
 
 
 def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
@@ -501,7 +510,10 @@ class TimeSubscriber(Operator):
 #    print "time subscriber schema"
     return in_schema  #everything is just passed through    
     
-    
+ 
+def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, bucket_size_ms):
+   cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "bucket_size_ms":str(bucket_size_ms)}
+   return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)    
 ##### Test operators #####
  
 def SendK(graph, k):

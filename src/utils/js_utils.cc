@@ -37,6 +37,7 @@ jetstream::refresh_time () {
 
 sec_t
 jetstream::get_sec () {
+  refresh_time();
   return tsnow.tv_sec;
 }
 

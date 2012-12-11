@@ -14,6 +14,7 @@ class OpType (object):
   STRING_GREP = "StringGrep"
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
+  TIMESTAMP = "TimestampOperator"
   T_ROUND_OPERATOR = "TRoundingOperator"
   VARIABLE_SAMPLING = "VariableSamplingOperator"
   CONGEST_CONTROL = "CongestionController"
@@ -27,6 +28,7 @@ class OpType (object):
   RAND_EVAL = "RandEvalOperator"
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
+  LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
   
 
   # Supported by Python local controller/worker only
@@ -64,6 +66,22 @@ def validate_extend(in_schema, cfg):
     newS.append( (x.upper(), '') )
   return newS
 
+def validate_timestamp(in_schema, cfg):
+  newS = []
+  newS.extend(in_schema)
+  if cfg["type"]=="s":
+    newS.append( ("T", 'timestamp(s)') )
+  if cfg["type"]=="ms":
+    newS.append( ("D", 'timestamp(ms)') )
+  if cfg["type"]=="us":
+    newS.append( ("D", 'timestamp(us)') )
+  return newS
+
+def validate_latency_measure(in_schema, cfg):
+  newS = []
+  newS.append( ("S", 'latency measure') )
+  return newS
+
 def validate_TRound(in_schema, cfg):
   fld_offset = int(cfg['fld_offset'])
   if fld_offset >= len(in_schema):
@@ -91,6 +109,8 @@ SCHEMAS[OpType.FILE_READ] = validate_FileRead
 SCHEMAS[OpType.STRING_GREP] = validate_grep
 SCHEMAS[OpType.PARSE] = validate_parse
 SCHEMAS[OpType.EXTEND] = validate_extend
+SCHEMAS[OpType.TIMESTAMP] = validate_timestamp
+SCHEMAS[OpType.LATENCY_MEASURE_SUBSCRIBER] = validate_latency_measure
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
 
 SCHEMAS[OpType.VARIABLE_SAMPLING] = lambda schema,cfg: schema 

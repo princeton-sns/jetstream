@@ -90,9 +90,9 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   final_cube = g.add_cube("final_results")
   final_cube.add_dim("state", Element.STRING, 0)
   final_cube.add_dim("time", Element.TIME, 1)
-  final_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+  final_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)
   if LOCAL_AGG:
-    final_cube.add_agg("sources", jsapi.Cube.AggType.STRING, 3)
+    final_cube.add_agg("source", jsapi.Cube.AggType.STRING, 4)
   
   final_cube.set_overwrite(True)  #fresh results  
 
@@ -114,40 +114,55 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     if is_first_run:
       eval_op.set_cfg("append", "false")
       is_first_run = False
+  
+  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 4, 100);
+  echo_op = jsapi.Echo(g);
 
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
   
+  g.connect(final_cube, latency_measure_op)  
+  g.connect(latency_measure_op, echo_op)  
+  
+  
   n = len(all_nodes)
   for node,k in zip(all_nodes, range(0,n)):
-    src = jsapi.RandSource(g, n, k)
+    src = jsapi.RandSource(g, n, k) #tuple: state, time
     src.set_cfg("rate", rate)
+    timestamp_op= jsapi.TimestampOperator(g, "ms") 
+    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
+    node_num_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)]) #not hostname for debugging locally
+    g.connect(src, timestamp_op)
+    g.connect(timestamp_op, count_extend_op)
+    g.connect(count_extend_op, node_num_op)
+    #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
 
     if LOCAL_AGG:   # local aggregation
-      extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
-
+      node_num_local_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
 
       local_cube = g.add_cube("local_results_%d" % k)
       local_cube.add_dim("state", Element.STRING, 0)
       local_cube.add_dim("time", Element.TIME, 1)
-      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+      local_cube.add_agg("min_timestamp", jsapi.Cube.AggType.MIN_D, 2)
+      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)
       local_cube.set_overwrite(True)  #fresh results
-  
+      #cube output tuple is 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count
       pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
       pull_op.set_cfg("ts_field", 1)
       pull_op.set_cfg("window_offset", OFFSET) #pull every three seconds, trailing by one
-      g.connect(src, local_cube)  
-      g.connect(local_cube, pull_op)
-      g.connect(pull_op, extend_op)
+      g.connect(node_num_op, local_cube)
+      g.connect(local_cube, pull_op)      
+      g.connect(pull_op, node_num_local_op)
       local_cube.instantiate_on(node)    
-      last_local = extend_op
+      #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
+      last_local = node_num_local_op
     else:
-      last_local = src
+      last_local = node_num_op
     
     src.instantiate_on(node)
-
+    
     if options.SAMPLE:  
       sample_op = jsapi.VariableSampling(g)
       g.connect(last_local, sample_op)
@@ -156,7 +171,6 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     else:
       g.connect(last_local, round_op)
       g.connect(round_op, final_cube)
-      
   return g
 
 

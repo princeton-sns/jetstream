@@ -119,6 +119,21 @@ class ExtendOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 };
 
+class TimestampOperator: public DataPlaneOperator {
+ public:
+  enum Type {S, MS, US};
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+
+  
+  virtual ~TimestampOperator() {};
+
+GENERIC_CLNAME
+
+ private:
+  Type type;
+};
+
 
 // given concurrent callers, sends out an ordered stream
 class OrderingOperator: public DataPlaneOperator {

@@ -119,6 +119,56 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     }
 };
 
+
+class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
+  public:
+    LatencyMeasureSubscriber(): Subscriber(){};
+    virtual ~LatencyMeasureSubscriber() {};
+
+    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+
+    virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value);
+
+    virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
+                                 boost::shared_ptr<jetstream::Tuple> const &old_value);
+
+
+    virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+    virtual void start();
+    virtual void stop() {
+      LOG(INFO) << id() << " received stop()";
+      running = false;
+    }
+    void operator()();  // A thread that will loop
+
+
+  protected:
+    unsigned int time_tuple_index;
+    unsigned int hostname_tuple_index;
+    unsigned int bucket_size_ms;
+    double max_seen_tuple_before_ms; //before db insertion
+    double max_seen_tuple_after_ms;
+
+    std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_rt; //hostname=>bucket=>count
+    std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_skew; //hostname=>bucket=>count
+    std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_rt; //hostname=>bucket=>count
+    std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_skew; //hostname=>bucket=>count
+
+    unsigned int get_bucket(double latency); 
+
+    void make_stats(double tuple_time_ms,  std::map<unsigned int, unsigned int> &bucket_map_rt,
+     std::map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms);
+    
+    void print_stats(std::map<std::string, std::map<unsigned int, unsigned int> > & stats,  std::stringstream& line);
+
+    
+    boost::shared_ptr<boost::thread> loopThread;
+    volatile bool running;
+};
+
 } /* jetsream */
 
 #endif /* end of include guard: Q_SUBSCRIBER_2FAEJ0UJ */

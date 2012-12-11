@@ -90,6 +90,8 @@ class DataCube : public TupleReceiver {
     virtual std::string id_as_str() ;
     virtual const std::string& typename_as_str() ;
     virtual void no_more_tuples() {};
+    
+    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
 
 
     /**
@@ -137,7 +139,6 @@ class DataCube : public TupleReceiver {
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
-    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
     boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
     boost::posix_time::time_duration batch_timeout;
 

@@ -13,7 +13,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionTime::get_key(const  Tuple &t) c
     struct tm temptm;
     char timestring[30];
     time_t clock = e.t_val();
-    localtime_r(&clock, &temptm);
+    gmtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     return timestring;
   }
@@ -52,7 +52,7 @@ void MysqlDimensionTime::set_value_for_insert_tuple(shared_ptr<sql::PreparedStat
     struct tm temptm;
     char timestring[30];
     time_t clock = e->t_val();
-    localtime_r(&clock, &temptm);
+    gmtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     pstmt->setString(field_index, timestring);
     field_index += 1;
@@ -69,7 +69,7 @@ string MysqlDimensionTime::get_where_clause(jetstream::Tuple const &t, int &tupl
     struct tm temptm;
     char timestring[30];
     time_t clock = e.t_val();
-    localtime_r(&clock, &temptm);
+    gmtime_r(&clock, &temptm);
     strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
     tuple_index += 1;
     return "`"+get_base_column_name() + "` "+ op +" \""+timestring+"\"";
@@ -86,10 +86,10 @@ void MysqlDimensionTime::populate_tuple(boost::shared_ptr<jetstream::Tuple> t, b
   jetstream::Element *elem = t->add_e();
   string timestring = resultset->getString(column_index);
   struct tm temptm;
-  temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
+  //temptm.tm_isdst = -1; //not filled in by strptime. Make mktime figure it out
   
   if(strptime(timestring.c_str(), "%Y-%m-%d %H:%M:%S", &temptm) != NULL) {
-    elem->set_t_val(mktime(&temptm));
+    elem->set_t_val(timegm(&temptm));
   }
   else {
     LOG(FATAL)<<"Error in time conversion";

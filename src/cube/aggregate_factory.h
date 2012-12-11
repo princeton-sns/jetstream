@@ -4,6 +4,7 @@
 #include "mysql/aggregate_count.h"
 #include "mysql/aggregate_avg.h"
 #include "mysql/aggregate_string.h"
+#include "mysql/aggregate_min.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <glog/logging.h>
@@ -19,25 +20,30 @@ struct AggregateFactory {
 template<>
 struct AggregateFactory<jetstream::cube::MysqlAggregate> {
   static boost::shared_ptr<jetstream::cube::MysqlAggregate> create(jetstream::CubeSchema_Aggregate _schema) {
-
+    boost::shared_ptr<jetstream::cube::MysqlAggregate> obj;
     if(_schema.type() == "count") {
-      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateCount>();
-      obj->init(_schema);
-      return obj;
+      obj = boost::make_shared<MysqlAggregateCount>();
     }
     else if(_schema.type() == "avg") {
-      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateAvg>();
-      obj->init(_schema);
-      return obj;
+      obj = boost::make_shared<MysqlAggregateAvg>();
     }
     else if(_schema.type() == "string") {
-      boost::shared_ptr<jetstream::cube::MysqlAggregate> obj = boost::make_shared<MysqlAggregateString>();
-      obj->init(_schema);
-      return obj;
+      obj = boost::make_shared<MysqlAggregateString>();
+    }
+    else if(_schema.type() == "min_i") {
+      obj = boost::make_shared<MysqlAggregateMin<int> >();
+    }
+    else if(_schema.type() == "min_d") {
+      obj = boost::make_shared<MysqlAggregateMin<double> >();
+    }
+    else if(_schema.type() == "min_t") {
+      obj = boost::make_shared<MysqlAggregateMin<time_t> >();
     }
     else {
       LOG(FATAL) << "Don't have right aggregate";
     }
+    obj->init(_schema);
+    return obj;
   };
 };
 
