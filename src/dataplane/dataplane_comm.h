@@ -146,6 +146,16 @@ public:
   
   virtual void meta_from_downstream(const DataplaneMessage & msg);
   
+  virtual void chain_is_broken() {
+    LOG(INFO) << "closing down incoming socket due to chain-broken ahead";
+    close_async();
+  }
+  
+  virtual std::string id_as_str() {
+    std::ostringstream o;
+    o << "Incoming connection from " << remote_op;
+    return o.str();
+  }
   
 };
 

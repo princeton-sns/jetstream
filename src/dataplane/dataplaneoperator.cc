@@ -57,6 +57,20 @@ DataPlaneOperator::no_more_tuples () {
 
 
 void
+DataPlaneOperator::chain_is_broken () {
+
+  if (pred != NULL) {
+    pred->chain_is_broken();
+  }
+    //note that we recurse before stopping. So the stops will happen front-to-back.
+  if (node != NULL) {
+    node->stop_operator(operID); 
+  }
+}
+
+
+
+void
 DataPlaneOperator::meta_from_downstream(const DataplaneMessage &msg) {
   if (pred != NULL)
     pred->meta_from_downstream(msg);

@@ -12,7 +12,8 @@ void
 IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
                                    const boost::system::error_code &error) {
   if (error) {
-    LOG(WARNING) << "error trying to read data: " << error.message();
+    if (error != boost::system::errc::operation_canceled) 
+      LOG(WARNING) << "error trying to read data: " << error.message();
     return;
   }
   
@@ -199,13 +200,17 @@ DataplaneConnManager::close() {
 
   for (iter = pendingConns.begin(); iter != pendingConns.end(); iter++) {
     vector<PendingConn> & conns = iter->second;
-    for (u_int i = 0; i < conns.size(); ++i)
+    for (u_int i = 0; i < conns.size(); ++i) {
+      LOG(INFO) << "In dataplane teardown, disconnecting pending conn " << conns[i].conn->get_remote_endpoint();
       conns[i].conn->close_async(no_op_v);
+    }
   }
 
   std::map<tcp::endpoint, boost::shared_ptr<IncomingConnectionState> >::iterator live_iter;
 
   for (live_iter = liveConns.begin(); live_iter != liveConns.end(); live_iter++) {
+    LOG(INFO) << "In dataplane teardown, disconnecting from " << live_iter->second->get_remote_endpoint();
+
     live_iter->second->close_async();
   }
 }
@@ -242,7 +247,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
 void
 RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
                                      boost::system::error_code error) {
-  if (error) {
+  if (error || ! c->is_connected()) {
     LOG(WARNING) << "Dataplane connection failed: " << error.message();
     return;
   }
@@ -267,7 +272,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
   if (error) {
-    LOG(WARNING) << error.message() << " code = " << error.value();
+    if (error != boost::system::errc::operation_canceled) 
+      LOG(WARNING) << error.message() << " code = " << error.value();
     return;
   }
 
@@ -359,6 +365,13 @@ RemoteDestAdaptor::do_send_unlocked() {
   boost::system::error_code err;
   conn->send_msg(msg, err);
   msg.Clear();
+  
+  if (err != 0) {
+    //send failed
+    LOG(WARNING) << "Send failed; tearing down chain; local end is " << pred->id_as_str();
+    pred->chain_is_broken();
+    conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
+  }
 }
 
 void
@@ -378,10 +391,6 @@ RemoteDestAdaptor::no_more_tuples () {
   conn->send_msg(d, err);
   VLOG(1) << "sent last tuples from connection (total is " << conn->send_count() << "); waiting.";
   
-//  boost::barrier b(2);
-//  conn->close_async(boost::bind(&boost::barrier::wait, &b));
-//  b.wait();
-//  VLOG(1) << "close finished; tearing down. Total of " << conn->send_count() << " tuples sent";
   conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   //need to wait until the close actually happens before returning, to avoid
   //destructing while the connection is in use.
