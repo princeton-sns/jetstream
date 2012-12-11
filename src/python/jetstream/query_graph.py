@@ -396,12 +396,13 @@ class Cube(Destination):
           print "Matching input-name %s to cube column %s"  % (in_schema[field_id][1], name)
 
     ret = []
-    for k in range(0, max(r.keys()) +1 ):
-      if k in r:
-        ret.append ( r[k] )
-      else:
-        ret.append ( ('undef', 'undef') )
-#    print "cube",self.name,"has schema", ret
+
+    for name, type, offset in self.desc['dims']:
+      ret.append ( (self.typecode_for_dname[type], name) )
+  
+    for name, type, offset in self.desc['aggs']:
+      ret.append ( (self.typecode_for_aname.get(type, "undef:"+type) , name)  )  
+    "cube",self.name,"has schema", ret
     return ret
     
 ##### Useful operators #####
