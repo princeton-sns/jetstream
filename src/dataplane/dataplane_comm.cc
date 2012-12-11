@@ -14,6 +14,10 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   if (error) {
     if (error != boost::system::errc::operation_canceled) 
       LOG(WARNING) << "error trying to read data: " << error.message();
+    if( dest ) {
+      dest->no_more_tuples();  //tear down chain
+      conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
+    }
     return;
   }
   
@@ -85,8 +89,12 @@ IncomingConnectionState::report_congestion_upstream(double level) {
   VLOG(1) << "Reporting congestion at " << dest->id_as_str()<< ": " << level;
   boost::system::error_code error;
   conn->send_msg(msg, error);
-  if (error)
+  if (error) {
     LOG(WARNING) << "Failed to report congestion: " << error.message();
+    if (dest)
+      dest->no_more_tuples();
+    conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
+  }
 }
 
 
@@ -118,6 +126,12 @@ IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
 //    LOG(INFO) << "propagating meta downstream";
     boost::system::error_code error;
     conn->send_msg(msg, error);
+    if (error) {
+      LOG(WARNING) << "Failed to send message upwards: " << error.message();
+      if (dest)
+        dest->no_more_tuples();
+      conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
+    }
   }
 }
 

@@ -360,7 +360,7 @@ class Cube(Destination):
 
   typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T' }
 
-  def out_schema_map(self):
+  def in_schema_map(self):
     """ Returns a map from offset-in-input-tuple to field-type,name pair"""
 #    if self.cached_schema is not None:
 #      return self.cached_schema
@@ -374,7 +374,7 @@ class Cube(Destination):
     
     
   def out_schema(self, in_schema):
-    r = self.out_schema_map()
+    r = self.in_schema_map()
     
 #    print "in-schema", in_schema
 #    print "dims", self.desc['dims']
