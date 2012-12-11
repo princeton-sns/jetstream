@@ -588,8 +588,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
 }
 
 
-TEST_F(NodeTwoNodesTest, SuddenStop)  {
-
+void stop_test(int i, boost::shared_ptr<Node>* nodes) {
   operator_id_t dest_id(1,1), src_op_id(1,2);
 
   ControlMessage response;
@@ -601,7 +600,7 @@ TEST_F(NodeTwoNodesTest, SuddenStop)  {
 
     add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
     nodes[0]->handle_alter(dest_topo, response);
-    ASSERT_FALSE(response.has_error_msg());
+    EXPECT_FALSE(response.has_error_msg());
   }
   
   shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
@@ -615,20 +614,32 @@ TEST_F(NodeTwoNodesTest, SuddenStop)  {
     add_edge_to_alter(send_topo,  src_op_id, dest_id, *nodes[0]);
 
     nodes[1]->handle_alter(send_topo, response);
-    ASSERT_FALSE(response.has_error_msg());
+    EXPECT_FALSE(response.has_error_msg());
   }
 
   js_usleep(100 * 1000);  //make sure we're running.
 
   int tuple_count = dest->tuples.size();
-  ASSERT_LT(1, tuple_count);
+  EXPECT_LT(1, tuple_count);
   cout << "-----------doing stop after " << tuple_count << " tuples received -----------" << endl;
   //FIXME: do we need to close ctrl connection here?
-  nodes[0]->stop();
-  js_usleep(200 * 1000);  //wait and make sure nothing pops on sender side
+  nodes[i]->stop();
+  js_usleep(200 * 1000);  //wait and make sure nothing pops on other side
   cout << "-----------cleaning up source-----------" << endl;
+
+}
+
+
+
+TEST_F(NodeTwoNodesTest, SuddenStopDest)  {
+  stop_test(0, nodes);
+      //operator should have been torn down on source node
+  ASSERT_EQ(0, nodes[1]->operator_count());
   
-  //TODO check that send operator is stopped?
+}
 
 
+TEST_F(NodeTwoNodesTest, SuddenStopSrc)  {
+  stop_test(1, nodes);
+    //can't test for dest being cleaned up since sources that fail silently are silent
 }
