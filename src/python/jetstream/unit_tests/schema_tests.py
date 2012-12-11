@@ -98,7 +98,24 @@ class TestSchemas(unittest.TestCase):
     except SchemaError as ex:
       print "got expected err:", str(ex)
     else:
-      self.assertTrue(False, "should throw, but didn't")            
+      self.assertTrue(False, "should throw, but didn't")
+      
+      
+  def test_cubeInsertPartial(self):
+    print "inserting tuple with more data than cube"
+    #tests insertion where the tuple has more fields than the cube  
+    qGraph = jsapi.QueryGraph()
+    local_cube = qGraph.add_cube("results")
+    local_cube.add_dim("state", Element.STRING, 0)
+    src = jsapi.RandSource(qGraph, 1, 2)
+    qGraph.connect(src,local_cube)
+    try: 
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.assertTrue(False, "should not throw, but got " + str(ex))
+
+  
+
         
   def test_cubeSubscribe(self):
   

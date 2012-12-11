@@ -361,6 +361,7 @@ class Cube(Destination):
   typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T' }
 
   def out_schema_map(self):
+    """ Returns a map from offset-in-input-tuple to field-type,name pair"""
 #    if self.cached_schema is not None:
 #      return self.cached_schema
     r = {}
@@ -382,11 +383,20 @@ class Cube(Destination):
       raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
           ( self.name, max_dim + 1,str(in_schema)))
 
-    for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
-      db_schema = r.get(i, ('undef', 'undef'))
-      if ty != db_schema[0]:
-        raise SchemaError ("Can't put value %s,%s into field %s of type %s" % \
-          (ty,name, db_schema[0], db_schema[1]))
+#    for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
+#      db_schema = r.get(i, ('undef', 'undef'))
+#      if ty != db_schema[0]:
+    if len(in_schema) > 0:
+      for field_id,(ty,name) in r.items():
+        if field_id >= len(in_schema):
+          print "assuming COUNT for field %s"% name
+          continue
+        
+        if in_schema[field_id][0] != ty:
+          raise SchemaError ("Can't put value %s (type %s) into field %s of type %s" % \
+            (in_schema[field_id][1],in_schema[field_id][0], name, ty))
+        if in_schema[field_id][1] != name:
+          print "Matching input-name %s to cube column %s"  % (in_schema[field_id][1], name)
 
     ret = []
     for k in range(0, max(r.keys()) +1 ):

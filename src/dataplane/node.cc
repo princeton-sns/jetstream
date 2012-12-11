@@ -323,6 +323,10 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
   AlterTopo *respTopo = response.mutable_alter();
   respTopo->set_computationid(topo.computationid());
 
+    //a whole handle_alter is atomic with respect to incoming connections
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+
+
   VLOG(1) << "Incoming Alter message: "<<topo.Utf8DebugString() << endl;
 
   LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
@@ -418,7 +422,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
     
       if (!srcOperator) {
-        LOG(WARNING) << "unknown source operator " << src;
+        LOG(WARNING) << "unknown source operator " << src<< " for edge";
         
         Error * err_msg = response.mutable_error_msg();
         err_msg->set_msg("unknown source operator " + src.to_string());
@@ -435,9 +439,10 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       else if (edge.has_dest_cube()) {  //local cube
         // connect to local table
         shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
-        if (c)
+        if (c) {
           srcOperator->set_dest(c);
-        else {
+          LOG(INFO) << "edge from " << src << " to " << edge.dest_cube();
+        } else {
           LOG(WARNING) << "Dest DataCube unknown: " << edge.dest_cube() << endl;
           Error * err_msg = response.mutable_error_msg();
           err_msg->set_msg("unknown dest DataCube " + edge.dest_cube());
@@ -450,8 +455,9 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
         if (destOperator) {
           srcOperator->set_dest(destOperator);
           destOperator->add_pred(srcOperator);
+          LOG(INFO) << "Edge from " << src << " to " << dest;
          } else {
-          LOG(WARNING) << "Dest Operator unknown: " << dest.to_string() << endl;
+          LOG(WARNING) << "Edge from " << src<< " to unknown dest " << dest;
           Error * err_msg = response.mutable_error_msg();
           err_msg->set_msg("unknown dest operator " + dest.to_string());
         }
@@ -563,7 +569,6 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);
   if (err == NO_ERR) {
-    unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     operators[name] = d; //TODO check for name in use?
   }
   return err;

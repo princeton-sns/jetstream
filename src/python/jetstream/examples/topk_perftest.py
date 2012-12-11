@@ -25,10 +25,14 @@ def main():
   parser.add_option("-a", "--controller", dest="controller",
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true", 
-                  help="whether to show PB without running", default=False)
+                  help="shows PB without running", default=False)
 
   parser.add_option("-n", "--no-local", dest="NO_LOCAL", action="store_true", 
                   help="whether to do no local buffering", default=False)
+
+  parser.add_option("-s", "--sampling", dest="SAMPLE", action="store_true", 
+                  help="enables sampling, uses blocking instead for flow control", default=False)
+
 
 
   parser.add_option("-o", "--log_out_file", dest="perflog", 
@@ -81,6 +85,7 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   ### Define the graph abstractly
   g = jsapi.QueryGraph()
   LOCAL_AGG = not options.NO_LOCAL
+  
 
   final_cube = g.add_cube("final_results")
   final_cube.add_dim("state", Element.STRING, 0)
@@ -93,8 +98,10 @@ def get_graph(root_node, all_nodes, options, rate=1000):
 
   final_cube.instantiate_on(root_node)
 
-  sampling_balancer =jsapi.SamplingController(g)
-  sampling_balancer.instantiate_on(root_node)
+  if options.SAMPLE:
+    sampling_balancer =jsapi.SamplingController(g)
+    sampling_balancer.instantiate_on(root_node)
+    g.connect(sampling_balancer, final_cube)  
   
 
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
@@ -111,7 +118,6 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 4, 100);
   echo_op = jsapi.Echo(g);
 
-  g.connect(sampling_balancer, final_cube)  
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
   
@@ -129,10 +135,9 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     g.connect(src, timestamp_op)
     g.connect(timestamp_op, count_extend_op)
     g.connect(count_extend_op, node_num_op)
-    #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count 4=>S-node#
+    #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
-    sample_op = jsapi.VariableSampling(g)
 
     if LOCAL_AGG:   # local aggregation
       node_num_local_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
@@ -141,21 +146,31 @@ def get_graph(root_node, all_nodes, options, rate=1000):
       local_cube.add_dim("state", Element.STRING, 0)
       local_cube.add_dim("time", Element.TIME, 1)
       local_cube.add_agg("min_timestamp", jsapi.Cube.AggType.MIN_D, 2)
-      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 4)
+      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)
       local_cube.set_overwrite(True)  #fresh results
       #cube output tuple is 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count
       pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
       pull_op.set_cfg("ts_field", 1)
       pull_op.set_cfg("window_offset", OFFSET) #pull every three seconds, trailing by one
-      g.connect(host_extend, local_cube)  
-      g.connect(local_cube, pull_op)      g.connect(pull_op, node_num_local_op)
+      g.connect(node_num_op, local_cube)
+      g.connect(local_cube, pull_op)      
+      g.connect(pull_op, node_num_local_op)
       local_cube.instantiate_on(node)    
-      g.connect(node_num_local_op, sample_op)
-      #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count 4=>S-node#
+      #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
+      last_local = node_num_local_op
+    else:
+      last_local = node_num_op
     
     src.instantiate_on(node)
-    g.connect(sample_op, round_op)
-    g.connect(round_op, sampling_balancer)
+    
+    if options.SAMPLE:  
+      sample_op = jsapi.VariableSampling(g)
+      g.connect(last_local, sample_op)
+      g.connect(sample_op, round_op)
+      g.connect(round_op, sampling_balancer)
+    else:
+      g.connect(last_local, round_op)
+      g.connect(round_op, final_cube)
   return g
 
 
