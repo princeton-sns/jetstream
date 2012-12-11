@@ -295,6 +295,9 @@ class Cube(Destination):
     COUNT = "count"
     AVERAGE = "avg"
     STRING = "string"
+    MIN_I = "min_i"
+    MIN_D = "min_d"
+    MIN_T = "min_t"
     
 
   def __init__(self, graph, name, desc, id):
@@ -355,7 +358,7 @@ class Cube(Destination):
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
       Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
 
-  typecode_for_aname = { 'string':'S', 'count':'I' }
+  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T' }
 
   def out_schema_map(self):
 #    if self.cached_schema is not None:
@@ -382,7 +385,7 @@ class Cube(Destination):
     for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
       db_schema = r.get(i, ('undef', 'undef'))
       if ty != db_schema[0]:
-        raise SchemaException ("Can't put value %s,%s into field %s of type %s" % \
+        raise SchemaError ("Can't put value %s,%s into field %s of type %s" % \
           (ty,name, db_schema[0], db_schema[1]))
 
     ret = []
@@ -497,7 +500,7 @@ class TimeSubscriber(Operator):
     return in_schema  #everything is just passed through    
     
  
- def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, bucket_size):
+def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, bucket_size_ms):
    cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "bucket_size_ms":str(bucket_size_ms)}
    return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)    
 ##### Test operators #####
