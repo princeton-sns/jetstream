@@ -221,7 +221,16 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   }
   
   boost::smatch matchResults;
-  bool found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
+
+  bool found = false;
+
+  try {
+      found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
+  }
+  catch (std::exception &e) {
+      LOG(FATAL) << "Regex match error thrown: " << e.what() << endl;
+  }
+
   if (found) {
   
     if (matchResults.size() != field_types.length() + 1) {
