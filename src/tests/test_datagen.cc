@@ -135,10 +135,16 @@ TEST(Operator, GoodnessOfData) {
   ASSERT_GT(op.cur_deviation(), 0.9);
 }
 
-TEST(Operator, RandSourceIntegration) {
+shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg) {
+
   shared_ptr<RandEvalOperator> rec(new RandEvalOperator);
-  operator_config_t cfg;
   rec->configure(cfg);
+
+  RandSourceOperator op;
+  cfg["n"] = "1";
+  cfg["k"] = "0";
+  cfg["rate"] = "1000";
+  operator_err_t err = op.configure(cfg);
 
   shared_ptr<DataPlaneOperator> extend(new ExtendOperator);
   cfg["types"] = "i";
@@ -147,12 +153,7 @@ TEST(Operator, RandSourceIntegration) {
 
   cfg.clear();
   
-  RandSourceOperator op;
-  cfg["n"] = "1";
-  cfg["k"] = "0";
-  cfg["rate"] = "1000";
-  operator_err_t err = op.configure(cfg);
-  ASSERT_EQ(NO_ERR, err);
+  EXPECT_EQ(NO_ERR, err);
 
 
   op.set_dest(extend);
@@ -167,14 +168,24 @@ TEST(Operator, RandSourceIntegration) {
 
   int total = op.emitted_count();
 
-
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "California");
   extend_tuple_time(*t, time(NULL) + 1);
   extend_tuple(*t, 1);
   rec->process(t);
 
-  ASSERT_EQ(rec->data_in_last_window(), total);
-  ASSERT_GT(rec->cur_deviation(), 0.9);
+  EXPECT_EQ(rec->data_in_last_window(), total);
+  EXPECT_GT(rec->cur_deviation(), 0.9);
+  return rec;
+}
 
+TEST(Operator, RandSourceIntegration_S) {
+  operator_config_t cfg;
+  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg);
+}
+
+TEST(Operator, RandSourceIntegration_Z) {
+  operator_config_t cfg;
+  cfg["mode"] = "zipf";
+  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg);
 }

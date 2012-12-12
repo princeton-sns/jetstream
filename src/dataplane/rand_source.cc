@@ -29,8 +29,14 @@ size_t fillin_s(std::vector<double>& rand_data, std::vector<std::string>& rand_l
 size_t fillin_zipf(std::vector<double>& rand_data, std::vector<std::string>& rand_labels, int target_size) {
   rand_data.resize(target_size);
   rand_labels.resize(target_size);
-
-
+  double BASE_VAL = 100;
+  double PARAM = 1.2;
+  for (int i = 0; i < target_size; ++ i) {
+    ostringstream str;
+    str << "item_" << i;
+    rand_labels[i] = str.str();
+    rand_data[i] = BASE_VAL / pow(i, PARAM);
+  }
   return target_size;
 }
 
