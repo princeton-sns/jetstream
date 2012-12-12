@@ -17,6 +17,7 @@ string s_rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois
 int s_rand_data_len = sizeof(s_rand_data) / sizeof(double);
 
 
+
 size_t fillin_s(std::vector<double>& rand_data, std::vector<std::string>& rand_labels) {
   rand_data.resize(s_rand_data_len);
   rand_labels.resize(s_rand_data_len);
@@ -26,19 +27,42 @@ size_t fillin_s(std::vector<double>& rand_data, std::vector<std::string>& rand_l
   }
   return s_rand_data_len;
 }
-size_t fillin_zipf(std::vector<double>& rand_data, std::vector<std::string>& rand_labels, int target_size) {
+
+size_t fillin_zipf (std::vector<double>& rand_data,
+                    std::vector<std::string>& rand_labels,
+                    int target_size,
+                    double zipf_param) {
   rand_data.resize(target_size);
   rand_labels.resize(target_size);
   double BASE_VAL = 100;
-  double PARAM = 1.2;
   for (int i = 0; i < target_size; ++ i) {
     ostringstream str;
     str << "item_" << i;
     rand_labels[i] = str.str();
-    rand_data[i] = BASE_VAL / pow(i, PARAM);
+    rand_data[i] = BASE_VAL / pow(i+2, zipf_param);
   }
   return target_size;
 }
+
+operator_err_t fillin_data (std::vector<double>& rand_data,
+                    std::vector<std::string>& rand_labels,
+                    operator_config_t config) {
+  
+  if (config["mode"] == "zipf") {
+    double zipf_param = 1.2;
+    if (config["zipf_param"].length() > 0)
+      zipf_param = boost::lexical_cast<double>(config["zipf_param"]);
+    
+    int items = 100;
+    if (config["items"].length() > 0)
+      items = boost::lexical_cast<int>(config["items"]);
+    fillin_zipf(rand_data, rand_labels, items, zipf_param);
+
+  } else
+    fillin_s(rand_data, rand_labels);
+  return NO_ERR;
+}
+  
 
 operator_err_t
 RandSourceOperator::configure(std::map<std::string,std::string> &config) {
@@ -57,15 +81,12 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("parameter k must be less than n");
   }
   
-  std::string mode = config["mode"];
-  if (mode == "zipf")
-    rand_data_len = fillin_zipf(rand_data, rand_labels, 100);
-  else
-    rand_data_len = fillin_s(rand_data, rand_labels);
-
+  operator_err_t err = fillin_data(rand_data, rand_labels, config);
+  if (err != NO_ERR)
+    return err;
 
   double total = 0;
-  for(int i =0; i < rand_data_len; ++i) {
+  for(int i =0; i < rand_data.size(); ++i) {
     total += rand_data[i];
   }
   double slice_size = total /n;
@@ -155,15 +176,11 @@ RandEvalOperator::configure(std::map<std::string,std::string> &config) {
     results_out = new ofstream(out_file_name.c_str(), (clear_file ? ios_base::out : ios_base::ate | ios_base::app));
   }
   
-  std::string mode = config["mode"];
-//  if (mode == "static")
-  if (mode == "zipf")
-    rand_data_len = fillin_zipf(rand_data, rand_labels, 100);
-  else
-    rand_data_len = fillin_s(rand_data, rand_labels);
-
+  operator_err_t err = fillin_data(rand_data, rand_labels, config);
+  if (err != NO_ERR)
+    return err;
   
-  for (int i=0; i < s_rand_data_len; ++i)
+  for (int i=0; i < rand_data.size(); ++i)
     total_in_distrib += rand_data[i];
   
   return NO_ERR;
@@ -184,7 +201,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
     int window_size_s = tuple_ts - last_ts_seen;
       //end of window, need to assess. The current tuple is irrelevant to the window
     max_rel_deviation = 1;
-    for (int i = 0; i < rand_data_len; ++i) {
+    for (int i = 0; i < rand_data.size(); ++i) {
       double expected_total = total_in_window * rand_data[i] / total_in_distrib; //todo can normalize in advance
       double real_total =  (double) counts_this_period[ rand_labels[i]];
       double deflection;
