@@ -9,6 +9,8 @@
 #include <glog/logging.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
 
@@ -100,6 +102,44 @@ FileRead::long_description() {
 }
 
 operator_err_t
+CSVParse::configure(map<string,string> &config) {
+  //istringstream(config["id"]) >> fieldID;
+  types = config["types"];
+  return NO_ERR;
+}
+
+void
+CSVParse::process(boost::shared_ptr<Tuple> t) {
+  // FIXME assume we want to parse 0th element
+  Element* e = t->mutable_e(0);
+  
+  if (!e->has_s_val()) {
+    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
+    return;
+  }
+
+  boost::tokenizer<boost::escaped_list_separator<char> > tok(e->s_val());
+
+  shared_ptr<Tuple> t2(new Tuple);
+
+  int i = 0;
+  for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();  beg!=tok.end(); ++beg, ++i) {
+    Element * e = t2->add_e();
+    parse_with_types(e, *beg, types[i]);
+  }
+
+  emit(t2);
+
+  // assume we don't need to pass through any other elements...
+  // TODO really?
+}
+
+std::string
+CSVParse::long_description() {
+  return "CSV parser";
+}
+
+operator_err_t
 StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
   istringstream(config["id"]) >> fieldID;
@@ -114,7 +154,7 @@ StringGrep::configure(map<string,string> &config) {
 }
 
 
-void
+  void
 StringGrep::process (boost::shared_ptr<Tuple> t)
 {
   assert(t);
@@ -122,6 +162,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     LOG(WARNING) << "no pattern assigned; did you start the operators properly?";
     return;
   }
+
   if (t->e_size() == 0) {
     LOG(INFO) << "received empty tuple, ignoring" << endl;
     return;
@@ -132,6 +173,7 @@ StringGrep::process (boost::shared_ptr<Tuple> t)
     LOG(WARNING) << "received tuple but element" << fieldID << " is not string, ignoring" << endl;
     return;
   }
+
   boost::smatch matchResults;
   bool found = boost::regex_search(e->s_val(), matchResults, re);
   if (found) {
@@ -523,6 +565,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
 }
 
 const string FileRead::my_type_name("FileRead operator");
+//const string CSVParse::my_type_name("CSVParse operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");

@@ -74,6 +74,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(TRoundingOperator);
   REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator);
+  REGISTER_OP(CSVParse);
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);

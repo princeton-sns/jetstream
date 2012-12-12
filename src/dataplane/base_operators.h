@@ -44,6 +44,18 @@ GENERIC_CLNAME
 };
 
 
+class CSVParse: public DataPlaneOperator {
+  public:
+    virtual operator_err_t configure (std::map<std::string,std::string> &config);
+    virtual void process (boost::shared_ptr<Tuple> t);
+    virtual std::string long_description();
+
+   protected:
+      std::string types;
+      //int fieldID; // the field containing the CSV values, default 0
+};
+
+
 /***
  * Operator for filtering strings. Expects one parameter, a string named 'pattern'
  * containing a regular expression. Assumes each received tuple has a first element
@@ -92,11 +104,10 @@ class GenericParse: public DataPlaneOperator {
  GENERIC_CLNAME
 };
 
-/** Use a typecode [char] to [parse a string into an element. Shared by GenericParse
-and by Extend */
+/** Use a typecode [char] to parse a string into an element. Shared by
+ * GenericParse, Extend, and CSVParse */
 void parse_with_types(Element * e, const std::string& s, char typecode);
   
-
 /**
  * Adds constant data to a tuple.
  *   Values should be named "0"..."9".
