@@ -420,6 +420,11 @@ def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern, "id": 0}
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
+def CSVParse(graph, types):
+   assert isinstance(types, str)
+   cfg = {"types" : types}
+   return graph.add_operator(OpType.CSV_PARSE, cfg)
+  
 
 def ExtendOperator(graph, typeStr, fldValsList):
   cfg = {"types": typeStr}

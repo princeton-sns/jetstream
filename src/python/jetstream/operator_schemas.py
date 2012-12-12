@@ -12,6 +12,7 @@ class SchemaError(Exception):
 class OpType (object):
   FILE_READ = "FileRead"
   STRING_GREP = "StringGrep"
+  CSV_PARSE = "CSVParse"
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
   TIMESTAMP = "TimestampOperator"
@@ -99,6 +100,19 @@ def validate_RandEval(in_schema, cfg):
     raise SchemaError("rand eval requires inputs Str, Time, Int. Got %s" % str(in_schema))
     
   return []    
+
+def validate_CSVParse(in_schema, cfg):
+  if in_schema[0][0] != 'S':
+    raise SchemaError("CSVParse currently requires a string as the first" +
+                       "element of an input tuple")
+
+  valid_types = 'SDI'
+  if any(t not in valid_types for t in cfg['types']):
+    raise SchemaError("CSVParse currently only accepts string, double, and" +
+                      "32-bit integer types")
+
+  return [(t, '') for t in cfg['types']]
+
   
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -126,4 +140,6 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 #  SCHEMAS[NO_OP] = lambda x: x
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
+
+SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
 
