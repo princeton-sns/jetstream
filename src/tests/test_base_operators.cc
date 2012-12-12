@@ -1,6 +1,6 @@
 /**
-*  Tests for various system operators, such as ReadLine
-*/
+ *  Tests for various system operators, such as ReadLine
+ */
 
 #include "base_operators.h"
 #include <map>
@@ -64,6 +64,31 @@ TEST(Operator, ReadOperator) {
   ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
 }
 
+TEST(Operator, CSVParseOperator) {
+  map<string,string> config;
+  config["types"] = "SSI";
+
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  shared_ptr<CSVParse> csvparse(new CSVParse);
+  csvparse->set_dest(rec);
+  csvparse->configure(config);
+
+  {
+    boost::shared_ptr<Tuple> t(new Tuple);
+    string s = "Field 1,\"putting quotes around fields, allows commas\", 3";
+    t->add_e()->set_s_val(s);
+    t->add_e()->set_s_val("/usr/bar"); // should not pass through YET
+    csvparse->process(t);
+  }
+
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ(3, result->e_size());
+  ASSERT_EQ(string("Field 1"), result->e(0).s_val());
+  ASSERT_EQ(string("putting quotes around fields, allows commas"), result->e(1).s_val());
+  ASSERT_EQ(3, result->e(2).i_val());
+}
 
 
 TEST(Operator, GrepOperator)
@@ -71,7 +96,7 @@ TEST(Operator, GrepOperator)
   map<string,string> config;
   config["pattern"] = "/usr";
   config["id"] = "1";
-  
+
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   shared_ptr<StringGrep> grepper(new StringGrep);
   grepper->set_dest(rec);
@@ -85,7 +110,7 @@ TEST(Operator, GrepOperator)
   }
 
   ASSERT_EQ((size_t)1, rec->tuples.size());
-  
+
   {
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val("/user/foo");
@@ -158,12 +183,12 @@ TEST(Operator,ParseOperator) {
   cfg["field_to_parse"] = "1";
   cfg["types"] = "Si";
   parse.configure(cfg);
-  
+
   boost::shared_ptr<Tuple> t(new Tuple);
   extend_tuple(*t, 1);
   extend_tuple(*t, "foo 7");
   extend_tuple(*t, 1.2);
-  
+
   parse.process(t);
   ASSERT_EQ(1, parse.emitted_count());
   ASSERT_EQ((size_t)1, rec->tuples.size());
@@ -173,16 +198,16 @@ TEST(Operator,ParseOperator) {
   ASSERT_EQ(string("foo"), result->e(1).s_val());
   ASSERT_EQ(7, result->e(2).i_val());
   ASSERT_EQ(1.2, result->e(3).d_val());
-  
-//  cout << "finished valid test; no"
-  
+
+  //  cout << "finished valid test; no"
+
   GenericParse parse2;
   cfg["pattern"] = "(\\w+";
   cfg["field_to_parse"] = "0";
   cfg["types"] = "S";
   operator_err_t err = parse2.configure(cfg);
   ASSERT_GT(err.length(), 1U);
-  
+
 }
 
 TEST(Operator, ExtendOperator) {
@@ -204,7 +229,7 @@ TEST(Operator, ExtendOperator) {
 
   boost::shared_ptr<Tuple> t(new Tuple);
   extend_tuple(*t, 2);
-  
+
   ex_1.process(t);
 
   ASSERT_EQ((size_t)1, rec->tuples.size());
@@ -215,7 +240,7 @@ TEST(Operator, ExtendOperator) {
   ASSERT_EQ(1, result->e(1).i_val()); //should preserve existing element[s]
   ASSERT_GT(result->e(2).s_val().length(), 2U);
   ASSERT_EQ( boost::asio::ip::host_name(), result->e(2).s_val());
-//  cout << "host name is "<< result->e(2).s_val() << endl;
+  //  cout << "host name is "<< result->e(2).s_val() << endl;
   cout << "done" << endl;
 
 }
@@ -231,7 +256,7 @@ TEST(Operator, SampleOperator) {
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   op.set_dest(rec);
-  
+
   boost::shared_ptr<Tuple> t(new Tuple);
   extend_tuple(*t, 2);
   for (int i = 0; i < 1000; ++i) {
@@ -240,7 +265,7 @@ TEST(Operator, SampleOperator) {
   }
   ASSERT_GT((size_t)420, rec->tuples.size());
   ASSERT_LT((size_t)380, rec->tuples.size());
-  
+
   cout << "done; " << rec->tuples.size() << " tuples received"<<endl;
 }
 
@@ -260,7 +285,7 @@ TEST(Operator, HashSampleOperator) {
 
   int rounds_with_data = 0;
   for (int i=0; i < ROUNDS; ++i) {
-  
+
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple(*t, i);
 
@@ -284,15 +309,15 @@ TEST(Operator, TRoundingOperator) {
   TRoundingOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
-  
+
   operator_config_t cfg;
   cfg["fld_offset"] = "1";
   cfg["round_to"] = "5";
-  
+
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   op.set_dest(rec);
-  
+
   cout << "starting operator" <<endl;
   op.start();
 
@@ -300,7 +325,7 @@ TEST(Operator, TRoundingOperator) {
   extend_tuple(*t, "California");
   extend_tuple_time(*t, 6);
   op.process(t);
-  
+
   ASSERT_EQ((size_t)1, rec->tuples.size());
   boost::shared_ptr<Tuple> result = rec->tuples[0];
   ASSERT_EQ((time_t)5, result->e(1).t_val());
@@ -309,23 +334,23 @@ TEST(Operator, TRoundingOperator) {
 
 //DISABLED_
 TEST(Operator, DISABLED_UnixOperator) {
-/* Doesn't work currently. popen creates half-duplex pipe we need full duplex */
+  /* Doesn't work currently. popen creates half-duplex pipe we need full duplex */
   UnixOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   operator_config_t cfg;
   cfg["cmd"] = "tee /tmp/tout";
- // cfg["cmd"] = "grep .";
+  // cfg["cmd"] = "grep .";
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   op.set_dest(rec);
   op.start();
-  
+
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "Bar");
-//  cout << "sending first tuple"<< endl;
+  //  cout << "sending first tuple"<< endl;
   op.process(t);
 
-//  ASSERT_EQ((size_t)1, rec->tuples.size());
+  //  ASSERT_EQ((size_t)1, rec->tuples.size());
 
   extend_tuple(*t, "foo");
   op.process(t);
@@ -335,6 +360,6 @@ TEST(Operator, DISABLED_UnixOperator) {
   size_t EXPECTED = 2;
   while (tries ++ < 10 && rec->tuples.size() < EXPECTED)
     js_usleep(50 * 1000);
-  
+
   ASSERT_EQ(EXPECTED, rec->tuples.size());
 }
