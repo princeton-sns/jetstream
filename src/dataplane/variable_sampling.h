@@ -19,6 +19,8 @@ private:
     boost::shared_ptr<TupleReceiver> dest;
   
     void report_congestion();
+    mutable boost::recursive_mutex lock;
+  
 
 public:
 
@@ -27,9 +29,10 @@ public:
   } ;
   
   void stop() {
-      dest.reset();
-      if(timer)
-        timer->cancel();
+    boost::lock_guard<boost::recursive_mutex> critical_section (lock);
+    dest.reset();
+    if(timer)
+      timer->cancel();
   }
   
   void set_dest(boost::shared_ptr<TupleReceiver> d) {
@@ -37,6 +40,10 @@ public:
   }
   
   void start(boost::shared_ptr<boost::asio::deadline_timer> t);
+
+  ~PeriodicCongestionReporter() {
+    stop();
+  }
 
 
 };
@@ -84,7 +91,7 @@ private:
   
   
     double targetSampleRate, worstCongestion; //should always be lower than min(reportedLevels)
-    mutable boost::mutex lock;
+    mutable boost::recursive_mutex lock;
     boost::shared_ptr<boost::asio::deadline_timer> timer;
   
     void assess_status(); //assess and reset timer
@@ -101,9 +108,13 @@ public:
   }
 
   virtual void stop() {
-      if(timer)
-        timer->cancel();
-    }
+    boost::lock_guard<boost::recursive_mutex> critical_section (lock);
+
+    boost::shared_ptr<boost::asio::deadline_timer> t2 = timer;
+    timer.reset(); //so that assess notices it's being cancelled
+    if (t2)
+      t2->cancel();
+  }
 
   virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
   virtual void clear_preds () { predecessors.clear(); }
@@ -117,6 +128,8 @@ public:
   void do_assess(); //externally callable, for testing
 
   virtual std::string long_description();
+  
+  virtual ~CongestionController(); 
 
 
 GENERIC_CLNAME

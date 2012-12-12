@@ -116,16 +116,16 @@ TEST(Operator, GoodnessOfData) {
 
   t->mutable_e(1)->set_t_val(2);
   int total = 0;
-  for (int i=0; i < rand_data_len; ++i) {
-    t->mutable_e(0)->set_s_val(rand_labels[i]);
-    int v = rand_data[i];
+  for (int i=0; i < op.rand_data_len; ++i) {
+    t->mutable_e(0)->set_s_val(op.rand_labels[i]);
+    int v = op.rand_data[i];
     t->mutable_e(2)->set_i_val(v);
     total += v;
     op.process(t);
   }
   
-  ASSERT_EQ(op.data_in_last_window(), 1); //new data won't have taken effect
-  ASSERT_EQ(op.cur_deviation(), 0.0);
+  ASSERT_EQ(1, op.data_in_last_window()); //new data won't have taken effect
+  ASSERT_EQ(0.0, op.cur_deviation());
 
   
   t->mutable_e(1)->set_t_val(3);  

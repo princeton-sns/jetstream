@@ -13,9 +13,9 @@
 
 namespace jetstream {
 
-extern double rand_data[];
-extern std::string rand_labels[];
-extern int rand_data_len;
+extern double s_rand_data[];
+extern std::string s_rand_labels[];
+extern int s_rand_data_len;
 
 class RandSourceOperator: public ThreadedSource {
  private:
@@ -32,8 +32,13 @@ class RandSourceOperator: public ThreadedSource {
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
+
  protected:
   virtual bool emit_1() ;
+
+  std::vector<double> rand_data;
+  std::vector<std::string> rand_labels;
+  int rand_data_len;  
 
 
 GENERIC_CLNAME
@@ -51,11 +56,15 @@ class RandEvalOperator: public DataPlaneOperator {
 
   
   RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),
-      total_last_window(0), old_data(0), results_out(&std::cout) {}
+      total_last_window(0), old_data(0), results_out(&std::cout), total_in_distrib(0) {}
 
   virtual std::string long_description();
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual ~RandEvalOperator(); 
+  virtual ~RandEvalOperator();
+
+  std::vector<double> rand_data;
+  std::vector<std::string> rand_labels;
+  int rand_data_len;
   
  private:
   std::map<std::string,int> counts_this_period;
@@ -64,9 +73,14 @@ class RandEvalOperator: public DataPlaneOperator {
   long total_in_window, total_last_window, old_data;
   std::ostream* results_out;
 
+  double total_in_distrib;
 
 GENERIC_CLNAME
 };
+
+size_t fillin_s(std::vector<double>&, std::vector<std::string>&);
+size_t fillin_zipf(std::vector<double>&, std::vector<std::string>&, int len);
+
 
 }
 

@@ -4,7 +4,7 @@
 #include "mysql_cube.h"
 #include "base_subscribers.h"
 #include "cube_iterator_impl.h"
-#include "time_rollup_manager.h"
+//#include "time_rollup_manager.h"
 
 #include <gtest/gtest.h>
 

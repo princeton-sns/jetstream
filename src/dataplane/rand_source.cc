@@ -12,21 +12,27 @@ using namespace boost;
 
 namespace jetstream {
 
-double rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9, 0.0};
-string rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois", "Should never appear; fencepost"};
-int rand_data_len = sizeof(rand_data) / sizeof(double);
+double s_rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9, 0.0};
+string s_rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois", "Should never appear; fencepost"};
+int s_rand_data_len = sizeof(s_rand_data) / sizeof(double);
 
-double init_countup() {
-  double d = 0;
-  for (int i=0; i < rand_data_len; ++i)
-    d += rand_data[i];
-  return d;
+
+size_t fillin_s(std::vector<double>& rand_data, std::vector<std::string>& rand_labels) {
+  rand_data.resize(s_rand_data_len);
+  rand_labels.resize(s_rand_data_len);
+  for (int i = 0; i < s_rand_data_len; ++ i) {
+    rand_data[i] = s_rand_data[i];
+    rand_labels[i] = s_rand_labels[i];
+  }
+  return s_rand_data_len;
 }
+size_t fillin_zipf(std::vector<double>& rand_data, std::vector<std::string>& rand_labels, int target_size) {
+  rand_data.resize(target_size);
+  rand_labels.resize(target_size);
 
-double total_in_distrib = init_countup();
 
-
-
+  return target_size;
+}
 
 operator_err_t
 RandSourceOperator::configure(std::map<std::string,std::string> &config) {
@@ -44,6 +50,13 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
   if (k >= n) {
     return operator_err_t("parameter k must be less than n");
   }
+  
+  std::string mode = config["mode"];
+  if (mode == "zipf")
+    rand_data_len = fillin_zipf(rand_data, rand_labels, 100);
+  else
+    rand_data_len = fillin_s(rand_data, rand_labels);
+
 
   double total = 0;
   for(int i =0; i < rand_data_len; ++i) {
@@ -135,6 +148,18 @@ RandEvalOperator::configure(std::map<std::string,std::string> &config) {
     LOG(INFO) << "clear_file is " << clear_file;
     results_out = new ofstream(out_file_name.c_str(), (clear_file ? ios_base::out : ios_base::ate | ios_base::app));
   }
+  
+  std::string mode = config["mode"];
+//  if (mode == "static")
+  if (mode == "zipf")
+    rand_data_len = fillin_zipf(rand_data, rand_labels, 100);
+  else
+    rand_data_len = fillin_s(rand_data, rand_labels);
+
+  
+  for (int i=0; i < s_rand_data_len; ++i)
+    total_in_distrib += rand_data[i];
+  
   return NO_ERR;
 }
 

@@ -24,6 +24,7 @@ PeriodicCongestionReporter::start(boost::shared_ptr<boost::asio::deadline_timer>
 void
 PeriodicCongestionReporter::report_congestion() {
 
+  lock_guard<boost::recursive_mutex> critical_section (lock);
   if (dest) {
     shared_ptr<CongestionMonitor> downstream_congestion = dest->congestion_monitor();
     double congestion = downstream_congestion->capacity_ratio();
@@ -36,9 +37,10 @@ PeriodicCongestionReporter::report_congestion() {
     levelMsg.set_congestion_level(congestion);
     levelMsg.set_type(DataplaneMessage::CONGEST_STATUS);
     dest->meta_from_upstream( levelMsg, parent->id());
+
+    timer->expires_from_now(boost::posix_time::millisec(REPORT_INTERVAL));
+    timer->async_wait(boost::bind(&PeriodicCongestionReporter::report_congestion, this));
   }
-  timer->expires_from_now(boost::posix_time::millisec(REPORT_INTERVAL));
-  timer->async_wait(boost::bind(&PeriodicCongestionReporter::report_congestion, this));
   
 }
 
@@ -83,7 +85,7 @@ void
 CongestionController::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
 
   if (msg.type() == DataplaneMessage::CONGEST_STATUS) { //congestion report
-    lock_guard<boost::mutex> critical_section (lock);
+    lock_guard<boost::recursive_mutex> critical_section (lock);
 
     double lev = msg.congestion_level();
     reportedLevels[pred] = lev;
@@ -107,9 +109,7 @@ CongestionController::meta_from_upstream(const DataplaneMessage & msg, const ope
 
 
 void
-CongestionController::do_assess() {
-  lock_guard<boost::mutex> critical_section (lock);
-  
+CongestionController::do_assess() {  
   worstCongestion = INFINITY;
   time_t now = time(NULL);
   map<operator_id_t, double>::iterator it = reportedLevels.begin();
@@ -159,9 +159,17 @@ CongestionController::do_assess() {
 
 void
 CongestionController::assess_status() {
-  do_assess();
-  timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
-  timer->async_wait(boost::bind(&CongestionController::assess_status, this));
+  lock_guard<boost::recursive_mutex> critical_section (lock);
+  if (timer) {
+    do_assess();
+    timer->expires_from_now(boost::posix_time::millisec(INTERVAL));
+    timer->async_wait(boost::bind(&CongestionController::assess_status, this));
+  }
+}
+
+
+CongestionController::~CongestionController() {
+  stop();
 }
 
 std::string
