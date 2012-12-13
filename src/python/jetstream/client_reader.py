@@ -140,6 +140,6 @@ class ClientDataReader():
 
   def blocking_read(self, callback):
     """ Give every received tuple to a callback function. """
-    self.finish()
     vals = self.consume(callback)
     print '%d tuples received in blocking_read' % len(vals)
+    self.finish()

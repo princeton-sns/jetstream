@@ -126,7 +126,13 @@ public:
   
   void close_async() {
     conn->close_async(no_op_v);
-    timer.cancel();    
+    timer.cancel();  //so timer thread sees socket as closing
+  }
+  
+  
+  void close_now() {
+    conn->close_now();
+    timer.cancel();
   }
   
   boost::asio::ip::tcp::endpoint get_remote_endpoint() {

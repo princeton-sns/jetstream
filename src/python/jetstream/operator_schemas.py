@@ -12,6 +12,7 @@ class SchemaError(Exception):
 class OpType (object):
   FILE_READ = "FileRead"
   STRING_GREP = "StringGrep"
+  CSV_PARSE = "CSVParse"
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
   TIMESTAMP = "TimestampOperator"
@@ -51,11 +52,25 @@ def validate_grep(in_schema, cfg):
 def validate_parse(in_schema, cfg):
 #  types':"DSS", 'field_to_parse
   field_to_parse = int( cfg['field_to_parse'])
+
+  cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
+  allowed_bool_str = [str(val).lower() for val in [True, False]]
+  if not any(val == cfg['keep_unparsed'] for val in allowed_bool_str):
+    raise SchemaError("Needed one of (case-insensitive) {0} for "\
+                      "'keep_unparsed' generic parse config field, got: "\
+                      "{1}".format(str(allowed_bool_str), cfg['keep_unparsed']))
+
+  keep_unparsed = cfg['keep_unparsed'] == 'true'
+
   ret = []
-  ret.extend( in_schema[0:field_to_parse] )
+
+  if keep_unparsed:
+    ret.extend( in_schema[0:field_to_parse] )
+
   for c in cfg['types']:
-    ret.append ( (c, ''))
-  ret.extend( in_schema[field_to_parse+1:] )
+    ret.append( (c, '') )
+  if keep_unparsed:
+    ret.extend( in_schema[field_to_parse+1:] )
   return ret
 
 def validate_extend(in_schema, cfg):
@@ -99,6 +114,19 @@ def validate_RandEval(in_schema, cfg):
     raise SchemaError("rand eval requires inputs Str, Time, Int. Got %s" % str(in_schema))
     
   return []    
+
+def validate_CSVParse(in_schema, cfg):
+  if in_schema[0][0] != 'S':
+    raise SchemaError("CSVParse currently requires a string as the first "\
+                       "element of an input tuple")
+
+  valid_types = 'SDI'
+  if any(t not in valid_types for t in cfg['types']):
+    raise SchemaError("CSVParse currently only accepts string, double, and "\
+                      "32-bit integer types")
+
+  return [(t, '') for t in cfg['types']]
+
   
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -126,4 +154,6 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 #  SCHEMAS[NO_OP] = lambda x: x
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
+
+SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
 

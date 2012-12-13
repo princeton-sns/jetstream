@@ -116,7 +116,7 @@ TEST(Operator, GoodnessOfData) {
 
   t->mutable_e(1)->set_t_val(2);
   int total = 0;
-  for (int i=0; i < op.rand_data_len; ++i) {
+  for (int i=0; i < op.rand_data.size(); ++i) {
     t->mutable_e(0)->set_s_val(op.rand_labels[i]);
     int v = op.rand_data[i];
     t->mutable_e(2)->set_i_val(v);
@@ -143,7 +143,6 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg) {
   RandSourceOperator op;
   cfg["n"] = "1";
   cfg["k"] = "0";
-  cfg["rate"] = "1000";
   operator_err_t err = op.configure(cfg);
 
   shared_ptr<DataPlaneOperator> extend(new ExtendOperator);
@@ -187,5 +186,8 @@ TEST(Operator, RandSourceIntegration_S) {
 TEST(Operator, RandSourceIntegration_Z) {
   operator_config_t cfg;
   cfg["mode"] = "zipf";
+  cfg["rate"] = "2000"; //this is actually ignored since we'll only do a single batch of 500
+
+  cfg["items"] = "9"; // tail of zipf won't validate, so we truncate at 12
   shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg);
 }

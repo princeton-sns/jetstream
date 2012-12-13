@@ -11,12 +11,12 @@ class TestSchemas(unittest.TestCase):
     qGraph = jsapi.QueryGraph()
     reader = jsapi.FileRead(qGraph, "file name")
     counter = jsapi.RateRecord(qGraph)
-    qGraph.connect(reader,counter)
+    qGraph.connect(reader, counter)
     
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
-      self.assertTrue(False, "should not throw, but got " + str(ex))
+      self.fail("Should not throw, but got: " + str(ex))
 
   def test_randEval(self):
 
@@ -29,7 +29,38 @@ class TestSchemas(unittest.TestCase):
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
-      self.assertTrue(False, "should not throw, but got " + str(ex))    
+      self.fail("Should not throw, but got: " + str(ex))
+
+  def test_CSVParse_validate(self):
+    qGraph = jsapi.QueryGraph()
+    reader = jsapi.FileRead(qGraph, "file name")
+    csvprs = jsapi.CSVParse(qGraph, "ISDDDIIDSISIISD")
+    qGraph.connect(reader, csvprs)
+    try:
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.fail("Should not throw, but got: " + str(ex))
+
+  def test_CVSParse_validate_bad(self):
+    qGraph = jsapi.QueryGraph()
+    reader = jsapi.FileRead(qGraph, "file name")
+    csv_types = "IIIII"
+    csvprs = jsapi.CSVParse(qGraph, csv_types)
+    # should fail because the outschema of the previous CSVParse has an int
+    # as its first element, while CVSParse currently needs a string as the
+    # first element. this will probably change when CVSParse supports parsing
+    # an arbritrarily indexed tuple, but the validation will be quite similar;
+    # probably:
+    # assert 'S' != csv_types[3] # note that this is a real assert, not a test
+    # csvprs_fail = jsapi.CSVParse(qgraph, csv_types, field_to_parse=3)
+    csvprs_fail = jsapi.CSVParse(qGraph, "DDSS")
+    qGraph.connect(reader, csvprs)
+    qGraph.connect(csvprs, csvprs_fail)
+    self.assertRaises(SchemaError, qGraph.validate_schemas)
+    # a hack for exceptions with types. also this is new in python 2.7..., so
+    # will fail in 2.6 or earlier...
+    self.assertRaisesRegexp(SchemaError, '[.\s]*requires a string[.\s]*',
+                            qGraph.validate_schemas)
 
   def test_bad_edge(self):
     qGraph = jsapi.QueryGraph()
@@ -42,7 +73,7 @@ class TestSchemas(unittest.TestCase):
     except SchemaError as ex:
       self.assertTrue("can't round field 2" in str(ex))
     else:
-      self.assertTrue(False, "should throw, but didn't")
+      self.fail("should throw, but didn't")
 
 
   def test_bad_unify(self):
@@ -59,11 +90,13 @@ class TestSchemas(unittest.TestCase):
       self.assertTrue( "match existing schema" in str(ex))
 #      print "got expected err:", str(ex)
     else:
-      self.assertTrue(False, "should throw, but didn't")            
+      self.fail("should throw, but didn't")
         
   def test_parse_schema(self):
+    # NC 12/12/12: this test is sort of incomplete after adding option to not
+    # pass through fields, but I don't feel like changing it yet
     in_schema = [('I','a number'), ('S', 'to parse') ]
-    cfg = {'types':"DSS", 'field_to_parse':1}
+    cfg = {'types':"DSS", 'field_to_parse':1, 'keep_unparsed':"True"}
     
     out_types = [ ty for ty,_ in validate_parse(in_schema,cfg) ]
     self.assertEquals(out_types, ['I', 'D', 'S', 'S'])
@@ -82,7 +115,7 @@ class TestSchemas(unittest.TestCase):
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
-      self.assertTrue(False, "should not throw, but got " + str(ex))
+      self.fail("should not throw, but got " + str(ex))
 
     qGraph.remove(src)
         
@@ -98,7 +131,7 @@ class TestSchemas(unittest.TestCase):
     except SchemaError as ex:
       print "got expected err:", str(ex)
     else:
-      self.assertTrue(False, "should throw, but didn't")
+      self.fail("should throw, but didn't")
       
       
   def test_cubeInsertPartial(self):
@@ -112,7 +145,7 @@ class TestSchemas(unittest.TestCase):
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
-      self.assertTrue(False, "should not throw, but got " + str(ex))
+      self.fail("should not throw, but got " + str(ex))
 
   
 
@@ -134,7 +167,7 @@ class TestSchemas(unittest.TestCase):
     try: 
       qGraph.validate_schemas()
     except SchemaError as ex:
-      self.assertTrue(False, "should not throw, but got " + str(ex))
+      self.fail("should not throw, but got " + str(ex))
       
     sub2 = jsapi.TimeSubscriber(qGraph, {}, 1000, "-count") #pull every second
     rounder = jsapi.TRoundOperator(qGraph,0, 2)
@@ -149,7 +182,7 @@ class TestSchemas(unittest.TestCase):
       self.assertTrue("requires that field 0 be a time" in str(ex) )
       print "got expected err:", str(ex)
     else:
-      self.assertTrue(False, "should throw, but didn't")   
+      self.fail("should throw, but didn't")
     qGraph.remove(sub2)
     qGraph.remove(rounder)
 
@@ -159,4 +192,4 @@ class TestSchemas(unittest.TestCase):
 if __name__ == '__main__':
   unittest.main()
   sys.exit(0)
-    
+

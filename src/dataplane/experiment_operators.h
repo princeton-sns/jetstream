@@ -119,14 +119,21 @@ class SerDeOverhead: public DataPlaneOperator {
  public:
   virtual void process(boost::shared_ptr<Tuple> t);
 
-
 GENERIC_CLNAME
 };  
 
 
 class EchoOperator: public DataPlaneOperator {
  public:
+  EchoOperator(): o(&std::cout) {}
+
+
   virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual ~EchoOperator();
+
+ private:
+  std::ostream* o;
 
 
 GENERIC_CLNAME

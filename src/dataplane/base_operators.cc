@@ -194,6 +194,10 @@ StringGrep::long_description() {
 operator_err_t
 GenericParse::configure(std::map<std::string,std::string> &config) {
   string pattern = config["pattern"];
+
+  // TODO is this "to_lower" call necessary?
+  boost::algorithm::to_lower(config["keep_unparsed"]);
+  istringstream(config["keep_unparsed"]) >> std::boolalpha >> keep_unparsed;
   
   try {
     re.assign(pattern);
@@ -253,10 +257,11 @@ void
 GenericParse::process(const boost::shared_ptr<Tuple> t) {
 
   shared_ptr<Tuple> t2( new Tuple);
-  for(int i = 0; i < t->e_size() && i < fld_to_parse; ++i) {
-    Element * e = t2->add_e();
-    e->CopyFrom(t->e(i));
-  }
+  if (keep_unparsed)
+    for(int i = 0; i < t->e_size() && i < fld_to_parse; ++i) {
+      Element * e = t2->add_e();
+      e->CopyFrom(t->e(i));
+    }
   
   if (fld_to_parse >= t->e_size()) {
     LOG(WARNING) << "can't parse field " << fld_to_parse << "; total size is only" << t->e_size();
@@ -292,12 +297,13 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     return;
   }
 
-  for(int i = fld_to_parse+1; i < t->e_size(); ++i) {
-    Element * e = t2->add_e();
-    e->CopyFrom(t->e(i));
-  }  
+  if (keep_unparsed)
+    for (int i = fld_to_parse+1; i < t->e_size(); ++i) {
+      Element * e = t2->add_e();
+      e->CopyFrom(t->e(i));
+    }  
+
   emit (t2);
-  
 }
 
 void

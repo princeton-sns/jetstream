@@ -625,7 +625,6 @@ void stop_test(int i, boost::shared_ptr<Node>* nodes) {
   //FIXME: do we need to close ctrl connection here?
   nodes[i]->stop();
   js_usleep(200 * 1000);  //wait and make sure nothing pops on other side
-  cout << "-----------cleaning up source-----------" << endl;
 
 }
 
@@ -638,6 +637,8 @@ TEST_F(NodeTwoNodesTest, SuddenStopDest)  {
   while ( i++ < 5 && nodes[1]->operator_count() > 0) {
     js_usleep(100 * 1000);
   }
+  cout << "-----------cleaning up source-----------" << endl;
+
   ASSERT_EQ(0, nodes[1]->operator_count());
   
 }
@@ -646,4 +647,5 @@ TEST_F(NodeTwoNodesTest, SuddenStopDest)  {
 TEST_F(NodeTwoNodesTest, SuddenStopSrc)  {
   stop_test(1, nodes);
     //can't test for dest being cleaned up since sources that fail silently are silent
+  cout << "-----------cleaning up source-----------" << endl;
 }

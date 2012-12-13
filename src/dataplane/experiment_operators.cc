@@ -1,5 +1,6 @@
 #include "experiment_operators.h"
 
+#include <fstream>
 #include <glog/logging.h>
 
 using namespace std;
@@ -175,6 +176,26 @@ EchoOperator::process(boost::shared_ptr<Tuple> t) {
 
   if (get_dest() != NULL)
     emit(t);
+}
+
+
+operator_err_t
+EchoOperator::configure(std::map<std::string,std::string> &config) {
+
+  string out_file_name = config["file_out"];
+  if ( out_file_name.length() > 0) {
+    bool clear_file = (config["append"].length() > 0) && (config["append"] != "false");
+    LOG(INFO) << "clear_file is " << clear_file;
+    o = new ofstream(out_file_name.c_str(), (clear_file ? ios_base::out : ios_base::ate | ios_base::app));
+  }
+  return NO_ERR;
+}
+
+EchoOperator::~EchoOperator() {
+  if (o != &std::cout) {
+    ((ofstream*)o)->close();
+    delete o;
+  }
 }
 
 

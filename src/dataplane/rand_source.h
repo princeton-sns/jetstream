@@ -15,7 +15,7 @@ namespace jetstream {
 
 extern double s_rand_data[];
 extern std::string s_rand_labels[];
-extern int s_rand_data_len;
+//extern int s_rand_data_len;
 
 class RandSourceOperator: public ThreadedSource {
  private:
@@ -38,7 +38,6 @@ class RandSourceOperator: public ThreadedSource {
 
   std::vector<double> rand_data;
   std::vector<std::string> rand_labels;
-  int rand_data_len;  
 
 
 GENERIC_CLNAME
@@ -64,7 +63,6 @@ class RandEvalOperator: public DataPlaneOperator {
 
   std::vector<double> rand_data;
   std::vector<std::string> rand_labels;
-  int rand_data_len;
   
  private:
   std::map<std::string,int> counts_this_period;

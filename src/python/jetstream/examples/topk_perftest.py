@@ -32,8 +32,8 @@ def main():
 
   parser.add_option("-s", "--sampling", dest="SAMPLE", action="store_true", 
                   help="enables sampling, uses blocking instead for flow control", default=False)
-
-
+  parser.add_option("-z", "--zipf", dest="zipf", action="store", type="float",
+                  help="use zipf-distributed data with the given parameter")
 
   parser.add_option("-o", "--log_out_file", dest="perflog", 
                   help="file to log performance history into")
@@ -114,6 +114,11 @@ def get_graph(root_node, all_nodes, options, rate=1000):
     if is_first_run:
       eval_op.set_cfg("append", "false")
       is_first_run = False
+  if options.zipf:
+    eval_op.set_cfg("mode", "zipf")
+    eval_op.set_cfg("zipf_param", options.zipf)
+
+
   
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 4, 100);
   echo_op = jsapi.Echo(g);
@@ -129,6 +134,9 @@ def get_graph(root_node, all_nodes, options, rate=1000):
   for node,k in zip(all_nodes, range(0,n)):
     src = jsapi.RandSource(g, n, k) #tuple: state, time
     src.set_cfg("rate", rate)
+    if options.zipf:
+      src.set_cfg("mode", "zipf")
+      src.set_cfg("zipf_param", options.zipf)
     timestamp_op= jsapi.TimestampOperator(g, "ms") 
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     node_num_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)]) #not hostname for debugging locally

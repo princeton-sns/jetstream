@@ -1,10 +1,16 @@
 import types
 
-
+from itertools import izip, tee
 
 from jetstream_types_pb2 import *
 from operator_schemas import SCHEMAS, OpType,SchemaError
 
+# from python itertools recipes
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return izip(a, b)
 
 class QueryGraph(object):
   """Represents the client's-eye-view of a computation.
@@ -115,6 +121,14 @@ class QueryGraph(object):
   def connect(self, oper1, oper2):
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
     oper2.add_pred(oper1)
+
+  """ Add edges from each destitnation in the list to the next destination in
+      the list. Cubes are allowed. """
+  def chain(self, operators):
+    assert all(isinstance(op, Destination) for op in operators)
+    for oper, next_oper in pairwise(operators):
+      self.connect(oper, next_oper)
+
 
   # right now this is for adding an edge to the client so it can act as a
   # receiver
@@ -420,6 +434,11 @@ def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern, "id": 0}
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
+def CSVParse(graph, types):
+   assert isinstance(types, str)
+   cfg = {"types" : types}
+   return graph.add_operator(OpType.CSV_PARSE, cfg)
+  
 
 def ExtendOperator(graph, typeStr, fldValsList):
   cfg = {"types": typeStr}
@@ -437,8 +456,12 @@ def TimestampOperator(graph, typeStr):
 
 
 
-def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
-    cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
+def GenericParse(graph,
+                 pattern, typeStr, field_to_parse = 0, keep_unparsed=True):
+    cfg = {"types" : typeStr,
+           "pattern" : pattern,
+           "field_to_parse" :field_to_parse,
+           "keep_unparsed" : str(keep_unparsed)}
     return graph.add_operator(OpType.PARSE, cfg)
 
 

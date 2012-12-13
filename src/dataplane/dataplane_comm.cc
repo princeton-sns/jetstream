@@ -216,7 +216,7 @@ DataplaneConnManager::close() {
     vector<PendingConn> & conns = iter->second;
     for (u_int i = 0; i < conns.size(); ++i) {
       LOG(INFO) << "In dataplane teardown, disconnecting pending conn " << conns[i].conn->get_remote_endpoint();
-      conns[i].conn->close_async(no_op_v);
+      conns[i].conn->close_now();
     }
   }
 
@@ -225,7 +225,7 @@ DataplaneConnManager::close() {
   for (live_iter = liveConns.begin(); live_iter != liveConns.end(); live_iter++) {
     LOG(INFO) << "In dataplane teardown, disconnecting from " << live_iter->second->get_remote_endpoint();
 
-    live_iter->second->close_async();
+    live_iter->second->close_now();
   }
 }
   
