@@ -41,6 +41,10 @@ jetstream::get_sec () {
   return tsnow.tv_sec;
 }
 
+msec_t jetstream::get_msec () {
+  return get_usec()/1000;
+}
+
 usec_t
 jetstream::get_usec () {
   refresh_time();
