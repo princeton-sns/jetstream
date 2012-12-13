@@ -100,6 +100,7 @@ class GenericParse: public DataPlaneOperator {
   boost::regex re; // regexp pattern to match tuples against
   std::string field_types;
   int fld_to_parse;
+  bool keep_unparsed; // option: copy through or drop unparsed tuple elements
   
  GENERIC_CLNAME
 };

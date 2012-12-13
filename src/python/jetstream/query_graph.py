@@ -456,8 +456,12 @@ def TimestampOperator(graph, typeStr):
 
 
 
-def GenericParse(graph, pattern, typeStr, field_to_parse = 0):
-    cfg = {"types": typeStr, "pattern": pattern, "field_to_parse":field_to_parse}
+def GenericParse(graph,
+                 pattern, typeStr, field_to_parse = 0, keep_unparsed=True):
+    cfg = {"types" : typeStr,
+           "pattern" : pattern,
+           "field_to_parse" :field_to_parse,
+           "keep_unparsed" : str(keep_unparsed)}
     return graph.add_operator(OpType.PARSE, cfg)
 
 

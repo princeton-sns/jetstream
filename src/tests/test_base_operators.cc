@@ -181,6 +181,7 @@ TEST(Operator,ParseOperator) {
   operator_config_t cfg;
   cfg["pattern"] = "(\\w+) (\\d+)";
   cfg["field_to_parse"] = "1";
+  cfg["keep_unparsed"] = "True";
   cfg["types"] = "Si";
   parse.configure(cfg);
 
@@ -208,6 +209,29 @@ TEST(Operator,ParseOperator) {
   operator_err_t err = parse2.configure(cfg);
   ASSERT_GT(err.length(), 1U);
 
+  // do almost exactly the first test again, but change "keep_unparsed" to
+  // false, with correspondingly different asserts
+  GenericParse parse3;
+  shared_ptr<DummyReceiver> rec3(new DummyReceiver);
+  parse3.set_dest(rec3);
+  cfg["pattern"] = "(\\w+) (\\d+)";
+  cfg["field_to_parse"] = "1";
+  cfg["keep_unparsed"] = "False";
+  cfg["types"] = "Si";
+  parse3.configure(cfg);
+
+  boost::shared_ptr<Tuple> tt(new Tuple);
+  extend_tuple(*tt, 1);
+  extend_tuple(*tt, "foo 7");
+  extend_tuple(*tt, 1.2);
+
+  parse3.process(tt);
+  ASSERT_EQ(1, parse3.emitted_count());
+  ASSERT_EQ((size_t)1, rec3->tuples.size());
+  result = rec3->tuples[0];
+  ASSERT_EQ(2, result->e_size());
+  ASSERT_EQ(string("foo"), result->e(0).s_val());
+  ASSERT_EQ(7, result->e(1).i_val());
 }
 
 TEST(Operator, ExtendOperator) {

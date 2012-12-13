@@ -60,7 +60,7 @@ class TestSchemas(unittest.TestCase):
     # a hack for exceptions with types. also this is new in python 2.7..., so
     # will fail in 2.6 or earlier...
     self.assertRaisesRegexp(SchemaError, '[.\s]*requires a string[.\s]*',
-                       qGraph.validate_schemas)
+                            qGraph.validate_schemas)
 
   def test_bad_edge(self):
     qGraph = jsapi.QueryGraph()
@@ -93,8 +93,10 @@ class TestSchemas(unittest.TestCase):
       self.fail("should throw, but didn't")
         
   def test_parse_schema(self):
+    # NC 12/12/12: this test is sort of incomplete after adding option to not
+    # pass through fields, but I don't feel like changing it yet
     in_schema = [('I','a number'), ('S', 'to parse') ]
-    cfg = {'types':"DSS", 'field_to_parse':1}
+    cfg = {'types':"DSS", 'field_to_parse':1, 'keep_unparsed':"True"}
     
     out_types = [ ty for ty,_ in validate_parse(in_schema,cfg) ]
     self.assertEquals(out_types, ['I', 'D', 'S', 'S'])
