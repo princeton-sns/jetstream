@@ -115,6 +115,10 @@ class ClientConnection {
   size_t send_count() { return connSock->send_count(); }
   size_t bytes_queued() { return connSock->bytes_queued(); }
   boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return connSock->congestion_monitor();}
+  
+  void close_now() {
+    connSock->close_now();
+  }
 
 private:
   void close () {close_async(no_op_v);}
