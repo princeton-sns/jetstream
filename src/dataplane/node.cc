@@ -130,7 +130,7 @@ Node::stop ()
   }
   
   iosrv->stop();
-  LOG(INFO) << "io service stopped" << endl;
+  LOG(INFO) << "io service stopped: "<< iosrv.get() << endl;
   
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
