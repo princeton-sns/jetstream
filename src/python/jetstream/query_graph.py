@@ -511,8 +511,8 @@ class TimeSubscriber(Operator):
     return in_schema  #everything is just passed through    
     
  
-def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, bucket_size_ms):
-   cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "bucket_size_ms":str(bucket_size_ms)}
+def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, interval_ms=1000):
+   cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "interval_ms":str(interval_ms)}
    return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)    
 ##### Test operators #####
  

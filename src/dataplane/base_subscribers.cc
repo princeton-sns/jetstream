@@ -199,21 +199,29 @@ LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("must have a numeric hostname tuple index");
   }
 
-  bucket_size_ms=100;
+  interval_ms = 1000;
+  if (config.find("interval_ms") != config.end())
+    interval_ms = boost::lexical_cast<unsigned int>(config["interval_ms"]);
 
-  if (config.find("bucket_size_ms") != config.end())
-    bucket_size_ms = boost::lexical_cast<unsigned int>(config["bucket_size_ms"]);
+  cumulative = false;
+  if (config.find("cumulative") != config.end())
+    cumulative = boost::lexical_cast<bool>(config["cumulative"]);
 
   return NO_ERR;
 }
 
 jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update)
 {
+  lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
   map<unsigned int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
   map<unsigned int, unsigned int> &bucket_map_skew = stats_before_skew[hostname];
   double tuple_time_ms = update->e(time_tuple_index).d_val();
   
+  if(bucket_map_rt.empty()) {
+    start_time_ms = (double)(get_usec()/1000); 
+  }
+
   make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_before_ms);
 
   return SEND;
@@ -222,6 +230,7 @@ jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(bo
 void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) {
 
+  lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
   map<unsigned int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
   map<unsigned int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
@@ -290,7 +299,17 @@ LatencyMeasureSubscriber::operator()() {
     tuple->add_e()->set_s_val(line.str());
 
     emit(tuple);
-    js_usleep(1000000);
+
+    if(!cumulative)
+    {
+      lock_guard<boost::mutex> critical_section (lock);
+      stats_before_rt.clear();
+      stats_after_rt.clear();
+      stats_before_skew.clear();
+      stats_after_skew.clear();
+    }
+
+    js_usleep(interval_ms*1000);
   }
 }
 
@@ -299,11 +318,26 @@ void LatencyMeasureSubscriber::print_stats(std::map<std::string, std::map<unsign
   std::map<std::string, std::map<unsigned int, unsigned int> >::iterator stats_it;
   for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it)
   {
+    unsigned int total=0;
     line << "Hostname: "<< (*stats_it).first <<endl;
     std::map<unsigned int, unsigned int>::iterator latency_it;
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
       line<< "Latency: " << (*latency_it).first<< " count: " << (*latency_it).second<<endl;
+      total += (*latency_it).second;
     }
+    line << "Total count: " << total <<endl;
+    unsigned int med_total = 0;
+    for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
+      if(med_total+(*latency_it).second < total/2) {
+        med_total += (*latency_it).second;
+      }
+      else{
+        line << "Median Bucket: " << (*latency_it).first<<endl;
+        break;
+      }
+    }
+    double current_time_ms = (double)(get_usec()/1000); 
+    line << "Analysis time "<< (current_time_ms-start_time_ms)<<endl;
   }
 }
 
