@@ -93,6 +93,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   if(can_batch && tupleBatcher->is_empty())
   {
     start_batch_timeout();
+    start_time = get_msec();
   }
   if(!in_batch) {
     tupleBatcher->insert_tuple(tpi, can_batch);
@@ -101,7 +102,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     tupleBatcher->update_batched_tuple(tpi, can_batch);
   }
 
-  if(tupleBatcher->is_full())
+  if(tupleBatcher->is_full() || (!tupleBatcher->is_empty() && (get_msec() - start_time > batch_timeout.total_milliseconds())))
   {
     queue_flush();
   }
@@ -136,12 +137,18 @@ void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   congestMon->report_delete(tb.get(), 1);
 }
 
+/* the batch timer is only meant for the case that there are very few
+ * tuples going through the system, otherwise should flush in do_process() */
+
 void DataCube::start_batch_timeout() {
   batch_timeout_timer.expires_from_now(batch_timeout);
-  batch_timeout_timer.async_wait(boost::bind(&DataCube::batch_timer_fired, this, tupleBatcher));
+  batch_timeout_timer.async_wait(boost::bind(&DataCube::batch_timer_fired, this, tupleBatcher, _1));
 }
 
-void DataCube::batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher) {
+void DataCube::batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher, const boost::system::error_code& error) {
+  if (error)
+    return;
+
   if(tupleBatcher == batcher && !tupleBatcher->is_empty())
   {
     //need to check that batcher still points to tupleBatcher in the following case:
@@ -156,32 +163,42 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 
     for( std::list<operator_id_t>::iterator it=tpi.insert.begin(); it != tpi.insert.end(); ++it) {
       VLOG(3) << "Insert Callback:" <<tpi.key<<"; sub:"<<*it;
-      subscribers[*it]->insert_callback(tpi.t, new_tuple);
+      if(subscribers.count(*it) > 0)
+        subscribers[*it]->insert_callback(tpi.t, new_tuple);
     }
 
     for( std::list<operator_id_t>::iterator it=tpi.update.begin(); it != tpi.update.end(); ++it) {
       VLOG(3) << "Update Callback:" <<tpi.key<<"; sub:"<<*it;
-      subscribers[*it]->update_callback(tpi.t, new_tuple, old_tuple);
+      if(subscribers.count(*it) > 0)
+        subscribers[*it]->update_callback(tpi.t, new_tuple, old_tuple);
     }
   VLOG(2) << "End Save Callback:" <<tpi.key;
 }
 
 
 void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
+  processExec.submit(boost::bind(&DataCube::do_add_subscriber, this, sub));
+}
+
+void DataCube::do_add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
   sub->set_cube(this);
   subscribers[sub->id()] = sub;
+  LOG(INFO) << "Adding subscriber "<< sub->id() << " to " << id_as_str(); 
 }
 
-bool DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
+
+
+void DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   return remove_subscriber(sub->id());
 }
 
-bool DataCube::remove_subscriber(operator_id_t id) {
-  if(subscribers.erase(id))
-    return true;
+void DataCube::remove_subscriber(operator_id_t id) {
+  processExec.submit(boost::bind(&DataCube::do_remove_subscriber, this, id));
+}
 
-  return false;
+void DataCube::do_remove_subscriber(operator_id_t id) {
+  subscribers.erase(id);
 }
 
 Tuple DataCube::empty_tuple() {

@@ -109,8 +109,10 @@ class DataCube : public TupleReceiver {
 
     //subscriber stuff
     void add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
-    bool remove_subscriber(boost::shared_ptr<cube::Subscriber> sub);
-    bool remove_subscriber(operator_id_t id);
+    void do_add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
+    void remove_subscriber(boost::shared_ptr<cube::Subscriber> sub);
+    void remove_subscriber(operator_id_t id);
+    void do_remove_subscriber(operator_id_t id);
 
     //only used by tuple batch
     virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
@@ -141,7 +143,7 @@ class DataCube : public TupleReceiver {
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
     boost::posix_time::time_duration batch_timeout;
-
+    msec_t start_time;
 
   private:
     static const std::string my_tyepename;
@@ -151,7 +153,7 @@ class DataCube : public TupleReceiver {
     void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();
     void start_batch_timeout();
-    void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher);
+    void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher,const boost::system::error_code& ec);
 
     size_t elements_in_batch;
     CountingExecutor flushExec;
