@@ -101,7 +101,7 @@ message CubeMeta {
 
 message Tuple {
  repeated Element e = 1;
- required int32 version = 2;
+ optional int32 version = 2;
 }
 
 

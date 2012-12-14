@@ -232,7 +232,7 @@ DataplaneConnManager::close() {
   }
   
   //TODO stop RDAs?
-  
+  VLOG(1) << "Dataplane communications are closed";
 }
   
 
@@ -471,7 +471,8 @@ DataplaneConnManager::deferred_cleanup(string id) {
  
   shared_ptr<RemoteDestAdaptor> a = adaptors[id];
   if (!a) {
-    LOG(FATAL) << "No record of adaptor " << id;
+    LOG(ERROR) << "No record of adaptor " << id << ", optimistically assuming it's already destructed";
+    return;
   }
   assert(a);
   
