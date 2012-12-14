@@ -28,9 +28,6 @@ SendK::configure (std::map<std::string,std::string> &config) {
   send_now = config["send_now"].length() > 0;
   exit_at_end = config["exit_at_end"].length() == 0 || config["exit_at_end"] != "false";
   
-  t = boost::shared_ptr<Tuple>(new Tuple);
-  t->add_e()->set_s_val("foo");
-  
   n = 1; // number sent
   
   return NO_ERR;
@@ -39,6 +36,10 @@ SendK::configure (std::map<std::string,std::string> &config) {
 
 bool
 SendK::emit_1() {
+  t = boost::shared_ptr<Tuple>(new Tuple);
+  t->add_e()->set_s_val("foo");
+  t->set_version(n);
+
   emit(t);
 //  cout << "sendk. N=" << n<< " and k = " << k<<endl;
   return (++n > k);
@@ -70,6 +71,7 @@ ContinuousSendK::configure (std::map<std::string,std::string> &config) {
   
 //  send_now = config["send_now"].length() > 0;
   t = boost::shared_ptr<Tuple>(new Tuple);
+  t->set_version(num_sent);
   t->add_e()->set_s_val("foo");  
   
   return NO_ERR;
@@ -79,6 +81,8 @@ ContinuousSendK::configure (std::map<std::string,std::string> &config) {
 bool
 ContinuousSendK::emit_1() {
 //  cout << " continuous-send is sending" << endl;
+
+  t->set_version(num_sent++ );
   emit(t);
   boost::this_thread::sleep(boost::posix_time::milliseconds(period));
   return false; //never break out of loop

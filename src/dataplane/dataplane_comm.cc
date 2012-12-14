@@ -101,12 +101,15 @@ IncomingConnectionState::report_congestion_upstream(double level) {
 void
 IncomingConnectionState::register_congestion_recheck() {
   timer.expires_from_now(boost::posix_time::millisec(100));
-  timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this));
+  timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this, _1));
 }
 
 
 void
-IncomingConnectionState::congestion_recheck_cb() {
+IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& error) {
+  if (error == boost::asio::error::operation_aborted)
+    return;
+
   VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
   double level = mon->capacity_ratio();
   if (conn->is_connected()) {

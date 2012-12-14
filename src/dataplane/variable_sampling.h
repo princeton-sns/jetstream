@@ -15,6 +15,7 @@ private:
     double last_reported_congestion;
     DataPlaneOperator * parent;
     boost::shared_ptr<boost::asio::deadline_timer> timer;
+    volatile bool running;
 
     boost::shared_ptr<TupleReceiver> dest;
   
@@ -25,11 +26,12 @@ private:
 public:
 
   PeriodicCongestionReporter (DataPlaneOperator * p):
-        last_reported_congestion(INFINITY), parent(p) {
+        last_reported_congestion(INFINITY), parent(p), running(true) {
   } ;
   
-  void stop() {
+  void stop() { //should be idempotent
     boost::lock_guard<boost::recursive_mutex> critical_section (lock);
+    running = false;
     dest.reset();
     if(timer)
       timer->cancel();

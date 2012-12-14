@@ -142,7 +142,7 @@ friend class ClientConnection;
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s);
 
   void close(close_cb_t cb) {
-    sendStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
+    recvStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
   }
 
 

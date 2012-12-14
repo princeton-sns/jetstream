@@ -28,10 +28,11 @@ class RandSourceOperator: public ThreadedSource {
 
   double accum;  //the sum of labels[0]...labels[start_idx]
   int wait_per_batch; //ms
+  int next_version_number;
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-
+  RandSourceOperator(): next_version_number(0) {}
 
  protected:
   virtual bool emit_1() ;

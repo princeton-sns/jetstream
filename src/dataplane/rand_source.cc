@@ -121,7 +121,6 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
 
 bool
 RandSourceOperator::emit_1()  {
-  boost::shared_ptr<Tuple> t(new Tuple);
   
   int tuples = BATCH_SIZE;
   int tuples_sent = 0;
@@ -159,6 +158,7 @@ RandSourceOperator::emit_1()  {
     shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(rand_labels[i]);
     t->add_e()->set_t_val(now);
+    t->set_version(next_version_number++);
     emit(t);
   }
   js_usleep( 1000 * wait_per_batch);

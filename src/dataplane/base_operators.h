@@ -230,10 +230,13 @@ class UnixOperator: public ThreadedSource {
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
   virtual bool emit_1();
+  UnixOperator(): line_count(0) {}
+  
 
 private:
   FILE * pipe;
   std::string cmd;
+  int line_count;
 
 GENERIC_CLNAME
 };

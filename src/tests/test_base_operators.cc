@@ -78,6 +78,7 @@ TEST(Operator, CSVParseOperator) {
     string s = "Field 1,\"putting quotes around fields, allows commas\", 3";
     t->add_e()->set_s_val(s);
     t->add_e()->set_s_val("/usr/bar"); // should not pass through YET
+    t->set_version(0);
     csvparse->process(t);
   }
 
@@ -106,6 +107,7 @@ TEST(Operator, GrepOperator)
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val("foo");
     t->add_e()->set_s_val("/usr/bar"); //should match
+    t->set_version(0);
     grepper->process(t);
   }
 
@@ -115,6 +117,7 @@ TEST(Operator, GrepOperator)
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val("/user/foo");
     t->add_e()->set_s_val("/var/bar"); //should NOT match
+    t->set_version(0);    
     grepper->process(t);
   }
   ASSERT_EQ((size_t)1, rec->tuples.size());
@@ -123,6 +126,7 @@ TEST(Operator, GrepOperator)
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val("foo");
     t->add_e()->set_s_val("/var/usr/bar"); //should match
+    t->set_version(0);
     grepper->process(t);
   }
 

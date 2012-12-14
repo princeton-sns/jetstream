@@ -80,14 +80,17 @@ FileRead::operator()() {
   }
   string line;
   // ios::good checks for failures in addition to eof
+  int lineno = 0;
   while (running && in_file.good()) {
     getline(in_file, line);
     if (skip_empty && line.length() == 0) {
         continue;
     }
+    lineno ++ ;
     shared_ptr<Tuple> t( new Tuple);
     Element * e = t->add_e();
     e->set_s_val(line);
+    t->set_version(lineno);
     emit(t);
   }
   running = false;
@@ -121,7 +124,7 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
   boost::tokenizer<boost::escaped_list_separator<char> > tok(e->s_val());
 
   shared_ptr<Tuple> t2(new Tuple);
-
+  t2->set_version(t->version());
   int i = 0;
   for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();  beg!=tok.end(); ++beg, ++i) {
     Element * e = t2->add_e();
@@ -257,7 +260,8 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     Element * e = t2->add_e();
     e->CopyFrom(t->e(i));
   }
-  
+  t2->set_version(t->version());
+
   if (fld_to_parse >= t->e_size()) {
     LOG(WARNING) << "can't parse field " << fld_to_parse << "; total size is only" << t->e_size();
   }
@@ -525,6 +529,7 @@ UnixOperator::emit_1() {
       if (lines[i].length() == 0)
         continue;
       shared_ptr<Tuple> t( new Tuple);
+      t->set_version(line_count++);
       Element * e = t->add_e();
       e->set_s_val(lines[i]);
       emit(t);
