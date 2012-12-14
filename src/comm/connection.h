@@ -62,6 +62,9 @@ class ServerConnection {
 /**
  *  Represents a connection, either pending or already created. If and only if
  *   the connection is fully initialized, connSock will be defined.
+ *
+ *   sock itself will be defined regardless; it will be the same socket as that 
+ *  wrapped by the connSock if the latter exists. 
  */
 class ClientConnection {
  protected:
@@ -116,9 +119,7 @@ class ClientConnection {
   size_t bytes_queued() { return connSock->bytes_queued(); }
   boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return connSock->congestion_monitor();}
   
-  void close_now() {
-    connSock->close_now();
-  }
+  void close_now(); 
 
 private:
   void close () {close_async(no_op_v);}

@@ -98,7 +98,7 @@ ClientConnection::close_async (close_cb_t cb)
   if (connSock) {
     connSock->close ( cb);
   }
-  else if (sock->is_open()) {
+  else if (sock->is_open()) {  //comes up in case where
     boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
@@ -106,6 +106,15 @@ ClientConnection::close_async (close_cb_t cb)
     cb();
   }
 }
+
+
+void
+ClientConnection::close_now() {
+  boost::barrier b(2);
+  close_async( boost::bind(&boost::barrier::wait, &b) );
+  b.wait();
+}
+
 
 void 
 ClientConnection::send_msg (const ProtobufMessage &msg,

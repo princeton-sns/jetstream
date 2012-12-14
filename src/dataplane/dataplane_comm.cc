@@ -46,8 +46,8 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       LOG(INFO) << "got no-more-data signal from " << conn->get_remote_endpoint()
                 << ", will tear down connection into " << dest->id_as_str();
-      conn->close_async(no_op_v);
-      mgr.cleanup_incoming(conn->get_remote_endpoint());
+      conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
+
     }
     break;
   case DataplaneMessage::TS_ECHO:
@@ -230,6 +230,9 @@ DataplaneConnManager::close() {
 
     live_iter->second->close_now();
   }
+  
+  //TODO stop RDAs?
+  
 }
   
 
@@ -291,6 +294,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
   if (error) {
     if (error != boost::system::errc::operation_canceled) 
       LOG(WARNING) << error.message() << " code = " << error.value();
+    
+    //FIXME need to tear down?
     return;
   }
 

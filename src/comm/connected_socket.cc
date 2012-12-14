@@ -77,7 +77,6 @@ ConnectedSocket::close_now ()
   }
 }
 
-
 void
 ConnectedSocket::close_on_strand(close_cb_t cb) {
   isClosing = true;
@@ -254,7 +253,7 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
 
   // XXX Differentiate between temp and permanent errors
   if (error) {
-+//    LOG(WARNING) << "XXXXXX received_header Failing on error " << error.value() << " " << error.message();  
+//    LOG(WARNING) << "XXXXXX received_header Failing on error " << error.value() << " " << error.message();  
     receiving = false;
     fail(error);
     return;

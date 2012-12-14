@@ -58,6 +58,7 @@ typedef boost::function<void ()> close_cb_t;
 class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
 friend class ClientConnection;
+
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
@@ -131,7 +132,7 @@ friend class ClientConnection;
 
   // Close socket and return error to receive callback if set
   void fail (const boost::system::error_code &error);
-  void close_now ();
+  void close_now (); //Not thread safe
   void close_on_strand (close_cb_t cb);
 
   boost::shared_ptr< QueueCongestionMonitor> mon;
