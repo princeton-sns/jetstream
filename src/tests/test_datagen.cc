@@ -116,7 +116,7 @@ TEST(Operator, GoodnessOfData) {
 
   t->mutable_e(1)->set_t_val(2);
   int total = 0;
-  for (int i=0; i < op.rand_data.size(); ++i) {
+  for (unsigned int i=0; i < op.rand_data.size(); ++i) {
     t->mutable_e(0)->set_s_val(op.rand_labels[i]);
     int v = op.rand_data[i];
     t->mutable_e(2)->set_i_val(v);

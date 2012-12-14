@@ -86,7 +86,7 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
     return err;
 
   double total = 0;
-  for(int i =0; i < rand_data.size(); ++i) {
+  for(unsigned int i =0; i < rand_data.size(); ++i) {
     total += rand_data[i];
   }
   double slice_size = total /n;
@@ -180,7 +180,7 @@ RandEvalOperator::configure(std::map<std::string,std::string> &config) {
   if (err != NO_ERR)
     return err;
   
-  for (int i=0; i < rand_data.size(); ++i)
+  for (unsigned int i=0; i < rand_data.size(); ++i)
     total_in_distrib += rand_data[i];
   
   return NO_ERR;
@@ -201,7 +201,7 @@ RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
     int window_size_s = tuple_ts - last_ts_seen;
       //end of window, need to assess. The current tuple is irrelevant to the window
     max_rel_deviation = 1;
-    for (int i = 0; i < rand_data.size(); ++i) {
+    for (unsigned int i = 0; i < rand_data.size(); ++i) {
       double expected_total = total_in_window * rand_data[i] / total_in_distrib; //todo can normalize in advance
       double real_total =  (double) counts_this_period[ rand_labels[i]];
       double deflection;

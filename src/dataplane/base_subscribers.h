@@ -148,9 +148,12 @@ class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
   protected:
     unsigned int time_tuple_index;
     unsigned int hostname_tuple_index;
-    unsigned int bucket_size_ms;
+    unsigned int interval_ms;
+    bool cumulative;
     double max_seen_tuple_before_ms; //before db insertion
     double max_seen_tuple_after_ms;
+    double start_time_ms;
+    mutable boost::mutex lock;
 
     std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_rt; //hostname=>bucket=>count
     std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_skew; //hostname=>bucket=>count
