@@ -293,6 +293,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   data_msg.Clear();
   data_msg.set_type(DataplaneMessage::DATA);
   Tuple * t = data_msg.add_data();
+  t->set_version(0);
   Element * e = t->add_e();
   e->set_s_val("some mock data");
 
@@ -369,6 +370,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   data_msg.Clear();
   data_msg.set_type(DataplaneMessage::DATA);
   Tuple * t = data_msg.add_data();
+  t->set_version(0);
   Element * e = t->add_e();
   e->set_s_val("some mock data");
 

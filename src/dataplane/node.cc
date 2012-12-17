@@ -563,9 +563,16 @@ Node::get_operator (operator_id_t name) {
   }
 }
 
+/**
+ Invoked in the strand from the control connection, so needs not be thread-safe
+*/
 operator_err_t
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 {
+  if (operators.count(name) > 0) {
+    return operator_err_t("operator already exists");
+  }
+
   shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
   if (d == NULL) {
     LOG(WARNING) <<" failed to create operator object. Type was "<<op_typename <<endl;

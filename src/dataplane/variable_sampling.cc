@@ -23,9 +23,9 @@ PeriodicCongestionReporter::start(boost::shared_ptr<boost::asio::deadline_timer>
 
 void
 PeriodicCongestionReporter::report_congestion() {
+  if (running) {
 
-  lock_guard<boost::recursive_mutex> critical_section (lock);
-  if (dest) {
+    lock_guard<boost::recursive_mutex> critical_section (lock);
     shared_ptr<CongestionMonitor> downstream_congestion = dest->congestion_monitor();
     double congestion = downstream_congestion->capacity_ratio();
 
@@ -49,7 +49,6 @@ VariableSamplingOperator::start() {
   reporter.set_dest(get_dest());
   reporter.start(get_timer());
   atomic_write32(&threshold, 0); //start fully choked
-
 }
 
 

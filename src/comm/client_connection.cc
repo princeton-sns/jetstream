@@ -96,16 +96,54 @@ ClientConnection::close_async (close_cb_t cb)
   connected = false;
 
   if (connSock) {
+    VLOG(1) << " starting close of conn to " << connSock->get_remote_endpoint() << ", waiting for it to finish";
     connSock->close ( cb);
   }
-  else if (sock->is_open()) {
+  else if (sock->is_open()) {  //comes up in case where connection isn't finished being set up
     boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
     sock->close(error);
     cb();
   }
+  else
+   cb();
 }
+
+void record_as_done(volatile bool * b) {
+  VLOG(1) << "callback fired!!!!!!!!!!!!!!!!!!!";
+  *b = true;
+}
+
+void
+ClientConnection::close_now() {
+//  boost::barrier b(1);
+//  close_async( boost::bind(&boost::barrier::wait, &b) );
+//  b.wait();
+//  close_async(no_op_v);
+  if (!sock->is_open())
+    return;
+  
+  if (connSock && connSock->sock_state == CS_closing) {
+    while (connSock->sock_state != CS_closed) {
+      js_usleep(100 * 1000);
+      VLOG(1) << "waiting for socket to be closed";
+    }
+    return;
+  }
+
+  volatile bool closed = false;
+
+  int tries = 0;
+  close_async( boost::bind(record_as_done, &closed));
+  while( !closed && sock->is_open() && tries++ < 20) {
+    //this is a yucky hack, but the smarter version with barriers doesn't work right
+//    boost::this_thread::yield();
+    js_usleep(100 * 1000);
+    LOG(WARNING) << "Horrible hack still not closed conn to " << connSock->get_remote_endpoint();
+  }
+}
+
 
 void 
 ClientConnection::send_msg (const ProtobufMessage &msg,

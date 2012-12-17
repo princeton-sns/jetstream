@@ -125,14 +125,14 @@ public:
   }
   
   void close_async() {
+    timer.cancel();
     conn->close_async(no_op_v);
-    timer.cancel();  //so timer thread sees socket as closing
   }
   
   
   void close_now() {
-    conn->close_now();
     timer.cancel();
+    conn->close_now();
   }
   
   boost::asio::ip::tcp::endpoint get_remote_endpoint() {
@@ -143,7 +143,7 @@ public:
   
   void register_congestion_recheck();
 
-  void congestion_recheck_cb();
+  void congestion_recheck_cb(const boost::system::error_code& error);
 
 
   virtual ~IncomingConnectionState() {

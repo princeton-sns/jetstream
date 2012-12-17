@@ -68,6 +68,7 @@ class SubscriberTest : public ::testing::Test {
   void add_tuples(shared_ptr<DataCube> cube) {
 
     boost::shared_ptr<Tuple> t(new Tuple);
+    t->set_version(0);
     
     extend_tuple(*t, "http://foo.com");
     extend_tuple_time(*t, 10000); //long long ago
@@ -83,6 +84,7 @@ class SubscriberTest : public ::testing::Test {
       extend_tuple(*t, "http://foo.com");
       extend_tuple_time(*t, now - i);
       extend_tuple(*t, i+1);
+      t->set_version(i + 1);
 
       cout<< "Tuple:" << fmt(*t) << endl;
       cube->process(t);
@@ -179,6 +181,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   extend_tuple(*t, "http://foo.com");
   extend_tuple_time(*t, time(NULL));
   extend_tuple(*t, 2);
+  t->set_version(0);
   cout<< "Tuple:" << fmt(*t) << endl;
   cube->process(t);
 

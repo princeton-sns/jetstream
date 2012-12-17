@@ -43,6 +43,13 @@ typedef boost::function<void (jetstream::SerializedMessageIn &msg,
   
 typedef boost::function<void ()> close_cb_t;
 
+
+enum sock_state_t {
+  CS_open,
+  CS_closing,  //user has asked us to close, but callback not yet fired.
+  CS_closed // close callback fired, nothing left to do
+};
+
 /**
  * A ConnectedSocket represents the underlying socket for a connection,
  * and is created after the socket is in its connected state (after connect()
@@ -58,6 +65,7 @@ typedef boost::function<void ()> close_cb_t;
 class ConnectedSocket : public boost::enable_shared_from_this<ConnectedSocket> {
 
 friend class ClientConnection;
+
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::shared_ptr<boost::asio::ip::tcp::socket> sock;
@@ -66,7 +74,7 @@ friend class ClientConnection;
   boost::asio::strand recvStrand;
   cb_raw_msg_t recvcb;
   close_cb_t closing_cb;
-  bool isClosing;
+  volatile  sock_state_t sock_state;
   volatile size_t sendCount; //total number of send operations over lifetime.
   //TODO should be atomic?
   volatile size_t bytesQueued;
@@ -91,7 +99,7 @@ friend class ClientConnection;
   };
 
   // Only one outstanding async_write at a time
-  bool sending;
+  volatile bool sending;
 
   /**
    * Queue of scatter/gather IO pointers, each comprising a single serialized 
@@ -116,7 +124,7 @@ friend class ClientConnection;
   /********* RECEIVING *********/
 
   // Only one outstanding async_read at a time
-  bool receiving;
+  volatile bool receiving;
 
   // Serialize access to following functions via same strand
   void perform_recv ();
@@ -131,8 +139,8 @@ friend class ClientConnection;
 
   // Close socket and return error to receive callback if set
   void fail (const boost::system::error_code &error);
-  void close_now ();
-  void close_on_strand (close_cb_t cb);
+  void close_now (); //Not thread safe
+  void close_on_strand (const close_cb_t& cb);
 
   boost::shared_ptr< QueueCongestionMonitor> mon;
 
@@ -142,7 +150,7 @@ friend class ClientConnection;
 		   boost::shared_ptr<boost::asio::ip::tcp::socket> s);
 
   void close(close_cb_t cb) {
-    sendStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
+    recvStrand.dispatch(bind(&ConnectedSocket::close_on_strand, shared_from_this(), cb));
   }
 
 

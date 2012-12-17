@@ -11,8 +11,8 @@ using namespace jetstream;
 
 ConnectedSocket::ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
      boost::shared_ptr<boost::asio::ip::tcp::socket> s)
-  : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), 
-  isClosing(false),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
+  : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), closing_cb(no_op_v),
+  sock_state(CS_open),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
   VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
   
   std::ostringstream mon_name;
@@ -54,8 +54,10 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 {
   //TODO can we remove this logging statement? It's redundant with downstream I think --asr
   if (error != boost::system::errc::operation_canceled)
-    LOG(WARNING) << "unexpected error in ConnectedSocket::fail: " << error.message() << endl;
+    LOG(WARNING) << "unexpected error in ConnectedSocket::fail on "<<
+        get_remote_endpoint()<< " " << error.message() << endl;
 
+  sending = false;
   sendQueue.clear();
   close_now();
 
@@ -69,22 +71,30 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 void
 ConnectedSocket::close_now ()
 {
+  sock_state = CS_closing;
   if (sock->is_open()) {
     boost::system::error_code error;
     sock->cancel(error);
     sock->shutdown(tcp::socket::shutdown_both, error);
     sock->close(error);
   }
+  closing_cb();
+  VLOG(1) << "callback fired ok";
+  sock_state = CS_closed;
 }
 
-
 void
-ConnectedSocket::close_on_strand(close_cb_t cb) {
-  isClosing = true;
-  closing_cb = cb;
-  if (!sending) {
+ConnectedSocket::close_on_strand(const close_cb_t& cb) {
+  tcp::endpoint endpt = get_remote_endpoint();
+  VLOG(1) << "closing connected socket to " << endpt;
+  closing_cb = cb; //used in sent() and close_now
+  if(!sending) {
     close_now();
-    cb();
+    VLOG(1) << "closed connected socket to " << endpt<< "; firing callback";
+
+  } else {
+    sock_state = CS_closing;
+    VLOG(1) << "socket currently sending; sent() will close";
   }
 }
 
@@ -117,7 +127,7 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
     error = make_error_code(boost::system::errc::connection_reset);
     return;
   }
-  if (isClosing) {
+  if (sock_state != CS_open) {
     LOG(ERROR) << "attempt to send through closed socket"; //programmer error
     error = make_error_code(boost::system::errc::connection_reset);
     return;
@@ -199,9 +209,8 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
   if (!sendQueue.empty())
     perform_queued_send();
   else {
-    if (isClosing) {
+    if (sock_state == CS_closing) {
       close_now();
-      closing_cb();
     }
   }
 }
@@ -254,6 +263,7 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
 
   // XXX Differentiate between temp and permanent errors
   if (error) {
+//    LOG(WARNING) << "XXXXXX received_header Failing on error " << error.value() << " " << error.message();  
     receiving = false;
     fail(error);
     return;

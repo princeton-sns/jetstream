@@ -245,6 +245,6 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   ASSERT_LT(expected_tuples * 0.9,  dest_tuples_end);
   ASSERT_GT(expected_tuples * 1.1,  dest_tuples_end);
 
-  cout << "end of test" << endl;
+  cout << "-------------end of test-----------" << endl;
 }
 

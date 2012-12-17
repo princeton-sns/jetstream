@@ -46,8 +46,8 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       LOG(INFO) << "got no-more-data signal from " << conn->get_remote_endpoint()
                 << ", will tear down connection into " << dest->id_as_str();
-      conn->close_async(no_op_v);
-      mgr.cleanup_incoming(conn->get_remote_endpoint());
+      conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
+
     }
     break;
   case DataplaneMessage::TS_ECHO:
@@ -101,12 +101,15 @@ IncomingConnectionState::report_congestion_upstream(double level) {
 void
 IncomingConnectionState::register_congestion_recheck() {
   timer.expires_from_now(boost::posix_time::millisec(100));
-  timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this));
+  timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this, _1));
 }
 
 
 void
-IncomingConnectionState::congestion_recheck_cb() {
+IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& error) {
+  if (error == boost::asio::error::operation_aborted)
+    return;
+
   VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
   double level = mon->capacity_ratio();
   if (conn->is_connected()) {
@@ -227,6 +230,9 @@ DataplaneConnManager::close() {
 
     live_iter->second->close_now();
   }
+  
+  //TODO stop RDAs?
+  VLOG(1) << "Dataplane communications are closed";
 }
   
 
@@ -288,6 +294,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
   if (error) {
     if (error != boost::system::errc::operation_canceled) 
       LOG(WARNING) << error.message() << " code = " << error.value();
+    
+    //FIXME need to tear down?
     return;
   }
 
@@ -463,7 +471,8 @@ DataplaneConnManager::deferred_cleanup(string id) {
  
   shared_ptr<RemoteDestAdaptor> a = adaptors[id];
   if (!a) {
-    LOG(FATAL) << "No record of adaptor " << id;
+    LOG(ERROR) << "No record of adaptor " << id << ", optimistically assuming it's already destructed";
+    return;
   }
   assert(a);
   

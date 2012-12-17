@@ -102,12 +102,14 @@ GENERIC_CLNAME
  */
 class ContinuousSendK: public ThreadedSource {
  public:
+  ContinuousSendK():num_sent(0) {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
 
  protected:
   virtual bool emit_1() ;
   boost::shared_ptr<Tuple> t;
+  int32_t num_sent;
   u_long k;       // Number of tuples to send
   msec_t period;  // Time to wait before sending next k tuples  
 
