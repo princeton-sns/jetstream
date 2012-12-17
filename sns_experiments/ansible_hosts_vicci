@@ -1,5 +1,14 @@
 [setup]
-node10.princeton.vicci.org
+node1.mpisws.vicci.org
+node10.mpisws.vicci.org
+node10.stanford.vicci.org
+node11.stanford.vicci.org
+node12.stanford.vicci.org
+node13.stanford.vicci.org
+node11.princeton.vicci.org
+node12.princeton.vicci.org
 
 [done]
+node13.princeton.vicci.org
+node10.princeton.vicci.org
 node1.stanford.vicci.org
