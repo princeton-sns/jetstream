@@ -86,7 +86,27 @@ TEST(Node, BadOperatorName) {
   ControlMessage r;
   node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);
+  ASSERT_EQ(node.operator_count(), 0);  //all or none should start
+}
+
+
+TEST(Node, DuplicateOperator) {
+  NodeConfig cfg;
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+  AlterTopo topo;
+
+  operator_id_t id (1,1);
+  add_operator_to_alter(topo, id, "SendK");
+  add_operator_to_alter(topo, id, "SendK");
+
+
+  ControlMessage r;
+  node.handle_alter(topo, r);
+  ASSERT_EQ(r.type(), ControlMessage::ERROR);
+  ASSERT_EQ(node.operator_count(), 0);  //all or none should start
+
 }
 
 
