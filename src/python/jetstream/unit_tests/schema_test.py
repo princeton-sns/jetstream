@@ -92,19 +92,22 @@ class TestSchemas(unittest.TestCase):
     else:
       self.fail("should throw, but didn't")
         
+
   def test_parse_schema(self):
-    # NC 12/12/12: this test is sort of incomplete after adding option to not
-    # pass through fields, but I don't feel like changing it yet
     in_schema = [('I','a number'), ('S', 'to parse') ]
-    cfg = {'types':"DSS", 'field_to_parse':1, 'keep_unparsed':"True"}
+    cfg = {'types':"DSS", 'field_to_parse':1, 'keep_unparsed':str(True)}
     
     out_types = [ ty for ty,_ in validate_parse(in_schema,cfg) ]
     self.assertEquals(out_types, ['I', 'D', 'S', 'S'])
 
-    cfg = {'types':"DSS", 'field_to_parse':0, 'keep_unparsed':"True"}
+    cfg['keep_unparsed'] = str(False)
+    out_types = "".join(t for t,_ in validate_parse(in_schema, cfg))
+    self.assertEquals(out_types, cfg['types'])
+
+    cfg['keep_unparsed'] = str(True)
+    cfg['field_to_parse'] = 0
     self.assertRaises(SchemaError, validate_parse, in_schema, cfg)
 
-    cfg = {'types':"DSS", 'field_to_parse':0, 'keep_unparsed':"True"}
 
   def test_cubeInsert(self):
 
