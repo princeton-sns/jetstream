@@ -7,6 +7,8 @@ from random import randint
 from generic_netinterface import sock_read_data_pb, sock_send_pb
 from jetstream_types_pb2 import NodeID, DataplaneMessage
 
+def tuple_str(tup):
+  return str(tup).replace('\n',' ')  
 
 # client reader instance only cleans up during blocking_read(), so right now
 # blocking_read() is the only way to call it without leaving a mess of
