@@ -91,11 +91,9 @@ FileRead::operator()() {
     Element * e = t->add_e();
     e->set_s_val(line);
     t->set_version(lineno);
-
     emit(t);
   }
   running = false;
-  cout << "finished reading file " << long_description() << endl;
   no_more_tuples();
 }
 
