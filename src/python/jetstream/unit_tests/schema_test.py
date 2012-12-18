@@ -101,6 +101,11 @@ class TestSchemas(unittest.TestCase):
     out_types = [ ty for ty,_ in validate_parse(in_schema,cfg) ]
     self.assertEquals(out_types, ['I', 'D', 'S', 'S'])
 
+    cfg = {'types':"DSS", 'field_to_parse':0, 'keep_unparsed':"True"}
+    self.assertRaises(SchemaError, validate_parse, in_schema, cfg)
+
+    cfg = {'types':"DSS", 'field_to_parse':0, 'keep_unparsed':"True"}
+
   def test_cubeInsert(self):
 
     qGraph = jsapi.QueryGraph()

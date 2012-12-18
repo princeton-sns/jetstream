@@ -51,7 +51,12 @@ def validate_grep(in_schema, cfg):
 
 def validate_parse(in_schema, cfg):
 #  types':"DSS", 'field_to_parse
-  field_to_parse = int( cfg['field_to_parse'])
+  field_to_parse = int(cfg['field_to_parse'])
+
+  parsed_field_type = in_schema[field_to_parse][0]
+  if parsed_field_type != 'S':
+    raise SchemaError("GenericParse needs string field to parse, got: "\
+        "{0}".format(parsed_field_type))
 
   cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
   allowed_bool_str = [str(val).lower() for val in [True, False]]
