@@ -302,6 +302,9 @@ class Operator(Destination):
       return SCHEMAS[self.type](in_schema, self.cfg)
     raise SchemaError("Need to define out_schema for %s" % self.type)
 
+  def __str__(self):
+    return '({0}, {1})'.format(str(self.type), str(self.cfg)) 
+
 
 class Cube(Destination):
 
@@ -361,6 +364,9 @@ class Cube(Destination):
       d.tuple_indexes.append(offset)
     if 'overwrite' in  self.desc:
       c_meta.overwrite_old = self.desc['overwrite'] 
+
+  def __str__(self):
+    return '({0}, {1})'.format(self.name, self.desc)
 
      
   def get_name(self):
