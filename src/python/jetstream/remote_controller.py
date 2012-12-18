@@ -16,8 +16,14 @@ def normalize_controller_addr(addr_str):
 
 class RemoteController():
 
-  def __init__(self):
+  def __init__(self, netaddr=None, graph=None):
     self.node_cache = None
+    if netaddr is not None:
+      self.connect(*netaddr)
+      if graph is not None:
+        self.deploy(graph)
+    elif graph is not None:
+      raise ValueError("Got a graph without an address to deploy to")
   
   def connect(self, addr, port):
     self.client = JSClient( (addr, port) )
