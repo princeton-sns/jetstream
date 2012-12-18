@@ -37,7 +37,8 @@ FLD_REGEX = "[^" + DELIMS + "]*"
 FLD_CAPTURE = "(" + FLD_REGEX + ")"
 # this is annoying, but URLs can have commas in them.
 URL_CAPTURE = "([^\"\s]*)"
-DOMAIN_CAPTURE = "\s*http://([[:alnum:]\.]*)" + FLD_REGEX # gobble rest of URL
+#DOMAIN_CAPTURE = "\s*http://([[:alnum:]\.-\\\(\\\)]*).*"# + FLD_REGEX # gobble rest of URL
+DOMAIN_CAPTURE = "\s*http://(?:www\.)?([^\/]*).*"# + FLD_REGEX # gobble rest of URL
 SEP_REGEX = "[" + DELIMS + "]*" 
 
 CORAL_MATCH = tuple([FLD_REGEX] * CORAL_N)
@@ -51,14 +52,16 @@ def pairwise(iterable):
 
 
 # start a connection to a remote controller, instantiate any cubes on all of
-# its nodes (whatever that means), and deploy the graph
+# its nodes, and deploy the graph
 def remote_deploy(serv_addr, serv_port, graph, cube=None):
-  server = RemoteController()
-  server.connect(serv_addr, serv_port)
+  if cube is not None:
+    server = RemoteController((serv_addr, serv_port), (cube, None))
+  else:
+    server = RemoteController((serv_addr, serv_port))
+
   n = server.get_a_node()
   assert isinstance(n, NodeID)
-  if cube is not None:
-    cube.instantiate_on(server.all_nodes())
+
   server.deploy(graph)
 
 
@@ -95,10 +98,9 @@ def main():
   ## index past end of tuple is a magic API to the "count" aggregate that tells
   ## it to assume a count of 1
   local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
-  local_cube.set_overwrite(True)  #fresh results
+  local_cube.set_overwrite(True) #fresh results
 
   g.chain([f, csvp, grab_domain, local_cube, pull_k2])
-
 
   cr = ClientDataReader()
   g.connectExternal(pull_k2, cr.prep_to_receive_data())
@@ -109,7 +111,6 @@ def main():
     print tuple_str(tup)
     tuples.append(tup)
   cr.blocking_read(processdata)
-
 
 class CoralLogLine():
   def __init__(self, coral_tuple, fields, types):
