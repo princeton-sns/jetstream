@@ -35,6 +35,7 @@ class Subscriber: public jetstream::DataPlaneOperator {
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) = 0;
 
     //TODO: should this be inline?
+      //These are the thing that should be invoked externally; they call into synchronized code underneath.
     virtual void insert_callback(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
 
@@ -42,6 +43,7 @@ class Subscriber: public jetstream::DataPlaneOperator {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
+      //these are invoked in a synchronized way.
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) = 0;
 

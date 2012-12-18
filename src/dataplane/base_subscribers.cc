@@ -214,12 +214,12 @@ jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(bo
 {
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
-  map<unsigned int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
-  map<unsigned int, unsigned int> &bucket_map_skew = stats_before_skew[hostname];
+  map<int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
+  map<int, unsigned int> &bucket_map_skew = stats_before_skew[hostname];
   double tuple_time_ms = update->e(time_tuple_index).d_val();
   
   if(bucket_map_rt.empty()) {
-    start_time_ms = (double)(get_usec()/1000); 
+    start_time_ms = get_usec()/1000; 
   }
 
   make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_before_ms);
@@ -232,8 +232,8 @@ void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> c
 
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
-  map<unsigned int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
-  map<unsigned int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
+  map<int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
+  map<int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
   double tuple_time_ms = update->e(time_tuple_index).d_val();
   
   make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_after_ms);
@@ -243,39 +243,37 @@ void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> 
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value)
 {
-  assert(0);
+  LOG(FATAL) << "This subscriber should never get backfill data";
 }
 
-unsigned int LatencyMeasureSubscriber::get_bucket(double latency) {
-  assert(latency >= 0);
+int LatencyMeasureSubscriber::get_bucket(int latency) {
 
-  if(latency < 100)
-  {
-    return (unsigned int)  (latency/10)*10;
+  if(abs(latency) < 100) {
+    return (latency/10)*10;
   }
-  if(latency <1000)
-  {
-    return (unsigned int)  (latency/100)*100;
+  if(abs(latency) <1000) {
+    return (latency/100)*100;
   }
-  return (unsigned int)  (latency/1000)*1000;
+  return (latency/1000)*1000;
 }
 
-void LatencyMeasureSubscriber::make_stats(double tuple_time_ms,  map<unsigned int, unsigned int> &bucket_map_rt,
-     map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms)
-{
-  double current_time_ms = (double)(get_usec()/1000); 
-  double latency_rt_ms = current_time_ms-tuple_time_ms;
+void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
+                                           map<int, unsigned int> &bucket_map_rt,
+                                           map<int, unsigned int> &bucket_map_skew,
+                                          msec_t& max_seen_tuple_ms) {
+  msec_t current_time_ms = get_usec()/1000;
+  int latency_rt_ms = current_time_ms-tuple_time_ms; //note that this is SIGNED. Positive means source lags subscriber.
  
-  //LOG(INFO) << "Latency: " << current_time_ms << " - " << tuple_time_ms << " = " << latency_rt_ms;
-  unsigned int bucket_rt = get_bucket(latency_rt_ms);
+  LOG(INFO) << "Latency: " << current_time_ms << " - " << tuple_time_ms << " = " << latency_rt_ms;
+  int bucket_rt = get_bucket(latency_rt_ms);
   bucket_map_rt[bucket_rt] += 1;
 
   if(tuple_time_ms > max_seen_tuple_ms) {
     max_seen_tuple_ms = tuple_time_ms; 
   }
   else { 
-    double latency_skew_ms = max_seen_tuple_ms-tuple_time_ms;
-    unsigned int bucket_skew = get_bucket(latency_skew_ms);
+    msec_t latency_skew_ms = max_seen_tuple_ms-tuple_time_ms;
+    int bucket_skew = get_bucket(latency_skew_ms);
     bucket_map_skew[bucket_skew] += 1;
   }
 }
@@ -289,42 +287,48 @@ LatencyMeasureSubscriber::start() {
 void 
 LatencyMeasureSubscriber::operator()() {
   while (running)  {
-    std::stringstream line;
-    line<<"Stats before entry into cube. Wrt real-time" << endl;
-    print_stats(stats_before_rt, line);
-    line<<"Stats after entry into cube. Wrt real-time" << endl;
-    print_stats(stats_after_rt, line);
-
-    boost::shared_ptr<jetstream::Tuple> tuple(new jetstream::Tuple());
-    tuple->add_e()->set_s_val(line.str());
-
-    emit(tuple);
-
-    if(!cumulative)
     {
       lock_guard<boost::mutex> critical_section (lock);
-      stats_before_rt.clear();
-      stats_after_rt.clear();
-      stats_before_skew.clear();
-      stats_after_skew.clear();
-    }
 
+  //    std::stringstream line;
+  //    line<<"Stats before entry into cube. Wrt real-time" << endl;
+      print_stats(stats_before_rt, "before cube insert");
+  //    line<<"Stats after entry into cube. Wrt real-time" << endl;
+      print_stats(stats_after_rt, "after cube insert");
+
+      if(!cumulative)
+      {
+        stats_before_rt.clear();
+        stats_after_rt.clear();
+        stats_before_skew.clear();
+        stats_after_skew.clear();
+      }
+    } //release lock
     js_usleep(interval_ms*1000);
   }
 }
 
-void LatencyMeasureSubscriber::print_stats(std::map<std::string, std::map<unsigned int, unsigned int> > & stats,  std::stringstream& line)
-{
-  std::map<std::string, std::map<unsigned int, unsigned int> >::iterator stats_it;
-  for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it)
-  {
-    unsigned int total=0;
-    line << "Hostname: "<< (*stats_it).first <<endl;
-    std::map<unsigned int, unsigned int>::iterator latency_it;
+void
+LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsigned int> > & stats,
+                                       const char * label) {
+  msec_t now = get_usec() / 1000;
+  string now_str = lexical_cast<string>(now);
+  std::map<std::string, std::map<int, unsigned int> >::iterator stats_it;
+  for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it) {
+    //unsigned int total=0;
+    
+    std::map<int, unsigned int>::iterator latency_it;
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
-      line<< "Latency: " << (*latency_it).first<< " count: " << (*latency_it).second<<endl;
-      total += (*latency_it).second;
+      boost::shared_ptr<jetstream::Tuple> t(new Tuple);
+      extend_tuple(*t, stats_it->first);
+      extend_tuple(*t, label);
+      extend_tuple(*t, now_str);
+      extend_tuple(*t, (int) latency_it->first);
+      extend_tuple(*t, (int) latency_it->second);
+//      total += (*latency_it).second;
+      emit(t);
     }
+    /*
     line << "Total count: " << total <<endl;
     unsigned int med_total = 0;
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
@@ -337,7 +341,7 @@ void LatencyMeasureSubscriber::print_stats(std::map<std::string, std::map<unsign
       }
     }
     double current_time_ms = (double)(get_usec()/1000); 
-    line << "Analysis time "<< (current_time_ms-start_time_ms)<<endl;
+    line << "Analysis time "<< (current_time_ms-start_time_ms)<<endl;*/
   }
 }
 

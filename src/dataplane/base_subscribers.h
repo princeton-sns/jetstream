@@ -119,7 +119,12 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     }
 };
 
-
+/**
+*  A subscriber for measuring latency. Input must include a double, corresponding
+* to the current time in miliseconds since the epoch, and a string, corresponding to a hostname.
+* These are time_tuple_index and hostname_tuple_index, respectively.
+* 
+*/
 class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
   public:
     LatencyMeasureSubscriber(): Subscriber(){};
@@ -140,7 +145,10 @@ class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
     virtual void start();
     virtual void stop() {
       LOG(INFO) << id() << " received stop()";
-      running = false;
+      if (running) {
+        running = false;
+        loopThread->join();
+      }
     }
     void operator()();  // A thread that will loop
 
@@ -150,22 +158,22 @@ class LatencyMeasureSubscriber: public jetstream::cube::Subscriber {
     unsigned int hostname_tuple_index;
     unsigned int interval_ms;
     bool cumulative;
-    double max_seen_tuple_before_ms; //before db insertion
-    double max_seen_tuple_after_ms;
-    double start_time_ms;
+    msec_t max_seen_tuple_before_ms; //before db insertion
+    msec_t max_seen_tuple_after_ms;
+    msec_t start_time_ms;   //start time of current bucket. Only relevant to skew. Currently unused.
     mutable boost::mutex lock;
 
-    std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_rt; //hostname=>bucket=>count
-    std::map<std::string, std::map<unsigned int, unsigned int> > stats_before_skew; //hostname=>bucket=>count
-    std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_rt; //hostname=>bucket=>count
-    std::map<std::string, std::map<unsigned int, unsigned int> > stats_after_skew; //hostname=>bucket=>count
+    std::map<std::string, std::map<int, unsigned int> > stats_before_rt; //hostname=>bucket=>count
+    std::map<std::string, std::map<int, unsigned int> > stats_before_skew; //hostname=>bucket=>count
+    std::map<std::string, std::map<int, unsigned int> > stats_after_rt; //hostname=>bucket=>count
+    std::map<std::string, std::map<int, unsigned int> > stats_after_skew; //hostname=>bucket=>count
 
-    unsigned int get_bucket(double latency); 
+    int get_bucket(int latency);
 
-    void make_stats(double tuple_time_ms,  std::map<unsigned int, unsigned int> &bucket_map_rt,
-     std::map<unsigned int, unsigned int> &bucket_map_skew, double& max_seen_tuple_ms);
+    void make_stats(msec_t tuple_time_ms,  std::map<int, unsigned int> &bucket_map_rt,
+     std::map<int, unsigned int> &bucket_map_skew, msec_t& max_seen_tuple_ms);
     
-    void print_stats(std::map<std::string, std::map<unsigned int, unsigned int> > & stats,  std::stringstream& line);
+    void print_stats(std::map<std::string, std::map<int, unsigned int> > & stats, const char * label);
 
     
     boost::shared_ptr<boost::thread> loopThread;

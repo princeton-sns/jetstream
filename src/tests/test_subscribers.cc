@@ -185,12 +185,55 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout<< "Tuple:" << fmt(*t) << endl;
   cube->process(t);
 
-  js_usleep(1000000);
+  js_usleep(1000* 1000);
   
   while (rec->tuples.size() < 5 && tries++ < 5)
-    js_usleep(1000000);
+    js_usleep(1000 * 1000);
 
   ASSERT_EQ(5U, rec->tuples.size()); //update to old tuple should be suppressed
   
   cout << "done" <<endl;
+}
+
+
+TEST(LatencyMeasureSubscriber,TwoTuples) {
+  const int NUM_TUPLES = 4;
+  LatencyMeasureSubscriber  sub;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  sub.set_dest(rec);
+  operator_config_t cfg;
+  cfg["time_tuple_index"] = "0";
+  cfg["hostname_tuple_index"] = "1";
+  cfg["interval_ms"] = "500";
+  sub.configure(cfg);
+  sub.start();
+  
+  msec_t cur_time = get_msec();
+  
+  std::string hostnames[] = {"host1", "host2"};
+  boost::shared_ptr<Tuple> tuples[NUM_TUPLES];
+  
+  for(int i=0; i < NUM_TUPLES; ++i) {
+    boost::shared_ptr<Tuple> t(new Tuple);
+    extend_tuple(*t, double(cur_time + 100 * i));
+    extend_tuple(*t, hostnames[i%2]);
+    sub.action_on_tuple(t);
+    tuples[i] = t;
+  }
+  
+  js_usleep(500 * 1000);
+
+  boost::shared_ptr<Tuple> no_tuple;
+  for(int i=0; i < NUM_TUPLES; ++i) {
+    sub.post_insert(tuples[i], no_tuple);
+  }
+  js_usleep(1500 * 1000);
+  
+  int count = rec->tuples.size();
+  for (int i = 0; i < count; ++i) {
+    cout << fmt( *(rec->tuples[i]) ) << endl;
+  }
+  sub.stop();
+
+
 }
