@@ -19,13 +19,17 @@ extern std::string s_rand_labels[];
 
 class RandSourceOperator: public ThreadedSource {
  private:
-  const static int DEFAULT_BATCH_SIZE = 1000;
+  const static int DEFAULT_BATCH_SIZE = 500;
   int BATCH_SIZE;
  
   double slice_min, slice_max; //the numeric values to choose between
   
-  int start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min 
+  int rate_per_sec;
+  int tuples_this_sec;
+  int cur_idx;
+  double position_in_slice; // used in sequential mode.
 
+  int start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min
   double accum;  //the sum of labels[0]...labels[start_idx]
   int wait_per_batch; //ms
   int next_version_number;
@@ -34,8 +38,9 @@ class RandSourceOperator: public ThreadedSource {
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   RandSourceOperator(): next_version_number(0) {}
 
+  virtual bool emit_1();
+
  protected:
-  virtual bool emit_1() ;
 
   std::vector<double> rand_data;
   std::vector<std::string> rand_labels;

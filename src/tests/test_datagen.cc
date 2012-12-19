@@ -135,10 +135,12 @@ TEST(Operator, GoodnessOfData) {
   ASSERT_GT(op.cur_deviation(), 0.9);
 }
 
-shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg) {
+shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
 
-  shared_ptr<RandEvalOperator> rec(new RandEvalOperator);
-  rec->configure(cfg);
+  shared_ptr<RandEvalOperator> eval(new RandEvalOperator);
+  shared_ptr<DummyReceiver> receiver(new DummyReceiver);
+
+  eval->configure(cfg);
 
   RandSourceOperator op;
   cfg["n"] = "1";
@@ -148,7 +150,7 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg) {
   shared_ptr<DataPlaneOperator> extend(new ExtendOperator);
   cfg["types"] = "i";
   cfg["0"] = "1";
-  extend->configure(cfg);
+  extend->configure(cfg);  //add a dummy count
 
   cfg.clear();
   
@@ -156,38 +158,52 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg) {
 
 
   op.set_dest(extend);
-  extend->set_dest(rec);
-  
+  extend->set_dest(receiver);
   cout << "starting source" << endl;
-  op.start();
-  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  op.stop();
+  for (int i =0; i < BATCHES; ++i) {
+    op.emit_1();
+    cout << "after batch " << i << " have " << receiver->tuples.size() << " tuples" << endl;
+   }
+//  op.start();
+//  boost::this_thread::sleep(boost::posix_time::milliseconds(700));
+//  op.stop();
   
-  cout << "source stopped" << endl;
-
   int total = op.emitted_count();
+  cout << "source stopped after emitting " << total << endl;
+
+  EXPECT_EQ(total, receiver->tuples.size());
+  time_t now = time(NULL);
+  for ( int i = 0; i < total; ++i){
+    boost::shared_ptr<Tuple> t = receiver->tuples[i];
+    t->mutable_e(1)->set_t_val(now);
+    eval->process(t);
+  }
+  
+  
 
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "California");
   extend_tuple_time(*t, time(NULL) + 1);
   extend_tuple(*t, 1);
-  rec->process(t);
+  eval->process(t);
 
-  EXPECT_EQ(rec->data_in_last_window(), total);
-  EXPECT_GT(rec->cur_deviation(), 0.9);
-  return rec;
+  EXPECT_EQ(eval->data_in_last_window(), total);
+  EXPECT_GT(eval->cur_deviation(), 0.9);
+  return eval;
 }
 
 TEST(Operator, RandSourceIntegration_S) {
   operator_config_t cfg;
-  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg);
+  cfg["rate"] = "500";
+
+  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg, 1);
 }
 
 TEST(Operator, RandSourceIntegration_Z) {
   operator_config_t cfg;
   cfg["mode"] = "zipf";
-  cfg["rate"] = "2000"; //this is actually ignored since we'll only do a single batch of 500
-
-  cfg["items"] = "9"; // tail of zipf won't validate, so we truncate at 12
-  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg);
+  cfg["rate"] = "2000"; 
+  cfg["items"] = "50"; // tail of zipf won't validate, so we truncate at 12
+  shared_ptr<RandEvalOperator> rec = src_eval_pair(cfg, 4);
+  // can do more validation here if need be
 }

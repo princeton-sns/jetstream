@@ -101,8 +101,9 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
     //at this point accum is how much weight is associated with values <= start_idx
   accum = slice_min - low_vals;
   
-
-  int rate_per_sec = 1000;
+  tuples_this_sec = 0;
+  rate_per_sec = 1000;
+  cur_idx = start_idx;
 
   if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> rate_per_sec)) {
     return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
@@ -116,19 +117,18 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+/* two choices: a sequential algorithm or an RNG. Take your pick.
+  Rand is more realistic, seq is more predictable for testing.
+  */
 #define USE_SEQ 
-//  two choices: a sequential algorithm or an RNG. Take your pick.
 
 bool
 RandSourceOperator::emit_1()  {
   
-  int tuples = BATCH_SIZE;
   int tuples_sent = 0;
 
 #ifdef USE_SEQ
-  double incr = (slice_max - slice_min) / tuples;
-  int i = start_idx;
-  double my_acc = accum;
+  double incr = (slice_max - slice_min) / rate_per_sec;
 #else
   boost::mt19937 gen;
   boost::random::uniform_real_distribution<double> rand(slice_min, slice_max);
@@ -136,15 +136,24 @@ RandSourceOperator::emit_1()  {
 
   time_t now = time(NULL);
 
-  while (running && tuples_sent++ < tuples) {
-  
+  while (tuples_sent++ < BATCH_SIZE) {
+    shared_ptr<Tuple> t(new Tuple);
+
 #ifdef USE_SEQ
-    if ( my_acc + incr > rand_data[i] ) { // note endpoint does NOT trigger increment here. That is deliberate.
-      my_acc = 0;
-      i ++;
-    } else
-      my_acc += incr;
-    
+    if ( position_in_slice > rand_data[cur_idx] ) { // note endpoint does NOT trigger increment here. That is deliberate.
+      position_in_slice -= rand_data[cur_idx];
+      cur_idx ++;
+    }
+    t->add_e()->set_s_val(rand_labels[cur_idx]);
+    position_in_slice += incr;
+ //   cout << tuples_sent << ": position " << position_in_slice<< " and idx = " << cur_idx << endl;
+    if ( ++tuples_this_sec >= rate_per_sec) { //covered whole window, roll back to start
+      cur_idx = start_idx;
+      position_in_slice = accum;
+//      cout << "Rolling over after " << tuples_sent << " tuples in batch" << endl;
+      tuples_this_sec = 0;
+    }
+
 #else
     double d = rand(gen);
     double my_acc = accum;
@@ -152,11 +161,9 @@ RandSourceOperator::emit_1()  {
     while ( my_acc + rand_data[i] < d) {
       my_acc += rand_data[i++];
     }
+    t->add_e()->set_s_val(rand_labels[i]);
 #endif
 
-
-    shared_ptr<Tuple> t(new Tuple);
-    t->add_e()->set_s_val(rand_labels[i]);
     t->add_e()->set_t_val(now);
     t->set_version(next_version_number++);
     emit(t);
