@@ -56,6 +56,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   }
 
   bool can_batch = true;
+  shared_lock<boost::shared_mutex> lock(subscriberLock);  
   for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
       it != subscribers.end(); ++it) {
     boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
@@ -102,7 +103,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
     tupleBatcher->update_batched_tuple(tpi, can_batch);
   }
 
-  if(tupleBatcher->is_full() || (!tupleBatcher->is_empty() && (get_msec() - start_time > batch_timeout.total_milliseconds())))
+  if(tupleBatcher->is_full() || (!tupleBatcher->is_empty() && (get_msec() - start_time > (msec_t) batch_timeout.total_milliseconds())))
   {
     queue_flush();
   }
@@ -159,7 +160,7 @@ void DataCube::batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher, co
 }
 
 void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple) {
-
+    shared_lock<boost::shared_mutex> lock(subscriberLock);
 
     for( std::list<operator_id_t>::iterator it=tpi.insert.begin(); it != tpi.insert.end(); ++it) {
       VLOG(3) << "Insert Callback:" <<tpi.key<<"; sub:"<<*it;
@@ -177,10 +178,8 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 
 
 void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
-  processExec.submit(boost::bind(&DataCube::do_add_subscriber, this, sub));
-}
-
-void DataCube::do_add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
+  lock_guard<boost::shared_mutex> lock(subscriberLock);
+  
   assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
   sub->set_cube(this);
   subscribers[sub->id()] = sub;
@@ -194,10 +193,7 @@ void DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
 }
 
 void DataCube::remove_subscriber(operator_id_t id) {
-  processExec.submit(boost::bind(&DataCube::do_remove_subscriber, this, id));
-}
-
-void DataCube::do_remove_subscriber(operator_id_t id) {
+  lock_guard<boost::shared_mutex> lock(subscriberLock);
   subscribers.erase(id);
 }
 

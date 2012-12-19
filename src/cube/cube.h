@@ -109,10 +109,8 @@ class DataCube : public TupleReceiver {
 
     //subscriber stuff
     void add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
-    void do_add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
     void remove_subscriber(boost::shared_ptr<cube::Subscriber> sub);
     void remove_subscriber(operator_id_t id);
-    void do_remove_subscriber(operator_id_t id);
 
     //only used by tuple batch
     virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
@@ -140,6 +138,9 @@ class DataCube : public TupleReceiver {
 
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
+    mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
+
+  
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
     boost::posix_time::time_duration batch_timeout;
@@ -147,6 +148,7 @@ class DataCube : public TupleReceiver {
 
   private:
     static const std::string my_tyepename;
+
 
     virtual void do_process(boost::shared_ptr<Tuple> t);
     void queue_flush();
