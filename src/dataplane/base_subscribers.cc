@@ -248,6 +248,8 @@ void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> 
 
 int LatencyMeasureSubscriber::get_bucket(int latency) {
 
+  if (abs(latency) < 10)
+    return (latency / 2) * 2;
   if(abs(latency) < 100) {
     return (latency/10)*10;
   }
@@ -264,7 +266,7 @@ void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
   msec_t current_time_ms = get_usec()/1000;
   int latency_rt_ms = current_time_ms-tuple_time_ms; //note that this is SIGNED. Positive means source lags subscriber.
  
-  LOG(INFO) << "Latency: " << current_time_ms << " - " << tuple_time_ms << " = " << latency_rt_ms;
+//  LOG(INFO) << "Latency: " << current_time_ms << " - " << tuple_time_ms << " = " << latency_rt_ms;
   int bucket_rt = get_bucket(latency_rt_ms);
   bucket_map_rt[bucket_rt] += 1;
 
@@ -295,10 +297,10 @@ LatencyMeasureSubscriber::operator()() {
 
   //    std::stringstream line;
   //    line<<"Stats before entry into cube. Wrt real-time" << endl;
-      string s = string("before cube insert");
+      string s = string("before cube insert ");
       s += now_str;
       print_stats(stats_before_rt, s.c_str());
-      s = string("after cube insert");
+      s = string("after cube insert ");
       s += now_str;
       print_stats(stats_after_rt, s.c_str());
 
