@@ -287,14 +287,20 @@ LatencyMeasureSubscriber::start() {
 void 
 LatencyMeasureSubscriber::operator()() {
   while (running)  {
+    msec_t now = get_usec() / 1000;
+    string now_str = lexical_cast<string>(now);
+
     {
       lock_guard<boost::mutex> critical_section (lock);
 
   //    std::stringstream line;
   //    line<<"Stats before entry into cube. Wrt real-time" << endl;
-      print_stats(stats_before_rt, "before cube insert");
-  //    line<<"Stats after entry into cube. Wrt real-time" << endl;
-      print_stats(stats_after_rt, "after cube insert");
+      string s = string("before cube insert");
+      s += now_str;
+      print_stats(stats_before_rt, s.c_str());
+      s = string("after cube insert");
+      s += now_str;
+      print_stats(stats_after_rt, s.c_str());
 
       if(!cumulative)
       {
@@ -311,8 +317,6 @@ LatencyMeasureSubscriber::operator()() {
 void
 LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsigned int> > & stats,
                                        const char * label) {
-  msec_t now = get_usec() / 1000;
-  string now_str = lexical_cast<string>(now);
   std::map<std::string, std::map<int, unsigned int> >::iterator stats_it;
   for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it) {
     //unsigned int total=0;
@@ -320,9 +324,8 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
     std::map<int, unsigned int>::iterator latency_it;
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
       boost::shared_ptr<jetstream::Tuple> t(new Tuple);
-      extend_tuple(*t, stats_it->first);
+      extend_tuple(*t, stats_it->first);  //the hostname
       extend_tuple(*t, label);
-      extend_tuple(*t, now_str);
       extend_tuple(*t, (int) latency_it->first);
       extend_tuple(*t, (int) latency_it->second);
 //      total += (*latency_it).second;

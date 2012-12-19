@@ -98,8 +98,7 @@ def validate_timestamp(in_schema, cfg):
   return newS
 
 def validate_latency_measure(in_schema, cfg):
-  newS = []
-  newS.append( ("S", 'latency measure') )
+  newS = [("S", 'host name'), ('S', 'metric name'), ('I', 'bucket'), ('I','count')]
   return newS
 
 def validate_TRound(in_schema, cfg):
