@@ -13,17 +13,17 @@ def pairwise(iterable):
     return izip(a, b)
 
 class QueryGraph(object):
-"""Represents the client's-eye-view of a computation.
+  """Represents the client's-eye-view of a computation.
 
- We use the task IDs of operators internally. We also use the same numeric ID
- space for cubes, in this class. However, the cube names are substituted in at
- serialization time.
- This means, in particular, that you should be able to share a cube across
- computations. 
+  We use the task IDs of operators internally. We also use the same numeric ID
+  space for cubes, in this class. However, the cube names are substituted in at
+  serialization time.
+  This means, in particular, that you should be able to share a cube across
+  computations. 
  
- Note that cube names are, as a result, NOT required to be unique across a
- computation here. However the server does impose this limitation.
-"""
+  Note that cube names are, as a result, NOT required to be unique across a
+  computation here. However the server does impose this limitation.
+  """
 
   def __init__(self):
     self.nID = 1            # the NEXT ID to hand out
