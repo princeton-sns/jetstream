@@ -13,7 +13,7 @@ namespace jetstream {
 
 typedef u_int64_t nsec_t;
 typedef u_int64_t usec_t;
-typedef u_int32_t msec_t;
+typedef u_int64_t msec_t;
 typedef u_int32_t sec_t;
 typedef u_int16_t port_t;
 

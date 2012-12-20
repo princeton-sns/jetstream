@@ -114,8 +114,8 @@ CSVParse::configure(map<string,string> &config) {
 void
 CSVParse::process(boost::shared_ptr<Tuple> t) {
   // FIXME assume we want to parse 0th element
-  Element* e = t->mutable_e(0);
-  
+  const Element* e = &t->e(0);
+
   if (!e->has_s_val()) {
     LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
     return;
@@ -125,10 +125,12 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
 
   shared_ptr<Tuple> t2(new Tuple);
   t2->set_version(t->version());
+
   int i = 0;
+
   for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();  beg!=tok.end(); ++beg, ++i) {
-    Element * e = t2->add_e();
-    parse_with_types(e, *beg, types[i]);
+    Element * enew = t2->add_e();
+    parse_with_types(enew, *beg, types[i]);
   }
 
   emit(t2);
@@ -157,7 +159,7 @@ StringGrep::configure(map<string,string> &config) {
 }
 
 
-  void
+void
 StringGrep::process (boost::shared_ptr<Tuple> t)
 {
   assert(t);
@@ -230,7 +232,6 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
 }
 
 void parse_with_types(Element * e, const string& s, char typecode) {
-
  switch (typecode) {
     case 'I':
       {
@@ -272,7 +273,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   if (fld_to_parse >= t->e_size()) {
     LOG(WARNING) << "can't parse field " << fld_to_parse << "; total size is only" << t->e_size();
   }
-  
+
   boost::smatch matchResults;
 
   bool found = false;
@@ -285,7 +286,6 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
   }
 
   if (found) {
-  
     if (matchResults.size() != field_types.length() + 1) {
       LOG(FATAL) << "regex for " << id() << " has " << matchResults.size() <<
           "fields but we only have " << field_types.length() << "types.";
@@ -299,7 +299,8 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     }
   }
   else {
-   // what do we do on parse failures?  Currently, suppress silently as 'no match'
+    LOG(WARNING) << "No parse matches on string: " << t->e(fld_to_parse).s_val() << endl;
+    // what do we do on parse failures?  Currently, suppress silently as 'no match'
     return;
   }
 

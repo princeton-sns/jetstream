@@ -176,7 +176,7 @@ SerDeOverhead::process(boost::shared_ptr<Tuple> t) {
 
 void
 EchoOperator::process(boost::shared_ptr<Tuple> t) {
-  cout << id() <<": " <<fmt(*t) << endl;
+  (*o) << id() <<": " <<fmt(*t) << endl;
 
   if (get_dest() != NULL)
     emit(t);

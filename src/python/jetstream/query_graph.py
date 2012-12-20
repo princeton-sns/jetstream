@@ -13,11 +13,16 @@ def pairwise(iterable):
     return izip(a, b)
 
 class QueryGraph(object):
-  """Represents the client's-eye-view of a computation.
- We use the task IDs of operators internally. We also use the same numeric ID space for cubes, in this class. However, the cube names are substituted in at serialization time.
- This means, in particular, that you should be able to share a cube across computations. 
+"""Represents the client's-eye-view of a computation.
+
+ We use the task IDs of operators internally. We also use the same numeric ID
+ space for cubes, in this class. However, the cube names are substituted in at
+ serialization time.
+ This means, in particular, that you should be able to share a cube across
+ computations. 
  
- Note that cube names are, as a result, NOT required to be unique across a computation here. However the server does impose this limitation.
+ Note that cube names are, as a result, NOT required to be unique across a
+ computation here. However the server does impose this limitation.
 """
 
   def __init__(self):
@@ -302,6 +307,9 @@ class Operator(Destination):
       return SCHEMAS[self.type](in_schema, self.cfg)
     raise SchemaError("Need to define out_schema for %s" % self.type)
 
+  def __str__(self):
+    return '({0}, {1})'.format(str(self.type), str(self.cfg)) 
+
 
 class Cube(Destination):
 
@@ -361,6 +369,9 @@ class Cube(Destination):
       d.tuple_indexes.append(offset)
     if 'overwrite' in  self.desc:
       c_meta.overwrite_old = self.desc['overwrite'] 
+
+  def __str__(self):
+    return '({0}, {1})'.format(self.name, self.desc)
 
      
   def get_name(self):
@@ -432,6 +443,8 @@ def FileRead(graph, file, skip_empty=False):
 
 def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern, "id": 0}
+   import re
+   x = re.compile(pattern) # throw an error on bad patterns
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
 def CSVParse(graph, types):
@@ -462,6 +475,8 @@ def GenericParse(graph,
            "pattern" : pattern,
            "field_to_parse" :field_to_parse,
            "keep_unparsed" : str(keep_unparsed)}
+    import re
+    x = re.compile(pattern) # throw an error on bad patterns
     return graph.add_operator(OpType.PARSE, cfg)
 
 

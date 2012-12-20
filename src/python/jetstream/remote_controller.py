@@ -15,9 +15,31 @@ def normalize_controller_addr(addr_str):
 
 
 class RemoteController():
-
-  def __init__(self):
+  def __init__(self, netaddr=None, cube_spec=None):
+    """ If cube_spec is not None, then its first element should be a Cube, and its
+    second element should be a set of nodes to place it on, or None. If the
+    second element is none, then the cube is instantiated on all of the
+    controller's nodes. """
     self.node_cache = None
+
+    if netaddr is not None:
+      print "connect to :", netaddr
+      self.connect(*netaddr)
+
+      # place cube
+      if cube_spec is not None:
+        cube = cube_spec[0]
+
+        cube_placement = cube_spec[1]
+        if cube_placement is None:
+          cube_placement = self.all_nodes()
+
+        cube.instantiate_on(cube_placement)
+
+    else:
+      # TODO make netaddr mandatory (why isn't it already?) (and remove the
+      # connect method) and we won't have to worry about this case
+      assert cube_spec is None
   
   def connect(self, addr, port):
     self.client = JSClient( (addr, port) )
