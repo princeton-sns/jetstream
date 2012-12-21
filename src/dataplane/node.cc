@@ -63,6 +63,9 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   // Update the listener port in the config in case the user specified 0. The config
   // is used by other modules, e.g. the liveness manager.
   config.dataplane_ep.second = listeningSock->get_local_endpoint().port();
+    
+  LOG(INFO) << "*********** \n" << "\t\t\t\t\tNode ID is " << listeningSock->get_local_endpoint()<<
+        "\n \t\t\t\t\t     *********** ";// <<":" << config.dataplane_ep.second;
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
   if (error) {
