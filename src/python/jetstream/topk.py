@@ -4,7 +4,7 @@ import query_graph as jsapi
 WINDOW_SECS = 3
 OFFSET = 3000   #ms
 
-def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, local_agg=False, sample=False, zipf=0):
+def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, latencylog="latencies.out", local_agg=False, sample=False, zipf=0):
   ### Define the graph abstractly
 
   g = jsapi.QueryGraph()
@@ -44,7 +44,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
   
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 4, 100);
   echo_op = jsapi.Echo(g);
-  echo_op.set_cfg("file_out", "latencies.out")
+  echo_op.set_cfg("file_out", latencylog)
 
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
