@@ -9,6 +9,7 @@ import string
 import re
 from itertools import izip, tee
 from operator import itemgetter
+from collections import deque
 
 from remote_controller import RemoteController,normalize_controller_addr
 import query_graph as jsapi
@@ -106,7 +107,8 @@ def main():
   g.connectExternal(pull_k2, cr.prep_to_receive_data())
   remote_deploy(serv_addr, serv_port, g, cube=local_cube)
 
-  tuples = []
+  
+  tuples = deque(maxlen=10000) # maximum size to bound memory usage
   def processdata(tup):
     print tuple_str(tup)
     tuples.append(tup)
@@ -132,7 +134,9 @@ class CoralLogLine():
 
 
 # This method adds correctly typed fields to the cube, assuming that they are
-# stored in the order provided in the argument
+# stored in the order provided in the argument. 
+# ### OR DOES IT? This is old and probably doesn't work, because I didn't
+# understand the semantics of cube.add_dim() when I wrote this.
 def add_cube_dims(cube, field_indices):
   specifier_to_type = {"I" : Element.INT32,  "S" : Element.STRING,
                        "D" : Element.DOUBLE, "T" : Element.TIME}
