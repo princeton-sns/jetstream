@@ -25,7 +25,8 @@ class MysqlAggregateSimple: public MysqlAggregate {
     }
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &field_index) const;
+      int &field_index);
+  
     void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const {
       populate_tuple_final(t, resultset, column_index);
@@ -193,7 +194,10 @@ void MysqlAggregateSimple<ValueType>::merge_full_tuple_into(jetstream::Tuple &in
 }
 
 template<class ValueType>
-void MysqlAggregateSimple<ValueType>::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt,  const jetstream::Tuple &t, int &field_index) const {
+void
+MysqlAggregateSimple<ValueType>::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
+                                                              const jetstream::Tuple &t,
+                                                              int &field_index) {
   if(tuple_indexes.size() != 1) {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }

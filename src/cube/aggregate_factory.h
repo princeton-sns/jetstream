@@ -49,7 +49,7 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
   }
   
   static boost::shared_ptr<jetstream::cube::MysqlAggregate> version_aggregate() {
-    return MysqlAggregateVersion::v;
+    return boost::shared_ptr<MysqlAggregateVersion>(new MysqlAggregateVersion);
   }
 
   

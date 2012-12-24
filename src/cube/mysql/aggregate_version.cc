@@ -31,7 +31,7 @@ MysqlAggregateVersion::get_update_on_insert_sql() const {
 
 void
 MysqlAggregateVersion::insert_default_values_for_full_tuple(jetstream::Tuple &t) const {
-//  LOG(FATAL) << "version isn't optional";
+  //do nothing here; this is just initialization which we don't need
 }
 
 size_t
@@ -43,8 +43,8 @@ MysqlAggregateVersion::number_tuple_elements() const {
 void
 MysqlAggregateVersion::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
                                                     const jetstream::Tuple &t,
-                                                    int &field_index) const {
-  pstmt->setUInt64(field_index, t.version());
+                                                    int &field_index) {
+  pstmt->setUInt64(field_index, next_update_id++);
   field_index += 1;
   return;
 }
@@ -70,7 +70,3 @@ string
 MysqlAggregateVersion::get_select_clause_for_rollup() const {
   return "MAX("+get_base_column_name()+")";
 }
-
-
-boost::shared_ptr<MysqlAggregateVersion>
-MysqlAggregateVersion::v(new MysqlAggregateVersion);

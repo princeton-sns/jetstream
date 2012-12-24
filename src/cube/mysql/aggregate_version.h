@@ -24,7 +24,7 @@ namespace cube {
  */
 class MysqlAggregateVersion: public MysqlAggregate {
   public:
-    MysqlAggregateVersion() : MysqlAggregate() { name = "version"; };
+    MysqlAggregateVersion() : MysqlAggregate(),next_update_id(0) { name = "version"; };
 
     vector<string> get_column_types() const;
 
@@ -35,7 +35,7 @@ class MysqlAggregateVersion: public MysqlAggregate {
   
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &field_index) const;
+      int &field_index);
 
     void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
@@ -43,10 +43,9 @@ class MysqlAggregateVersion: public MysqlAggregate {
     
     virtual string get_select_clause_for_rollup() const;
 
-    static boost::shared_ptr<MysqlAggregateVersion> v;
-
   protected:
     virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
+    uint64_t next_update_id;
 
 };
 

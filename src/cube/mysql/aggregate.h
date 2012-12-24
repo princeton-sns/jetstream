@@ -14,7 +14,7 @@ class MysqlAggregate : public Aggregate {
 
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &field_index) const = 0;
+      int &field_index) = 0;
     
     virtual void make_full_tuple(jetstream::Tuple &t) const;
     virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const =0;
