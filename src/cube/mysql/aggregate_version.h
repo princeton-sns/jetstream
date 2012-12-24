@@ -24,7 +24,7 @@ namespace cube {
  */
 class MysqlAggregateVersion: public MysqlAggregate {
   public:
-    MysqlAggregateVersion() : MysqlAggregate() {};
+    MysqlAggregateVersion() : MysqlAggregate() { name = "version"; };
 
     vector<string> get_column_types() const;
 
@@ -42,11 +42,13 @@ class MysqlAggregateVersion: public MysqlAggregate {
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
     
     virtual string get_select_clause_for_rollup() const;
+
+    static boost::shared_ptr<MysqlAggregateVersion> v;
+
   protected:
     virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
 
 };
-
 
 } /* cube */
 } /* jetstream */

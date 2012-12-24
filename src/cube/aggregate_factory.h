@@ -5,6 +5,8 @@
 #include "mysql/aggregate_avg.h"
 #include "mysql/aggregate_string.h"
 #include "mysql/aggregate_min.h"
+#include "mysql/aggregate_version.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <glog/logging.h>
@@ -44,7 +46,13 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
     }
     obj->init(_schema);
     return obj;
-  };
+  }
+  
+  static boost::shared_ptr<jetstream::cube::MysqlAggregate> version_aggregate() {
+    return MysqlAggregateVersion::v;
+  }
+
+  
 };
 
 } /* cube */

@@ -31,7 +31,7 @@ MysqlAggregateVersion::get_update_on_insert_sql() const {
 
 void
 MysqlAggregateVersion::insert_default_values_for_full_tuple(jetstream::Tuple &t) const {
-  LOG(FATAL) << "version isn't optional";
+//  LOG(FATAL) << "version isn't optional";
 }
 
 size_t
@@ -70,3 +70,7 @@ string
 MysqlAggregateVersion::get_select_clause_for_rollup() const {
   return "MAX("+get_base_column_name()+")";
 }
+
+
+boost::shared_ptr<MysqlAggregateVersion>
+MysqlAggregateVersion::v(new MysqlAggregateVersion);
