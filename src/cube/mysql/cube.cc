@@ -505,6 +505,8 @@ void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple>
   }
 
   insert_stmt->execute();
+  LOG(INFO) << "incrementing version in save_tuple_batch, now " << version;
+  version ++;  //next insert will have higher version numbers
 
   boost::shared_ptr<sql::ResultSet> new_value_results;
   if(count_new > 0)

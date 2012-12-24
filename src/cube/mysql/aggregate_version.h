@@ -24,7 +24,7 @@ namespace cube {
  */
 class MysqlAggregateVersion: public MysqlAggregate {
   public:
-    MysqlAggregateVersion() : MysqlAggregate(),next_update_id(0) { name = "version"; };
+    MysqlAggregateVersion(uint64_t& v) : MysqlAggregate(),version(v) { name = "version"; };
 
     vector<string> get_column_types() const;
 
@@ -45,7 +45,7 @@ class MysqlAggregateVersion: public MysqlAggregate {
 
   protected:
     virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
-    uint64_t next_update_id;
+    uint64_t & version;
 
 };
 

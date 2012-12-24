@@ -16,7 +16,8 @@ unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigne
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch,  boost::posix_time::time_duration batch_timeout) :
   schema(_schema), name(_name), is_frozen(false), 
   tupleBatcher(new cube::TupleBatch(this, elements_in_batch)), 
-  batch_timeout(batch_timeout), elements_in_batch(elements_in_batch), 
+  batch_timeout(batch_timeout), version(0),
+  elements_in_batch(elements_in_batch),
   flushExec(1), processExec(1),
   batch_timeout_timer(*(processExec.get_io_service())),
   congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name)))  {

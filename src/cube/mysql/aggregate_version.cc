@@ -25,13 +25,14 @@ MysqlAggregateVersion::merge_full_tuple_into(jetstream::Tuple &into, jetstream::
 
 string
 MysqlAggregateVersion::get_update_on_insert_sql() const {
-  string sql = "`"+get_base_column_name()+"` = `"+get_base_column_name()+"` + VALUES(`"+get_base_column_name()+"`)";
+  string sql = "`"+get_base_column_name()+"` = GREATEST (`"+get_base_column_name()+"`, VALUES(`"+get_base_column_name()+"`))";
   return sql;
 }
 
 void
 MysqlAggregateVersion::insert_default_values_for_full_tuple(jetstream::Tuple &t) const {
   //do nothing here; this is just initialization which we don't need
+  t.set_version(0);
 }
 
 size_t
@@ -44,8 +45,8 @@ void
 MysqlAggregateVersion::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
                                                     const jetstream::Tuple &t,
                                                     int &field_index) {
-  pstmt->setUInt64(field_index, next_update_id++);
-  field_index += 1;
+  pstmt->setUInt64(field_index, version);
+  field_index += 1; // These are fields of hte prepared statement, not of the tuple
   return;
 }
 
