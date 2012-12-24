@@ -1,3 +1,5 @@
+#include "js_utils.h"
+
 #include "cube_manager.h"
 #include "node.h"
 
@@ -820,20 +822,11 @@ TEST(Cube,Attach) {
   agg->set_type("count");
   agg->add_tuple_indexes(1);
 
-  TaskMeta* task = topo.add_tostart();
-  task->set_op_typename("SendK");
-  // Send some tuples
-  TaskMeta_DictEntry* op_cfg = task->add_config();
-  op_cfg->set_opt_name("k");
-  op_cfg->set_val("2");
 
-  op_cfg = task->add_config();
-  op_cfg->set_opt_name("send_now");
-  op_cfg->set_val("true");
-
-  TaskID* id = task->mutable_id();
-  id->set_computationid(compID);
-  id->set_task(1);
+  TaskMeta* task =  add_operator_to_alter(topo, operator_id_t(compID, 1), "SendK");
+  // Send some tuples, e.g. k = 5
+  add_cfg_to_task(task, "k", "2");
+  add_cfg_to_task(task, "send_now","true");
 
   Edge * e = topo.add_edges();
   e->set_src(1);
