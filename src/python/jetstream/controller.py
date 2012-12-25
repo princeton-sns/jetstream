@@ -55,7 +55,7 @@ def main():
   (options, args) = parser.parse_args()
 
   config = ConfigParser.SafeConfigParser( {'controller_web_port': "8082", \
-               'controller_addr':""} )
+               'controller_ep':""} )
   
   if options.config_file is not None:
     fp = open(options.config_file)
@@ -65,7 +65,7 @@ def main():
     config.add_section(NOSECTION)
   
 
-  addr = config.get(NOSECTION, 'controller_addr')
+  addr = config.get(NOSECTION, 'controller_ep')
   if len(addr) > 0:
     endpoint, bind_port = addr.split(':')
     bind_port = int(bind_port)
