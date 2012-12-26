@@ -16,8 +16,11 @@
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
+    num_cores: 24
   tags: build
   tasks:
+  - name: ntp synch
+    command: ntpdate pool.ntp.org
   - name: checkout jetstream
     git: repo=git@bitbucket.org:mfreed/jetstream.git dest=${js_checkout}
   - name: make sure jetstream build dir exists
@@ -31,7 +34,7 @@
               -DPROTOBUF_PROTOC_EXECUTABLE=${js_deps}/protobufs/bin/protoc ../
               chdir=${js_checkout}/build
   - name: make js
-    command: make
+    command: make --quiet -j ${num_cores}
             chdir=${js_checkout}/build
   - name: cp tests data
     command: cp -r src/tests build/src/
