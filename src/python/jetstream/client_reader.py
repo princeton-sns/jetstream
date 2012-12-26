@@ -46,9 +46,10 @@ class ClientDataReader():
   portno = randint(9000, 65536)
   DoneSentinel = None
 
-  def __init__(self, sync=False):
+  def __init__(self, sync=False, raw_data=False):
     self.HOST = 'localhost'
     self.PORT = ClientDataReader.portno
+    self.raw_data = raw_data
     # allow multiple ClientDataReaders?
     ClientDataReader.portno += 1
 
@@ -105,8 +106,11 @@ class ClientDataReader():
         assert mesg.data is not ClientDataReader.DoneSentinel
         assert mesg.data is not None
 
-        # map to each tuple individually
-        map(self.tuples.put, mesg.data)
+        # default is to map to each tuple individually
+        if not self.raw_data:
+          map(self.tuples.put, mesg.data)
+        else:
+          self.tuples.put(mesg.data)
 
       elif mesg.type == DataplaneMessage.NO_MORE_DATA:
         # TODO add option: hand more information back to the caller: entire
@@ -132,9 +136,6 @@ class ClientDataReader():
       yield item
     # TODO does this work? probably need to reread threads chapter of OS text
 
-  def consume(self, cb):
-    return map(cb, self.tuple_consumer())
-
   def finish(self):
     self.listen_sock.close()
     if self.receiver_thread.isAlive():
@@ -142,6 +143,6 @@ class ClientDataReader():
 
   def blocking_read(self, callback):
     """ Give every received tuple to a callback function. """
-    vals = self.consume(callback)
+    vals = map(callback, self.tuple_consumer())
     print '%d tuples received in blocking_read' % len(vals)
     self.finish()
