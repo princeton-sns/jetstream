@@ -27,7 +27,7 @@ class MysqlAggregateCount: public MysqlAggregate {
   
     virtual void set_value_for_insert_tuple(
       shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
-      int &field_index) const;
+      int &field_index);
 
     void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 

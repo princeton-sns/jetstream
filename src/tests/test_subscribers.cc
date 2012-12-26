@@ -191,6 +191,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
     js_usleep(1000 * 1000);
 
   ASSERT_EQ(5U, rec->tuples.size()); //update to old tuple should be suppressed
+  ASSERT_TRUE(rec->tuples[0]->has_version());
   
   cout << "done" <<endl;
 }

@@ -1,5 +1,13 @@
-#ifndef AGGREGATE_STRING_Q8TYGR7Q
-#define AGGREGATE_STRING_Q8TYGR7Q
+//
+//  aggregate_version.h
+//  JetStream
+//
+//  Created by Ariel Rabkin on 12/24/12.
+//  Copyright (c) 2012 Ariel Rabkin. All rights reserved.
+//
+
+#ifndef JetStream_aggregate_version_h
+#define JetStream_aggregate_version_h
 
 #include "aggregate.h"
 
@@ -14,9 +22,9 @@ namespace cube {
  * single entry: (none)
  * partial aggregate: [count of items]
  */
-class MysqlAggregateString: public MysqlAggregate {
+class MysqlAggregateVersion: public MysqlAggregate {
   public:
-    MysqlAggregateString() : MysqlAggregate() {};
+    MysqlAggregateVersion(uint64_t& v) : MysqlAggregate(),version(v) { name = "version"; };
 
     vector<string> get_column_types() const;
 
@@ -34,14 +42,14 @@ class MysqlAggregateString: public MysqlAggregate {
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
     
     virtual string get_select_clause_for_rollup() const;
+
   protected:
     virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const;
+    uint64_t & version;
 
 };
-
 
 } /* cube */
 } /* jetstream */
 
-
-#endif /* end of include guard: AGGREGATE_STRING_Q8TYGR7Q */
+#endif

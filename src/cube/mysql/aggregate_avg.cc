@@ -54,7 +54,10 @@ void MysqlAggregateAvg::merge_full_tuple_into(jetstream::Tuple &into, jetstream:
   }
 }
 
-void MysqlAggregateAvg::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
+void
+MysqlAggregateAvg::set_value_for_insert_tuple( shared_ptr<sql::PreparedStatement> pstmt,
+                                               jetstream::Tuple const &t,
+                                               int &field_index)  {
   if(tuple_indexes.size() != 2) {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }

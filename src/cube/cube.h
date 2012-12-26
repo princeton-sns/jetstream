@@ -145,6 +145,7 @@ class DataCube : public TupleReceiver {
     boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
     boost::posix_time::time_duration batch_timeout;
     msec_t start_time;
+    uint64_t version;
 
   private:
     static const std::string my_tyepename;

@@ -401,16 +401,14 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
   }
 
   boost::shared_ptr<sql::ResultSet> old_value_results;
-  if(need_old_value)
-  {
+  if(need_old_value) {
     old_value_results.reset(old_value_stmt->executeQuery());
   }
 
   insert_stmt->execute();
 
   boost::shared_ptr<sql::ResultSet> new_value_results;
-  if(need_new_value)
-  {
+  if(need_new_value) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
   
@@ -419,12 +417,10 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
   }
 
   /********* Populate tuples ******/
-  if(need_old_value && old_value_results->first())
-  {
+  if(need_old_value && old_value_results->first()) {
     old_tuple = make_tuple_from_result_set(old_value_results, false);
   }
-  else
-  {
+  else {
     old_tuple.reset();
   }
   
@@ -499,16 +495,16 @@ void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple>
   }
 
   boost::shared_ptr<sql::ResultSet> old_value_results;
-  if(count_old > 0)
-  {
+  if(count_old > 0) {
     old_value_results.reset(old_value_stmt->executeQuery());
   }
 
   insert_stmt->execute();
+  VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
+  version ++;  //next insert will have higher version numbers
 
   boost::shared_ptr<sql::ResultSet> new_value_results;
-  if(count_new > 0)
-  {
+  if(count_new > 0) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
   

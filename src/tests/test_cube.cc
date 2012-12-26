@@ -1,3 +1,5 @@
+#include "js_utils.h"
+
 #include "cube_manager.h"
 #include "node.h"
 
@@ -820,20 +822,10 @@ TEST(Cube,Attach) {
   agg->set_type("count");
   agg->add_tuple_indexes(1);
 
-  TaskMeta* task = topo.add_tostart();
-  task->set_op_typename("SendK");
-  // Send some tuples
-  TaskMeta_DictEntry* op_cfg = task->add_config();
-  op_cfg->set_opt_name("k");
-  op_cfg->set_val("2");
-
-  op_cfg = task->add_config();
-  op_cfg->set_opt_name("send_now");
-  op_cfg->set_val("true");
-
-  TaskID* id = task->mutable_id();
-  id->set_computationid(compID);
-  id->set_task(1);
+  int K = 5;
+  TaskMeta* task =  add_operator_to_alter(topo, operator_id_t(compID, 1), "SendK");
+  add_cfg_to_task(task, "k", boost::lexical_cast<string>(K));
+  add_cfg_to_task(task, "send_now","true");
 
   Edge * e = topo.add_edges();
   e->set_src(1);
@@ -853,7 +845,7 @@ TEST(Cube,Attach) {
     js_usleep(1000000);
   }
 
-  ASSERT_EQ(1U, cube->num_leaf_cells());
+  ASSERT_EQ(1U, cube->num_leaf_cells());  //we sent two tuples that hsould have been aggregated
   Tuple empty = cube->empty_tuple();
 
   cube::CubeIterator it = cube->slice_query(empty, empty);
@@ -866,10 +858,12 @@ TEST(Cube,Attach) {
   ASSERT_EQ(1U, it.numCells());
   int total_count = 0;
   shared_ptr<Tuple> t = *it;
-  ASSERT_EQ(2, t->e_size());
+  ASSERT_EQ(2, t->e_size()); //two elements; the dimension and the the count
+  ASSERT_EQ(K-1, t->version()); //k - 1
+  
   total_count += t->e(1).i_val();
 
-  ASSERT_EQ(2, total_count);
+  ASSERT_EQ(K, total_count);
   cout << "done"<< endl;
   node.stop();
 

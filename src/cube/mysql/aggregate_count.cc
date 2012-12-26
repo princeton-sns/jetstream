@@ -41,7 +41,10 @@ size_t  MysqlAggregateCount::number_tuple_elements() const {
 }
 
 
-void MysqlAggregateCount::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt,  const jetstream::Tuple &t, int &field_index) const {
+void
+MysqlAggregateCount::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
+                                                  const jetstream::Tuple &t,
+                                                  int &field_index) {
   if(tuple_indexes.size() != 1) {
     LOG(FATAL) << "Wrong number of input tuple indexes for "<< name;
   }
