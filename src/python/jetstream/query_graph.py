@@ -513,7 +513,8 @@ class TimeSubscriber(Operator):
   def add_to_PB(self, alter):
     assert( len(self.preds) == 1)
     pred_cube = list(self.preds)[0]
-    #Need to convert the user-specified selection keys into positional form for the DB
+    # Need to convert the user-specified selection keys into positional form
+    # for the DB
     dims_by_id = pred_cube.get_dimensions()
     tuple = Tuple()
     max_dim = max(dims_by_id.keys())
@@ -550,12 +551,14 @@ class TimeSubscriber(Operator):
     
  
 def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, interval_ms=1000):
-   cfg = {"time_tuple_index":str(time_tuple_index), "hostname_tuple_index": str(hostname_tuple_index), "interval_ms":str(interval_ms)}
+   cfg = {"time_tuple_index" : str(time_tuple_index),
+          "hostname_tuple_index" : str(hostname_tuple_index),
+          "interval_ms" : str(interval_ms)}
    return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)    
 ##### Test operators #####
  
 def SendK(graph, k):
-   cfg = {"k":str(k)}
+   cfg = {"k" : str(k)}
    return graph.add_operator(OpType.SEND_K, cfg)  
 
 
