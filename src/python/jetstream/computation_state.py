@@ -23,7 +23,7 @@ class CWorker (object):
   
   def __init__ (self, endpoint, hbInterval=DEFAULT_HB_INTERVAL_SECS,
                hbDeadIntervals=DEFAULT_HB_DEAD_INTERVALS):
-    self.endpoint = endpoint
+    self.endpoint = endpoint  #this is the 
     self.hbInterval = hbInterval
     self.hbDeadIntervals = hbDeadIntervals
     self.state = CWorker.DEAD
@@ -60,6 +60,7 @@ class CWorker (object):
     del self.assignments[compID]
     
   def get_all_cubes(self):
+    """Returns a list of CubeMetas"""
     cubes = []
     for a in self.assignments.values():
       cubes.extend(a.cubes)

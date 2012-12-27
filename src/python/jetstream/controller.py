@@ -209,7 +209,7 @@ class Controller (ControllerAPI, JSServer):
     if workerID in self.workers.keys():
       worker_assignment = self.workers[workerID]
       for c in worker_assignment.get_all_cubes():
-        self.cube_locations[c] = None #cube no longer visible
+        self.cube_locations[c.name] = None #cube no longer visible
       del self.workers[workerID]
 
     #TODO: Reschedule worker's assignments elsewhere, etc.
