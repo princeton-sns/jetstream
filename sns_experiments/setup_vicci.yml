@@ -46,6 +46,8 @@
     yum: name=make state=present
   - name: install wget 
     yum: name=wget state=present
+  - name: install ntp 
+    yum: name=ntp state=present
   - name: install tar
     yum: name=tar state=present
   - name: install bzip2-devel #for boost compile
@@ -59,7 +61,7 @@
               chdir=/jetstream/deps
               creates=/jetstream/deps/boost_1_52_0.tar.gz
   - name: untar boost
-    command: tar -xzvf boost_1_52_0.tar.gz
+    command: tar -xzf boost_1_52_0.tar.gz
               chdir=/jetstream/deps
               creates=/jetstream/deps/boost_1_52_0
   - name: bootstrap boost
@@ -78,7 +80,7 @@
             chdir=${js_deps} 
             creates=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
   - name: untar mysql cpp conn
-    command: tar -xzvf mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
+    command: tar -xzf mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
             chdir=${js_deps} 
             creates=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit
 #install mysql cpp connector system wide
@@ -102,7 +104,7 @@
             chdir=${js_deps} 
             creates=${js_deps}/protobuf_2.4.1.orig.tar.gz
   - name: untar protobufs
-    command: tar -xzvf protobuf_2.4.1.orig.tar.gz
+    command: tar -xzf protobuf_2.4.1.orig.tar.gz
             chdir=${js_deps} 
             creates=${js_deps}/protobuf-2.4.1
   - name: configure protobuf

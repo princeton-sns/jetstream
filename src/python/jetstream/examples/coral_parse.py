@@ -1,19 +1,16 @@
 from jetstream_types_pb2 import *
 
-from optparse import OptionParser 
-
-import random
-import socket
-import time
 import string
-import re
+
 from itertools import izip, tee
 from operator import itemgetter
 from collections import deque
 
-from remote_controller import RemoteController,normalize_controller_addr
+from remote_controller import RemoteController
 import query_graph as jsapi
 from client_reader import ClientDataReader, tuple_str
+
+import js_client_config
 
 CORAL_N = 17
 coral_types = "IDSSSSSSIIIIIIISS"
@@ -55,29 +52,15 @@ def pairwise(iterable):
 # start a connection to a remote controller, instantiate any cubes on all of
 # its nodes, and deploy the graph
 def remote_deploy(serv_addr, serv_port, graph, cube=None):
-  if cube is not None:
-    server = RemoteController((serv_addr, serv_port), (cube, None))
-  else:
-    server = RemoteController((serv_addr, serv_port))
+  server = RemoteController((serv_addr, serv_port))
+  assert isinstance(server.get_a_node(), NodeID)
 
-  n = server.get_a_node()
-  assert isinstance(n, NodeID)
-
-  server.deploy(graph)
+  server.deploy(graph, cube)
 
 
-def main():
-  parser = OptionParser()
-  parser.add_option("-C", "--config", dest="config_file",
-                  help="read config from FILE", metavar="FILE")
+def parse_setup():
+  (serv_addr, serv_port), file_to_parse = js_client_config.arg_config()
 
-  parser.add_option("-a", "--controller", dest="controller",
-                  help="controller address", default="localhost:3456")
-
-  (options, args) = parser.parse_args()
-  serv_addr,serv_port = normalize_controller_addr(options.controller)
-  file_to_parse = args[0]
-  
   k2 = 20 #how many to pull to top level
   k = 10 #how many to display
   
@@ -103,16 +86,11 @@ def main():
 
   g.chain([f, csvp, grab_domain, local_cube, pull_k2])
 
-  cr = ClientDataReader()
+  cr = ClientDataReader(raw_data=True)
   g.connectExternal(pull_k2, cr.prep_to_receive_data())
   remote_deploy(serv_addr, serv_port, g, cube=local_cube)
 
-  
-  tuples = deque(maxlen=10000) # maximum size to bound memory usage
-  def processdata(tup):
-    print tuple_str(tup)
-    tuples.append(tup)
-  cr.blocking_read(processdata)
+  return cr
 
 class CoralLogLine():
   def __init__(self, coral_tuple, fields, types):
@@ -152,6 +130,6 @@ def add_cube_dims(cube, field_indices):
       raise KeyError("Invalid cube format type: %s" % kind)
     cube.add_dim(name, t, index)
 
-
 if __name__ == '__main__':
-    main()
+  import coral_analyzer
+  coral_analyzer.main()

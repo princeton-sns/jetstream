@@ -150,33 +150,17 @@ hd =
 bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n -o ~/perftest.log --controller 128.112.171.38:3456\
 ./jsnoded -C ../config/princeton_mn.conf --start -d 128.112.171.44:0\
 -----------------------------------------------------------------------------\
+./bin/controller.sh -C config/vicci.conf \
+./jsnoded -C ../config/vicci.conf --start\
+bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n --controller 128.112.171.40:3456 -u 128.112.171.38:54628 -l ~/latency.log.1000 -r 1000 -o ~/perftest.log.1000\
 \
-Thought on intro; this is how I would frame the work:\
+workers:\
+csshX -l princeton_jetstream node10.princeton.vicci.org node1.stanford.vicci.org node10.stanford.vicci.org node1.mpisws.vicci.org node10.mpisws.vicci.org\
 \
-We increasingly have data being generated in the wide area. Examples: CDN logs, routing data, distributed service logs (Facebook, gmail). And we have an increasing need to analyze this data for business and operational purposes. Interestingly, on the operational side we have an increasing need for rapid response to changes in system state such as load. Examples: CDN load balancing, Google's use of SDN for network control, rapid DoS response, BGP blackhole detections. In addition, network bandwidth remains expensive especially on a global scale [cite cross-oceanic cable $$]. So, we want to avoid backhaul as much as possible. \
-\
-So, what we is needed is a system that can analyze data originating in the wide area in two ways:\
-1) Standing queries for operational/dynamic control \
-2) Historical queries for business intelligence, billing, trend analysis. This is needed because we don't always know which queries of data we need when the data is first generated.\
-\
-Right now we have three major available solutions:\
-1) Databases.\
-2) Streaming systems for low latency operation control\
-3) Map-Reduce type analysis\
+controller:\
+run on node11.princeton\
 \
 \
-If we place DBs at the edges, then each query needs to go back to all the multitude of sources to get results for new queries. There are 2 problems with this design: (i) sources will fail often and then we loose all their data for historical queries and (ii) we observe that oftentimes subsequent queries reuse data from older queries and thus it would be nice if subsequent queries could re-use previous answers. We propose using in-network storage-aggregators where data can be aggregated with high fidelity within the local area and be made available to subsequent queries. These boxes could be made more fault tolerant and new queries could be fulfilled by contacting these storage-aggregators instead of going back to the sources. The alternative of having one central database is not enticing either because of the cost of backhaul (which is expensive\'85). \
 \
-Streaming systems are not sufficient because we have no ability to perform historical queries. Further, if we try the naive approach of combining storage with a streaming system by putting databases at the sources, we get the same issues outlined when talking about databases.  Placing storage at the sink of a streaming query does not work either because queries are then constrained by the data that is sent in the initial streaming query, which either has to send a lot of data or severely constrain the set of possible queries.   \
-\
-Map-Reduce type queries does not work because of the synchronization barriers inherent to this approach. In particular the reduce phase has to wait for all mappers to complete before outputting the result. This is a problem in the wide-area since it forces the entire query to wait for the slowest node or datacenter, creating high latency for streaming queries. \
-\
-We propose Jetstream, a system that supports both streaming and historical queries in the wide-area. In  our design, OLAP style data-cubes are connected together by streaming data-processing operators. When data comes in it is stored locally at the source and is also sent along to fulfill any standing queries. Standing queries are used to build up in-network storage-aggregator data cubes that can be subsequently queried for more efficient historical querying and are also used to fulfill low-latency operation queries for dynamic control.  \
-\
-Our data cubes contains a set of dimensions and a set of aggregates. \
- \
-\
-
-\fs24 \
 \
 }
