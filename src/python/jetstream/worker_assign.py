@@ -5,7 +5,8 @@ from jetstream_types_pb2 import *
 
 
 class WorkerAssignment (object):
-  """An assignment of operators/cubes to a worker for a given computation"""
+  """An assignment of operators/cubes to a worker for a given computation.
+  Internally, a list of operators, cubes, and edges."""
   
   # States of an assignment
   RUNNING = 1

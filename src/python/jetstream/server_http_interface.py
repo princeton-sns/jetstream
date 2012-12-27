@@ -23,8 +23,12 @@ class JSHttpServer(BaseHTTPServer.HTTPServer):
     BaseHTTPServer.HTTPServer.__init__(self, (endpt, port), JSWebInterface)
     logger.info("Web interface started on port %d of: %s" % (port, endpt))
 
+
 class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
-  """A simple HTTP status page for the server"""
+  """A simple HTTP status page for the server.
+    Ideally, the web interface would go only through the public interfaces of the
+    Controller class, for thread safety.
+    """
       
   def do_GET(self):
     print "received GET"
@@ -34,23 +38,36 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write("<html><head><title>JetStream Status.</title></head>")
     self.wfile.write("<body>")
     self.print_node_list()
+    self.wfile.write("<hr/>")    
     self.print_computation_list()
+    self.wfile.write("<hr/>")
+    self.print_cube_list()
+
     self.wfile.write("</body></html>")
     
     
   def print_node_list(self):
     nodes = self.server.js_server.get_nodes()
-    self.wfile.write("<p>Total of %d nodes. <ul>" % len(nodes))
-    for n in nodes:
-      self.wfile.write("<li>%s:%d</li>" % (n.endpoint[0], n.endpoint[1]))
+    self.wfile.write("<p>Total of %d nodes. </p><ul>" % len(nodes))
+    for n in nodes: 
+      self.wfile.write("<li>%s:%d</li>" % n.get_dataplane_ep())
     self.wfile.write("</ul>")
 
   def print_computation_list(self):
 
     computations = self.server.js_server.computations
-    self.wfile.write("<p>Total of %d computations. <ul>" % len(computations))
-    for c,_ in computations.items():
+    self.wfile.write("<p>Total of %d computations.</p> <ul>" % len(computations))
+    for c,_ in computations.items():  #TODO thread safety?
       self.wfile.write("<li>%d</li>" % (c))
     self.wfile.write("</ul>")
 
+  def print_cube_list(self):
+    cubes = self.server.js_server.get_cubes() #thread safe
+    self.wfile.write("<p>Total of %d known cubes. </p> <ul>" % len(cubes))
+    for cube_name, cube_location in cubes:
+      if cube_location is not None:
+        self.wfile.write("<li>Cube %s on node %s</li>" % (cube_name, str(cube_location)))
+      else:
+        self.wfile.write("<li>Cube %s is currently inaccessible.</li>")
+    self.wfile.write("</ul>")
 

@@ -11,7 +11,7 @@ from worker_assign import WorkerAssignment
 
 
 class CWorker (object):
-  """Controller's view of a worker node"""
+  """Controller's view of a worker node.  Connection state + map from comp ID to assignments"""
 
   # States of a worker node
   ALIVE = 1
@@ -58,9 +58,15 @@ class CWorker (object):
 
   def cleanup_computation(self, compID):
     del self.assignments[compID]
+    
+  def get_all_cubes(self):
+    cubes = []
+    for a in self.assignments.values():
+      cubes.extend(a.cubes)
+    return cubes
 
 class Computation (object):
-  """Controller's view of a running computation"""
+  """Controller's view of a running computation. Maps worker ID to assignment"""
   
   def __init__ (self, compID):  #, jsGraph
     # Save the controller interface so we can communicate with workers

@@ -89,7 +89,9 @@ class Controller (ControllerAPI, JSServer):
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE
-    self.computations = {}
+    self.computations = {}  #maps ID to Computation
+    self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
+      # acknowledged.
     self.hbInterval = hbInterval
     self.running = False
     self.livenessThread = None
@@ -126,14 +128,40 @@ class Controller (ControllerAPI, JSServer):
     self.livenessThread.start()
 
 
-  def worker_died (self, workerID):
-    """Called when a worker stops heartbeating and should be treated as dead.
-    Manipulates the worker list (caller must ensure thread-safety)."""
+  ### Accessor methods, callable externally
 
-    if workerID in self.workers.keys():
-      del self.workers[workerID]
+  def get_nodes (self):
+    """Returns a list of Workers."""
+    res = []
+    self.stateLock.acquire()
+    res.extend(self.workers.values())
+    self.stateLock.release()
+    return res
 
-    #TODO: Reschedule worker's assignments elsewhere, etc.
+  #### This is dead code   
+#  def get_one_node (self):
+#    res = self.workers.keys()[0]
+#    return res
+
+  def get_cubes(self):
+    """Returns a list of cube-name, cube-location pairs. For pending cubes, location is
+     None."""
+    res = []
+    self.stateLock.acquire()
+    res.extend(self.cube_locations.items())
+    self.stateLock.release()
+    return res
+
+##########################################################################################
+#
+#  Everything below here is internal and should not be called externally
+#
+##########################################################################################
+
+
+
+  ### Methods that don't touch state or that are thread safe
+
 
   def liveness_thread (self):
     while self.running:
@@ -152,19 +180,6 @@ class Controller (ControllerAPI, JSServer):
       time.sleep(self.hbInterval)
 
 
-  def get_nodes (self):
-    """Returns a list of Workers."""
-    res = []
-    self.stateLock.acquire()
-    res.extend(self.workers.values())
-    self.stateLock.release()
-    return res
-
-    
-  def get_one_node (self):
-    res = self.workers.keys()[0]
-    return res
-
 
   def serialize_nodeList (self, nodes):
     """Serialize node list as list of protobuf NodeIDs"""
@@ -181,6 +196,23 @@ class Controller (ControllerAPI, JSServer):
     response.type = ControlMessage.NODES_RESPONSE
     response.nodes.extend(self.serialize_nodeList(nodeList))
     response.node_count = len(nodeList)
+
+
+
+  ### Methods that are not thread safe
+
+
+  def worker_died (self, workerID):
+    """Called when a worker stops heartbeating and should be treated as dead.
+    Manipulates the worker list (caller must ensure thread-safety)."""
+
+    if workerID in self.workers.keys():
+      worker_assignment = self.workers[workerID]
+      for c in worker_assignment.get_all_cubes():
+        self.cube_locations[c] = None #cube no longer visible
+      del self.workers[workerID]
+
+    #TODO: Reschedule worker's assignments elsewhere, etc.
 
     
   def handle_heartbeat (self, hb, clientEndpoint):
@@ -239,19 +271,27 @@ class Controller (ControllerAPI, JSServer):
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):
-    #TODO: As above, the code below only deals with starting tasks
-    
+    self.stateLock.acquire()
+
     compID = altertopo.computationID
+    
+    for name in altertopo.cubesToStop:
+      del self.cube_locations[name]
+
     if compID not in self.computations:
       #there's a race here if the job is being shut down and this is the death notice
-      # instead of tracking created jobs, we just check if anything started
       if len(altertopo.toStart) > 0:
-        logger.warning("Invalid computation id %d in ALTER_RESPONSE message reporting starts" % (compID))
-      return
+        logger.warning("Invalid computation id %d in ALTER_RESPONSE message reporting operator starts" % (compID))
+      # if a dead job and it's all stops, we ignore it quietly
+    else:
     # Let the computation know which parts of the assignment were started/created
-    actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
-    self.computations[compID].update_worker(workerEndpoint, actualAssignment)
-
+      actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
+      nodeID = self.workers[workerEndpoint].get_dataplane_ep()
+      self.computations[compID].update_worker(workerEndpoint, actualAssignment)
+      for cubeMeta in altertopo.toCreate:
+        self.cube_locations[cubeMeta.name] = nodeID         
+    self.stateLock.release()
+      
 
   def process_message (self, buf, handler):
     """Processes control messages; only supports single-threaded access"""
@@ -293,6 +333,7 @@ class Controller (ControllerAPI, JSServer):
 
 
   def stop_computation(self, response, req):
+    """NOT thread safe"""
     comp_to_stop = req.comp_to_stop
     logger.info("Stopping computation %d" % comp_to_stop)
     if comp_to_stop not in self.computations:
