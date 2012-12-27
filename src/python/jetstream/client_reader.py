@@ -1,5 +1,4 @@
-# has a blocking dequeue() TODO is this the right choice?
-from Queue import Queue
+import Queue
 import socket
 import threading
 from random import randint
@@ -69,7 +68,7 @@ class ClientDataReader():
     self.listen_sock.listen(nsenders)
 
     # TODO should this be bounded? probably not critical.
-    self.tuples = Queue()
+    self.tuples = Queue.Queue()
 
     # spawn a thread to listen/receive tuples (the producer)
     self.receiver_thread = threading.Thread(target=self.receive_tuples)

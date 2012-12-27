@@ -60,7 +60,7 @@ class TestClientReaderIntegration(unittest.TestCase):
     except AttributeError:
         pass
 
-    jsnode_cmd = "./jsnoded -a %s:%d --start --heartbeat_time 200 " \
+    jsnode_cmd = "./jsnoded -a %s:%d --start " \
                  "-C ./config/datanode.conf &"
     jsnode_cmd = jsnode_cmd % self.controller.address
     print "starting", jsnode_cmd
@@ -83,10 +83,7 @@ class TestClientReaderIntegration(unittest.TestCase):
     echoer = jsapi.SendK(g, k)
 
     resultReader = ClientDataReader()
-    # as it stands, this adds an edge from an operator to this bare
-    # node, which specifies that tuples should come here.
-    selfNodeID = resultReader.prep_to_receive_data()
-    g.connectExternal(echoer, selfNodeID)
+    g.connectExternal(echoer, resultReader.prep_to_receive_data())
 
     self.make_local_worker()
     #self.controller.deploy(g)
