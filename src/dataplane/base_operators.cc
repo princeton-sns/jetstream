@@ -10,6 +10,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/range/istream_range.hpp>
+#include <boost/foreach.hpp>
 
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
@@ -115,20 +117,23 @@ CSVParse::configure(map<string,string> &config) {
   if (string("all") == keep) {
     while (n-- > 0)
       keep_fields.push_back(true);
-    LOG(INFO) << "keeping all fields" << endl;
     return NO_ERR;
   }
 
-  LOG(INFO) << "parsing list of bools" << endl;
-
+  int i = 0;
   istringstream sscanf(keep);
-  while (n-- > 0) {
-    bool keep_field;
-    sscanf >> keep_field;
+  BOOST_FOREACH( bool keep_field, istream_range<bool>(sscanf)) {
     if (!sscanf)
       return operator_err_t("Invalid \"fields to keep\" string.");
+
+    if (keep_field && i++ > n)
+      return operator_err_t("Not enough types specified.");
+
     keep_fields.push_back(keep_field);
   }
+
+  if (i < n)
+    return operator_err_t("Too many types specified");
 
   return NO_ERR;
 }
@@ -143,25 +148,23 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
     return;
   }
 
-  boost::tokenizer<boost::escaped_list_separator<char> > tok(e->s_val());
+  boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e->s_val());
 
   shared_ptr<Tuple> t2(new Tuple);
   t2->set_version(t->version());
 
-  int i = 0;
-
-  for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();
-      beg!=tok.end(); ++beg, ++i) {
-    if (!keep_fields[i])
+  int i = 0, i_type = 0;
+  BOOST_FOREACH(string csv_field, csv_parser) {
+    if (!keep_fields[i++]) {
       continue;
-    Element * enew = t2->add_e();
-    parse_with_types(enew, *beg, types[i]);
+    }
+    parse_with_types(t2->add_e(), csv_field, types[i_type++]);
   }
 
   emit(t2);
 
   // assume we don't need to pass through any other elements...
-  // TODO really?
+  // TODO
 }
 
 std::string

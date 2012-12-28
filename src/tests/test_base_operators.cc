@@ -106,6 +106,7 @@ TEST(Operator, CSVParseOperator) {
     csvp2->set_dest(rec2);
 
     config["fields_to_keep"] = "0 1 1";
+    config["types"] = "SI";
     csvp2->configure(config);
 
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -116,10 +117,12 @@ TEST(Operator, CSVParseOperator) {
 
     ASSERT_EQ((size_t)1, rec2->tuples.size());
 
-    boost::shared_ptr<Tuple> result = rec2->tuples[0];
-    ASSERT_EQ(2, result->e_size());
-    ASSERT_EQ(quoted_comma, result->e(0).s_val());
-    ASSERT_EQ(3, result->e(1).i_val());
+    boost::shared_ptr<Tuple> res = rec2->tuples[0];
+    ASSERT_EQ(2, res->e_size());
+
+    ASSERT_EQ(quoted_comma, res->e(0).s_val());
+
+    ASSERT_EQ(3, res->e(1).i_val());
   }
 
 }
