@@ -67,28 +67,61 @@ TEST(Operator, ReadOperator) {
 TEST(Operator, CSVParseOperator) {
   map<string,string> config;
   config["types"] = "SSI";
+  config["fields_to_keep"] = "all";
 
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
-  shared_ptr<CSVParse> csvparse(new CSVParse);
-  csvparse->set_dest(rec);
-  csvparse->configure(config);
+  string comma(",");
+  string quote("\"");
+
+  string string_field("Field 1");
+  string quoted_comma("putting quotes around fields, allows commas");
+  string number3(" 3");
+  string s = string_field + comma + quote + quoted_comma + quote + comma + number3;
+
+  string dummy("/usr/bar,,,,,,///,,,");
 
   {
+    shared_ptr<DummyReceiver> rec(new DummyReceiver);
+    shared_ptr<CSVParse> csvparse(new CSVParse);
+    csvparse->set_dest(rec);
+    csvparse->configure(config);
+
     boost::shared_ptr<Tuple> t(new Tuple);
-    string s = "Field 1,\"putting quotes around fields, allows commas\", 3";
     t->add_e()->set_s_val(s);
-    t->add_e()->set_s_val("/usr/bar"); // should not pass through YET
+    t->add_e()->set_s_val(dummy); // should not pass through YET
     t->set_version(0);
     csvparse->process(t);
+
+    ASSERT_EQ((size_t)1, rec->tuples.size());
+
+    boost::shared_ptr<Tuple> result = rec->tuples[0];
+    ASSERT_EQ(3, result->e_size());
+    ASSERT_EQ(string_field, result->e(0).s_val());
+    ASSERT_EQ(quoted_comma, result->e(1).s_val());
+    ASSERT_EQ(3, result->e(2).i_val());
   }
 
-  ASSERT_EQ((size_t)1, rec->tuples.size());
+  {
+    shared_ptr<DummyReceiver> rec2(new DummyReceiver);
+    shared_ptr<CSVParse> csvp2(new CSVParse);
+    csvp2->set_dest(rec2);
 
-  boost::shared_ptr<Tuple> result = rec->tuples[0];
-  ASSERT_EQ(3, result->e_size());
-  ASSERT_EQ(string("Field 1"), result->e(0).s_val());
-  ASSERT_EQ(string("putting quotes around fields, allows commas"), result->e(1).s_val());
-  ASSERT_EQ(3, result->e(2).i_val());
+    config["fields_to_keep"] = "0 1 1";
+    csvp2->configure(config);
+
+    boost::shared_ptr<Tuple> t(new Tuple);
+    t->add_e()->set_s_val(s);
+    t->add_e()->set_s_val(dummy); // should not pass through YET
+    t->set_version(0);
+    csvp2->process(t);
+
+    ASSERT_EQ((size_t)1, rec2->tuples.size());
+
+    boost::shared_ptr<Tuple> result = rec2->tuples[0];
+    ASSERT_EQ(2, result->e_size());
+    ASSERT_EQ(quoted_comma, result->e(0).s_val());
+    ASSERT_EQ(3, result->e(1).i_val());
+  }
+
 }
 
 

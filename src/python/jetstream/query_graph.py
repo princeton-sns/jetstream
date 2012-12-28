@@ -447,9 +447,15 @@ def StringGrepOp(graph, pattern):
    x = re.compile(pattern) # throw an error on bad patterns
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
-def CSVParse(graph, types):
+def CSVParse(graph, types, fields_to_keep='all'):
    assert isinstance(types, str)
-   cfg = {"types" : types}
+
+   keepStr = fields_to_keep
+   if fields_to_keep != 'all':
+     keepLst = ('1' if x in fields_to_keep else '0' for x in range(len(types)))
+     keepStr = ' '.join(keeplst)
+
+   cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)
   
 

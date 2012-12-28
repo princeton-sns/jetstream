@@ -108,6 +108,28 @@ operator_err_t
 CSVParse::configure(map<string,string> &config) {
   //istringstream(config["id"]) >> fieldID;
   types = config["types"];
+  string keep = config["fields_to_keep"];
+
+  int n = types.length();
+
+  if (string("all") == keep) {
+    while (n-- > 0)
+      keep_fields.push_back(true);
+    LOG(INFO) << "keeping all fields" << endl;
+    return NO_ERR;
+  }
+
+  LOG(INFO) << "parsing list of bools" << endl;
+
+  istringstream sscanf(keep);
+  while (n-- > 0) {
+    bool keep_field;
+    sscanf >> keep_field;
+    if (!sscanf)
+      return operator_err_t("Invalid \"fields to keep\" string.");
+    keep_fields.push_back(keep_field);
+  }
+
   return NO_ERR;
 }
 
@@ -128,7 +150,10 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
 
   int i = 0;
 
-  for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();  beg!=tok.end(); ++beg, ++i) {
+  for (tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();
+      beg!=tok.end(); ++beg, ++i) {
+    if (!keep_fields[i])
+      continue;
     Element * enew = t2->add_e();
     parse_with_types(enew, *beg, types[i]);
   }
