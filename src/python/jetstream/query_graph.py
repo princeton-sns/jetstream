@@ -380,7 +380,7 @@ class Cube(Destination):
     else:
       return self.name
 
-    #maps from a dimension-type to a typecode. Note that dimensions can't be blobs
+    # maps from a dimension-type to a typecode. Note that dimensions can't be blobs
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
       Element.DOUBLE: 'D', Element.TIME: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
 
@@ -453,8 +453,11 @@ def CSVParse(graph, types, fields_to_keep='all'):
 
    keepStr = fields_to_keep
    if fields_to_keep != 'all':
-     keepLst = ('1' if x in fields_to_keep else '0' for x in range(len(types)))
-     keepStr = ' '.join(keeplst)
+     if any(not isinstance(f, int) for f in fields_to_keep):
+       raise "CSVParse needs either \"all\" or list of field indices to keep,"\
+             " got {0}".format(str(fields_to_keep))
+     
+     keep_str = ' '.join(map(int, fields_to_keep))
 
    cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)
@@ -554,6 +557,8 @@ class TimeSubscriber(Operator):
 
   def out_schema(self, in_schema):
 #    print "time subscriber schema"
+    if 'ts_field' in self.cfg and in_schema[int(self.cfg['ts_field'])][0] != 'T':
+      raise SchemaError('Expected a time element')
     return in_schema  #everything is just passed through    
     
  

@@ -65,7 +65,7 @@ def validate_parse(in_schema, cfg):
                       "'keep_unparsed' generic parse config field, got: "\
                       "{1}".format(str(allowed_bool_str), cfg['keep_unparsed']))
 
-  keep_unparsed = cfg['keep_unparsed'] == 'true'
+  keep_unparsed = cfg['keep_unparsed'].lower() == 'true'
 
   ret = []
 
@@ -124,12 +124,20 @@ def validate_CSVParse(in_schema, cfg):
     raise SchemaError("CSVParse currently requires a string as the first "\
                        "element of an input tuple")
 
-  valid_types = 'SDI'
+  valid_types = set(t for t in 'SDI')
   if any(t not in valid_types for t in cfg['types']):
     raise SchemaError("CSVParse currently only accepts string, double, and "\
                       "32-bit integer types")
 
-  return [(t, '') for t in cfg['types']]
+  types = cfg['types']
+  if cfg['fields_to_keep'].lower() == 'all':
+    return [(t, '') for t in types]
+
+  try:
+    flds_to_keep = map(int, cfg['fields_to_keep'].split())
+    return [(types[fld], '') for fld in flds_to_keep]
+  except ValueError as e:
+    raise SchemaError("Needed field indices. " + str(e))
 
   
 # Schemas are represented as a function that maps from an input schema and configuration

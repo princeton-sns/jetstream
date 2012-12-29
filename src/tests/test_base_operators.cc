@@ -30,7 +30,8 @@ TEST(Operator, ReadOperator) {
   reader.set_dest(rec);
   reader.configure(config);
   reader.start();
-  // Wait for reader to process entire file (alternatively, call stop() after a while)
+  // Wait for reader to process entire file (alternatively, call stop() after a
+  // while)
   while (reader.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
@@ -52,7 +53,8 @@ TEST(Operator, ReadOperator) {
   reader2.configure(config);
   reader2.start();
 
-  // Wait for reader to process entire file (alternatively, call stop() after a while)
+  // Wait for reader to process entire file (alternatively, call stop() after a
+  // while)
   while (reader2.isRunning()) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
@@ -89,6 +91,7 @@ TEST(Operator, CSVParseOperator) {
     t->add_e()->set_s_val(s);
     t->add_e()->set_s_val(dummy); // should not pass through YET
     t->set_version(0);
+
     csvparse->process(t);
 
     ASSERT_EQ((size_t)1, rec->tuples.size());
@@ -105,8 +108,8 @@ TEST(Operator, CSVParseOperator) {
     shared_ptr<CSVParse> csvp2(new CSVParse);
     csvp2->set_dest(rec2);
 
-    config["fields_to_keep"] = "0 1 1";
-    config["types"] = "SI";
+    config["fields_to_keep"] = "1 2";
+    config["types"] = "SSI";
     csvp2->configure(config);
 
     boost::shared_ptr<Tuple> t(new Tuple);
@@ -124,7 +127,6 @@ TEST(Operator, CSVParseOperator) {
 
     ASSERT_EQ(3, res->e(1).i_val());
   }
-
 }
 
 
