@@ -10,6 +10,12 @@ using namespace boost;
 using namespace jetstream;
 using namespace ::std;
 
+
+CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
+  cube::MysqlCube::set_db_params(config.cube_db_host, config.cube_db_user, config.cube_db_pass, config.cube_db_name);
+}
+
+
 shared_ptr<DataCube> 
 CubeManager::get_cube (const std::string &name) 
 {
@@ -50,7 +56,7 @@ CubeManager::create_cube ( const std::string &name,
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
   
-  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config.cube_db_host, config.cube_db_user, config.cube_db_pass, config.cube_db_name, config.cube_max_elements_in_batch));
+  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config.cube_max_elements_in_batch));
 //  set_batch(10)
   c->create();
   cubeMap[name] = c;

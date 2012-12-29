@@ -47,6 +47,7 @@ class DataCubeImpl : public DataCube {
         aggregateMap[ptr_agg->get_name()] = aggregates.size()-1;
       }
       aggregates.push_back( AggregateFactory<CubeAggregate>::version_aggregate(version) );
+      aggregateMap["version"] = aggregates.size()-1;
     }
 
     boost::shared_ptr<CubeDimension> get_dimension(string name) const {

@@ -26,7 +26,7 @@ class CubeManager {
   const NodeConfig& config;
 
  public:
-  CubeManager (const NodeConfig &conf): config(conf) {}
+  CubeManager (const NodeConfig &conf);
 
   boost::shared_ptr<DataCube> create_cube (const std::string &name,
                                            const CubeSchema &schema,
@@ -36,6 +36,7 @@ class CubeManager {
   void put_cube (const std::string &name, boost::shared_ptr<DataCube> c);
   void destroy_cube (const std::string &name);
   boost::shared_ptr<std::vector<std::string> > list_cubes();
+  
 };
 
 }

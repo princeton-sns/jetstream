@@ -45,6 +45,8 @@ class CubeTest : public ::testing::Test {
       agg->set_type("avg");
       agg->add_tuple_indexes(3);
       agg->add_tuple_indexes(5);
+      
+      MysqlCube::set_db_params("localhost", "root", "", "test_cube");
     }
 
     jetstream::CubeSchema * sc;
@@ -273,7 +275,7 @@ TEST_F(CubeTest, MergeTupleIntoTest) {
 
 
 TEST_F(CubeTest, SubscriberBatchTestInsertInsert) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
 
   cube->add_subscriber(sub);
@@ -315,7 +317,7 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
   MysqlCube  * cube;
 
   try {
-    cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+    cube = new MysqlCube(*sc, "web_requests", true, 2);
   }
   catch (boost::system::system_error e) {
     LOG(FATAL) << e.what();
@@ -367,7 +369,7 @@ TEST_F(CubeTest, SubscriberBatchTestUpdateUpdate) {
 
 
 TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   cube->set_batch_timeout( boost::posix_time::seconds(10));
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
@@ -410,7 +412,7 @@ TEST_F(CubeTest, SubscriberBatchTestInsertUpdate) {
 }
 
 TEST_F(CubeTest, SubscriberNoBatch) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
   cube->destroy();
@@ -432,7 +434,7 @@ TEST_F(CubeTest, SubscriberNoBatch) {
 }
 
 TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
   cube->set_batch_timeout( boost::posix_time::seconds(1));
@@ -482,7 +484,7 @@ TEST_F(CubeTest, SubscriberBatchInsertNoBatch) {
 }
 
 TEST_F(CubeTest, SubscriberBatchTimeout) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   cube->set_batch_timeout( boost::posix_time::seconds(1));
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
@@ -503,7 +505,7 @@ TEST_F(CubeTest, SubscriberBatchTimeout) {
 }
 
 TEST_F(CubeTest, SubscriberBatchCountTest) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 2);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 2);
   cube->set_batch_timeout( boost::posix_time::seconds(10));
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
   cube->add_subscriber(sub);
@@ -525,7 +527,7 @@ TEST_F(CubeTest, SubscriberBatchCountTest) {
 }
 
 TEST_F(CubeTest, SubscriberBatchChangeCountTest) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true,"localhost", "root", "", "test_cube", 1);
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true, 1);
   cube->set_elements_in_batch(2);
   cube->set_batch_timeout( boost::posix_time::seconds(10));
   cube->destroy();
@@ -1062,10 +1064,15 @@ TEST_F(CubeTest, Aggregates) {
   agg->add_tuple_indexes(6);
 
   MysqlCube * cube = new MysqlCube(*sc, "agg_tests", true);
+  
+  boost::shared_ptr<Aggregate> vers_agg = cube->get_aggregate("version");
+  ASSERT_TRUE( vers_agg != NULL );
+  
   //  cube->destroy();
   cube->create();
 
   jetstream::Tuple t;
+//  t.set_version(0);  //shouldn't be needed
   time_t time_entered = time(NULL);
 
   t.clear_e();
@@ -1086,8 +1093,11 @@ TEST_F(CubeTest, Aggregates) {
   
   boost::shared_ptr<jetstream::Tuple> new_tuple;
   boost::shared_ptr<jetstream::Tuple> old_tuple;
-  cube->save_tuple(t, true, false, new_tuple, old_tuple);
-
+  try {
+    cube->save_tuple(t, true, false, new_tuple, old_tuple);
+  } catch (sql::SQLException &e) {
+    LOG(FATAL) << e.what();    
+  }
   t.clear_e();
   e = t.add_e();
   e->set_t_val(time_entered);  //0 - time
