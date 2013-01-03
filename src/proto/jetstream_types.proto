@@ -202,10 +202,20 @@ message ControlMessage {
 * "dataplane" message, from worker to worker.
 * The fields of the message should line up with the type field. This is a human
 * notational convenience, and not enforced or used in the code.
+*
+*  Notes:
+*    TPUT_START, TPUT_ROUND_2, and TPUT_ROUND_3 are all sent by the three-round uniform
+*  topk controller to the sources.
+*    A TPUT_START has a set of bounds, as tuples, a sort order, and k
+*    A TPUT_ROUND_2 has just a threshold n
+*    A TPUT_ROUND_3 has a list of dimension values, as tuples
 */ 
 message DataplaneMessage {
-  enum DataplaneType { ERROR = 2; DATA = 3; CHAIN_CONNECT = 4; CHAIN_READY = 5; 
-  NO_MORE_DATA = 6; TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9;}
+  enum DataplaneType { ERROR = 2; DATA = 3; 
+  CHAIN_CONNECT = 4; CHAIN_READY = 5; NO_MORE_DATA = 6; 
+  TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9; END_OF_WINDOW = 10;
+  TPUT_START = 20; TPUT_ROUND_2 = 25; TPUT_ROUND_3 = 26;
+  }
   required DataplaneType type  = 1;
 
   optional Error error_msg = 2;
@@ -214,4 +224,12 @@ message DataplaneMessage {
   optional sfixed64 timestamp = 7;
   optional double congestion_level = 8; // ratio between queue capacity and data sent. > 1 means uncongested.
   optional double filter_level = 9; //the level of filtering to impose. Same units as above.
+  
+  optional Tuple tput_r1_start = 20;
+  optional Tuple tput_r1_end = 21;
+  optional string tput_sort_key = 22;
+  optional int32 tput_k = 23;
+  optional double tput_r2_threshold = 25;
+  repeated Tuple tput_r3_query = 26;
+
 }

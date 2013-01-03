@@ -63,6 +63,8 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
     assert( frac_to_drop <= 1);
     uint32_t new_thresh = frac_to_drop * numeric_limits<uint32_t>::max();
     atomic_write32(&threshold, new_thresh);
+  } else {
+    DataPlaneOperator::meta_from_downstream(msg);
   }
 }
 
@@ -102,6 +104,8 @@ CongestionController::meta_from_upstream(const DataplaneMessage & msg, const ope
       }
     }
     
+  } else {
+    DataPlaneOperator::meta_from_upstream(msg, pred);
   }
 
 }

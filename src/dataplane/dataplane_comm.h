@@ -75,7 +75,7 @@ class RemoteDestAdaptor : public TupleReceiver {
     LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
  }
 
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
   
   virtual void no_more_tuples();
 

@@ -58,7 +58,11 @@ class DataCube : public TupleReceiver {
      * @param t
      */
 
-    void process(boost::shared_ptr<Tuple> t);
+    virtual void process(boost::shared_ptr<Tuple> t);
+    virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t src) {
+      process(t);
+    }
+
     size_t batch_size();
     void set_batch_timeout(boost::posix_time::time_duration batch_timeout);
     void set_elements_in_batch(size_t size);

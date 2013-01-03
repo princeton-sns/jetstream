@@ -37,7 +37,7 @@ class TupleSender {
 
 class TupleReceiver {
  public:
-  virtual void process (boost::shared_ptr<Tuple> t) = 0;
+  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t pred) = 0;
   virtual void no_more_tuples() = 0;
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
     return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
@@ -123,6 +123,8 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   
   
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
+  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src); // NOT abstract here
+
   
   /** Called when no more data will be passed in from upstream; operators
   may choose to stop in response to this.

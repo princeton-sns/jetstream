@@ -32,18 +32,31 @@ public:
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
+
+    virtual void meta_from_downstream(const DataplaneMessage & msg);
+
+
 private:
   
 
-
+  GENERIC_CLNAME
 };
 
 
 
 class MultiRoundCoordinator: public DataPlaneOperator {
 
+ private:
+   std::vector<boost::shared_ptr<TupleSender> > predecessors;
+  
+
+ public:
+   virtual void process(boost::shared_ptr<Tuple> t);
+   virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
+   virtual void clear_preds () { predecessors.clear(); }
 
 
+GENERIC_CLNAME
 };
 
 }

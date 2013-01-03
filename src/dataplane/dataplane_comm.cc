@@ -38,7 +38,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
         data->MergeFrom (msg.data(i));
         assert (data->e_size() > 0);
 
-        dest->process(data);
+        dest->process(data, remote_op);
       }
       break;
     }
@@ -343,7 +343,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   
 void
-RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) {
+RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src) {
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
 		 << ". Aborting data message send. Should queue/retry instead?";

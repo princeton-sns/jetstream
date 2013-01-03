@@ -15,7 +15,7 @@ using namespace boost;
 using namespace ::std;
 
 
-void make_cube(Node& node, std::string& src_cube_name) {
+shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
 
   AlterTopo topo;
   topo.set_computationid(0);
@@ -38,9 +38,7 @@ void make_cube(Node& node, std::string& src_cube_name) {
     extend_tuple(*t, i);
     t->set_version(0);
   }
-
-
-
+  return cube;
 }
 
 TEST(Topk_TPUT, OneLocal) {
@@ -54,7 +52,7 @@ TEST(Topk_TPUT, OneLocal) {
   operator_id_t dest_id(1,1), coordinator_id(1,2), sender_id(1,3);
   string src_cube_name = "source_cube";
 
-  make_cube(node, src_cube_name); //do this before starting subscribers
+  shared_ptr<DataCube> cube = make_cube(node, src_cube_name); //do this before starting subscribers
 
   topo.set_computationid(dest_id.computation_id);
 
@@ -72,5 +70,16 @@ TEST(Topk_TPUT, OneLocal) {
   ASSERT_FALSE(response.has_error_msg());
 
 
+  //wait for query to run.
+  
+  //now check that DB has what it should
+  cube::CubeIterator it = cube->slice_query(cube->empty_tuple(), cube->empty_tuple(), true);
+  cout << "output: " <<endl;
+  while ( it != cube->end()) {
+    shared_ptr<Tuple> t = *it;
+    cout << fmt(*t) << endl;
+    it++;
+  }
+  cout << "done" << endl;
 
 }

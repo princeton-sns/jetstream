@@ -14,8 +14,12 @@ DataPlaneOperator::~DataPlaneOperator()
 
 
 void
-DataPlaneOperator::process (boost::shared_ptr<Tuple> t)
-{
+DataPlaneOperator::process (boost::shared_ptr<Tuple> t, const operator_id_t src) {
+  process(t);
+}
+
+void
+DataPlaneOperator::process (boost::shared_ptr<Tuple> t) {
   assert(t);
   LOG(INFO) << "Operator: base operator process" << endl;
 }
@@ -26,7 +30,7 @@ DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
 {
   tuplesEmitted ++;
   if (dest)
-    dest->process(t);
+    dest->process(t, operID);
   else
     LOG(WARNING) << "Operator: no destination for operator " << operID << endl;
 }
@@ -79,7 +83,7 @@ DataPlaneOperator::meta_from_downstream(const DataplaneMessage &msg) {
 void
 DataPlaneOperator::meta_from_upstream(const DataplaneMessage & msg, operator_id_t pred) {
   if (dest != NULL)
-    dest->meta_from_upstream(msg, pred);
+    dest->meta_from_upstream(msg, operID);
 }
 
 
