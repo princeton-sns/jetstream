@@ -804,7 +804,9 @@ MysqlCube::list_sql_cubes() {
   while (res->next()) {
     string s = res->getString(1);
     cout << s << endl;
-    (*cubeList)[s] = 1;
+    if (s.substr(s.length() - 8).rfind("_rollup") != string::npos) {
+      (*cubeList)[s] = 1;
+    }
   }
   
   return cubeList;

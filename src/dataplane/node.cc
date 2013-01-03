@@ -477,17 +477,26 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
     else { //edge starts at cube. Must go to a subscriber operator in this case.
       shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
       operator_id_t dest (edge.computation(), edge.dest());
-      shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
+      shared_ptr<cube::Subscriber> destOperator =
+         boost::dynamic_pointer_cast<cube::Subscriber>(get_operator(dest));
+
+      ostringstream err_msg;
       
       if (!c) {
-        LOG(WARNING) << "Can't add edge from " << edge.src_cube() << " to " 
-            << edge.dest() << ": no such cube";
+        err_msg<< "Can't add edge from " << edge.src_cube() << " to "  << edge.dest() << ": no such cube";
       } else if (!destOperator) {
-        LOG(WARNING) << "Can't add edge from " << edge.src_cube() << " to " 
-            << edge.dest() << ": no such destination";      
-      } else {
-        shared_ptr<cube::Subscriber> subsc = boost::static_pointer_cast<cube::Subscriber>(destOperator);
-        c->add_subscriber(subsc);
+        err_msg << "Can't add edge from " << edge.src_cube() << " to " 
+            << edge.dest() << ": no such destination (or dest not a subscriber)";      
+      }
+      
+      string err_msg_str = err_msg.str();
+      if (err_msg_str.length() > 0) {
+        Error * err_fld = response.mutable_error_msg();
+        err_fld->set_msg(err_msg_str);
+        LOG(WARNING) << err_msg_str;
+      }
+      else {
+        c->add_subscriber(destOperator);
       }
     }
   }

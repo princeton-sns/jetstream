@@ -5,7 +5,7 @@
 #include "base_subscribers.h"
 #include "rand_source.h"
 #include "variable_sampling.h"
-
+#include "topk_tput.h"
 
 #include <iostream>
 #include <dlfcn.h>
@@ -95,6 +95,9 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
   REGISTER_OP(CongestionController);
+  
+  REGISTER_OP(MultiRoundSender);
+  REGISTER_OP(MultiRoundCoordinator);
   
   
   if(cache.count(name) < 1)

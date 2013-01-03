@@ -121,6 +121,24 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
   return task;
 }
 
+
+
+void add_dimension(CubeMeta* m, CubeSchema_Dimension_DimensionType d, const std::string& name, int idx) {
+  jetstream::CubeSchema * sc = m->mutable_schema();
+  jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
+  dim->set_type(d);
+  dim->set_name(name);
+  dim->add_tuple_indexes(idx);
+}
+
+void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& name, int idx) {
+  jetstream::CubeSchema * sc = m->mutable_schema();
+  jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
+  agg->set_name(name);
+  agg->set_type(agg_name);
+  agg->add_tuple_indexes(idx);
+}
+
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
   Edge * edge = topo.add_edges();
@@ -131,6 +149,26 @@ add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) 
   edge->set_src(src_id.task_id);
   return edge;
 }
+
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id) {
+  Edge * edge = topo.add_edges();
+  edge->set_computation(dest_id.computation_id);
+  edge->set_dest(dest_id.task_id);
+  edge->set_src_cube(src_id);
+  return edge;
+}
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, std::string dest_id) {
+  Edge * edge = topo.add_edges();
+  edge->set_computation(src_id.computation_id);
+  edge->set_dest_cube(dest_id);
+  edge->set_src(src_id.task_id);
+  return edge;
+}
+
 
 void
 add_cfg_to_task(TaskMeta* task, std::string optname, std::string val) {
