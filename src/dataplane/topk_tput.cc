@@ -55,8 +55,18 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       emit(*it);
       it++;
     }
+    DataplaneMessage end_msg;
+    end_msg.set_tput_round(1);
+    end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+    send_meta_downstream(end_msg);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_2) {
+
+    
+  /*
+    Sources send all items >= T  [and not in top k?]
+  */
+
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
   
@@ -66,14 +76,116 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
 }
 
+operator_err_t
+MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
+
+  if (config.find("num_results") != config.end()) {
+    num_results = boost::lexical_cast<int32_t>(config["num_results"]);
+  } else
+    return operator_err_t("must specify num_results for multi-round top-k");
+  
+  
+  if (config.find("sort_order") != config.end()) {
+    sort_order = config["sort_order"];
+  } else  
+    return operator_err_t("must specify sort_order for multi-round top-k");
+
+  phase = NOT_STARTED;
+  return NO_ERR;
+}
+
+void
+MultiRoundCoordinator::start() {
+  
+  phase = ROUND_1;
+  responses_this_phase = 0;
+  DataplaneMessage start_proto;
+  start_proto.set_tput_k(num_results);
+  start_proto.set_tput_sort_key(sort_order);
+  
+  //todo should set tput_r1_start and tput_r2_start
+  
+  for (unsigned int i = 0; i < predecessors.size(); ++i) {
+    shared_ptr<TupleSender> pred = predecessors[i];
+    pred->meta_from_downstream(start_proto);
+  }
+  
+}
 
 
 
 void
-MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t) {
-  emit(t);
+MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t pred) {
+
+  if (phase == ROUND_1) {
+
+  
+  } else if (phase == ROUND_2) {
+
+  } else if (phase == ROUND_3)//just let responses through
+    emit(t);
+//  else
+//    LOG(WARNING) << "ignoring input"
+  
+}
+
+
+void
+MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
+   // check what phase source was in; increment label and counter.
+   // If we're done with phase, proceed!
+    LOG_IF(FATAL, !msg.has_tput_round()) << " a valid end-of-window to a tput controller must have a phase number";
+    int sender_round = msg.tput_round();
+    if (sender_round == phase) {
+      responses_this_phase ++;
+      if (responses_this_phase == predecessors.size()) {
+        LOG(INFO) << "have completed round " << phase;
+        responses_this_phase = 0;
+        if ( phase == 1) {
+          start_phase_2();
+        } else if (phase == 2) {
+          start_phase_3();
+        } else {
+          //done!
+          phase = NOT_STARTED;
+        }
+        
+      }
+    }
+  }
 
 }
+
+
+
+void
+MultiRoundCoordinator::start_phase_2() {
+
+//	Controller takes partial sums; declare kth one as phase-1 bottom Tao-1.
+//	[Needs no per-source state at controller]
+  double tao_1 = 0;
+  double t1 = tao_1 / predecessors.size();
+
+  phase = ROUND_2;
+  DataplaneMessage start_phase;
+  start_phase.set_tput_r2_threshold(t1);
+  for (unsigned int i = 0; i < predecessors.size(); ++i) {
+    shared_ptr<TupleSender> pred = predecessors[i];
+    pred->meta_from_downstream(start_phase);
+  }
+  
+}
+
+void
+MultiRoundCoordinator::start_phase_3() {
+/*	Take partial sums; kth one is Tao-2
+	[No per-source state]
+*/
+// 	Controller sends back set of candidate objects
+
+}
+
 
 
 const string MultiRoundSender::my_type_name("TPUT Multi-Round sender");

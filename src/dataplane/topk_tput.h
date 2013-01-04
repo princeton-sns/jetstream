@@ -12,6 +12,7 @@
 namespace jetstream {
 
 enum ProtoState {
+  NOT_STARTED,
   ROUND_1,
   ROUND_2,
   ROUND_3
@@ -48,13 +49,34 @@ class MultiRoundCoordinator: public DataPlaneOperator {
 
  private:
    std::vector<boost::shared_ptr<TupleSender> > predecessors;
+   unsigned int num_results;
+   Tuple dim_filter_sta;
+   Tuple dim_filter_end;
+   std::string sort_order;
+   ProtoState phase;
+   unsigned int responses_this_phase;
+//   std::string downstream_cube_name;
   
+   std::map<DimensionKey, double> partial_totals;
+   std::map<DimensionKey, size_t> response_counts;
 
  public:
-   virtual void process(boost::shared_ptr<Tuple> t);
+ 
+   virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+   virtual void start();
+
+ 
+   virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t pred);
+  
    virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
    virtual void clear_preds () { predecessors.clear(); }
+  
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
+ protected:
+   void start_phase_2();
+   void start_phase_3();
 
 GENERIC_CLNAME
 };

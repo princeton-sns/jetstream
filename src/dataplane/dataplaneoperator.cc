@@ -7,6 +7,15 @@
 using namespace std;
 using namespace jetstream;
 
+void
+DataPlaneOperator::send_meta_downstream(const DataplaneMessage & msg) {
+  if ( dest ) {
+    dest->meta_from_upstream(msg, operID);
+  }
+}
+
+
+
 DataPlaneOperator::~DataPlaneOperator() 
 {
   VLOG(1) << "destroying " << id();

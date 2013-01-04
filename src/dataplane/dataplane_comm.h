@@ -44,8 +44,6 @@ class RemoteDestAdaptor : public TupleReceiver {
   Edge dest_as_edge;
   DataplaneMessage msg;
   boost::asio::deadline_timer timer;
-  boost::shared_ptr<TupleSender> pred;
-
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -104,7 +102,6 @@ class RemoteDestAdaptor : public TupleReceiver {
 
 class IncomingConnectionState: public TupleSender {
   boost::shared_ptr<ClientConnection> conn;
-  boost::shared_ptr<TupleReceiver> dest;
   boost::shared_ptr<CongestionMonitor> mon;
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
@@ -120,7 +117,8 @@ public:
                           boost::asio::io_service & i,
                           DataplaneConnManager& m,
                           operator_id_t srcOpID):
-      conn(c),dest(d), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
+      conn(c), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
+      dest = d;
       mon = dest->congestion_monitor();
   }
   

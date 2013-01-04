@@ -26,12 +26,17 @@
 namespace jetstream {
 
 class Node;
+class TupleReceiver;
 
 class TupleSender {
   public:
     virtual void meta_from_downstream(const DataplaneMessage & msg) = 0;
     virtual void chain_is_broken() = 0;
     virtual std::string id_as_str() = 0;
+  
+  protected:
+    boost::shared_ptr<TupleReceiver> dest;
+  
   
 };
 
@@ -70,7 +75,6 @@ const operator_err_t NO_ERR = "";
 class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSender {
  private:
   operator_id_t operID; // note that id() returns a reference, letting us set this
-  boost::shared_ptr<TupleReceiver> dest;
   protected:   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
 
   private: int tuplesEmitted;
@@ -78,6 +82,8 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
  protected:
 
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
+  void send_meta_downstream(const DataplaneMessage & msg);
+  
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
 //  Node * get_node() {return node;} //not sure if we should allow operators this much access --asr
   
@@ -89,7 +95,6 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
 
   
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
-  
 
   boost::shared_ptr<TupleReceiver> get_dest () { return dest; }
   

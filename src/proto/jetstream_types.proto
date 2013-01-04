@@ -231,5 +231,6 @@ message DataplaneMessage {
   optional int32 tput_k = 23;
   optional double tput_r2_threshold = 25;
   repeated Tuple tput_r3_query = 26;
+  optional int32 tput_round = 27;
 
 }
