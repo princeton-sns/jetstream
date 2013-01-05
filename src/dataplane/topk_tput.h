@@ -18,6 +18,9 @@ enum ProtoState {
   ROUND_3
 };
 
+double get_rank_val(boost::shared_ptr<const jetstream::Tuple>, size_t col);
+
+
 class MultiRoundSender: public jetstream::cube::Subscriber {
 
 public:
@@ -38,7 +41,8 @@ public:
 
 
 private:
-  
+  void end_of_round(int round_no);
+  std::list<std::string> sort_order;  
 
   GENERIC_CLNAME
 };
@@ -57,10 +61,23 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int responses_this_phase;
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
+   double tao_1;
+   double calculate_tao();
 //   std::string downstream_cube_name;
   
-   std::map<DimensionKey, double> partial_totals;
-   std::map<DimensionKey, size_t> response_counts;
+  struct CandidateItem {
+    double val;
+    size_t responses;
+    Tuple example;
+    
+    CandidateItem():val(0), responses(0) {}
+    
+    CandidateItem(double v, size_t r, const Tuple & t):val(v), responses(r) {
+      example.CopyFrom(t);
+    }
+  };
+  
+   std::map<DimensionKey, CandidateItem> candidates;
 
  public:
  

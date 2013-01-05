@@ -11,6 +11,18 @@ using namespace ::std;
 namespace jetstream {
 
 
+double get_rank_val(boost::shared_ptr<const jetstream::Tuple> t, size_t col) {
+  double v = 0;
+  const Element& e = t->e(col);
+  if (e.has_d_val())
+    v = e.d_val();
+  else if (e.has_i_val())
+    v = e.i_val();
+  else
+    LOG(FATAL) << "expected a numeric value for column "<< col << "; got " << fmt(*t);
+  return v;
+}
+
 cube::Subscriber::Action
 MultiRoundSender::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
 
@@ -34,42 +46,61 @@ MultiRoundSender::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
   ;
 }
 
+void
+MultiRoundSender::end_of_round(int round_no) {
+  LOG(INFO) << "Completed TPUT round " << round_no << " on source side";
+
+  DataplaneMessage end_msg;
+  end_msg.set_tput_round(1);
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+  send_meta_downstream(end_msg);
+}
 
 void
 MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
-  if ( msg.type() == DataplaneMessage::TPUT_START) {
-    const jetstream::Tuple& min = msg.tput_r1_start();
-    const jetstream::Tuple& max = msg.tput_r1_end();
-    
-    std::list<string> sort_order;
-    std::stringstream ss(msg.tput_sort_key());
-    std::string item;
-    while(std::getline(ss, item, ',')) {
-        sort_order.push_back(item);
-    }
+  const jetstream::Tuple& min = msg.tput_r1_start();
+  const jetstream::Tuple& max = msg.tput_r1_end();
 
+  if ( msg.type() == DataplaneMessage::TPUT_START) {
+    //sources send their top k.  TODO what about ties?
+    sort_order.push_back(msg.tput_sort_key());
+    
     VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, msg.tput_k());
     while ( it != cube->end()) {
       emit(*it);
       it++;
     }
-    DataplaneMessage end_msg;
-    end_msg.set_tput_round(1);
-    end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
-    send_meta_downstream(end_msg);
+    end_of_round(1);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_2) {
 
-    
-  /*
-    Sources send all items >= T  [and not in top k?]
-  */
+    size_t total_col = msg.tput_r2_col();
+  // Sources send all items >= T  and not in top k.
+    cube::CubeIterator it = cube->slice_query(min, max, true, sort_order);
+    int count = 0;
+    while ( it != cube->end() && count++ < msg.tput_k() ) {
+      it++;
+    }
+    boost::shared_ptr<Tuple> t = *it;
+    while ( it != cube->end() && get_rank_val(t, total_col) < msg.tput_r2_threshold()) {
+      emit(t);
+      it++;
+      t = *it;
+    }
 
+    end_of_round(2);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
-  
+    for (int i =0; i < msg.tput_r3_query_size(); ++i) {
+      const Tuple& q = msg.tput_r3_query(i);
+      boost::shared_ptr<Tuple> v = cube->get_cell_value(q);
+      if(v) {
+        emit(v);
+      }
+    }
+    end_of_round(3);
   } else {
     DataPlaneOperator::meta_from_downstream(msg);
   }  
@@ -126,22 +157,15 @@ MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t p
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
     
     DimensionKey k = destcube->get_dimension_key(*t);
-    double v = 0;
-    const Element& e = t->e(total_col);
-    if (e.has_d_val())
-      v = e.d_val();
-    else if (e.has_i_val())
-      v += e.i_val();
-    else
-      LOG(FATAL) << "expected a numeric value for column "<< total_col << "; got " << fmt(*t);
+    double v = get_rank_val(t, total_col);
     
-    std::map<DimensionKey,size_t>::const_iterator found = response_counts.find(k);
-    if(found != response_counts.end()) {
-      response_counts[k] ++;
-      partial_totals[k] += v;
+    std::map<DimensionKey,CandidateItem>::const_iterator found = candidates.find(k);
+    if(found != candidates.end()) {
+      CandidateItem& c = candidates[k];
+      c.val += v;
+      c.responses ++;
     } else {
-      response_counts[k] = 1;
-      partial_totals[k] = v;
+      candidates[k] = CandidateItem(v, 1,  *t);
     }
 
     
@@ -163,7 +187,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
     if (sender_round == phase) {
       responses_this_phase ++;
       if (responses_this_phase == predecessors.size()) {
-        LOG(INFO) << "have completed round " << phase;
+        LOG(INFO) << "Completed TPUT round " << phase;
         responses_this_phase = 0;
         if ( phase == 1) {
           start_phase_2();
@@ -180,6 +204,23 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
 
 }
 
+double
+MultiRoundCoordinator::calculate_tao() {
+  double tao = 0;
+  vector<double> vals;
+  vals.reserve(candidates.size());
+  std::map<DimensionKey, CandidateItem >::iterator iter;
+  for (iter = candidates.begin(); iter != candidates.end(); iter++) {
+    vals.push_back(iter->second.val);
+  }
+  sort (vals.begin(), vals.end());
+  
+  if (vals.size() <= num_results)
+    tao = vals[ vals.size() -1];
+  else
+    tao = vals[num_results];
+  return tao;
+}
 
 
 void
@@ -188,19 +229,8 @@ MultiRoundCoordinator::start_phase_2() {
 //	Controller takes partial sums; declare kth one as phase-1 bottom Tao-1.
 //	[Needs no per-source state at controller]
 
-  vector<double> vals;
-  vals.reserve(partial_totals.size());
-  std::map<DimensionKey, double >::iterator iter;
-  for (iter = partial_totals.begin(); iter != partial_totals.end(); iter++) {
-    vals.push_back(iter->second);
-  }
-  sort (vals.begin(), vals.end());
-  
-  double tao_1;
-  if (vals.size() <= num_results)
-    tao_1 = vals[ vals.size() -1];
-  else
-    tao_1 = vals[num_results];
+  tao_1 = calculate_tao();
+ 
   double t1 = tao_1 / predecessors.size();
 
   phase = ROUND_2;
@@ -215,10 +245,25 @@ MultiRoundCoordinator::start_phase_2() {
 
 void
 MultiRoundCoordinator::start_phase_3() {
-/*	Take partial sums; kth one is Tao-2
-	[No per-source state]
-*/
-// 	Controller sends back set of candidate objects
+
+  double tao = calculate_tao();
+  DataplaneMessage r3_start;
+
+  std::map<DimensionKey, CandidateItem >::iterator iter;
+  int pred_size = predecessors.size();
+  for (iter = candidates.begin(); iter != candidates.end(); iter++) {
+    double upper_bound = (pred_size - iter->second.responses) * tao_1 + iter->second.val;
+    if (upper_bound > tao) {
+      Tuple * t = r3_start.add_tput_r3_query();
+      t->CopyFrom(iter->second.example);
+    }
+  }
+
+
+  for (unsigned int i = 0; i < pred_size; ++i) {
+    shared_ptr<TupleSender> pred = predecessors[i];
+    pred->meta_from_downstream(r3_start);
+  }
 
 }
 

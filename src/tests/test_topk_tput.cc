@@ -51,8 +51,10 @@ TEST(Topk_TPUT, OneLocal) {
 
   operator_id_t dest_id(1,1), coordinator_id(1,2), sender_id(1,3);
   string src_cube_name = "source_cube";
+  string dest_cube_name = "dest_cube";
 
-  shared_ptr<DataCube> cube = make_cube(node, src_cube_name); //do this before starting subscribers
+  shared_ptr<DataCube> src_cube = make_cube(node, src_cube_name); //do this before starting subscribers
+  shared_ptr<DataCube> dest_cube =  make_cube(node, dest_cube_name);
 
   topo.set_computationid(dest_id.computation_id);
 
@@ -64,6 +66,7 @@ TEST(Topk_TPUT, OneLocal) {
   add_edge_to_alter(topo, src_cube_name, sender_id); //should be sender_id
   add_edge_to_alter(topo, sender_id, coordinator_id);
   add_edge_to_alter(topo, coordinator_id, dest_id);
+  add_edge_to_alter(topo, dest_id, dest_cube_name);
   
   ControlMessage response;
   node.handle_alter(topo, response);
@@ -73,9 +76,9 @@ TEST(Topk_TPUT, OneLocal) {
   //wait for query to run.
   
   //now check that DB has what it should
-  cube::CubeIterator it = cube->slice_query(cube->empty_tuple(), cube->empty_tuple(), true);
+  cube::CubeIterator it = dest_cube->slice_query(dest_cube->empty_tuple(), dest_cube->empty_tuple(), true);
   cout << "output: " <<endl;
-  while ( it != cube->end()) {
+  while ( it != dest_cube->end()) {
     shared_ptr<Tuple> t = *it;
     cout << fmt(*t) << endl;
     it++;

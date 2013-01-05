@@ -207,7 +207,7 @@ message ControlMessage {
 *    TPUT_START, TPUT_ROUND_2, and TPUT_ROUND_3 are all sent by the three-round uniform
 *  topk controller to the sources.
 *    A TPUT_START has a set of bounds, as tuples, a sort order, and k
-*    A TPUT_ROUND_2 has just a threshold n
+*    A TPUT_ROUND_2 has just a threshold n and a column id
 *    A TPUT_ROUND_3 has a list of dimension values, as tuples
 */ 
 message DataplaneMessage {
@@ -229,6 +229,7 @@ message DataplaneMessage {
   optional Tuple tput_r1_end = 21;
   optional string tput_sort_key = 22;
   optional int32 tput_k = 23;
+  optional int32 tput_r2_col = 24;
   optional double tput_r2_threshold = 25;
   repeated Tuple tput_r3_query = 26;
   optional int32 tput_round = 27;
