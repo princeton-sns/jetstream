@@ -76,12 +76,31 @@ class DataCubeImpl : public DataCube {
       return aggregateMap.count(name) > 0;
     }
 
+    virtual size_t dimension_offset(std::string n) {
+      return find_in(dimensionMap, n);
+    }
+
+    virtual size_t aggregate_offset(std::string n) {
+      return find_in(aggregateMap, n);
+
+    }
+
+
 
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
     std::map<string, size_t> dimensionMap;
     std::map<string, size_t> aggregateMap;
+
+  
+    size_t find_in(std::map<string,size_t>& m, std::string name) {
+      std::map<string,size_t>::const_iterator found = m.find(name);
+      if(found != m.end()) {
+        return found->second;
+      }
+      else return -1;
+    }
 
     virtual DimensionKey get_dimension_key(const Tuple &t) const {
       string key="";

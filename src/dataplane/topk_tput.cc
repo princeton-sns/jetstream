@@ -85,8 +85,8 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("must specify num_results for multi-round top-k");
   
   
-  if (config.find("sort_order") != config.end()) {
-    sort_order = config["sort_order"];
+  if (config.find("sort_column") != config.end()) {
+    sort_column = config["sort_column"];
   } else  
     return operator_err_t("must specify sort_order for multi-round top-k");
 
@@ -96,12 +96,18 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
 void
 MultiRoundCoordinator::start() {
+
+  destcube = boost::dynamic_pointer_cast<DataCube>(get_dest());
+  if (!destcube) {
+    LOG(FATAL) << "must attach MultiRoundCoordinator to cube";
+  }
+  total_col = destcube->aggregate_offset(sort_column);
   
   phase = ROUND_1;
   responses_this_phase = 0;
   DataplaneMessage start_proto;
   start_proto.set_tput_k(num_results);
-  start_proto.set_tput_sort_key(sort_order);
+  start_proto.set_tput_sort_key(sort_column);
   
   //todo should set tput_r1_start and tput_r2_start
   
@@ -117,11 +123,28 @@ MultiRoundCoordinator::start() {
 void
 MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t pred) {
 
-  if (phase == ROUND_1) {
+  if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
+    
+    DimensionKey k = destcube->get_dimension_key(*t);
+    double v = 0;
+    const Element& e = t->e(total_col);
+    if (e.has_d_val())
+      v = e.d_val();
+    else if (e.has_i_val())
+      v += e.i_val();
+    else
+      LOG(FATAL) << "expected a numeric value for column "<< total_col << "; got " << fmt(*t);
+    
+    std::map<DimensionKey,size_t>::const_iterator found = response_counts.find(k);
+    if(found != response_counts.end()) {
+      response_counts[k] ++;
+      partial_totals[k] += v;
+    } else {
+      response_counts[k] = 1;
+      partial_totals[k] = v;
+    }
 
-  
-  } else if (phase == ROUND_2) {
-
+    
   } else if (phase == ROUND_3)//just let responses through
     emit(t);
 //  else
@@ -164,7 +187,20 @@ MultiRoundCoordinator::start_phase_2() {
 
 //	Controller takes partial sums; declare kth one as phase-1 bottom Tao-1.
 //	[Needs no per-source state at controller]
-  double tao_1 = 0;
+
+  vector<double> vals;
+  vals.reserve(partial_totals.size());
+  std::map<DimensionKey, double >::iterator iter;
+  for (iter = partial_totals.begin(); iter != partial_totals.end(); iter++) {
+    vals.push_back(iter->second);
+  }
+  sort (vals.begin(), vals.end());
+  
+  double tao_1;
+  if (vals.size() <= num_results)
+    tao_1 = vals[ vals.size() -1];
+  else
+    tao_1 = vals[num_results];
   double t1 = tao_1 / predecessors.size();
 
   phase = ROUND_2;

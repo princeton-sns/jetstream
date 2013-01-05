@@ -52,9 +52,11 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int num_results;
    Tuple dim_filter_sta;
    Tuple dim_filter_end;
-   std::string sort_order;
+   std::string sort_column;
    ProtoState phase;
    unsigned int responses_this_phase;
+   unsigned int total_col;
+   boost::shared_ptr<DataCube> destcube;
 //   std::string downstream_cube_name;
   
    std::map<DimensionKey, double> partial_totals;

@@ -97,6 +97,8 @@ class DataCube : public TupleReceiver {
     
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
 
+    virtual size_t dimension_offset(std::string) = 0;
+    virtual size_t aggregate_offset(std::string) = 0;
 
     /**
     * It's possible to mark a cube as locked. The intended use of this is to allow
