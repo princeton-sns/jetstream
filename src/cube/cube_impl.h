@@ -51,12 +51,11 @@ class DataCubeImpl : public DataCube {
     }
 
     boost::shared_ptr<CubeDimension> get_dimension(string name) const {
-      std::map<string,size_t>::const_iterator found = dimensionMap.find(name);
-      if(found != dimensionMap.end()) {
-        size_t pos = found->second;
+      int pos = find_in(dimensionMap, name);
+      if(pos > -1) {
         return dimensions.at(pos);
       }
-      LOG(FATAL) << "No dimension: "<<name;
+      LOG(FATAL) << "No dimension named "<<name << "; schema is " << schema.Utf8DebugString();
     }
 
     bool has_dimension(string name) const {
@@ -64,25 +63,23 @@ class DataCubeImpl : public DataCube {
     }
 
     boost::shared_ptr<CubeAggregate> get_aggregate(string name) const {
-      std::map<string,size_t>::const_iterator found = aggregateMap.find(name);
-      if(found != aggregateMap.end()) {
-        size_t pos = found->second;
+      int pos = find_in(aggregateMap, name);
+      if(pos > -1) {
         return aggregates.at(pos);
       }
-      LOG(FATAL) << "No aggregate: "<<name;
+      LOG(FATAL) << "No aggregate named "<<name<< "; schema is " << schema.Utf8DebugString() << " pos ";
     }
 
     bool has_aggregate(string name) const {
       return aggregateMap.count(name) > 0;
     }
 
-    virtual size_t dimension_offset(std::string n) {
-      return find_in(dimensionMap, n);
+    virtual std::vector<size_t> dimension_offset(std::string n) {
+      return get_dimension(n)->tuple_indexes;
     }
 
-    virtual size_t aggregate_offset(std::string n) {
-      return find_in(aggregateMap, n);
-
+    virtual std::vector<size_t> aggregate_offset(std::string n) {
+      return get_aggregate(n)->tuple_indexes;
     }
 
 
@@ -94,7 +91,7 @@ class DataCubeImpl : public DataCube {
     std::map<string, size_t> aggregateMap;
 
   
-    size_t find_in(std::map<string,size_t>& m, std::string name) {
+    int find_in(const std::map<string,size_t>& m, std::string name) const {
       std::map<string,size_t>::const_iterator found = m.find(name);
       if(found != m.end()) {
         return found->second;

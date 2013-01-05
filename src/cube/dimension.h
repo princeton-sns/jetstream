@@ -13,6 +13,7 @@ using namespace ::std;
 using namespace boost;
 
 class Dimension {
+  template<typename A,typename B> friend class DataCubeImpl;
 public:
   Dimension ();
   void init(jetstream::CubeSchema_Dimension schema_dimension);
