@@ -7,7 +7,25 @@ from generic_netinterface import sock_read_data_pb, sock_send_pb
 from jetstream_types_pb2 import NodeID, DataplaneMessage
 
 def tuple_str(tup):
-  return str(tup).replace('\n',' ')  
+  try:
+    if len(tup.e) > 0:
+      return str(map(element_str, tup.e))
+  except ValueError:
+    pass
+  finally:
+    return str(tup).replace('\n',' ')  
+
+def element_str(e):
+  if e.HasField('s_val'):
+    return str(e.s_val)
+  elif e.HasField('i_val'):
+    return str(e.i_val)
+  elif e.HasField('d_val'):
+    return str(e.d_val)
+  elif e.HasField('t_val'):
+    return str(e.t_val)
+  else:
+    raise AttributeError
 
 # client reader instance only cleans up during blocking_read(), so right now
 # blocking_read() is the only way to call it without leaving a mess of
@@ -64,8 +82,8 @@ class ClientDataReader():
     self.listen_sock.bind((self.HOST, self.PORT))
 
     # only one connecting sender for now TODO this probably needs to change
-    nsenders = 0
-    self.listen_sock.listen(nsenders)
+    nSenders = 0
+    self.listen_sock.listen(nSenders)
 
     # TODO should this be bounded? probably not critical.
     self.tuples = Queue.Queue()
