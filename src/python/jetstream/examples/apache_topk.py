@@ -57,8 +57,8 @@ def main():
 #  Should do a pull into a consolidated cube  
   
   #### Finished building in memory, now to join
-  server = RemoteController()
-  server.connect(serv_addr, serv_port)
+  server = RemoteController((serv_addr, serv_port))
+
   n = server.get_a_node()
   assert isinstance(n, NodeID)
   all_nodes = server.all_nodes()
