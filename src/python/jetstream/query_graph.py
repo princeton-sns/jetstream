@@ -496,11 +496,13 @@ def RandEval(graph):
   return graph.add_operator(OpType.RAND_EVAL, {} )
 
 
-def TRoundOperator(graph, fld, round_to):
-   cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
-   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)      
-    
-    
+def TRoundOperator(graph, fld, round_to, add_offset=0):
+  cfg = {"fld_offset": str(fld),
+         "round_to": str(round_to),
+         "add_offset": str(add_offset)}  # "rate":str(rate)
+  return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)
+
+
 def NoOp(graph, file):
    cfg = {}
    return graph.add_operator(OpType.EXTEND, cfg)  

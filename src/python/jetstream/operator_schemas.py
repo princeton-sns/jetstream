@@ -19,8 +19,8 @@ class OpType (object):
   T_ROUND_OPERATOR = "TRoundingOperator"
   VARIABLE_SAMPLING = "VariableSamplingOperator"
   CONGEST_CONTROL = "CongestionController"
-  
-  
+
+
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
   RATE_RECEIVER = "RateRecordReceiver"
@@ -30,7 +30,7 @@ class OpType (object):
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
-  
+
 
   # Supported by Python local controller/worker only
   UNIX = "Unix"
@@ -110,10 +110,17 @@ def validate_TRound(in_schema, cfg):
     raise SchemaError("can't round field %d since input only has %d fields (%s)." % \
          (fld_offset, len(in_schema), str(in_schema)))
     
+  roundable_types = list('TDI')
   t = in_schema[fld_offset][0]
-  if t != "T":
+  if t not in roundable_types:
     raise SchemaError("rounding operator requires that field %d be a time, instead was %s" % (fld_offset,t))
-  return in_schema
+
+  # NC being sneaky here...
+  cfg['in_type'] = t
+
+  out_schema = list(in_schema)
+  out_schema[fld_offset] = ('T', in_schema[fld_offset][1])
+  return out_schema
 
 def validate_RandEval(in_schema, cfg):
   in_types = [ty for ty,name in in_schema[0:3]]

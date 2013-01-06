@@ -138,7 +138,7 @@ GENERIC_CLNAME
 
 class TimestampOperator: public DataPlaneOperator {
  public:
-  enum Type {S, MS, US};
+  enum TimeType {S, MS, US};
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
@@ -148,7 +148,7 @@ class TimestampOperator: public DataPlaneOperator {
 GENERIC_CLNAME
 
  private:
-  Type type;
+  TimeType type;
 };
 
 
@@ -214,8 +214,11 @@ GENERIC_CLNAME
 //rounds time fields
 class TRoundingOperator: public DataPlaneOperator {
  public:
+  enum InFormat {T, I, D};
+  InFormat in_type;
   unsigned int fld_offset;
   int round_to;
+  int add_offset;
 // could in theory have a fixed offset, so you'd get  result = (original / round_to) * round_to + offset
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);

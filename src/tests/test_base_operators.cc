@@ -8,6 +8,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/date_time.hpp>
 #include <boost/regex.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 
 #include <gtest/gtest.h>
 
@@ -375,26 +376,58 @@ TEST(Operator, TRoundingOperator) {
   TRoundingOperator op;
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
-
   operator_config_t cfg;
   cfg["fld_offset"] = "1";
   cfg["round_to"] = "5";
+  cfg["in_type"] = "T";
+  cfg["add_offset"] = "0";
 
-  operator_err_t err = op.configure(cfg);
-  ASSERT_EQ(NO_ERR, err);
-  op.set_dest(rec);
+  {
+    operator_err_t err = op.configure(cfg);
+    ASSERT_EQ(NO_ERR, err);
+    op.set_dest(rec);
 
-  cout << "starting operator" <<endl;
-  op.start();
+    cout << "starting operator" <<endl;
+    op.start();
 
-  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
-  extend_tuple(*t, "California");
-  extend_tuple_time(*t, 6);
-  op.process(t);
+    shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+    extend_tuple(*t, "California");
+    extend_tuple_time(*t, 6);
+    op.process(t);
 
-  ASSERT_EQ((size_t)1, rec->tuples.size());
-  boost::shared_ptr<Tuple> result = rec->tuples[0];
-  ASSERT_EQ((time_t)5, result->e(1).t_val());
+    ASSERT_EQ((size_t)1, rec->tuples.size());
+    boost::shared_ptr<Tuple> result = rec->tuples[0];
+    ASSERT_EQ((time_t)5, result->e(1).t_val());
+  }
+
+  {
+    // Test rounding a double and adding a constant;
+    TRoundingOperator op2;
+    shared_ptr<DummyReceiver> rec2(new DummyReceiver);
+    cfg["in_type"] = "D";
+    cfg["add_offset"] = "17";
+    cfg["fld_offset"] = "2";
+
+    ASSERT_EQ(NO_ERR, op2.configure(cfg));
+    op2.set_dest(rec2);
+
+    const double dExample_Micro_Epoch = 1231151151.510341;
+    const time_t correct = numeric_cast<time_t>((dExample_Micro_Epoch / 5) * 5) + 17;
+
+    shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+    extend_tuple(*t, "California");
+    extend_tuple_time(*t, 6);
+    extend_tuple(*t, dExample_Micro_Epoch);
+
+    op2.process(t);
+
+    ASSERT_EQ((size_t)1, rec2->tuples.size());
+    boost::shared_ptr<Tuple> result = rec2->tuples[0];
+
+    ASSERT_EQ((size_t)3, result->e_size());
+    ASSERT_EQ(correct, result->e(2).t_val()) << "input was " << fmt(*t) << endl
+                                       << "result was " << fmt(*result) << endl;
+  }
 }
 
 

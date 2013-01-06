@@ -13,6 +13,7 @@
 #include <boost/range/istream_range.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
@@ -299,8 +300,7 @@ void parse_with_types(Element * e, const string& s, char typecode) {
 
 void
 GenericParse::process(const boost::shared_ptr<Tuple> t) {
-
-  shared_ptr<Tuple> t2( new Tuple);
+  shared_ptr<Tuple> t2(new Tuple);
 
   if (keep_unparsed) {
     for(int i = 0; i < t->e_size() && i < fld_to_parse; ++i) {
@@ -485,8 +485,24 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
 
 void
 TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
-  time_t old_val = t->e(fld_offset).t_val();
-  t->mutable_e(fld_offset)->set_t_val(  (old_val / round_to) * round_to);
+  if (in_type == T) {
+    time_t old_val = t->e(fld_offset).t_val();
+    t->mutable_e(fld_offset)->set_t_val((old_val / round_to) * round_to + add_offset);
+  }
+
+  // FIXME is it okay to add fixed offset _outside_ of the numeric cast?
+
+  if (in_type == I) {
+    int old_val = t->e(fld_offset).i_val();
+    t->mutable_e(fld_offset)->clear_i_val();
+    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+  }
+
+  if (in_type == D) {
+    double old_val = t->e(fld_offset).d_val();
+    t->mutable_e(fld_offset)->clear_d_val();
+    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+  }
 
   emit(t);
 }
@@ -501,6 +517,28 @@ TRoundingOperator::configure (std::map<std::string,std::string> &config) {
   if ( !(istringstream(config["fld_offset"]) >> fld_offset)) {
     return operator_err_t("must specify an int as fld_offset; got " + config["fld_offset"] +  " instead");
   }
+
+  if (!(istringstream(config["add_offset"]) >> add_offset)) {
+    return operator_err_t("must specify number to add to result; got " + config["add_offset"] + "instead");
+  }
+
+  if (config["in_type"].length() != 1)
+    return operator_err_t("Invalid input type: " + config["in_type"]);
+
+  switch (config["in_type"][0]) {
+    case 'T':
+      in_type = T;
+      break;
+    case 'D':
+      in_type = D;
+      break;
+    case 'I':
+      in_type = I;
+      break;
+    default:
+      return operator_err_t("Invalid input type: " + config["in_type"]);
+  }
+
   return NO_ERR;
 }
 
