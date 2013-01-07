@@ -156,7 +156,7 @@ MultiRoundCoordinator::start() {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
-  LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << ")"
+  LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << "). "
       << predecessors.size() << " predecessors";
   
   //todo should set tput_r1_start and tput_r2_start
