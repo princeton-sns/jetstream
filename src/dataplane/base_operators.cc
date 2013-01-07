@@ -601,7 +601,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
 }
 
 const string FileRead::my_type_name("FileRead operator");
-//const string CSVParse::my_type_name("CSVParse operator");
+const string CSVParse::my_type_name("CSVParse operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");

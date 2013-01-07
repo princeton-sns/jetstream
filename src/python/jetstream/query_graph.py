@@ -453,11 +453,13 @@ def CSVParse(graph, types, fields_to_keep='all'):
 
    keepStr = fields_to_keep
    if fields_to_keep != 'all':
-     if any(not isinstance(f, int) for f in fields_to_keep):
+     if not all(isinstance(f, int) for f in fields_to_keep):
        raise "CSVParse needs either \"all\" or list of field indices to keep,"\
              " got {0}".format(str(fields_to_keep))
      
-     keep_str = ' '.join(map(int, fields_to_keep))
+     keepStr = ' '.join(map(str, fields_to_keep))
+
+   assert isinstance(keepStr, str)
 
    cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)

@@ -124,18 +124,18 @@ def validate_CSVParse(in_schema, cfg):
     raise SchemaError("CSVParse currently requires a string as the first "\
                        "element of an input tuple")
 
-  valid_types = set(t for t in 'SDI')
+  valid_types = ['S', 'D', 'I']
   if any(t not in valid_types for t in cfg['types']):
     raise SchemaError("CSVParse currently only accepts string, double, and "\
                       "32-bit integer types")
 
   types = cfg['types']
-  if cfg['fields_to_keep'].lower() == 'all':
+  if cfg['fields_to_keep'] == 'all':
     return [(t, '') for t in types]
 
   try:
     flds_to_keep = map(int, cfg['fields_to_keep'].split())
-    return [(types[fld], '') for fld in flds_to_keep]
+    return [(types[field], '') for field in flds_to_keep]
   except ValueError as e:
     raise SchemaError("Needed field indices. " + str(e))
 
