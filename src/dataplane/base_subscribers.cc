@@ -40,6 +40,36 @@ void UnionSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upd
 
 namespace jetstream {
 
+
+operator_err_t
+Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id) {
+  id = _id;
+  
+  string serialized_slice = config["slice_tuple"];
+  min.ParseFromString(serialized_slice);
+  max.CopyFrom(min);
+
+  num_results = 0;
+  if (config.find("num_results") != config.end()) 
+    num_results = boost::lexical_cast<int32_t>(config["num_results"]);
+  
+  if (config.find("sort_order") != config.end()) {
+    std::stringstream ss(config["sort_order"]);
+    std::string item;
+    while(std::getline(ss, item, ',')) {
+        sort_order.push_back(item);
+    }
+  }
+  return NO_ERR;
+}
+
+
+cube::CubeIterator Querier::do_query() {
+  VLOG(1) << id << " doing query; range is " << fmt(min) << " to " << fmt(max);
+  cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
+  return it;
+}
+
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
 
@@ -70,6 +100,26 @@ TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upda
 operator_err_t
 TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
+  operator_err_t r = querier.configure(config, id());
+  if (r != NO_ERR)
+    return r;
+  
+  
+
+  time_t start_ts = time(NULL); //now
+  if (config.find("start_ts") != config.end())
+    start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
+  
+
+  
+  if (config.find("ts_field") != config.end()) {
+    ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
+    querier.min.mutable_e(ts_field)->set_t_val(start_ts);
+
+  } else
+    ts_field = -1;
+//    return operator_err_t("Must specify start_ts field");
+
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
   if ((config["window_offset"].length() > 0) &&
     !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
@@ -83,33 +133,6 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   else
     windowSizeMs = 1000;
 
-  string serialized_slice = config["slice_tuple"];
-  min.ParseFromString(serialized_slice);
-  max.CopyFrom(min);
-
-  time_t start_ts = time(NULL); //now
-  if (config.find("start_ts") != config.end())
-    start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
-  
-  if (config.find("ts_field") != config.end()) {
-    ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
-    min.mutable_e(ts_field)->set_t_val(start_ts);
-
-  } else
-    ts_field = -1;
-//    return operator_err_t("Must specify start_ts field");
-
-  num_results = 0;
-  if (config.find("num_results") != config.end()) 
-    num_results = boost::lexical_cast<int32_t>(config["num_results"]);
-  
-  if (config.find("sort_order") != config.end()) {
-    std::stringstream ss(config["sort_order"]);
-    std::string item;
-    while(std::getline(ss, item, ',')) {
-        sort_order.push_back(item);
-    }
-  }
   return NO_ERR;
 }
 
@@ -117,6 +140,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 void
 TimeBasedSubscriber::start() {
   running = true;
+  querier.set_cube(cube);
   loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
 
@@ -124,9 +148,9 @@ void
 TimeBasedSubscriber::operator()() {
   time_t newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
   if (ts_field >= 0)
-    max.mutable_e(ts_field)->set_t_val(newMax);
+    querier.max.mutable_e(ts_field)->set_t_val(newMax);
   
-  int slice_fields = min.e_size();
+  int slice_fields = querier.min.e_size();
   int cube_dims = cube->get_schema().dimensions_size();
   
   if (slice_fields != cube_dims) {
@@ -142,8 +166,7 @@ TimeBasedSubscriber::operator()() {
       continue;
     }
   
-    VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
-    cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
+    cube::CubeIterator it = querier.do_query();
     while ( it != cube->end()) {
       emit(*it);
       it++;      
@@ -152,10 +175,10 @@ TimeBasedSubscriber::operator()() {
     js_usleep(1000 * windowSizeMs);
   
     if (ts_field >= 0) {
-      next_window_start_time = max.e(ts_field).t_val();
-      min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
+      next_window_start_time = querier.max.e(ts_field).t_val();
+      querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
-      max.mutable_e(ts_field)->set_t_val(newMax);
+      querier.max.mutable_e(ts_field)->set_t_val(newMax);
     }
       //else leave next_window_start_time as 0; data is never backfill because we always send everything
     if (!get_dest()) {

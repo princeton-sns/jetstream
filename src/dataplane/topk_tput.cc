@@ -48,7 +48,7 @@ MultiRoundSender::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
 
 void
 MultiRoundSender::end_of_round(int round_no) {
-  LOG(INFO) << "Completed TPUT round " << round_no << " on source side";
+  VLOG(1) << "Completed TPUT round " << round_no << " on source side";
 
   DataplaneMessage end_msg;
   end_msg.set_tput_round(round_no);
@@ -62,7 +62,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
   const jetstream::Tuple& min = msg.has_tput_r1_start() ?  msg.tput_r1_start() : cube->empty_tuple();
   const jetstream::Tuple& max = msg.has_tput_r1_end() ?  msg.tput_r1_end(): min;
   take_greatest = msg.tput_sort_key()[0] == '-';
-  LOG(INFO) << "got meta from downstream";
+  VLOG(2) << "got meta from downstream";
   if ( msg.type() == DataplaneMessage::TPUT_START) {
     //sources send their top k.  TODO what about ties?
     sort_order.push_back(msg.tput_sort_key());
@@ -108,10 +108,11 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       const Tuple& q = msg.tput_r3_query(i);
       boost::shared_ptr<Tuple> v = cube->get_cell_value(q);
       if(v) {
-        LOG(INFO) << "R3 of " << id() << " emitting " << fmt( *v);
+        VLOG(1) << "R3 of " << id() << " emitting " << fmt( *v);
         emit(v);
       } else {
-        LOG(WARNING) << "no matches when querying for " << fmt( q );
+        //this is not an error. Something might be a candidate but have no hits on this node.
+//        LOG(WARNING) << "no matches when querying for " << fmt( q );
       }
     }
     end_of_round(3);
@@ -155,10 +156,10 @@ MultiRoundCoordinator::start() {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
-  LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << ")";
+  LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << ")"
+      << predecessors.size() << " predecessors";
   
   //todo should set tput_r1_start and tput_r2_start
-  LOG(INFO) << "starting TPUT with " << predecessors.size() << " predecessors";
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];
     pred->meta_from_downstream(start_proto);
@@ -206,7 +207,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
     if (sender_round == phase) {
       responses_this_phase ++;
       if (responses_this_phase == predecessors.size()) {
-        LOG(INFO) << "Completed TPUT round " << phase;
+        VLOG(1) << "Completed TPUT round " << phase;
         responses_this_phase = 0;
         if ( phase == 1) {
           start_phase_2();
@@ -254,7 +255,7 @@ MultiRoundCoordinator::start_phase_2() {
   tao_1 = calculate_tao();
  
   double t1 = tao_1 / predecessors.size();
-  LOG(INFO) << "tao at start of phase two is " << tao_1 << ". Threshold is " << t1
+  VLOG(1) << "tao at start of phase two is " << tao_1 << ". Threshold is " << t1
     << ". " << candidates.size()<< " candidates";
 
   phase = ROUND_2;
@@ -275,7 +276,6 @@ MultiRoundCoordinator::start_phase_3() {
   phase = ROUND_3;
 
   double tao = calculate_tao();
-  LOG(INFO) << "tao at start of phase three is " << tao;
   DataplaneMessage r3_start;
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
 
@@ -288,7 +288,7 @@ MultiRoundCoordinator::start_phase_3() {
       t->CopyFrom(iter->second.example);
     }
   }
-  LOG(INFO) << "total of " << r3_start.tput_r3_query_size() << " candidates in R3";
+  VLOG(1) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
 
   for (unsigned int i = 0; i < pred_size; ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];

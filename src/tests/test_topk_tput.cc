@@ -81,9 +81,6 @@ TEST(Topk_TPUT, OneLocal) {
   add_cfg_to_task(coord, "num_results", boost::lexical_cast<std::string>(K));
   add_cfg_to_task(coord, "sort_column", "-count");
 
-//  add_operator_to_alter(topo, dest_id, "DummyReceiver");
-
-//  add_edge_to_alter(topo, coordinator_id, dest_id);
   add_edge_to_alter(topo, coordinator_id, dest_cube_name);
   
   ControlMessage response;
@@ -94,12 +91,11 @@ TEST(Topk_TPUT, OneLocal) {
     boost::dynamic_pointer_cast<MultiRoundCoordinator>(node.get_operator( coordinator_id ));
 
   //wait for query to run.
-
   int tries = 0;
   while (tries ++ < 20 &&  (dest_cube->num_leaf_cells() == 0  || coord_op->phase != NOT_STARTED))
     js_usleep(50*1000);
 
-  js_usleep(500*1000);
+  js_usleep(500*1000);  // and wait for DB to process the update
 
   
   //now check that DB has what it should
