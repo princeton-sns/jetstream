@@ -31,14 +31,18 @@ class TestOpIntegration(unittest.TestCase):
     self.client = JSClient(self.controller.address)
     self.server = RemoteController()
     self.server.connect(self.controller.address[0], self.controller.address[1])
-    self.workers = list()
-
+    self.workers = []
 
   def tearDown(self):
     self.client.close()
     self.controller.stop()
-    map(lambda proc: os.killpg(proc.pid, signal.SIGTERM), self.workers)
-    self.workers = list()
+    try:
+      for worker in self.workers:
+        worker.terminate()
+      print "killing workers WORKED"
+    except OSError:
+      print "killing workers FAILED"
+    self.workers = []
 
   def start_workers(self, num_workers):
     # Use at least 2 workers
