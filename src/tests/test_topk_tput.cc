@@ -34,7 +34,7 @@ shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
   return cube;
 }
 
-void initialize_cube_data(shared_ptr<DataCube> cube) {
+void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
   int CELLS = 10;
 
   time_t now = time(NULL);
@@ -42,7 +42,7 @@ void initialize_cube_data(shared_ptr<DataCube> cube) {
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
     extend_tuple(*t, "http://foo.com/" + boost::lexical_cast<string>(i));
-    extend_tuple(*t, i);
+    extend_tuple(*t, ((i + offset) % CELLS) );
     t->set_version(0);
     cube->process(t);
   }
@@ -55,31 +55,34 @@ void initialize_cube_data(shared_ptr<DataCube> cube) {
 TEST(Topk_TPUT, OneLocal) {
 
   NodeConfig cfg;
-  int K = 5;
+  int K = 3;
   boost::system::error_code error;
   Node node(cfg, error);
   ASSERT_TRUE(error == 0);
   AlterTopo topo;
 
-  operator_id_t coordinator_id(1,2), sender_id(1,3); //dest_id(1,1), 
-  string src_cube_name = "source_cube";
+  operator_id_t coordinator_id(1,2); //dest_id(1,1),
+  operator_id_t sender_ids[] = {operator_id_t(1,3), operator_id_t(1,4) };
+  string src_cube_names[] = {"source1", "source2"};
   string dest_cube_name = "dest_cube";
 
-  shared_ptr<DataCube> src_cube = make_cube(node, src_cube_name); //do this before starting subscribers
-  initialize_cube_data(src_cube);
+  for (int i = 0; i < 2; ++i ) {
+    shared_ptr<DataCube> src_cube = make_cube(node, src_cube_names[i]); //do this before starting subscribers
+    initialize_cube_data(src_cube, i);
+    add_edge_to_alter(topo, src_cube_names[i], sender_ids[i]); //should be sender_id
+    add_operator_to_alter(topo, sender_ids[i], "MultiRoundSender");
+    add_edge_to_alter(topo, sender_ids[i], coordinator_id);
+  }
   shared_ptr<DataCube> dest_cube =  make_cube(node, dest_cube_name);
 
   topo.set_computationid(coordinator_id.computation_id);
 
-  add_operator_to_alter(topo, sender_id, "MultiRoundSender");
   TaskMeta * coord = add_operator_to_alter(topo, coordinator_id, "MultiRoundCoordinator");
   add_cfg_to_task(coord, "num_results", boost::lexical_cast<std::string>(K));
-  add_cfg_to_task(coord, "sort_column", "count");
+  add_cfg_to_task(coord, "sort_column", "-count");
 
 //  add_operator_to_alter(topo, dest_id, "DummyReceiver");
 
-  add_edge_to_alter(topo, src_cube_name, sender_id); //should be sender_id
-  add_edge_to_alter(topo, sender_id, coordinator_id);
 //  add_edge_to_alter(topo, coordinator_id, dest_id);
   add_edge_to_alter(topo, coordinator_id, dest_cube_name);
   
@@ -87,19 +90,28 @@ TEST(Topk_TPUT, OneLocal) {
   node.handle_alter(topo, response);
   ASSERT_FALSE(response.has_error_msg());
 
+  shared_ptr<MultiRoundCoordinator> coord_op =
+    boost::dynamic_pointer_cast<MultiRoundCoordinator>(node.get_operator( coordinator_id ));
 
   //wait for query to run.
 
   int tries = 0;
-  while (tries ++ < 20 &&  dest_cube->num_leaf_cells() < K)
+  while (tries ++ < 20 &&  (dest_cube->num_leaf_cells() == 0  || coord_op->phase != NOT_STARTED))
     js_usleep(50*1000);
+
+  js_usleep(500*1000);
 
   
   //now check that DB has what it should
-  cube::CubeIterator it = dest_cube->slice_query(dest_cube->empty_tuple(), dest_cube->empty_tuple(), true);
+  list<string> dims;
+  dims.push_back("-count");
+  cube::CubeIterator it = dest_cube->slice_query(dest_cube->empty_tuple(), dest_cube->empty_tuple(), true, dims, K);
   cout << "output: " <<endl;
+  int expected = 17;
   while ( it != dest_cube->end()) {
     shared_ptr<Tuple> t = *it;
+    ASSERT_EQ(expected, t->e(2).i_val());
+    expected -= 2;
     cout << fmt(*t) << endl;
     it++;
   }

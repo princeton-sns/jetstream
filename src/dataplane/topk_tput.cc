@@ -61,6 +61,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
   const jetstream::Tuple& min = msg.has_tput_r1_start() ?  msg.tput_r1_start() : cube->empty_tuple();
   const jetstream::Tuple& max = msg.has_tput_r1_end() ?  msg.tput_r1_end(): min;
+  take_greatest = msg.tput_sort_key()[0] == '-';
   LOG(INFO) << "got meta from downstream";
   if ( msg.type() == DataplaneMessage::TPUT_START) {
     //sources send their top k.  TODO what about ties?
@@ -84,10 +85,19 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       it++;
     }
     boost::shared_ptr<Tuple> t = *it;
-    while ( it != cube->end() && get_rank_val(t, total_col) <= msg.tput_r2_threshold()) {
-      emit(t);
-      it++;
-      t = *it;
+    
+    if (take_greatest) {
+      while ( it != cube->end() && get_rank_val(t, total_col) >= msg.tput_r2_threshold()) {
+        emit(t);
+        it++;
+        t = *it;
+      }
+    } else {
+      while ( it != cube->end() && get_rank_val(t, total_col) <= msg.tput_r2_threshold()) {
+        emit(t);
+        it++;
+        t = *it;
+      }    
     }
 
     end_of_round(2);
@@ -98,10 +108,10 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       const Tuple& q = msg.tput_r3_query(i);
       boost::shared_ptr<Tuple> v = cube->get_cell_value(q);
       if(v) {
-        LOG(INFO) << "R3 emitting " << fmt(q);
+        LOG(INFO) << "R3 of " << id() << " emitting " << fmt( *v);
         emit(v);
       } else {
-        LOG(WARNING) << "no matches when querying for " << fmt(q);
+        LOG(WARNING) << "no matches when querying for " << fmt( q );
       }
     }
     end_of_round(3);
@@ -136,7 +146,8 @@ MultiRoundCoordinator::start() {
   if (!destcube) {
     LOG(FATAL) << "must attach MultiRoundCoordinator to cube";
   }
-  total_col = destcube->aggregate_offset(sort_column)[0];
+  string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
+  total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
   
   phase = ROUND_1;
   responses_this_phase = 0;
@@ -226,7 +237,10 @@ MultiRoundCoordinator::calculate_tao() {
   if (vals.size() < num_results)
     tao = vals[ vals.size() -1];
   else
-    tao = vals[num_results-1];
+    if ( sort_column[0] == '-' ) //reverse sort; greatest to least
+      tao = vals[vals.size() - num_results];
+    else
+      tao = vals[num_results-1];
   return tao;
 }
 

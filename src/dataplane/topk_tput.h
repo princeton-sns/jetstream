@@ -42,7 +42,8 @@ public:
 
 private:
   void end_of_round(int round_no);
-  std::list<std::string> sort_order;  
+  std::list<std::string> sort_order;
+  bool take_greatest;
 
   GENERIC_CLNAME
 };
@@ -57,12 +58,12 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    Tuple dim_filter_sta;
    Tuple dim_filter_end;
    std::string sort_column;
-   ProtoState phase;
    unsigned int responses_this_phase;
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
    double tao_1;
    double calculate_tao();
+
 //   std::string downstream_cube_name;
   
   struct CandidateItem {
@@ -91,7 +92,9 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
    virtual void clear_preds () { predecessors.clear(); }
   
-    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
+   ProtoState phase; //visible for debugging
 
  protected:
    void start_phase_2();
