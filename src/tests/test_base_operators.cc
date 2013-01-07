@@ -85,7 +85,7 @@ TEST(Operator, CSVParseOperator) {
     shared_ptr<DummyReceiver> rec(new DummyReceiver);
     shared_ptr<CSVParse> csvparse(new CSVParse);
     csvparse->set_dest(rec);
-    csvparse->configure(config);
+    ASSERT_EQ(NO_ERR, csvparse->configure(config));
 
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(s);
@@ -110,7 +110,7 @@ TEST(Operator, CSVParseOperator) {
 
     config["fields_to_keep"] = "1 2";
     config["types"] = "SSI";
-    csvp2->configure(config);
+    ASSERT_EQ(NO_ERR, csvp2->configure(config));
 
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val(s);
@@ -225,7 +225,7 @@ TEST(Operator,ParseOperator) {
   cfg["field_to_parse"] = "1";
   cfg["keep_unparsed"] = "True";
   cfg["types"] = "Si";
-  parse.configure(cfg);
+  ASSERT_EQ(NO_ERR, parse.configure(cfg));
 
   boost::shared_ptr<Tuple> t(new Tuple);
   extend_tuple(*t, 1);
@@ -260,7 +260,7 @@ TEST(Operator,ParseOperator) {
   cfg["field_to_parse"] = "1";
   cfg["keep_unparsed"] = "False";
   cfg["types"] = "Si";
-  parse3.configure(cfg);
+  ASSERT_EQ(NO_ERR, parse3.configure(cfg));
 
   boost::shared_ptr<Tuple> tt(new Tuple);
   extend_tuple(*tt, 1);
