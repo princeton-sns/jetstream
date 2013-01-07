@@ -32,7 +32,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 //    boost::posix_time::milliseconds(50);
  private:
   DataplaneConnManager& mgr;
-  boost::asio::io_service & iosrv;
+  //boost::asio::io_service & iosrv;
 
   boost::shared_ptr<NetCongestionMonitor> remote_processing;
   boost::shared_ptr<ClientConnection> conn;
@@ -58,7 +58,6 @@ class RemoteDestAdaptor : public TupleReceiver {
   msec_t wait_for_conn; // Note this is a wide area wait.
   void force_send(); //called by timer
   void do_send_unlocked(); //does the send, no lock acquisition
-
 
   
  public:
