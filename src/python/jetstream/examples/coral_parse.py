@@ -89,43 +89,6 @@ def parse_setup():
 
   return cr
 
-class CoralLogLine():
-  def __init__(self, coral_tuple, fields, types):
-    self.fields = []
-    for i, (field, t) in enumerate(izip(fields, types)):
-      assert field != "fields"
-
-      if t == "S":
-        setattr(self, field, string.strip(coral_tuple.e[i].s_val, '"'))
-      elif t == "I":
-        setattr(self, field, int(coral_tuple.e[i].i_val))
-      elif t == "D":
-        setattr(self, field, float(coral_tuple.e[i].d_val))
-      else:
-        raise TypeError("Unxpected field type: %s" % str(typ))
-      self.fields.append(getattr(self, field))
-
-    #print self.fields
-
-
-# This method adds correctly typed fields to the cube, assuming that they are
-# stored in the order provided in the argument. 
-# ### OR DOES IT? This is old and probably doesn't work, because I didn't
-# understand the semantics of cube.add_dim() when I wrote this.
-def add_cube_dims(cube, field_indices):
-  specifier_to_type = {"I" : Element.INT32,  "S" : Element.STRING,
-                       "D" : Element.DOUBLE, "T" : Element.TIME}
-  subfields = itemgetter(*field_indices)
-  names = subfields(coral_fnames)
-  types = subfields(coral_types)
-
-  for index, (name, kind) in enumerate(izip(names, types)):
-    t = None
-    try:
-      t = specifier_to_type[kind]
-    except KeyError:
-      raise KeyError("Invalid cube format type: %s" % kind)
-    cube.add_dim(name, t, index)
 
 if __name__ == '__main__':
   import coral_analyzer
