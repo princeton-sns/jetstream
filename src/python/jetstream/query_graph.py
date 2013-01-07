@@ -415,7 +415,7 @@ class Cube(Destination):
     if len(in_schema) > 0:
       for field_id,(ty,name) in r.items():
         if field_id >= len(in_schema):
-          print "assuming COUNT for field %s"% name
+          print "assuming COUNT for field %s" % name
           continue
         
         if in_schema[field_id][0] != ty:
@@ -480,7 +480,6 @@ def TimestampOperator(graph, typeStr):
   return graph.add_operator(OpType.TIMESTAMP, cfg)
 
 
-
 def GenericParse(graph,
                  pattern, typeStr, field_to_parse = 0, keep_unparsed=True):
     cfg = {"types" : typeStr,
@@ -493,8 +492,8 @@ def GenericParse(graph,
 
 
 def RandSource(graph, n, k):
-   cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
-   return graph.add_operator(OpType.RAND_SOURCE, cfg)      
+   cfg = {"n": str(n), "k": str(k)}  # "rate":str(rate)
+   return graph.add_operator(OpType.RAND_SOURCE, cfg)
 
 
 def RandEval(graph):
@@ -543,11 +542,12 @@ class TimeSubscriber(Operator):
         if dim_type == Element.STRING:
           el.s_val = val
         else:
-          raise "Panic; trying to filter on dimension without type"
+          raise ValueError("Panic; trying to filter on dimension without type")
     
     if len(self.filter) > 0:
       unmatched_fields = ",".join(self.filter.keys())
-      raise "Panic: filter field unknown in cube. Unmatched fields:",unmatched_fields
+      raise ValueError("Panic: filter field unknown in cube. Unmatched "
+                       "fields: {}".format(unmatched_fields))
 #    print "final filter tuple:", tuple
     #We do this in two phases
     

@@ -56,16 +56,17 @@ def validate_parse(in_schema, cfg):
   parsed_field_type = in_schema[field_to_parse][0]
   if parsed_field_type != 'S':
     raise SchemaError("GenericParse needs string field to parse, got: "\
-        "{0}".format(parsed_field_type))
+                      "{0}".format(parsed_field_type))
 
-  cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
   allowed_bool_str = [str(val).lower() for val in [True, False]]
-  if not any(val == cfg['keep_unparsed'] for val in allowed_bool_str):
-    raise SchemaError("Needed one of (case-insensitive) {0} for "\
-                      "'keep_unparsed' generic parse config field, got: "\
-                      "{1}".format(str(allowed_bool_str), cfg['keep_unparsed']))
+  keep_option = cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
 
-  keep_unparsed = cfg['keep_unparsed'].lower() == 'true'
+  if not keep_option in allowed_bool_str:
+    raise SchemaError("Needed one of (case-insensitive) {0} for "
+                      "'keep_unparsed' generic parse config field, got: "
+                      "{1}".format(str(allowed_bool_str), keep_option))
+
+  keep_unparsed = keep_option.lower() == 'true'
 
   ret = []
 
@@ -73,17 +74,17 @@ def validate_parse(in_schema, cfg):
     ret.extend( in_schema[0:field_to_parse] )
 
   for c in cfg['types']:
-    ret.append( (c, '') )
+    ret.append((c, ''))
   if keep_unparsed:
-    ret.extend( in_schema[field_to_parse+1:] )
+    ret.extend(in_schema[field_to_parse + 1:])
   return ret
 
 def validate_extend(in_schema, cfg):
 #  print "extend with cfg",cfg
   newS = []
   newS.extend(in_schema)
-  for x in cfg['types']:
-    newS.append( (x.upper(), '') )
+  for t in cfg['types']:
+    newS.append((t.upper(), ''))
   return newS
 
 def validate_timestamp(in_schema, cfg):
@@ -91,10 +92,12 @@ def validate_timestamp(in_schema, cfg):
   newS.extend(in_schema)
   if cfg["type"]=="s":
     newS.append( ("T", 'timestamp(s)') )
-  if cfg["type"]=="ms":
+  elif cfg["type"]=="ms":
     newS.append( ("D", 'timestamp(ms)') )
-  if cfg["type"]=="us":
+  elif cfg["type"]=="us":
     newS.append( ("D", 'timestamp(us)') )
+  else:
+    raise SchemaError("Needed time granularity specifier, got: " + cfg["type"])
   return newS
 
 def validate_latency_measure(in_schema, cfg):
