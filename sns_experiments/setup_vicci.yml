@@ -4,9 +4,7 @@
 # 2) install ssh forward-agent so that you can pass your key along for git 
 # 3) add hosts you are working with to ansible_hosts file under [setup] section 
 # 4) run the following:
-# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
-#
-#
+#ANSIBLE_SSH_ARGS=""  ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream -M "`pwd`/modules/"
 #
 # This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
 # mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
@@ -16,44 +14,37 @@
 
 ###initial packages###
 - hosts: setup
+  gather_facts: no
+  connection: paramiko
+  tasks:
+      - action: fireball bind_address=${public_ip}
+
+- hosts: setup
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
+  connection: fireball
   tasks:
-  - name: install cmake
-    yum: name=cmake state=present
-  - name: install gtest
-    yum: name=gtest state=present
-  - name: install python setup tools
-    yum: name=python-setuptools state=present
-  - name: install libgtest-dev
-    yum: name=gtest-devel state=present
-  - name: install glog
-    yum: name=glog-devel state=present
-  - name: install mysql
-    yum: name=mysql-server state=present
-  - name: install mysqldb python 
-    yum: name=MySQL-python state=present
-  - name: install mysqlc++ 
-    yum: name=mysql-connector-c++-devel state=present
-  - name: install git 
-    yum: name=git state=present
-  - name: install gcc 
-    yum: name=gcc state=present
-  - name: install gcc-c++ 
-    yum: name=gcc-c++ state=present
-  - name: install make 
-    yum: name=make state=present
-  - name: install wget #maybe unnecessary with get_url? 
-    yum: name=wget state=present
-  - name: install ntp 
-    yum: name=ntp state=present
-  - name: install tar
-    yum: name=tar state=present
-  - name: install bzip2-devel #for boost compile
-    yum: name=bzip2-devel state=present
-  - name: install python-devel #for boost compile
-    yum: name=python-devel state=present
+  - name: install packages
+    yum: name=$item state=present
+    with_items:
+      - cmake
+      - gtest
+      - python-setuptools
+      - gtest-devel
+      - glog-devel
+      - mysql-server
+      - MySQL-python
+      - mysql-connector-c++-devel
+      - git
+      - gcc
+      - gcc-c++
+      - make
+      - wget #maybe unnecessary now with get_url
+      - ntp
+      - tar
+      - bzip2-devel #for boost compile
+      - python-devel #for boost compile
   - name: make sure jetstream deps dir exists
     file: dest=/jetstream/deps state=directory mode=777
   - name: download boost
