@@ -1,14 +1,51 @@
-[setup]
-node1.mpisws.vicci.org
-node10.mpisws.vicci.org
-node10.stanford.vicci.org
-node11.stanford.vicci.org
-node12.stanford.vicci.org
-node13.stanford.vicci.org
-node11.princeton.vicci.org
-node12.princeton.vicci.org
+[workers]
+node1.mpisws.vicci.org public_ip=141.39.220.11
+node10.mpisws.vicci.org public_ip=141.39.220.20
+node10.stanford.vicci.org public_ip=171.67.66.20
+node11.stanford.vicci.org public_ip=171.67.66.21
+node12.stanford.vicci.org public_ip=171.67.66.22
+node13.stanford.vicci.org public_ip=171.67.66.23
+node11.princeton.vicci.org public_ip=128.112.171.40
+node10.princeton.vicci.org public_ip=128.112.171.38
+node1.stanford.vicci.org public_ip=171.67.66.11
 
-[done]
-node13.princeton.vicci.org
-node10.princeton.vicci.org
-node1.stanford.vicci.org
+
+[setup]
+node1.mpisws.vicci.org public_ip=141.39.220.11
+node10.mpisws.vicci.org public_ip=141.39.220.20
+node10.stanford.vicci.org public_ip=171.67.66.20
+node11.stanford.vicci.org public_ip=171.67.66.21
+node12.stanford.vicci.org public_ip=171.67.66.22
+node13.stanford.vicci.org public_ip=171.67.66.23
+node11.princeton.vicci.org public_ip=128.112.171.40
+node10.princeton.vicci.org public_ip=128.112.171.38
+node1.stanford.vicci.org public_ip=171.67.66.11
+node2.princeton.vicci.org public_ip=128.112.171.22
+node2.stanford.vicci.org public_ip=171.67.66.12
+node2.mpisws.vicci.org public_ip=141.39.220.12
+node3.princeton.vicci.org public_ip=128.112.171.24
+node3.stanford.vicci.org public_ip=171.67.66.13
+node3.mpisws.vicci.org public_ip=141.39.220.13
+node42.princeton.vicci.org public_ip=128.112.171.102
+node4.stanford.vicci.org public_ip=171.67.66.14
+node4.mpisws.vicci.org public_ip=141.39.220.14
+node5.princeton.vicci.org public_ip=128.112.171.28
+node5.stanford.vicci.org public_ip=171.67.66.15
+node5.mpisws.vicci.org public_ip=141.39.220.15
+node61.princeton.vicci.org public_ip=128.112.171.140
+node6.stanford.vicci.org public_ip=171.67.66.16
+node6.mpisws.vicci.org public_ip=141.39.220.16
+node7.princeton.vicci.org public_ip=128.112.171.32
+node7.stanford.vicci.org public_ip=171.67.66.17
+node7.mpisws.vicci.org public_ip=141.39.220.17
+node8.princeton.vicci.org public_ip=128.112.171.34
+node8.stanford.vicci.org public_ip=171.67.66.18
+node8.mpisws.vicci.org public_ip=141.39.220.18
+node9.princeton.vicci.org public_ip=128.112.171.36
+node9.stanford.vicci.org public_ip=171.67.66.19
+node9.mpisws.vicci.org public_ip=141.39.220.19
+
+
+[down]
+node12.princeton.vicci.org
+node13.princeton.vicci.org public_ip=128.112.171.44
