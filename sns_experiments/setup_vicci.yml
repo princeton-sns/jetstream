@@ -62,8 +62,8 @@
     action: command ./b2
               chdir=/jetstream/deps/boost_1_52_0
               creates=/jetstream/deps/boost_1_52_0/stage/lib
-    async: 1000
-    poll: 10
+     #async: 1000
+     #poll: 10
      #include: /jetstream/deps/boost_1_52_0
      #lib: /jetstream/deps/boost_1_52_0/stage/lib
 #mysql cpp connector
