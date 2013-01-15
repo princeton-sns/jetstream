@@ -34,7 +34,7 @@ LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
     connections.erase (iter);
   }
 
-  LOG(INFO) << "Starting notifications to " << fourtuple << endl;
+  LOG(INFO) << "Starting notifications; four-tuple is " << fourtuple << endl;
 
   shared_ptr<ConnectionNotification> notif 
     (new ConnectionNotification (iosrv, c, config));

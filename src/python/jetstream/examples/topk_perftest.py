@@ -40,7 +40,7 @@ def main():
   parser.add_option("-l", "--latency_log_file", dest="latencylog", default="latencies.out",
                   help="file to log latency into")
 
-  parser.add_option("-r", "--rate", dest="rate",help="the rate to use (instead of rate schedule)")
+  parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
 
 
