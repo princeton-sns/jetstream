@@ -41,7 +41,7 @@ def main():
                   help="file to log latency into")
 
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use (instead of rate schedule)")
-  parser.add_option("-u", "--union_root_node", dest="root_node",help="address:port of root node")
+  parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
 
 
   (options, args) = parser.parse_args()
@@ -51,15 +51,24 @@ def main():
     #Unlike most Jetstream programs, need to know how many nodes we have to set up the distribution properly
   server = RemoteController()
   server.connect(serv_addr, serv_port)
+  all_nodes = server.all_nodes()
   if options.root_node:
-    root_addr, root_port =  normalize_controller_addr(options.root_node)
-    root_node = NodeID()
-    root_node.address = root_addr
-    root_node.portno = root_port
+    found = False
+    for node in all_nodes:
+      if node.address == options.root_node:
+        root_node = node
+        found = True 
+        break
+    if not found:
+      print "Node with address: ",options.root_node," not found for use as the aggregator node"
+      sys.exit()
+    #root_addr, root_port =  normalize_controller_addr(options.root_node)
+    #root_node = NodeID()
+    #root_node.address = root_addr
+    #root_node.portno = root_port
   else:
     root_node = server.get_a_node()
   assert isinstance(root_node, NodeID)
-  all_nodes = server.all_nodes()
   
   print "Using",root_node,"as aggregator"
   #### Finished building in memory, now to deploy

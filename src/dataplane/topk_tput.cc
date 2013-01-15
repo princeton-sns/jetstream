@@ -280,7 +280,7 @@ MultiRoundCoordinator::start_phase_3() {
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
 
   std::map<DimensionKey, CandidateItem >::iterator iter;
-  int pred_size = predecessors.size();
+  unsigned int pred_size = predecessors.size();
   for (iter = candidates.begin(); iter != candidates.end(); iter++) {
     double upper_bound = (pred_size - iter->second.responses) * tao_1 + iter->second.val;
     if (upper_bound >= tao) {

@@ -35,14 +35,14 @@ shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
 }
 
 void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
-  int CELLS = 10;
+  unsigned int CELLS = 10;
 
   time_t now = time(NULL);
-  for( int i = 0; i < CELLS; ++i) {
+  for(unsigned int i = 0; i < CELLS; ++i) {;
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
     extend_tuple(*t, "http://foo.com/" + boost::lexical_cast<string>(i));
-    extend_tuple(*t, ((i + offset) % CELLS) );
+    extend_tuple(*t,(int) ((i + offset) % CELLS) );
     t->set_version(0);
     cube->process(t);
   }
