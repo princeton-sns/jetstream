@@ -12,6 +12,7 @@ using namespace ::std;
 using namespace boost;
 
 class Aggregate {
+  template<typename A,typename B> friend class DataCubeImpl;
   public:
     Aggregate ();
     void init(jetstream::CubeSchema_Aggregate schema_dimension);

@@ -45,8 +45,9 @@ void
 MysqlAggregateVersion::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
                                                     const jetstream::Tuple &t,
                                                     int &field_index) {
-  pstmt->setUInt64(field_index, version);
-  field_index += 1; // These are fields of hte prepared statement, not of the tuple
+//  LOG(INFO) << "field_index is " << field_index;  //
+  pstmt->setUInt64(field_index, version); //  Note version is from cube, not tuple
+  field_index += 1; // These are fields of the prepared statement, not of the tuple
   return;
 }
 

@@ -16,6 +16,9 @@
 #include <cppconn/prepared_statement.h>
 #include <boost/enable_shared_from_this.hpp>
 
+
+#undef THREADPOOL_IS_STATIC
+
 namespace jetstream {
 namespace cube {
 
@@ -26,10 +29,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     MysqlCube (jetstream::CubeSchema const _schema,
                string _name,
                bool overwrite_if_present,
-               string db_host="localhost",
-               string db_user="root",
-               string db_pass="",
-               string db_name="test_cube",
                size_t batch=1);
 
     class ThreadConnection{
@@ -90,9 +89,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     size_t insert_batch(jetstream::Tuple const &t);
     void flush_batch();*/
 
-    boost::shared_ptr<ThreadConnection> get_thread_connection();
-    //void on_thread_exit(boost::thread::id tid);
-
 
     string get_sort_clause(list<string> const &sort) const;
     string get_limit_clause(size_t limit) const;
@@ -100,9 +96,6 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     CubeIterator get_result_iterator(string sql, bool final, bool rollup=false) const;
 
 
-    boost::shared_ptr<sql::Connection> get_connection() const;
-    void execute_sql(string const &sql);
-    boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql);
 
     string get_insert_prepared_sql(size_t batch);
     string get_select_cell_prepared_sql(size_t num_cells);
@@ -115,19 +108,40 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final, bool rollup=false) const;
 
   private:
-    void init_connection();
-    string db_host;
-    string db_user;
-    string db_pass;
-    string db_name;
-
-    std::map<boost::thread::id, boost::shared_ptr<ThreadConnection> > connectionPool;
+    static void init_connection();
+    static string db_host;
+    static string db_user;
+    static string db_pass;
+    static string db_name;
 
     bool assumeOnlyWriter;
 
     boost::shared_ptr<sql::ResultSet> slice_result_set;
     bool slice_final;
+  
+#ifdef THREADPOOL_IS_STATIC
+#define THREADPOOL_STATIC static
+#else
+#define THREADPOOL_STATIC 
+#endif
+  
+    THREADPOOL_STATIC std::map<boost::thread::id, boost::shared_ptr<ThreadConnection> > connectionPool;
+    THREADPOOL_STATIC boost::upgrade_mutex connectionLock;
+  
+  public:
 
+    static void set_db_params(string db_host="localhost",
+                       string db_user="root",
+                       string db_pass="",
+                       string db_name="test_cube");
+    THREADPOOL_STATIC boost::shared_ptr<ThreadConnection> get_thread_connection();
+    THREADPOOL_STATIC boost::shared_ptr<sql::Connection> get_connection();
+    THREADPOOL_STATIC void execute_sql(string const &sql);
+    THREADPOOL_STATIC boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql);  
+    THREADPOOL_STATIC void on_thread_exit(boost::thread::id tid, shared_ptr<ThreadConnection> tc);
+
+    static boost::shared_ptr<std::map<std::string, int> > list_sql_cubes();
+    static boost::shared_ptr<ThreadConnection>  get_uncached_connection(sql::Driver * driver);
 };
 
 

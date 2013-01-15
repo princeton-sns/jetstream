@@ -52,8 +52,25 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id);
 
-void add_cfg_to_task(TaskMeta*, std::string optname, std::string val);
+Edge * 
+add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id);
 
+Edge * 
+add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, std::string dest_id);
+
+
+inline CubeMeta* add_cube_to_alter(AlterTopo& topo, std::string name, bool overwrite_old = true) {
+  CubeMeta * m = topo.add_tocreate();
+  m->set_name(name);
+  m->set_overwrite_old(overwrite_old);
+  return m;
+}
+
+void add_dimension(CubeMeta* m, CubeSchema_Dimension_DimensionType, const std::string& name, int idx);
+void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& name, int idx);
+
+
+void add_cfg_to_task(TaskMeta*, std::string optname, std::string val);
 
 inline void extend_tuple(jetstream::Tuple& t, int32_t i) {
   t.add_e()->set_i_val(i);

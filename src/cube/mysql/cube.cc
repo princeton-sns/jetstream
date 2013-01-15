@@ -12,16 +12,9 @@ using namespace jetstream::cube;
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
                                        bool delete_if_exists,
-                                       string db_host,
-                                       string db_user,
-                                       string db_pass,
-                                       string db_name,
                                        size_t batch) :
   DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name, batch),
-  db_host(db_host),
-  db_user(db_user),
-  db_pass(db_pass),
-  db_name(db_name),
+
   assumeOnlyWriter(true)
   {
 
@@ -45,44 +38,57 @@ void
 jetstream::cube::MysqlCube::init_connection() {
 }
 
+boost::shared_ptr<MysqlCube::ThreadConnection>
+MysqlCube::get_uncached_connection(sql::Driver * driver) {
+  shared_ptr<ThreadConnection> tc(new ThreadConnection());
+
+  sql::ConnectOptionsMap options;
+  options.insert( std::make_pair( "hostName", db_host));
+  options.insert( std::make_pair( "userName", db_user));
+  options.insert( std::make_pair( "password", db_pass));
+  options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) );
+
+  try {
+    shared_ptr<sql::Connection> con(driver->connect(options));
+
+    tc->connection = con;
+    tc->connection->setSchema(db_name);
+    shared_ptr<sql::Statement> stmnt(tc->connection->createStatement());
+    tc->statement = stmnt;
+  }
+  catch (sql::SQLException &e) {
+    LOG(FATAL) << e.what()<< "...perhaps the DB isn't running?";
+  }
+  return tc;
+}
+
 boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection() {
   boost::thread::id tid = boost::this_thread::get_id();
+  shared_lock<boost::upgrade_mutex> lock(connectionLock);
 
   if(connectionPool.count(tid) == 0) {
+    upgrade_lock<boost::upgrade_mutex> writeLock(connectionLock);
     VLOG(1) << "creating new SQL connection for thread " << tid;
-    shared_ptr<ThreadConnection> tc(new ThreadConnection());
-
+    
     sql::Driver * driver = sql::mysql::get_driver_instance();
-    sql::ConnectOptionsMap options;
-    options.insert( std::make_pair( "hostName", db_host));
-    options.insert( std::make_pair( "userName", db_user));
-    options.insert( std::make_pair( "password", db_pass));
-    options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) );
 
-    try {
-      shared_ptr<sql::Connection> con(driver->connect(options));
-
-      tc->connection = con;
-      tc->connection->setSchema(db_name);
-      shared_ptr<sql::Statement> stmnt(tc->connection->createStatement());
-      tc->statement = stmnt;
-    }
-    catch (sql::SQLException &e) {
-      LOG(FATAL) << e.what()<< "...perhaps the DB isn't running?";
-    }
+    boost::shared_ptr<MysqlCube::ThreadConnection> tc = get_uncached_connection(driver);
     connectionPool[tid] = tc;
 
     //TODO: make thread ends clear the connection pool entry. Tricky because this can be called from
     //constructor and destructor
 
-    //boost::this_thread::at_thread_exit(boost::bind(&MysqlCube::on_thread_exit, shared_from_this(), tid));
+#ifdef THREADPOOL_IS_STATIC
+    boost::this_thread::at_thread_exit(boost::bind(&MysqlCube::on_thread_exit,  tid, tc));
+#else
+
     boost::this_thread::at_thread_exit(boost::bind(&sql::Driver::threadEnd, driver));
     if(connectionPool.size() == 1) {
       for (size_t i = 0; i < dimensions.size(); i++) {
         dimensions[i]->set_connection(tc->connection);
       }
     }
-    
+#endif
   }
 
   if(connectionPool.count(tid) != 1) {
@@ -93,13 +99,18 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
   return connectionPool[tid];
 }
 
-/*void MysqlCube::on_thread_exit(boost::thread::id tid)
-{
-  //TODO: make this erase from 
-  //connectionPool.erase(tid);
+boost::shared_ptr<sql::Connection> MysqlCube::get_connection() {
+  return MysqlCube::get_thread_connection()->connection;
+}
+
+
+void MysqlCube::on_thread_exit(boost::thread::id tid, shared_ptr<ThreadConnection> tc) {
+  unique_lock<boost::upgrade_mutex> lock(connectionLock);
+  //TODO need to lock here
+  connectionPool.erase(tid);
   sql::Driver * driver = sql::mysql::get_driver_instance();
   driver->threadEnd();
-}*/
+}
 
 void
 jetstream::cube::MysqlCube::execute_sql (const string &sql){
@@ -285,6 +296,7 @@ string jetstream::cube::MysqlCube::get_insert_prepared_sql(size_t batch) {
 
   sql += vals+" ";
   sql += "ON DUPLICATE KEY UPDATE "+boost::algorithm::join(updates, ", ");
+  VLOG(1) << "prepared insert statement: " << sql;
   return sql;
 }
 
@@ -304,7 +316,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(s
 }
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_lock_prepared_statement(string table_name) {
-  string key = "Lock|"+ table_name;
+  string key = "Lock|"+ table_name; //Note we don't add cube name to key since it's redundant with table name
 
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
@@ -328,7 +340,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_unlock_prepared_stateme
 }
 
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_select_cell_prepared_statement(size_t batch, std::string unique_key) {
-  string key = "selectCell|"+boost::lexical_cast<string>(batch)+"|"+unique_key;
+  string key = "selectCell|" + name +"|"+ boost::lexical_cast<string>(batch)+"|"+unique_key;
 
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
@@ -339,7 +351,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_select_cell_prepared_st
   return tc->preparedStatementCache[key];
 }
 boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_statement(size_t batch) {
-  string key = "insert_prepared_statement|"+boost::lexical_cast<string>(batch);
+  string key = "ins_prepared|" + name +"|"+boost::lexical_cast<string>(batch);
 
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
@@ -377,6 +389,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
   
   insert_stmt = get_insert_prepared_statement(1);
   field_index = 1;
+//  LOG(INFO) << "Saving tuple; statement is " << insert_stmt->;
   for(size_t i=0; i<dimensions.size(); i++) {
     dimensions[i]->set_value_for_insert_tuple(insert_stmt, t, field_index);
   }
@@ -777,3 +790,43 @@ MysqlCube::do_rollup(std::list<unsigned int> const &levels, jetstream::Tuple con
 
   execute_sql(sql);
 }
+
+
+
+boost::shared_ptr<std::map<std::string, int> >
+MysqlCube::list_sql_cubes() {
+
+  boost::shared_ptr<map<string,int> > cubeList(new map<string,int>());
+
+  sql::Driver * driver = sql::mysql::get_driver_instance();
+  boost::shared_ptr<MysqlCube::ThreadConnection> tconn =  MysqlCube::get_uncached_connection(driver);
+  sql::ResultSet * res = tconn->statement->executeQuery("SHOW TABLES");
+  while (res->next()) {
+    string s = res->getString(1);
+    cout << s << endl;
+    if (s.substr(s.length() - 8).rfind("_rollup") != string::npos) {
+      (*cubeList)[s] = 1;
+    }
+  }
+  
+  return cubeList;
+}
+
+
+void MysqlCube::set_db_params(string host, string user, string pass, string name) {
+  db_host = host;
+  db_user = user;
+  db_pass = pass;
+  db_name = name;
+}
+
+string MysqlCube::db_host;
+string MysqlCube::db_user;
+string MysqlCube::db_pass;
+string MysqlCube::db_name;
+
+#ifdef THREADPOOL_IS_STATIC
+std::map<boost::thread::id, boost::shared_ptr<MysqlCube::ThreadConnection> >
+MysqlCube::connectionPool;
+boost::upgrade_mutex MysqlCube::connectionLock;
+#endif

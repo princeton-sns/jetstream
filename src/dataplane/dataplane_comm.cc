@@ -38,7 +38,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
         data->MergeFrom (msg.data(i));
         assert (data->e_size() > 0);
 
-        dest->process(data);
+        dest->process(data, remote_op);
       }
       break;
     }
@@ -243,8 +243,8 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       msec_t wait,
                                       boost::shared_ptr<TupleSender> p)
   : mgr(dcm), iosrv(io), chainIsReady(false), this_buf_size(0),
-    timer(io), pred(p), wait_for_conn(wait) {
-                                          
+    timer(io), wait_for_conn(wait) {
+  pred = p;
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
   
@@ -277,6 +277,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
   conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
+  if(dest_as_edge.has_max_kb_per_sec())
+    conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
 
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);
@@ -343,7 +345,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
   
 void
-RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t) {
+RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src) {
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
 		 << ". Aborting data message send. Should queue/retry instead?";

@@ -1,4 +1,6 @@
 #include "dimension_string.h"
+#include "mysql_cube.h"
+
 
 using namespace std;
 using namespace jetstream::cube;
@@ -53,8 +55,14 @@ string MysqlDimensionString::get_where_clause(jetstream::Tuple const &t, int &tu
 
   if(e.has_s_val()) {
     tuple_index += 1;
+
     sql::mysql::MySQL_Connection* mysql_conn = dynamic_cast<sql::mysql::MySQL_Connection*>(get_connection().get());
-    string str = mysql_conn->escapeString(e.s_val());
+    std::string str = mysql_conn->escapeString(e.s_val());
+
+//    boost::shared_ptr<sql::Connection> sqlconn = cube::MysqlCube::get_s_connection();
+ //   sql::mysql::MySQL_Connection* mysql_conn = dynamic_cast<sql::mysql::MySQL_Connection*>(sqlconn.get());
+//    sql::mysql::MySQL_Connection conn;
+//    string str = conn.escapeString(e.s_val());
     return "`"+get_base_column_name() + "` "+ op +" \""+str+"\"";
   }
 

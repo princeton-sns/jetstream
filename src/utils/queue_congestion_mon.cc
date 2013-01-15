@@ -12,7 +12,7 @@ QueueCongestionMonitor::capacity_ratio() {
   usec_t now = get_usec();
   
     //only sample every 100 ms
-  if (now > lastQueryTS + 100 * 1000) {
+  if (now > lastQueryTS + SAMPLE_INTERVAL_MS * 1000) {
 //    usec_t sample_period = now - lastQueryTS;
     lastQueryTS = now;
   
@@ -27,6 +27,13 @@ QueueCongestionMonitor::capacity_ratio() {
       prevRatio = 0; //should stop sends altogether to let things drain
     else
       prevRatio = availRoom /(double) inserts + 1.0;
+    
+    double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
+    prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
+/*    double ratio_by_max_rate = ;
+    if (ratio_by_max_rate > prevRatio) {
+      prevRatio = ratio_by_max_rate);
+    }*/
     
     LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
          " inserts; queue length " << queueLen << ". Space Ratio is " << prevRatio << ", upstream is " << upstream_status;

@@ -35,7 +35,7 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_response(200)
     self.send_header("Content-type", "text/html")
     self.end_headers()
-    self.wfile.write("<html><head><title>JetStream Status.</title></head>")
+    self.wfile.write("<html><head><title>JetStream Status</title></head>")
     self.wfile.write("<body>")
     self.print_node_list()
     self.wfile.write("<hr/>")    
@@ -68,6 +68,6 @@ class  JSWebInterface(BaseHTTPServer.BaseHTTPRequestHandler):
       if cube_location is not None:
         self.wfile.write("<li>Cube %s on node %s</li>" % (cube_name, str(cube_location)))
       else:
-        self.wfile.write("<li>Cube %s is currently inaccessible.</li>")
+        self.wfile.write("<li>Cube %s is currently inaccessible.</li>" % cube_name)
     self.wfile.write("</ul>")
 

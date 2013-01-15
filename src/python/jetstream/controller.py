@@ -91,10 +91,11 @@ class Controller (ControllerAPI, JSServer):
     self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE
     self.computations = {}  #maps ID to Computation
     self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
-      # acknowledged.
+      # acknowledged. Note this is NODE ID, not local port!
     self.hbInterval = hbInterval
     self.running = False
     self.livenessThread = None
+    
     # Given GIL, coarse-grained locking should be sufficient
     self.stateLock = threading.RLock()
     self.nextCompID = 1

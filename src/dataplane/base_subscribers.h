@@ -55,6 +55,26 @@ class UnionSubscriber: public Subscriber {
 
 } /* cube */
 
+class Querier {
+
+ public:
+    operator_err_t configure(std::map<std::string,std::string> &config, operator_id_t);
+    cube::CubeIterator do_query();
+
+    jetstream::Tuple min;
+    jetstream::Tuple max;
+    void set_cube(DataCube *c) {cube = c;}
+  
+    void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;} 
+
+ protected:
+    volatile bool rollup_is_dirty; //should have real rollup manager eventually.
+    operator_id_t id;
+    std::list<std::string> sort_order;
+    DataCube * cube;
+    int32_t num_results; //a limit on the number of results returned. 0 = infinite
+
+};
 
 /***
 Takes as configuration a set of dimensions, including a distinguished time dimension;
@@ -74,15 +94,12 @@ class TimeBasedSubscriber: public jetstream::cube::Subscriber {
     int ts_field; //which field is the timestamp?
     int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
 //    int32_t maxTsSeen;
-    std::list<std::string> sort_order;
-    int32_t num_results; //a limit on the number of results returned. 0 = infinite
-    jetstream::Tuple min;
-    jetstream::Tuple max;
   
 //    boost::mutex mutex; //protects next_window_start_time
     time_t next_window_start_time; //all data from before this should be visible
     int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
-        //estimate will tend to be high: some of this data still arrived "in time" 
+        //estimate will tend to be high: some of this data still arrived "in time"
+   Querier querier;
   public:
     TimeBasedSubscriber(): running(true),next_window_start_time(0),backfill_tuples(0) {};
 

@@ -58,7 +58,11 @@ class DataCube : public TupleReceiver {
      * @param t
      */
 
-    void process(boost::shared_ptr<Tuple> t);
+    virtual void process(boost::shared_ptr<Tuple> t);
+    virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t src) {
+      process(t);
+    }
+
     size_t batch_size();
     void set_batch_timeout(boost::posix_time::time_duration batch_timeout);
     void set_elements_in_batch(size_t size);
@@ -93,6 +97,8 @@ class DataCube : public TupleReceiver {
     
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
 
+    virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
+    virtual std::vector<size_t> aggregate_offset(std::string) = 0;
 
     /**
     * It's possible to mark a cube as locked. The intended use of this is to allow

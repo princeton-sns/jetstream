@@ -181,7 +181,9 @@ void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_
 void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   lock_guard<boost::shared_mutex> lock(subscriberLock);
   
-  assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
+  LOG_IF(FATAL, sub->has_cube()) << "can't attach subscriber" << sub->id() << " to cube " << name<<
+    "; it is already attached to " << sub->cube->name;
+//  assert(!sub->has_cube()); //for now, assume subscriber-cube matching is permanent
   sub->set_cube(this);
   subscribers[sub->id()] = sub;
   LOG(INFO) << "Adding subscriber "<< sub->id() << " to " << id_as_str(); 
