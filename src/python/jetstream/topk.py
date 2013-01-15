@@ -43,8 +43,10 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
 
   
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, 2, 4, 100);
+  latency_measure_op.instantiate_on(root_node)
   echo_op = jsapi.Echo(g);
   echo_op.set_cfg("file_out", latencylog)
+  echo_op.instantiate_on(root_node)
 
   g.connect(final_cube, pull_op)  
   g.connect(pull_op, eval_op)
