@@ -64,8 +64,11 @@ class Querier {
     jetstream::Tuple min;
     jetstream::Tuple max;
     void set_cube(DataCube *c) {cube = c;}
+  
+    void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;} 
 
  protected:
+    volatile bool rollup_is_dirty; //should have real rollup manager eventually.
     operator_id_t id;
     std::list<std::string> sort_order;
     DataCube * cube;

@@ -124,6 +124,8 @@ message Edge {
   optional int32 dest = 5;         // operator ID, local
   optional string dest_cube = 6;   // cube name, local or remote
   optional NodeID dest_addr = 7;   // dest address if remote
+  
+  optional double max_kb_per_sec = 8;
 }
 
 
