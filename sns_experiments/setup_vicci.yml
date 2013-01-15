@@ -4,9 +4,7 @@
 # 2) install ssh forward-agent so that you can pass your key along for git 
 # 3) add hosts you are working with to ansible_hosts file under [setup] section 
 # 4) run the following:
-# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
-#
-#
+#ANSIBLE_SSH_ARGS=""  ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream -M "`pwd`/modules/"
 #
 # This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
 # mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
@@ -16,50 +14,42 @@
 
 ###initial packages###
 - hosts: setup
+  gather_facts: no
+  connection: paramiko
+  tasks:
+      - action: fireball bind_address=${public_ip}
+
+- hosts: setup
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
+  connection: fireball
   tasks:
-  - name: install cmake
-    yum: name=cmake state=present
-  - name: install gtest
-    yum: name=gtest state=present
-  - name: install python setup tools
-    yum: name=python-setuptools state=present
-  - name: install libgtest-dev
-    yum: name=gtest-devel state=present
-  - name: install glog
-    yum: name=glog-devel state=present
-  - name: install mysql
-    yum: name=mysql-server state=present
-  - name: install mysqldb python 
-    yum: name=MySQL-python state=present
-  - name: install mysqlc++ 
-    yum: name=mysql-connector-c++-devel state=present
-  - name: install git 
-    yum: name=git state=present
-  - name: install gcc 
-    yum: name=gcc state=present
-  - name: install gcc-c++ 
-    yum: name=gcc-c++ state=present
-  - name: install make 
-    yum: name=make state=present
-  - name: install wget 
-    yum: name=wget state=present
-  - name: install ntp 
-    yum: name=ntp state=present
-  - name: install tar
-    yum: name=tar state=present
-  - name: install bzip2-devel #for boost compile
-    yum: name=bzip2-devel state=present
-  - name: install python-devel #for boost compile
-    yum: name=python-devel state=present
+  - name: install packages
+    yum: name=$item state=present
+    with_items:
+      - cmake
+      - gtest
+      - python-setuptools
+      - gtest-devel
+      - glog-devel
+      - mysql-server
+      - MySQL-python
+      - mysql-connector-c++-devel
+      - git
+      - gcc
+      - gcc-c++
+      - make
+      - wget #maybe unnecessary now with get_url
+      - ntp
+      - tar
+      - bzip2-devel #for boost compile
+      - python-devel #for boost compile
   - name: make sure jetstream deps dir exists
     file: dest=/jetstream/deps state=directory mode=777
   - name: download boost
-    command: wget http://downloads.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.gz -O boost_1_52_0.tar.gz 
-              chdir=/jetstream/deps
-              creates=/jetstream/deps/boost_1_52_0.tar.gz
+    get_url: url=http://downloads.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.gz 
+              dest=${js_deps}/boost_1_52_0.tar.gz 
   - name: untar boost
     command: tar -xzf boost_1_52_0.tar.gz
               chdir=/jetstream/deps
@@ -69,16 +59,17 @@
               chdir=/jetstream/deps/boost_1_52_0
               creates=/jetstream/deps/boost_1_52_0/project-config.jam
   - name: b2 boost
-    command: ./b2
+    action: command ./b2
               chdir=/jetstream/deps/boost_1_52_0
               creates=/jetstream/deps/boost_1_52_0/stage/lib
+     #async: 1000
+     #poll: 10
      #include: /jetstream/deps/boost_1_52_0
      #lib: /jetstream/deps/boost_1_52_0/stage/lib
 #mysql cpp connector
   - name: download mysql cpp conn
-    command: wget http://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz/from/http://cdn.mysql.com/ -O mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz 
-            chdir=${js_deps} 
-            creates=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
+    get_url: url=http://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz/from/http://cdn.mysql.com/
+            dest=${js_deps}/mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
   - name: untar mysql cpp conn
     command: tar -xzf mysql-connector-c++-1.1.1-linux-glibc2.3-x86-64bit.tar.gz
             chdir=${js_deps} 
@@ -100,9 +91,8 @@
   - name: make sure protobufs dir exists
     file: dest=${js_deps}/protobufs state=directory mode=777
   - name: download protobufs
-    command: wget http://archive.ubuntu.com/ubuntu/pool/main/p/protobuf/protobuf_2.4.1.orig.tar.gz -O protobuf_2.4.1.orig.tar.gz 
-            chdir=${js_deps} 
-            creates=${js_deps}/protobuf_2.4.1.orig.tar.gz
+    get_url: url=http://archive.ubuntu.com/ubuntu/pool/main/p/protobuf/protobuf_2.4.1.orig.tar.gz
+              dest=${js_deps}/protobuf_2.4.1.orig.tar.gz
   - name: untar protobufs
     command: tar -xzf protobuf_2.4.1.orig.tar.gz
             chdir=${js_deps} 

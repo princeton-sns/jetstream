@@ -12,7 +12,7 @@
 
 
 ### download and build js###
-- hosts: setup
+- hosts: workers
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
@@ -34,7 +34,8 @@
               -DPROTOBUF_PROTOC_EXECUTABLE=${js_deps}/protobufs/bin/protoc ../
               chdir=${js_checkout}/build
   - name: make js
-    command: make --quiet -j ${num_cores}
+#the -j 24 seems to give very poor performance on vicci
+    command: make --quiet
             chdir=${js_checkout}/build
   - name: cp tests data
     command: cp -r src/tests build/src/
