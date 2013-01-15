@@ -119,22 +119,23 @@ ConnectedSocket::SerializedMessageOut::SerializedMessageOut
 }
 
 
-void
+size_t
 ConnectedSocket::send_msg (const ProtobufMessage &m,
 			   boost::system::error_code &error)
 {
   if (!sock->is_open()) {
     error = make_error_code(boost::system::errc::connection_reset);
-    return;
+    return 0;
   }
   if (sock_state != CS_open) {
     LOG(ERROR) << "attempt to send through closed socket"; //programmer error
     error = make_error_code(boost::system::errc::connection_reset);
-    return;
+    return 0;
   }
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
     sendStrand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
+  return msg->nbytes;
 }
 
 

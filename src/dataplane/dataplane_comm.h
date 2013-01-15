@@ -32,7 +32,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   DataplaneConnManager& mgr;
   boost::asio::io_service & iosrv;
 
-
+  boost::shared_ptr<QueueCongestionMonitor> remote_processing;
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
@@ -94,7 +94,7 @@ class RemoteDestAdaptor : public TupleReceiver {
       boost::shared_ptr<CongestionMonitor> m;
       return m; //no monitor
     }
-    return conn->congestion_monitor();
+    return remote_processing;
   }
   
 };

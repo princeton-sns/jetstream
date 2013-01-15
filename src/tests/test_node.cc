@@ -377,6 +377,13 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   data_conn.send_msg(data_msg);
   
   cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
+  
+  resp = data_conn.get_data_msg();
+  cout << "got data response" << endl;
+  ASSERT_EQ(DataplaneMessage::ACK, resp->type());
+  ASSERT_EQ(data_msg.ByteSize(), resp->bytes_processed());
+
+  
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
 
   //TODO better way to wait here?
@@ -392,7 +399,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   data_conn.send_msg(echo);
   cout << "sent ping" << endl;
   resp = data_conn.get_data_msg();
-  cout << "got response" << endl;
+  cout << "got ping response" << endl;
   ASSERT_EQ(echo.Utf8DebugString(), resp->Utf8DebugString());
   
 }

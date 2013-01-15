@@ -145,16 +145,16 @@ ClientConnection::close_now() {
 }
 
 
-void 
+size_t 
 ClientConnection::send_msg (const ProtobufMessage &msg,
 			    boost::system::error_code &error)
 {
   if (!connected || !connSock) {
     error = asio::error::not_connected;
-    return;
+    return 0;
   }
   
-  connSock->send_msg(msg, error);
+  return connSock->send_msg(msg, error);
 }
 
 
