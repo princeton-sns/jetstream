@@ -287,11 +287,11 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   mon_name << "connection to " << c->get_remote_endpoint();
 
   remote_processing = boost::shared_ptr<QueueCongestionMonitor>(
-    new QueueCongestionMonitor(mgr.maxQueueSize(), mon_name.str(), dest_as_edge.max_kb_per_sec() * 1000));
+    new QueueCongestionMonitor(mgr.maxQueueSize(), mon_name.str()));
 
 //  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
-//  if(dest_as_edge.has_max_kb_per_sec())
-//    conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
+  if(dest_as_edge.has_max_kb_per_sec())
+     remote_processing->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
 
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);
