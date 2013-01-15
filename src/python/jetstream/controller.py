@@ -99,6 +99,7 @@ class Controller (ControllerAPI, JSServer):
     # Given GIL, coarse-grained locking should be sufficient
     self.stateLock = threading.RLock()
     self.nextCompID = 1
+    self.last_HB_ts = 0 # we only print one HB per second
 
   def handle_connection_close (self, cHandler):
     """Overrides parent class method."""
@@ -215,7 +216,8 @@ class Controller (ControllerAPI, JSServer):
 
     #TODO: Reschedule worker's assignments elsewhere, etc.
 
-    
+  
+  
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
     self.stateLock.acquire()
@@ -226,7 +228,9 @@ class Controller (ControllerAPI, JSServer):
     node_count = len(self.workers)
     self.workers[clientEndpoint].receive_hb(hb)
     self.stateLock.release()
-    print "got heartbeat at %s from sender %s. %d nodes in system" % (time.ctime(t), str(clientEndpoint), node_count)
+    if t > self.last_HB_ts:
+      logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
+      self.last_HB_ts = t
 
 
   def handle_alter (self, response, altertopo):
