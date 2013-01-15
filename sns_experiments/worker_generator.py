@@ -7,7 +7,6 @@ servers=[
 "node11.stanford.vicci.org",
 "node12.stanford.vicci.org",
 "node13.stanford.vicci.org",
-"node11.princeton.vicci.org",
 "node13.princeton.vicci.org",
 "node10.princeton.vicci.org",
 "node1.stanford.vicci.org",
@@ -36,7 +35,8 @@ servers=[
 "node9.princeton.vicci.org",
 "node9.stanford.vicci.org",
 "node9.mpisws.vicci.org",
-
+## controller
+"node11.princeton.vicci.org",
 ]
 for server in servers:
   print server + " public_ip=" +socket.gethostbyname(server)
