@@ -40,6 +40,12 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 
         dest->process(data, remote_op);
       }
+      DataplaneMessage resp;
+      resp.set_type(DataplaneMessage::ACK);
+      resp.set_bytes_processed(msg.ByteSize());
+      boost::system::error_code err;
+      
+      conn->send_msg(resp, err);
       break;
     }
   case DataplaneMessage::NO_MORE_DATA:
@@ -58,19 +64,19 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     }
     break;
   
-  case DataplaneMessage::SET_BACKOFF:
-  case DataplaneMessage::CONGEST_STATUS:
+  
+  default:
+//      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from "
+//                   << conn->get_remote_endpoint() << " for existing dataplane connection";
+      //fall through
+//  case DataplaneMessage::SET_BACKOFF:
+//  case DataplaneMessage::CONGEST_STATUS:
+//  case DataplaneMessage::END_OF_WINDOW:
     {
       dest->meta_from_upstream(msg, remote_op);
     }
     break;
 
-
-  //  
-    
-  default:
-      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from " 
-                   << conn->get_remote_endpoint() << " for existing dataplane connection";
   }
 
   // Wait for the next data message
@@ -276,12 +282,20 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);
-  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
+  
+  std::ostringstream mon_name;
+  mon_name << "connection to " << c->get_remote_endpoint();
+
+  remote_processing = boost::shared_ptr<QueueCongestionMonitor>(
+    new QueueCongestionMonitor(mgr.maxQueueSize(), mon_name.str()));
+
+//  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
   if(dest_as_edge.has_max_kb_per_sec())
-    conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
+     remote_processing->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
 
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);
+  
   
   boost::system::error_code err;
   conn->recv_data_msg(boost::bind(&RemoteDestAdaptor::conn_ready_cb, 
@@ -321,7 +335,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       double status = msg.congestion_level();
       VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
-      conn->congestion_monitor()->set_upstream_congestion(status);
+      remote_processing->set_upstream_congestion(status);
       break;
     }
 
@@ -331,7 +345,12 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       break;
     }
 
-
+    case DataplaneMessage::ACK:
+    {
+      remote_processing->report_delete(0, msg.bytes_processed());
+      break;
+    }
+  
     default:
       LOG(WARNING) << "unexpected incoming message after chain connect: " << msg.Utf8DebugString()
                    << std::endl << "Error code is " << error;
@@ -387,7 +406,7 @@ RemoteDestAdaptor::do_send_unlocked() {
   timer.cancel();
   
   boost::system::error_code err;
-  conn->send_msg(msg, err);
+  int sent = conn->send_msg(msg, err);
   msg.Clear();
   
   if (err != 0) {
@@ -395,7 +414,10 @@ RemoteDestAdaptor::do_send_unlocked() {
     LOG(WARNING) << "Send failed; tearing down chain; local end is " << pred->id_as_str();
     pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
+  } else {
+    remote_processing->report_insert(0, sent);
   }
+  
 }
 
 void

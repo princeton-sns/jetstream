@@ -108,7 +108,7 @@ class ClientConnection {
   void close_async (close_cb_t);
 
   // Underlying use of async writes are thread safe
-  void send_msg (const ProtobufMessage &msg,
+  size_t send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
   
   // void recv_msg (cb_protomsg_t cb, boost::system::error_code &error);

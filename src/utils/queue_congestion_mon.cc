@@ -36,7 +36,7 @@ QueueCongestionMonitor::capacity_ratio() {
     }*/
     
     LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
-         " inserts; queue length " << queueLen << ". Space Ratio is " << prevRatio << ", upstream is " << upstream_status;
+         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", upstream is " << upstream_status;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = queueLen;
   }

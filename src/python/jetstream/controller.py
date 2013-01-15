@@ -215,9 +215,9 @@ class Controller (ControllerAPI, JSServer):
       #print worker, req
       # Send without waiting for response; we'll hear back in the main network message
       # handler
-      logger.info("XXX sending to %s", str(workerID))
+#      logger.info("XXX sending to %s", str(workerID))
       h.send_pb(req)
-      logger.info("XXX send to %s returned", str(workerID))
+#      logger.info("XXX send to %s returned", str(workerID))
 
 
   def worker_died (self, workerID):

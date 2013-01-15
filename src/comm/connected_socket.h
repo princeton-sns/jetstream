@@ -155,7 +155,8 @@ friend class ClientConnection;
 
 
   // Underlying use of async writes are NOT thread safe; we wrap them here
-  void send_msg (const ProtobufMessage &msg,
+  // returns # of bytes queued for send, or 0 on error
+  size_t send_msg (const ProtobufMessage &msg,
 		 boost::system::error_code &error);
 
   // Clients of this class use this method to register the receive callback
