@@ -843,29 +843,33 @@ TEST(Cube,Attach) {
   shared_ptr<DataCube> cube = node.get_cube(cubeName);
   ASSERT_TRUE( cube );
 
-  for(int i =0; i < 5 &&  cube->num_leaf_cells() < 1; i++) {
-    js_usleep(1000000);
+  for(int i =0; i < 20 &&  cube->num_leaf_cells() < 1; i++) {
+    js_usleep(100 * 1000);
   }
 
-  ASSERT_EQ(1U, cube->num_leaf_cells());  //we sent two tuples that hsould have been aggregated
+  ASSERT_EQ(1U, cube->num_leaf_cells());  //we sent several tuples that should have been aggregated
   Tuple empty = cube->empty_tuple();
 
   cube::CubeIterator it = cube->slice_query(empty, empty);
 
-  for(int i =0; i < 5 &&  (it.numCells() < 1 || (*it)->e_size() < 2); i++) {
-    js_usleep(1000000);
+  for(int i =0; i < 20 &&  (it.numCells() < 1 || (*it)->e_size() < 2); i++) {
+    js_usleep(100 * 1000);
     it = cube->slice_query(empty, empty);
   }
 
   ASSERT_EQ(1U, it.numCells());
   int total_count = 0;
-  shared_ptr<Tuple> t = *it;
-  ASSERT_EQ(2, t->e_size()); //two elements; the dimension and the the count
-  ASSERT_EQ(K-1, t->version()); //k - 1
-  
-  total_count += t->e(1).i_val();
-
+ 
+  {  //scope to hide 't'
+    shared_ptr<Tuple> t = *it;
+    ASSERT_EQ(2, t->e_size()); //two elements; the dimension and the the count
+    ASSERT_EQ(K-1, t->version()); //k - 1
+    
+    total_count += t->e(1).i_val();
+  }
   ASSERT_EQ(K, total_count);
+  
+  
   cout << "done"<< endl;
   node.stop();
 

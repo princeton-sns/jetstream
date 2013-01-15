@@ -778,15 +778,16 @@ MysqlCube::do_rollup(std::list<unsigned int> const &levels, jetstream::Tuple con
     select_clause.push_back(aggregates[i]->get_select_clause_for_rollup());
   }
 
-  string sql = "INSERT INTO `"+get_rollup_table_name()+"`";
+  string sql = "REPLACE INTO `"+get_rollup_table_name()+"`";
   sql += " ("+boost::algorithm::join(column_names, ", ")+") ";
   sql += "SELECT "+boost::algorithm::join(select_clause, ", ");
-  sql += "FROM "+get_table_name();
+  sql += " FROM "+get_table_name();
   sql += get_where_clause(min, max);
 
   if(!groupby_clause.empty()) {
     sql += " GROUP BY "+boost::algorithm::join(groupby_clause, ", ");
   }
+//  sql += " ON DUPLICATE KEY UPDATE";
 
   execute_sql(sql);
 }

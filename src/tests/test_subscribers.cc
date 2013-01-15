@@ -62,7 +62,10 @@ class SubscriberTest : public ::testing::Test {
     node->handle_alter(topo, r);
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     cout << "alter sent; cube should be present" << endl;
-    
+  }
+  
+  virtual void TearDown() {
+    node->stop();
   }
   
   void add_tuples(shared_ptr<DataCube> cube) {
@@ -93,7 +96,8 @@ class SubscriberTest : public ::testing::Test {
   
   //add a subscriber of typename subscriberName;
   // returns a pointer to the dummy operator
-  shared_ptr<DummyReceiver> start_time_subscriber(const string& subscriberName) {
+  shared_ptr<DummyReceiver> start_time_subscriber (const string& subscriberName,
+                                                   const string& rollupLevels = "") {
   
     AlterTopo topo;
   
@@ -103,28 +107,27 @@ class SubscriberTest : public ::testing::Test {
     id->set_task(1);
     task->set_op_typename(subscriberName);
     //TODO MORE CONFIG HERE
-    TaskMeta_DictEntry* op_cfg = task->add_config();
+
+    add_cfg_to_task(task, "num_results", "100");
 
     Tuple query_tuple;
     extend_tuple(query_tuple, "http://foo.com");
-    extend_tuple_time(query_tuple, 0); //just a placeholder
 
-    op_cfg = task->add_config();
-    op_cfg->set_opt_name("slice_tuple");
-    op_cfg->set_val(query_tuple.SerializeAsString());
 
-    op_cfg = task->add_config();
-    op_cfg->set_opt_name("ts_field");
-    op_cfg->set_val("1");
-
-    op_cfg = task->add_config();
-    op_cfg->set_opt_name("start_ts");
-    op_cfg->set_val("0");
-
-    op_cfg = task->add_config();
-    op_cfg->set_opt_name("num_results");
     // Set the result limit large enough for our tests
-    op_cfg->set_val("100");
+    
+    if (rollupLevels.length() > 0) {
+      add_cfg_to_task(task, "rollup_levels", rollupLevels);
+      query_tuple.add_e();
+    } else {
+      add_cfg_to_task(task,"ts_field","1");
+      add_cfg_to_task(task, "start_ts", "0");    
+      extend_tuple_time(query_tuple, 0); //just a placeholder
+
+    }
+
+    add_cfg_to_task(task,"slice_tuple",query_tuple.SerializeAsString());
+
     
     task = topo.add_tostart();
     id = task->mutable_id();
@@ -161,8 +164,8 @@ TEST_F(SubscriberTest,TimeSubscriber) {
 
   add_tuples(cube);
   int tries = 0;
-  while (cube->num_leaf_cells() < 4 && tries++ < 5)
-    js_usleep(1000000);
+  while (cube->num_leaf_cells() < 4 && tries++ < 50)
+    js_usleep(100 * 1000);
   
   ASSERT_EQ(4U, cube->num_leaf_cells());
   //create subscriber
@@ -170,8 +173,8 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout << "subscriber started" << endl;
   
   tries = 0;
-  while (rec->tuples.size() < 4 && tries++ < 5)
-    js_usleep(1000000);
+  while (rec->tuples.size() < 4 && tries++ < 50)
+    js_usleep(100 * 1000);
   
   ASSERT_EQ(4U, rec->tuples.size());  // one very old, three newish
   
@@ -187,8 +190,8 @@ TEST_F(SubscriberTest,TimeSubscriber) {
 
   js_usleep(1000* 1000);
   
-  while (rec->tuples.size() < 5 && tries++ < 5)
-    js_usleep(1000 * 1000);
+  while (rec->tuples.size() < 5 && tries++ < 50)
+    js_usleep(100 * 1000);
 
   ASSERT_EQ(5U, rec->tuples.size()); //update to old tuple should be suppressed
   ASSERT_TRUE(rec->tuples[0]->has_version());
@@ -196,6 +199,46 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout << "done" <<endl;
 }
 
+
+
+TEST_F(SubscriberTest,TimeSubscriberRollup) {
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+
+  add_tuples(cube);
+
+  int tries = 0;
+  while (cube->num_leaf_cells() < 4 && tries++ < 50)
+    js_usleep(100 * 1000);
+
+  ASSERT_EQ(4U, cube->num_leaf_cells());
+  //create subscriber
+    cout << "now checking rollups" << endl;
+
+  string rollup_levels = "1,0"; //roll up time
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", rollup_levels);
+  cout << "subscriber started" << endl;
+  
+  tries = 0;
+  while (rec->tuples.size() < 1 && tries++ < 50)
+    js_usleep(100 * 1000);
+
+  ASSERT_EQ(1U, rec->tuples.size());
+//  cout << "Tuple: " << fmt( *(rec->tuples[0])) << endl;
+  ASSERT_EQ(8U, rec->tuples[0]->e(2).i_val());
+  
+/*
+  {
+    boost::shared_ptr<Tuple> t2(new Tuple);
+    extend_tuple(*t2, "new text");
+    extend_tuple(*t2, 5);
+    t2->set_version(1);
+    cube->process(t2);
+    for(int i =0; i < 20 &&  cube->num_leaf_cells() < 2; i++) {
+      js_usleep(100 * 1000);
+    }
+  }*/
+
+}
 
 TEST(LatencyMeasureSubscriber,TwoTuples) {
   const int NUM_TUPLES = 4;

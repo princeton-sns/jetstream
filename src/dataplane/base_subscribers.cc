@@ -60,14 +60,44 @@ Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id)
         sort_order.push_back(item);
     }
   }
+
+  if (config.find("rollup_levels") != config.end()) {
+    std::stringstream ss(config["rollup_levels"]);
+    std::string item;
+    while(std::getline(ss, item, ',')) {
+      unsigned int level = lexical_cast<unsigned int>(item);
+      rollup_levels.push_back(level);
+    }
+  }
+
   return NO_ERR;
 }
 
+template<typename T>
+std::string fmt_list(const std::list<T>& l) {
+  ostringstream out;
+  typename list<T>::const_iterator i;
+  out << "(";
+	for( i = l.begin(); i != l.end(); ++i)
+		out << *i << " ";
+  out << ")";
+	return out.str();
+}
 
 cube::CubeIterator Querier::do_query() {
-  VLOG(1) << id << " doing query; range is " << fmt(min) << " to " << fmt(max);
-  cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, num_results);
-  return it;
+  
+  if (rollup_levels.size() > 0) {
+    VLOG(1) << id << " doing rollup query. Range is " << fmt(min) << " to " << fmt(max) <<
+     " and rollup levels are " << fmt_list(rollup_levels);
+
+    cube->do_rollup(rollup_levels, min, max);
+    VLOG(1) << "rollup done; now doing query";
+    return cube->rollup_slice_query(rollup_levels, min, max);
+  } else {
+    VLOG(1) << id << " doing query; range is " << fmt(min) << " to " << fmt(max);
+  
+    return cube->slice_query(min, max, true, sort_order, num_results);
+  }
 }
 
 cube::Subscriber::Action

@@ -92,7 +92,10 @@ void MysqlDimensionTime::populate_tuple(boost::shared_ptr<jetstream::Tuple> t, b
     elem->set_t_val(timegm(&temptm));
   }
   else {
-    LOG(FATAL)<<"Error in time conversion";
+    if (timestring.find("0000-00-00", 0) == 0)
+      elem->set_t_val(0);
+    else
+      LOG(FATAL)<<"Error in time conversion; can't parse " << timestring;
   }
 
   ++column_index;
