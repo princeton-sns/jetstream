@@ -824,7 +824,7 @@ TEST(Cube,Attach) {
   agg->set_type("count");
   agg->add_tuple_indexes(1);
 
-  int K = 5;
+  unsigned int K = 5;
   TaskMeta* task =  add_operator_to_alter(topo, operator_id_t(compID, 1), "SendK");
   add_cfg_to_task(task, "k", boost::lexical_cast<string>(K));
   add_cfg_to_task(task, "send_now","true");
@@ -858,7 +858,7 @@ TEST(Cube,Attach) {
   }
 
   ASSERT_EQ(1U, it.numCells());
-  int total_count = 0;
+  unsigned int total_count = 0;
   shared_ptr<Tuple> t = *it;
   ASSERT_EQ(2, t->e_size()); //two elements; the dimension and the the count
   ASSERT_EQ(K-1, t->version()); //k - 1
