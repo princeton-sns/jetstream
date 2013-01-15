@@ -105,8 +105,9 @@ class Controller (ControllerAPI, JSServer):
     """Overrides parent class method."""
     wID = cHandler.cli_addr
 #    logger.info("Marking worker %s:%d as dead due to closed connection" % (wID[0],wID[1]))  #Note not all sockets are with workers. There's also the client.
-    self.worker_died(wID)
-    JSServer.handle_connection_close(self, cHandler)
+    with self.stateLock:
+      self.worker_died(wID)
+      JSServer.handle_connection_close(self, cHandler)
     
   
   def start (self):
@@ -199,9 +200,24 @@ class Controller (ControllerAPI, JSServer):
     response.nodes.extend(self.serialize_nodeList(nodeList))
     response.node_count = len(nodeList)
 
+  def start_computation_async(self, assignments):
+    t = threading.Thread(group=None, target=self.start_computation_sync, args=(assignments,))
+    t.daemon = True
+    t.start()    
 
 
   ### Methods that are not thread safe
+  
+  def start_computation_sync(self, assignments):
+    for workerID,assignment in assignments.items():
+      req = assignment.get_pb()            
+      h = self.connect_to(workerID)
+      #print worker, req
+      # Send without waiting for response; we'll hear back in the main network message
+      # handler
+      logger.info("XXX sending to %s", str(workerID))
+      h.send_pb(req)
+      logger.info("XXX send to %s returned", str(workerID))
 
 
   def worker_died (self, workerID):
@@ -220,20 +236,21 @@ class Controller (ControllerAPI, JSServer):
   
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
-    self.stateLock.acquire()
-    if clientEndpoint not in self.workers:
-      logger.info("Added worker %s; dp addr %s:%d" % 
-          (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
-      self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
-    node_count = len(self.workers)
-    self.workers[clientEndpoint].receive_hb(hb)
-    self.stateLock.release()
+    with self.stateLock:
+      if clientEndpoint not in self.workers:
+        logger.info("Added worker %s; dp addr %s:%d" % 
+            (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
+        self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+      node_count = len(self.workers)
+      self.workers[clientEndpoint].receive_hb(hb)
+
     if t > self.last_HB_ts:
       logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
       self.last_HB_ts = t
 
 
   def handle_alter (self, response, altertopo):
+    #TODO This method isn't quite thread safe and should be
     response.type = ControlMessage.OK
     
     if len(self.workers) == 0:
@@ -250,29 +267,22 @@ class Controller (ControllerAPI, JSServer):
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
     err = planner.take_raw_topo(altertopo)
     if len(err) > 0:
-      print "Invalid topology: ",err
+      logger.warning("Invalid topology: %s",err)
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
 
     assignments = planner.get_assignments(compID)
-    # Finalize the worker assignments
-    # TODO should this be AFTER we hear back from workers?
-    for workerID,assignment in assignments.items():
-      comp.assign_worker(workerID, assignment)
-      self.workers[workerID].add_assignment(assignment)
-    
-    # Start the computation
-    logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
-    for workerID,assignment in assignments.items():
-      req = assignment.get_pb()            
-      h = self.connect_to(workerID)
-      #print worker, req
-      # Send without waiting for response; we'll hear back in the main network message
-      # handler
-      h.send_pb(req)
-
-    # TODO should construct response to client with computation ID
+    with self.stateLock:  
+      # Finalize the worker assignments
+      # Should this be AFTER we hear back from workers?
+      for workerID,assignment in assignments.items():
+        comp.assign_worker(workerID, assignment)
+        self.workers[workerID].add_assignment(assignment)
+      logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
+        
+    self.start_computation_sync(assignments)
+    return    
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):
@@ -329,10 +339,12 @@ class Controller (ControllerAPI, JSServer):
       logger.fatal("Received dangling OK message from %s" % (str(handler.cli_addr)))
       assert(false)
       return  # no response
-    
+    elif req.type == ControlMessage.ERROR:
+      logger.error("From %s, %s" , ( str(handler.cli_addr), req.error_msg.msg))
     else:
       response.type = ControlMessage.ERROR
-      response.error_msg.msg = "unknown error"
+      response.error_msg.msg = "Got unexpected control message"
+      logger.error("Got unexpected control message %s" % str(req))
 
     handler.send_pb(response)
 
@@ -359,16 +371,13 @@ class Controller (ControllerAPI, JSServer):
 
 
   def assign_comp_id(self):
-  #TODO locking
-    self.stateLock.acquire()
+    with self.stateLock:  
+      compID = self.nextCompID
+      self.nextCompID += 1
+  
+      comp = Computation(compID)
+      self.computations[compID] = comp
 
-    compID = self.nextCompID
-    self.nextCompID += 1
-
-    comp = Computation(compID)
-    self.computations[compID] = comp
-
-    self.stateLock.release()
     return compID,comp
 
 

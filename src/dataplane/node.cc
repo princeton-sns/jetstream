@@ -216,6 +216,8 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
     }
    default:
      LOG(WARNING) << "Unexpected control message: " << msg.Utf8DebugString() << endl;
+     response.set_type(ControlMessage::ERROR);
+     response.mutable_error_msg()->set_msg("Got unexpected message from controller");
      break;
   }
 

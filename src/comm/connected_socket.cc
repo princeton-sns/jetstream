@@ -35,15 +35,15 @@ ConnectedSocket::get_fourtuple () const
 
   tcp::endpoint local = sock->local_endpoint(error_local);
   if (error_local)
-    fourtuple << ":0";
+    fourtuple << "E";
   else
     fourtuple << local.address().to_string() << ":" << local.port();
 
   tcp::endpoint remote = sock->remote_endpoint(error_remote);
-  if (error_remote)
-    fourtuple << ":0";
-  else
-    fourtuple << ":" << remote.address().to_string() << ":" << remote.port();
+  if (error_remote) {
+    fourtuple << "-E";
+  } else
+    fourtuple << "-" << remote.address().to_string() << ":" << remote.port();
 
   return fourtuple.str();
 }
@@ -54,7 +54,7 @@ ConnectedSocket::fail (const boost::system::error_code &error)
 {
   //TODO can we remove this logging statement? It's redundant with downstream I think --asr
   if (error != boost::system::errc::operation_canceled)
-    LOG(WARNING) << "unexpected error in ConnectedSocket::fail on "<<
+    LOG(WARNING) << "unexpected error in ConnectedSocket::fail connecting to "<<
         get_remote_endpoint()<< " " << error.message() << endl;
 
   sending = false;

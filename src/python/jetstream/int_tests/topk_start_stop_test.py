@@ -42,15 +42,17 @@ class TestOpIntegration(unittest.TestCase):
 
   def start_workers(self, num_workers):
     # Use at least 2 workers
-    webPortMin = 8082
+    webPortMin = 8083
     workerProcs = []
     webPort = webPortMin
     for i in range(num_workers):
       # Create a worker 
-      jsnode_cmd = "./jsnoded -a localhost:%d -w %d --start -C ./config/local_new.conf" % (self.controller.address[1], webPort)
+      jsnode_cmd = "./jsnoded -a localhost:%d -w %d --start -C ./config/local_bare.conf" % (self.controller.address[1], webPort)
       webPort += 1
       print "starting",jsnode_cmd
       workerProcs.append(subprocess.Popen(jsnode_cmd, shell=True, preexec_fn=os.setsid))
+      time.sleep(1)
+
     self.workers.extend(workerProcs)
     # Give the workers time to register with the controller
     time.sleep(3)
