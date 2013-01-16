@@ -217,7 +217,6 @@ class JSClient():
     self.sock.close()
 
 
-#TODO: unused?
 # 10/25/12 NC: now I'm using this in client reader
 def sock_send_pb(sock, pb):
   buf = pb.SerializeToString()
