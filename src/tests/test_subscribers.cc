@@ -97,54 +97,31 @@ class SubscriberTest : public ::testing::Test {
   //add a subscriber of typename subscriberName;
   // returns a pointer to the dummy operator
   shared_ptr<DummyReceiver> start_time_subscriber (const string& subscriberName,
+                                                   const Tuple& query_tuple,
                                                    const string& rollupLevels = "") {
   
     AlterTopo topo;
   
-    TaskMeta* task = topo.add_tostart();
-    TaskID * id = task->mutable_id();
-    id->set_computationid(compID);
-    id->set_task(1);
-    task->set_op_typename(subscriberName);
-    //TODO MORE CONFIG HERE
+    TaskMeta* task = add_operator_to_alter(topo, operator_id_t(compID, 1), subscriberName);
 
     add_cfg_to_task(task, "num_results", "100");
-
-    Tuple query_tuple;
-    extend_tuple(query_tuple, "http://foo.com");
 
 
     // Set the result limit large enough for our tests
     
     if (rollupLevels.length() > 0) {
       add_cfg_to_task(task, "rollup_levels", rollupLevels);
-      query_tuple.add_e();
     } else {
       add_cfg_to_task(task,"ts_field","1");
       add_cfg_to_task(task, "start_ts", "0");    
-      extend_tuple_time(query_tuple, 0); //just a placeholder
-
     }
 
     add_cfg_to_task(task,"slice_tuple",query_tuple.SerializeAsString());
 
-    
-    task = topo.add_tostart();
-    id = task->mutable_id();
-    id->set_computationid(compID);
-    id->set_task(2);
-    task->set_op_typename("DummyReceiver");
+    task = add_operator_to_alter(topo, operator_id_t(compID, 2), "DummyReceiver");
 
-
-    Edge * e = topo.add_edges();
-    e->set_src(1);
-    e->set_dest(2);
-    e->set_computation(compID);
-    
-    e = topo.add_edges();
-    e->set_src_cube(TEST_CUBE);
-    e->set_dest(1);
-    e->set_computation(compID);
+    add_edge_to_alter(topo, compID, 1,2);
+    add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
     
     
     ControlMessage r;
@@ -169,7 +146,13 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   
   ASSERT_EQ(4U, cube->num_leaf_cells());
   //create subscriber
-  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber");
+
+  Tuple query_tuple;
+  extend_tuple(query_tuple, "http://foo.com");
+  extend_tuple_time(query_tuple, 0); //just a placeholder
+
+
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple);
   cout << "subscriber started" << endl;
   
   tries = 0;
@@ -199,6 +182,33 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout << "done" <<endl;
 }
 
+TEST_F(SubscriberTest,OneShot) {
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+
+  add_tuples(cube);
+
+  int tries = 0;
+  for (tries = 0; cube->num_leaf_cells() < 4 && tries< 50; tries++)
+    js_usleep(100 * 1000);
+  ASSERT_EQ(4U, cube->num_leaf_cells());
+
+  Tuple query_tuple;
+  extend_tuple(query_tuple, "http://foo.com");
+  query_tuple.add_e();  
+
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("OneShotSubscriber", query_tuple);
+  cout << "subscriber started" << endl;
+  
+  for (tries = 0; rec->tuples.size() < 4 && tries< 50; tries++)
+    js_usleep(100 * 1000);
+  
+  ASSERT_EQ(4U, rec->tuples.size());
+
+  for (tries = 0; node->operator_count() > 2 && tries< 50; tries++)
+    js_usleep(100 * 1000);
+  ASSERT_EQ(1U, node->operator_count()); //operator should be stopped
+
+}
 
 
 TEST_F(SubscriberTest,TimeSubscriberRollup) {
@@ -215,7 +225,11 @@ TEST_F(SubscriberTest,TimeSubscriberRollup) {
     cout << "now checking rollups" << endl;
 
   string rollup_levels = "1,0"; //roll up time
-  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", rollup_levels);
+
+  Tuple query_tuple;
+  extend_tuple(query_tuple, "http://foo.com");
+  query_tuple.add_e();  
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple, rollup_levels);
   cout << "subscriber started" << endl;
   
   tries = 0;
