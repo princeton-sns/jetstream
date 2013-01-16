@@ -189,6 +189,9 @@ TimeBasedSubscriber::operator()() {
   LOG(INFO) << id() << " is attached to " << cube->id_as_str();
   boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
+  DataplaneMessage end_msg;
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+
   while (running)  {
   
     if(congested->is_congested()) {
@@ -201,7 +204,7 @@ TimeBasedSubscriber::operator()() {
       emit(*it);
       it++;      
     }
-
+    send_meta_downstream(end_msg);
     js_usleep(1000 * windowSizeMs);
   
     if (ts_field >= 0) {
