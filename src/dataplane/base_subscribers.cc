@@ -158,13 +158,10 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   operator_err_t r = querier.configure(config, id());
   if (r != NO_ERR)
     return r;
-  
 
   time_t start_ts = time(NULL); //now
   if (config.find("start_ts") != config.end())
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
-  
-
   
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
@@ -236,7 +233,7 @@ TimeBasedSubscriber::operator()() {
       running = false;
     }
   }
-  
+  no_more_tuples();
   LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
       << ". Total backfill tuple count " << backfill_tuples;
 }
@@ -382,6 +379,7 @@ LatencyMeasureSubscriber::operator()() {
     } //release lock
     js_usleep(interval_ms*1000);
   }
+  no_more_tuples();
 }
 
 void

@@ -12,7 +12,7 @@
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "congestion_monitor.h"
-
+#include <glog/logging.h>
 
 //#include "node.h"
 
@@ -141,7 +141,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
    * This function must not block for long periods.
    * Once this method returns, the operator ID is no longer valid.
    * This method will be invoked by the io service threads, or by some other thread.
-   * OPERATOR CODE SHOULD NOT CALL THIS ON A THREAD THEY MANAGE, because boost
+   * OPERATOR CODE SHOULD NOT CALL THIS INSIDE A THREAD THEY MANAGE, because boost
    * doesn't let you join with yourself.
    */
   virtual void stop () {};
@@ -169,8 +169,8 @@ class OperatorCleanup {
 
       //called to invoke the stop method, BEFORE purging operator ID
     void stop_on_strand(boost::shared_ptr<DataPlaneOperator> op) {
-       cleanup_strand.post( boost::bind(&DataPlaneOperator::stop, op) );
-
+      VLOG(1) << " stopping " << op->id() << " on strand";
+      cleanup_strand.post( boost::bind(&DataPlaneOperator::stop, op) );
     }
     void cleanup(boost::shared_ptr<DataPlaneOperator> op);
 

@@ -53,6 +53,9 @@ class Subscriber: public jetstream::DataPlaneOperator {
 
     size_t queue_length();
   
+    virtual void no_more_tuples ();
+
+  
   private:
     void set_cube(DataCube  *c ) {cube = c;}
     CountingExecutor exec;

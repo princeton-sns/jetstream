@@ -204,10 +204,11 @@ TEST_F(SubscriberTest,OneShot) {
   
   ASSERT_EQ(4U, rec->tuples.size());
 
-  for (tries = 0; node->operator_count() > 2 && tries< 50; tries++)
+  for (tries = 0; node->operator_count() > 1 && tries< 50; tries++)
     js_usleep(100 * 1000);
   ASSERT_EQ(1U, node->operator_count()); //operator should be stopped
-
+  cout << "operator has been removed from table" << endl;
+  js_usleep(500 * 1000); //put here to debug whether d-tor is called. Can remove if need be.
 }
 
 

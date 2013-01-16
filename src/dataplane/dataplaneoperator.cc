@@ -58,9 +58,10 @@ DataPlaneOperator::congestion_monitor() {
 
 void
 DataPlaneOperator::no_more_tuples () {
-
+  VLOG(1) << "no more tuples for " << id();
   if (dest != NULL) {
     dest->no_more_tuples();
+    dest->clear_preds();
     dest.reset(); //trigger destruction if no more pointers.
   }
   if (node != NULL) {

@@ -609,23 +609,19 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 
 bool 
 Node::stop_operator(operator_id_t name) {
-// No need for locking provided that operator is invoked in the control
-//  connection strand. Otherwise would need to avoid concurrent modification
-//  to the operator table
-
   std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+
   iter = operators.find(name);
+  
   if (iter != operators.end())  { //operator still around
     shared_ptr<DataPlaneOperator> op = iter->second;
     operator_cleanup.stop_on_strand(op);
     
-    {
-      unique_lock<boost::recursive_mutex> lock(operatorTableLock);
-      int delCount = operators.erase(name);
-      LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
-    }
+    int delCount = operators.erase(name);
+    LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
     
-    operator_cleanup.cleanup(op);
+    operator_cleanup.cleanup(op); //will do the work on a strand
   
     return true;
 // TODO: should unload code at some point. Presumably when no more operators
