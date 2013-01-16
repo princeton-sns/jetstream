@@ -340,7 +340,7 @@ class Controller (ControllerAPI, JSServer):
       assert(false)
       return  # no response
     elif req.type == ControlMessage.ERROR:
-      logger.error("From %s, %s" , ( str(handler.cli_addr), req.error_msg.msg))
+      logger.error("From %s, %s" % ( str(handler.cli_addr), req.error_msg.msg))
     else:
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "Got unexpected control message"
