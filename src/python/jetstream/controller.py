@@ -218,7 +218,8 @@ class Controller (ControllerAPI, JSServer):
 #      logger.info("XXX sending to %s", str(workerID))
       h.send_pb(req)
 #      logger.info("XXX send to %s returned", str(workerID))
-
+#    print "pausing a while in start_computation_sync"
+#    time.sleep(30)
 
   def worker_died (self, workerID):
     """Called when a worker stops heartbeating and should be treated as dead.
@@ -341,11 +342,13 @@ class Controller (ControllerAPI, JSServer):
       return  # no response
     elif req.type == ControlMessage.ERROR:
       logger.error("From %s, %s" % ( str(handler.cli_addr), req.error_msg.msg))
+      return # no response
     else:
       response.type = ControlMessage.ERROR
       response.error_msg.msg = "Got unexpected control message"
       logger.error("Got unexpected control message %s" % str(req))
 
+    #if we didn't return early, send the response
     handler.send_pb(response)
 
 

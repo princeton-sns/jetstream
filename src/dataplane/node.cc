@@ -214,6 +214,10 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
 
       break;
     }
+  case ControlMessage::ERROR:
+    //this is a special case to prevent a loop.
+     LOG(WARNING) << "Unexpected error message on control connection: " << msg.Utf8DebugString() << endl;
+     break;
    default:
      LOG(WARNING) << "Unexpected control message: " << msg.Utf8DebugString() << endl;
      response.set_type(ControlMessage::ERROR);
