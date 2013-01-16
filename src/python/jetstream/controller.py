@@ -218,8 +218,6 @@ class Controller (ControllerAPI, JSServer):
 #      logger.info("XXX sending to %s", str(workerID))
       h.send_pb(req)
 #      logger.info("XXX send to %s returned", str(workerID))
-#    print "pausing a while in start_computation_sync"
-#    time.sleep(30)
 
   def worker_died (self, workerID):
     """Called when a worker stops heartbeating and should be treated as dead.

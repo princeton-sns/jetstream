@@ -94,10 +94,7 @@ def main():
       break
 
     cid = server.deploy_pb(req)
-    if type(cid) == types.IntType:
-      print time.ctime(),"Computation running; ID =",cid
-    else:
-      print "computation failed",cid
+    if type(cid) != types.IntType:
       break  
 
     print_wait()

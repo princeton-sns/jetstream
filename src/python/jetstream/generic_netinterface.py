@@ -191,10 +191,12 @@ class JSClient():
     
     self.sock.send(  struct.pack("!l", len(buf)))
     self.sock.send(buf)
+    self.sock.settimeout(None)
+    
     if expectResponse:
       pbframe_len = self.sock.recv(4)
       unpacked_len = struct.unpack("!l", pbframe_len)[0]
-      print "JSClient sent req, got back response of length %d" % unpacked_len
+#      print "JSClient sent req, got back response of length %d" % unpacked_len
       # print "reading another %d bytes" % unpacked_len
       buf = self.sock.recv(unpacked_len)
       return buf
