@@ -224,7 +224,7 @@ TEST_F(SubscriberTest,TimeSubscriberRollup) {
 
   ASSERT_EQ(1U, rec->tuples.size());
 //  cout << "Tuple: " << fmt( *(rec->tuples[0])) << endl;
-  ASSERT_EQ(8U, rec->tuples[0]->e(2).i_val());
+  ASSERT_EQ(8, rec->tuples[0]->e(2).i_val());
   
 /*
   {

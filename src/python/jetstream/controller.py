@@ -282,7 +282,7 @@ class Controller (ControllerAPI, JSServer):
         self.workers[workerID].add_assignment(assignment)
       logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
         
-    self.start_computation_sync(assignments)
+    self.start_computation_async(assignments)
     return    
 
 

@@ -89,7 +89,7 @@ class TestOpIntegration(unittest.TestCase):
         break
       time.sleep(3)
       workerList = self.controller.get_nodes()
-      assert(len(workerList) == num_workers)
+      self.assertEquals(len(workerList), num_workers)
       #self.assertEquals(len(workerList[0].assignments), 1)
       for j in range(num_workers):
         self.assertEquals(workerList[j].assignments.values()[0].state, WorkerAssignment.RUNNING)

@@ -39,6 +39,7 @@ class JSServer(asyncore.dispatcher):
     # Uses name mangling to avoid clashes with subclasses
     self.__running = False
     self.evtThread = None
+    self.AddrToHandlerLock = threading.Lock()
     self.listen(1)
     return
 
@@ -52,20 +53,24 @@ class JSServer(asyncore.dispatcher):
  #     logger.warn("Didn't expect None return from accept in handler running on %s -- what's broken?" % str(self.address))
 #      return
     h = ConnHandler(sock=client_info[0], server=self, cli_addr=client_info[1], map=self.my_sockets)
-    self.addr_to_handler[client_info[1]] = h
+    with self.AddrToHandlerLock:
+      self.addr_to_handler[client_info[1]] = h
     return
 
   
   def connect_to(self, dest_addr):
     # If a handler for the destination exists, then it is still valid as of this check (otherwise it
     # would have been removed by ConnHandler.handle_close()). 
-    if dest_addr in self.addr_to_handler:
-      return self.addr_to_handler[dest_addr]
+    with self.AddrToHandlerLock:
+      if dest_addr in self.addr_to_handler:
+        return self.addr_to_handler[dest_addr]
+    
     s = socket.create_connection(dest_addr)
     s.setblocking(0)
     h = ConnHandler(sock=s, server=self, cli_addr=dest_addr, map=self.my_sockets)
 #    print "client connected to %s:%d" % dest_addr
-    self.addr_to_handler[dest_addr] = h
+    with self.AddrToHandlerLock:
+      self.addr_to_handler[dest_addr] = h
     return h
 
   
@@ -76,7 +81,8 @@ class JSServer(asyncore.dispatcher):
   def handle_connection_close(self, cHandler):
     """Called when an accepted connection has been closed by the remote client."""
     if cHandler.cli_addr in self.addr_to_handler:
-      del self.addr_to_handler[cHandler.cli_addr]
+      with self.AddrToHandlerLock:
+        del self.addr_to_handler[cHandler.cli_addr]
   
     
   def stop(self):
@@ -84,10 +90,11 @@ class JSServer(asyncore.dispatcher):
     self.close()
     # Close any outgoing connections we have initiated (since these are part of our socket map,
     # they will prevent asyncore.loop() from exiting)
-    for h in self.addr_to_handler.values():
-      h.close()
-    if (self.evtThread != None) and (self.evtThread.is_alive()):
-      self.evtThread.join()
+    with self.AddrToHandlerLock:
+      for h in self.addr_to_handler.values():
+        h.close()
+      if (self.evtThread != None) and (self.evtThread.is_alive()):
+        self.evtThread.join()
 
 
   def start(self):
@@ -159,9 +166,10 @@ class ConnHandler(asynchat.async_chat):
 
   
   # Override to make thread-safe
-  def push(self, data):
+  def initiate_send(self):
+    #print ("in push outter %s %s " % self.cli_addr)
     with self.pushLock:
-      asynchat.async_chat.push(self, data)
+      asynchat.async_chat.initiate_send(self)
 
 
   def send_pb(self, response):  #name 'send' already in use for socket send
@@ -173,8 +181,9 @@ class ConnHandler(asynchat.async_chat):
   def handle_close(self):
     logger.info("Socket closed by remote end %s:%d" % self.cli_addr)
     self.server.handle_connection_close(self)
-    if self.cli_addr in self.server.addr_to_handler:
-      del self.server.addr_to_handler[self.cli_addr]
+    with self.server.AddrToHandlerLock:
+      if self.cli_addr in self.server.addr_to_handler:
+        del self.server.addr_to_handler[self.cli_addr]
     self.close()
 
 
