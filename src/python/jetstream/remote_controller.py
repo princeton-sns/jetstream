@@ -1,6 +1,8 @@
 from generic_netinterface import JSClient
-
+import logging
 from jetstream_types_pb2 import *
+
+logger = logging.getLogger('JetStream')
 
 
 def normalize_controller_addr(addr_str):
@@ -24,7 +26,7 @@ class RemoteController():
 
     # TODO make netaddr mandatory (why isn't it already?)
     if netaddr is not None:
-      print "connect to :", netaddr
+      logger.info("connecting to %s" % str(netaddr))
       self.connect(*netaddr)
   
   def connect(self, addr, port):
@@ -63,16 +65,21 @@ class RemoteController():
     else:
       assert cube_placement is None
 
+    logger.info("Sending create request to controller...")    
     resp = self.client.ctrl_rpc(op_graph.get_deploy_pb(), True)
 
     print resp
     
   def deploy_pb(self, req):
     """Deploys an operator graph; returns an integer ID or an error message"""
+
+    logger.info("Sending create request to controller...")    
     resp = self.client.ctrl_rpc(req, True)
     if resp.type == ControlMessage.OK:
+      logger.info("Started job %i" % resp.started_comp_id)    
       return resp.started_comp_id
     else:
+      logger.error("Failed to start job:" + resp.error_msg.msg)    
       return resp.error_msg.msg
  
   def stop_computation(self, comput_id):

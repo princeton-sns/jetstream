@@ -141,12 +141,19 @@ void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& 
 
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
-  Edge * edge = topo.add_edges();
   LOG_IF(FATAL, src_id.computation_id !=  dest_id.computation_id) << "can't add edge from "
     << src_id << " to " << dest_id;
-  edge->set_computation(src_id.computation_id);
-  edge->set_dest(dest_id.task_id);
-  edge->set_src(src_id.task_id);
+  return add_edge_to_alter(topo, src_id.computation_id, src_id.task_id, dest_id.task_id);
+}
+
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, int computation, int src_id, int dest_id) {
+  Edge * edge = topo.add_edges();
+
+  edge->set_computation(computation);
+  edge->set_dest(dest_id);
+  edge->set_src(src_id);
   return edge;
 }
 

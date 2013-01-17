@@ -1,6 +1,7 @@
 #include "subscriber.h"
 #include <glog/logging.h>
 #include <boost/bind.hpp>
+#include "cube.h"
 
 using namespace std;
 using namespace jetstream::cube;
@@ -24,4 +25,11 @@ void Subscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &upda
 
 size_t Subscriber::queue_length() {
   return exec.outstanding_tasks();
+}
+
+void Subscriber::no_more_tuples () {
+  if(cube) {
+    cube->remove_subscriber(id());
+  }
+  DataPlaneOperator::no_more_tuples();
 }

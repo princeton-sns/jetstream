@@ -52,6 +52,10 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
 Edge * 
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id);
 
+
+Edge * 
+add_edge_to_alter(AlterTopo& topo, int group, int s, int d);
+
 Edge * 
 add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id);
 

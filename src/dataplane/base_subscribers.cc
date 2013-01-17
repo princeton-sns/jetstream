@@ -40,6 +40,13 @@ void UnionSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upd
 
 namespace jetstream {
 
+  
+void
+ThreadedSubscriber::start() {
+  running = true;
+  querier.set_cube(cube);
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+}
 
 operator_err_t
 Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id) {
@@ -100,6 +107,24 @@ cube::CubeIterator Querier::do_query() {
   }
 }
 
+operator_err_t
+OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
+  return querier.configure(config, id());
+}
+
+
+void
+OneShotSubscriber::operator()() {
+
+  cube::CubeIterator it = querier.do_query();
+  while ( it != cube->end()) {
+    emit(*it);
+    it++;      
+  }
+  no_more_tuples();
+
+}
+
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
 
@@ -133,14 +158,10 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   operator_err_t r = querier.configure(config, id());
   if (r != NO_ERR)
     return r;
-  
-  
 
   time_t start_ts = time(NULL); //now
   if (config.find("start_ts") != config.end())
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
-  
-
   
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
@@ -166,13 +187,6 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-
-void
-TimeBasedSubscriber::start() {
-  running = true;
-  querier.set_cube(cube);
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-}
 
 void 
 TimeBasedSubscriber::operator()() {
@@ -219,7 +233,7 @@ TimeBasedSubscriber::operator()() {
       running = false;
     }
   }
-  
+  no_more_tuples();
   LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
       << ". Total backfill tuple count " << backfill_tuples;
 }
@@ -336,11 +350,6 @@ void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
   }
 }
 
-void
-LatencyMeasureSubscriber::start() {
-  running = true;
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-}
 
 void 
 LatencyMeasureSubscriber::operator()() {
@@ -370,6 +379,7 @@ LatencyMeasureSubscriber::operator()() {
     } //release lock
     js_usleep(interval_ms*1000);
   }
+  no_more_tuples();
 }
 
 void
