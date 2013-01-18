@@ -1,14 +1,5 @@
-[workers]
-node1.mpisws.vicci.org public_ip=141.39.220.11
-node10.mpisws.vicci.org public_ip=141.39.220.20
-node10.stanford.vicci.org public_ip=171.67.66.20
-node11.stanford.vicci.org public_ip=171.67.66.21
-node12.stanford.vicci.org public_ip=171.67.66.22
-node13.stanford.vicci.org public_ip=171.67.66.23
-node11.princeton.vicci.org public_ip=128.112.171.40
-node10.princeton.vicci.org public_ip=128.112.171.38
-node1.stanford.vicci.org public_ip=171.67.66.11
-
+[workers:children]
+setup
 
 [setup]
 node1.mpisws.vicci.org public_ip=141.39.220.11

@@ -86,7 +86,7 @@ TEST(Node, BadOperatorName) {
   ControlMessage r;
   node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);  //all or none should start
+  ASSERT_EQ(node.operator_count(), 0U);  //all or none should start
 }
 
 
@@ -105,7 +105,7 @@ TEST(Node, DuplicateOperator) {
   ControlMessage r;
   node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);  //all or none should start
+  ASSERT_EQ(node.operator_count(), 0U);  //all or none should start
 
 }
 
@@ -130,7 +130,7 @@ TEST(Node, BadOperatorConfig) {
   ControlMessage r;
   node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0);
+  ASSERT_EQ(node.operator_count(), 0U);
 }
 
 

@@ -91,7 +91,7 @@ class Node {
   std::vector<int32_t> stop_computation(int32_t compID);
   
   
-  int operator_count () const { 
+  unsigned int operator_count () const { 
     boost::unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     return operators.size();
   }

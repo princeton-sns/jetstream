@@ -42,6 +42,7 @@ def main():
 
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
+  parser.add_option("-g", "--no-generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
 
 
   (options, args) = parser.parse_args()
@@ -71,6 +72,12 @@ def main():
   assert isinstance(root_node, NodeID)
   
   print "Using",root_node,"as aggregator"
+
+  if not options.generate_at_union:
+    print "Removing aggregator from list of generators"
+    all_nodes.remove(root_node)
+
+
   #### Finished building in memory, now to deploy
   node_count = len(all_nodes)
   

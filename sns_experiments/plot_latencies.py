@@ -67,19 +67,18 @@ def plot_overall_latencies(data):
   after_vals = [100.0 * x /after_total for x in  latency_to_count_after.values() ]
   MAX_Y = int(max ( max(before_vals), max(after_vals)))
   MAX_X = max( latency_to_count_after.keys())
-  MIN_X = min( min (latency_to_count_after.keys() ), min(latency_to_count_before.keys() ) ) 
+  MIN_X = min( 0,  min (latency_to_count_after.keys() ), min(latency_to_count_before.keys() ) ) 
   
   print "latencies range from %d to %d" % (MIN_X, MAX_X)
   
   fig = plt.figure(figsize=(9,5))
   ax = fig.add_subplot(111)
 
-  width = 0.85
+  width = (MAX_X+(-MIN_X))/200
   fig.subplots_adjust(bottom=0.2)
   plt.ylim( (0, 1.2 *  MAX_Y) )    
-  plt.xlim( ( - MAX_X * 1.2, MAX_X * 1.2) )    
+  plt.xlim( ( MIN_X * 1.2, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
 
-  
   before_bars = ax.bar(latency_to_count_before.keys(), before_vals, width, color='r', linewidth = 0)    
   
   bar_positions = [width + x for x in latency_to_count_after.keys()]

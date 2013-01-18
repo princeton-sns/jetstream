@@ -13,10 +13,17 @@
 
 ### download and build js###
 - hosts: workers
+  gather_facts: no
+  connection: paramiko
+  tasks:
+      - action: fireball bind_address=${public_ip}
+
+- hosts: workers
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
     num_cores: 24
+  connection: fireball
   tags: build
   tasks:
   - name: ntp synch
