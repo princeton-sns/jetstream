@@ -52,7 +52,7 @@ void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
   EXPECT_EQ(CELLS, cube->num_leaf_cells());
 }
 
-TEST(Topk_TPUT, OneLocal) {
+TEST(Topk_TPUT, TwoLocal) {
 
   NodeConfig cfg;
   int K = 3;

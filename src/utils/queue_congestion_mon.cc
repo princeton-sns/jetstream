@@ -11,6 +11,7 @@ QueueCongestionMonitor::capacity_ratio() {
   boost::unique_lock<boost::mutex> lock(internals);
   usec_t now = get_usec();
   
+  double result;
     //only sample every 100 ms
   if (now > lastQueryTS + SAMPLE_INTERVAL_MS * 1000) {
 //    usec_t sample_period = now - lastQueryTS;
@@ -31,13 +32,15 @@ QueueCongestionMonitor::capacity_ratio() {
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
     
+    result = prevRatio < downstream_status ? prevRatio : downstream_status;
     LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
-         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status;
+         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status<< " and final result is " << result;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = queueLen;
-  }
+  } else
+    result = prevRatio < downstream_status ? prevRatio : downstream_status;
   
-  return prevRatio < downstream_status ? prevRatio : downstream_status;
+  return result;
 }
 
 
