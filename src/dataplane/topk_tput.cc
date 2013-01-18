@@ -207,7 +207,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
     if (sender_round == phase) {
       responses_this_phase ++;
       if (responses_this_phase == predecessors.size()) {
-        VLOG(1) << "Completed TPUT round " << phase;
+        LOG(INFO) << id() << " completed TPUT round " << phase;
         responses_this_phase = 0;
         if ( phase == 1) {
           start_phase_2();

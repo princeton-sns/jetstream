@@ -144,7 +144,9 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
    * OPERATOR CODE SHOULD NOT CALL THIS INSIDE A THREAD THEY MANAGE, because boost
    * doesn't let you join with yourself.
    */
-  virtual void stop () {};
+  virtual void stop () {
+    VLOG(1) << "stop() for base DataPlaneOperator class";
+  };
   
   virtual void chain_is_broken();
   

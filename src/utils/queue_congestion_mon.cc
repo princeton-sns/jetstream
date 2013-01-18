@@ -30,18 +30,14 @@ QueueCongestionMonitor::capacity_ratio() {
     
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
-/*    double ratio_by_max_rate = ;
-    if (ratio_by_max_rate > prevRatio) {
-      prevRatio = ratio_by_max_rate);
-    }*/
     
     LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
-         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", upstream is " << upstream_status;
+         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = queueLen;
   }
   
-  return prevRatio < upstream_status ? prevRatio : upstream_status;
+  return prevRatio < downstream_status ? prevRatio : downstream_status;
 }
 
 

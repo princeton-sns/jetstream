@@ -19,7 +19,7 @@ class QueueCongestionMonitor: public CongestionMonitor {
   mutable boost::mutex internals;
   usec_t lastQueryTS;
   double prevRatio;
-  double upstream_status;
+  double downstream_status;
   double max_per_sec;
   std::string name;
 
@@ -27,7 +27,7 @@ class QueueCongestionMonitor: public CongestionMonitor {
  public:
     QueueCongestionMonitor(uint32_t qTarg, const std::string& nm, double max_per_sec_ = INFINITY):
       queueTarget(qTarg), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
-        prevRatio(INFINITY), upstream_status(INFINITY),max_per_sec(max_per_sec_),name(nm)  { }
+        prevRatio(INFINITY), downstream_status(INFINITY),max_per_sec(max_per_sec_),name(nm)  { }
     
     virtual double capacity_ratio();
   
@@ -49,9 +49,9 @@ class QueueCongestionMonitor: public CongestionMonitor {
       boost::interprocess::ipcdetail::atomic_add32(&queueLen, negweight);
     }
 
-    void set_upstream_congestion(double d) {
+    void set_downstream_congestion(double d) {
       boost::unique_lock<boost::mutex> lock(internals);
-      upstream_status = d;
+      downstream_status = d;
     }
   
     void set_queue_size(uint32_t s) {

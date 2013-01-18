@@ -97,7 +97,7 @@ def main():
     if type(cid) != types.IntType:
       break  
 
-    print_wait()
+    print_wait(TIME_AT_RATE)
     server.stop_computation(cid)
     time.sleep(10)   
     
@@ -107,8 +107,8 @@ def main():
     
 
 
-def print_wait():
-  for i in xrange(0,TIME_AT_RATE/3):    #sleep k seconds, waiting 3 seconds between printing dots
+def print_wait(seconds):
+  for i in xrange(0,seconds/3):    #sleep k seconds, waiting 3 seconds between printing dots
     time.sleep(3)   
     sys.stdout.write(".")
     sys.stdout.flush()

@@ -335,7 +335,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       double status = msg.congestion_level();
       VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
-      remote_processing->set_upstream_congestion(status);
+      remote_processing->set_downstream_congestion(status);
       break;
     }
 
