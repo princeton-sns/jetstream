@@ -199,7 +199,7 @@ TEST_F(NodeNetTest, NetStartStop)
   }
 
   ASSERT_TRUE(found_response);
-  ASSERT_GT(n->operator_count(), 0); //might be 1 or 2, depending when file reader stops
+  ASSERT_GT(n->operator_count(), 0U); //might be 1 or 2, depending when file reader stops
   
   msg.Clear();
   msg.set_type(ControlMessage::STOP_COMPUTATION);
@@ -226,7 +226,7 @@ TEST_F(NodeNetTest, NetStartStop)
     }
   }  
   
-  ASSERT_EQ(0, n->operator_count());
+  ASSERT_EQ(0U, n->operator_count());
   
   
 }
@@ -539,7 +539,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
     ASSERT_FALSE(response.has_error_msg());
   }
 
-  EXPECT_EQ(2, nodes[0]->operator_count());
+  EXPECT_EQ(2U, nodes[0]->operator_count());
     //TODO check for OK here
   
   shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
@@ -648,7 +648,7 @@ TEST_F(NodeTwoNodesTest, SuddenStopDest)  {
   }
   cout << "-----------cleaning up source-----------" << endl;
 
-  ASSERT_EQ(0, nodes[1]->operator_count());
+  ASSERT_EQ(0U, nodes[1]->operator_count());
   
 }
 

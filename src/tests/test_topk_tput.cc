@@ -74,7 +74,7 @@ TEST(Topk_TPUT, OneLocal) {
     add_edge_to_alter(topo, sender_ids[i], coordinator_id);
   }
   shared_ptr<DataCube> dest_cube =  make_cube(node, dest_cube_name);
-  ASSERT_EQ(0, dest_cube->num_leaf_cells());
+  ASSERT_EQ(0U, dest_cube->num_leaf_cells());
 
   topo.set_computationid(coordinator_id.computation_id);
 
