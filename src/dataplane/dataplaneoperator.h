@@ -73,6 +73,8 @@ typedef std::string operator_err_t;
 const operator_err_t NO_ERR = "";
 
 class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSender {
+  friend class OperatorCleanup;
+
  private:
   operator_id_t operID; // note that id() returns a reference, letting us set this
   protected:   Node * node;  //NOT a shared pointer. Nodes always outlast their operators.
@@ -145,7 +147,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
    * doesn't let you join with yourself.
    */
   virtual void stop () {
-    VLOG(1) << "stop() for base DataPlaneOperator class";
+    VLOG(1) << "stop() for base DataPlaneOperator " << id();
   };
   
   virtual void chain_is_broken();
@@ -154,6 +156,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
+private:
   
   GENERIC_CLNAME
 };
@@ -167,7 +170,8 @@ back into Node
 class OperatorCleanup {
   
   public:
-    OperatorCleanup(boost::asio::io_service& io):iosrv(io),cleanup_strand(iosrv) {}
+    OperatorCleanup(boost::asio::io_service& io):iosrv(io),cleanup_strand(iosrv) {
+    }
 
       //called to invoke the stop method, BEFORE purging operator ID
     void stop_on_strand(boost::shared_ptr<DataPlaneOperator> op) {

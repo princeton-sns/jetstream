@@ -28,6 +28,7 @@ class SubscriberTest : public ::testing::Test {
     NodeConfig cfg;
     boost::system::error_code error;
     node = new Node(cfg, error);
+    node->start();
     ASSERT_TRUE(error == 0);
 
     AlterTopo topo;
