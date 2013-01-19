@@ -104,17 +104,20 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
   
+    int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
       const Tuple& q = msg.tput_r3_query(i);
       boost::shared_ptr<Tuple> v = cube->get_cell_value(q);
       if(v) {
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *v);
         emit(v);
+        emitted ++;
       } else {
         //this is not an error. Something might be a candidate but have no hits on this node.
 //        LOG(WARNING) << "no matches when querying for " << fmt( q );
       }
     }
+    LOG(INFO) << "end of tput for " << id() << "; emitting " << emitted << " tuples";
     end_of_round(3);
   } else {
     DataPlaneOperator::meta_from_downstream(msg);

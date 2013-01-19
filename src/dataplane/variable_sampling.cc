@@ -69,6 +69,23 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
 }
 
 
+void
+CongestionController::remove_pred (operator_id_t d) {
+  vector<  boost::shared_ptr<TupleSender> >::iterator it = predecessors.begin();
+  while ( it != predecessors.end()) {
+     boost::shared_ptr<DataPlaneOperator> p = boost::dynamic_pointer_cast<DataPlaneOperator>(*it);
+     if (p && p->id() == d)
+      break;
+      else
+      it++;
+  }
+  if( it != predecessors.end())
+    predecessors.erase(it);
+//  LOG(FATAL) << "unimplemented";
+  
+}
+
+
 operator_err_t
 CongestionController::configure(std::map<std::string,std::string> &config) {
 

@@ -29,6 +29,11 @@ struct operator_id_t {
     return computation_id < rhs.computation_id 
       || task_id < rhs.task_id;
   }
+
+  bool operator== (const operator_id_t& rhs) const {
+    return computation_id == rhs.computation_id
+      && task_id == rhs.task_id;
+  }
   
   std::string to_string () {
     std::ostringstream buf;

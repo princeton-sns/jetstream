@@ -6,7 +6,14 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
 
-
+void
+IncomingConnectionState::no_more_tuples() {
+  if (!dest)
+    return;
+  DataplaneMessage teardown;
+  teardown.set_type(DataplaneMessage::NO_MORE_DATA);
+  dest->meta_from_upstream(teardown, remote_op);
+}
 
 void
 IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
@@ -15,7 +22,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     if (error != boost::system::errc::operation_canceled) 
       LOG(WARNING) << "error trying to read data: " << error.message();
     if( dest ) {
-      dest->no_more_tuples();  //tear down chain
+      no_more_tuples();  //tear down chain
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
     }
     return;
@@ -97,8 +104,7 @@ IncomingConnectionState::report_congestion_upstream(double level) {
   conn->send_msg(msg, error);
   if (error) {
     LOG(WARNING) << "Failed to report congestion: " << error.message();
-    if (dest)
-      dest->no_more_tuples();
+    no_more_tuples();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
   }
 }
@@ -137,8 +143,7 @@ IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
     conn->send_msg(msg, error);
     if (error) {
       LOG(WARNING) << "Failed to send message upwards: " << error.message();
-      if (dest)
-        dest->no_more_tuples();
+      no_more_tuples();
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
     }
   }
@@ -454,11 +459,15 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg, const operat
     return;
   }
 
-  boost::system::error_code err;
-  
-  //we are on caller's thread so this is thread-safe.
-  force_send(); 
-  conn->send_msg(msg, err);
+  if( msg.type() == DataplaneMessage::NO_MORE_DATA)
+    no_more_tuples();
+  else {
+    boost::system::error_code err;
+    
+    //we are on caller's thread so this is thread-safe.
+    force_send(); 
+    conn->send_msg(msg, err);
+  }
 }
 
 bool

@@ -55,7 +55,6 @@ void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
 TEST(Topk_TPUT, TwoLocal) {
 
   NodeConfig cfg;
-  cfg.
   int K = 3;
   boost::system::error_code error;
   Node node(cfg, error);

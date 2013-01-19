@@ -43,7 +43,6 @@ class TupleSender {
 class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t pred) = 0;
-  virtual void no_more_tuples() = 0;
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
     return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
   }
@@ -59,6 +58,7 @@ class TupleReceiver {
       //these need to be virtual to support the case where an operator has multiple preds
   virtual void add_pred (boost::shared_ptr<TupleSender> d) { pred = d; }
   virtual void clear_preds () { pred.reset(); }
+  virtual void remove_pred ( operator_id_t id) { pred.reset(); }
 
 
 protected:

@@ -89,7 +89,7 @@ private:
     std::map<operator_id_t,time_t> timeOfReport;
 
 
-    std::vector<boost::shared_ptr<TupleSender> > predecessors;
+    std::vector< boost::shared_ptr<TupleSender> > predecessors;
   
   
     double targetSampleRate, worstCongestion; //should always be lower than min(reportedLevels)
@@ -120,6 +120,8 @@ public:
 
   virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
   virtual void clear_preds () { predecessors.clear(); }
+  virtual void remove_pred (operator_id_t);
+
 
   virtual void process(boost::shared_ptr<Tuple> t) {
     emit(t);

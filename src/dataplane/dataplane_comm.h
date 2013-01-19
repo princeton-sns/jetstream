@@ -161,6 +161,10 @@ public:
     return o.str();
   }
   
+  private:
+   void no_more_tuples();//  called on error to do teardown
+  
+  
 };
 
 

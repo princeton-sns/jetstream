@@ -60,8 +60,10 @@ void
 DataPlaneOperator::no_more_tuples () {
   VLOG(1) << "no more tuples for " << id();
   if (dest != NULL) {
-    dest->no_more_tuples();
-    dest->clear_preds();
+    DataplaneMessage msg;
+    msg.set_type(DataplaneMessage::NO_MORE_DATA);
+    dest->meta_from_upstream(msg, id());
+    dest->remove_pred( id());
     dest.reset(); //trigger destruction if no more pointers.
   }
   if (node != NULL) {
@@ -92,7 +94,9 @@ DataPlaneOperator::meta_from_downstream(const DataplaneMessage &msg) {
 
 void
 DataPlaneOperator::meta_from_upstream(const DataplaneMessage & msg, operator_id_t pred) {
-  if (dest != NULL)
+  if (msg.type() == DataplaneMessage::NO_MORE_DATA)
+    no_more_tuples();
+  else if (dest != NULL)
     dest->meta_from_upstream(msg, operID);
 }
 

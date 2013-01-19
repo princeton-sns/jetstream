@@ -31,6 +31,7 @@ class DummyReceiver: public DataPlaneOperator {
       return buf.str();
   }
   
+  
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   
   virtual ~DummyReceiver() {}
