@@ -217,6 +217,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
         } else if (phase == 2) {
           start_phase_3();
         } else {
+          LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3";
           //done!
           phase = NOT_STARTED;
         }

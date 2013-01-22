@@ -16,14 +16,17 @@ QueueCongestionMonitor::capacity_ratio() {
   if (now > lastQueryTS + SAMPLE_INTERVAL_MS * 1000) {
 //    usec_t sample_period = now - lastQueryTS;
     lastQueryTS = now;
+
+    uint32_t readQLen = atomic_read32(&queueLen); //a fixed value
   
     uint32_t inserts = atomic_read32(&insertsInPeriod);
     uint32_t newi  = inserts;
-    while ( ( newi = atomic_cas32(&insertsInPeriod, 0, newi)) != 0)
+    while ( ( newi = atomic_cas32(&insertsInPeriod, 0, newi)) != 0) //reset to zero atomically with read
       inserts = newi;
     
-    int32_t queueDelta = queueLen - prevQueueLen; //negative implies queue is shrinking
-    int32_t availRoom = queueTarget - queueLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
+    
+    int32_t queueDelta = readQLen - prevQueueLen; //negative implies queue is shrinking
+    int32_t availRoom = queueTarget - readQLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
     if (  ((int32_t)inserts ) < -availRoom) // Signed compare: queue won't drain fast enough enough room even with no inserts
       prevRatio = 0; //should stop sends altogether to let things drain
     else
@@ -31,12 +34,13 @@ QueueCongestionMonitor::capacity_ratio() {
     
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
-    
+    int32_t removes = inserts - queueDelta;
+    LOG_IF(FATAL, removes < 0) << "Shouldn't have data leaking out of queue";
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
-    LOG_IF_EVERY_N(INFO, queueLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
-         " inserts (max is " << max_per_sec << "); queue length " << queueLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status<< " and final result is " << result;
+    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
+         " inserts (max is " << max_per_sec << "); " << removes  <<"removes. Queue length " << readQLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status<< " and final result is " << result;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
-    prevQueueLen = queueLen;
+    prevQueueLen = readQLen;
   } else
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
   

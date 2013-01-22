@@ -444,7 +444,7 @@ def FileRead(graph, file, skip_empty=False):
 def StringGrepOp(graph, pattern):
    cfg = {"pattern":pattern, "id": 0}
    import re
-   x = re.compile(pattern) # throw an error on bad patterns
+   re.compile(pattern) # throw an error on bad patterns
    return graph.add_operator(OpType.STRING_GREP, cfg)  
    
 def CSVParse(graph, types, fields_to_keep='all'):
@@ -482,7 +482,7 @@ def GenericParse(graph,
            "field_to_parse" :field_to_parse,
            "keep_unparsed" : str(keep_unparsed)}
     import re
-    x = re.compile(pattern) # throw an error on bad patterns
+    re.compile(pattern) # throw an error on bad patterns
     return graph.add_operator(OpType.PARSE, cfg)
 
 
