@@ -21,7 +21,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elem
   flushExec(1), processExec(1),
   batch_timeout_timer(*(processExec.get_io_service())),
   flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
-  processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + "process")))
+  processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
   processCongestMon->set_next_monitor(flushCongestMon);
 };
