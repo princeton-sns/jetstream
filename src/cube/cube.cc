@@ -20,7 +20,10 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elem
   elements_in_batch(elements_in_batch),
   flushExec(1), processExec(1),
   batch_timeout_timer(*(processExec.get_io_service())),
-  congestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name)))  {
+  flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
+  processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + "process")))
+{
+  processCongestMon->set_next_monitor(flushCongestMon);
 };
 
 const std::string jetstream::DataCube::my_tyepename("data cube");
@@ -32,6 +35,7 @@ boost::shared_ptr<cube::TupleBatch> & DataCube::get_tuple_batcher()
 
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
+  processCongestMon->report_insert(t.get(), 1);
   processExec.submit(boost::bind(&DataCube::do_process, this, t));
 }
 
@@ -103,6 +107,8 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   else {
     tupleBatcher->update_batched_tuple(tpi, can_batch);
   }
+  
+  processCongestMon->report_delete(t.get(), 1);
 
   if(tupleBatcher->is_full() || (!tupleBatcher->is_empty() && (get_msec() - start_time > (msec_t) batch_timeout.total_milliseconds())))
   {
@@ -130,13 +136,13 @@ void DataCube::queue_flush()
     flushExec.submit(boost::bind(&DataCube::do_flush, this, tupleBatcher));
   
     cube::TupleBatch * batch = new cube::TupleBatch(this, elements_in_batch);
-    congestMon->report_insert(batch, 1);
+    flushCongestMon->report_insert(batch, 1);
     tupleBatcher.reset(batch);
 }
 
 void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   tb->flush();
-  congestMon->report_delete(tb.get(), 1);
+  flushCongestMon->report_delete(tb.get(), 1);
 }
 
 /* the batch timer is only meant for the case that there are very few

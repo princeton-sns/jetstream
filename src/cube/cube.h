@@ -9,6 +9,7 @@
 #include "cube_iterator.h"
 #include "subscriber.h"
 #include "queue_congestion_mon.h"
+#include "chained_queue_mon.h"
 
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
@@ -133,7 +134,7 @@ class DataCube : public TupleReceiver {
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
 
 
-    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return congestMon;}
+    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return processCongestMon;}
   
     virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {}
 
@@ -168,7 +169,8 @@ class DataCube : public TupleReceiver {
     CountingExecutor flushExec;
     CountingExecutor processExec;
     boost::asio::deadline_timer batch_timeout_timer;
-    boost::shared_ptr<QueueCongestionMonitor> congestMon;
+    boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;
+    boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 };
 
 }
