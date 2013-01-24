@@ -95,6 +95,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
 
   VLOG(2) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
 
+  //LOG(INFO) << "In do_process";
 
   if(can_batch && tupleBatcher->is_empty())
   {
