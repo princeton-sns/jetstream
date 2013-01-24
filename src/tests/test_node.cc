@@ -74,8 +74,8 @@ TEST(Node, HandleAlter_2_Ops)
     
     DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
     int tries = 0;
-    while (rec->tuples.size() < 5 && tries++ < 5)
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+    while (rec->tuples.size() < 5 && tries++ < 50)
+      js_usleep( 100 * 1000);
 
     
     ASSERT_GT(rec->tuples.size(), (unsigned int) 4);
