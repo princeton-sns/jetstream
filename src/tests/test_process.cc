@@ -25,6 +25,11 @@ using namespace boost;
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb) {
       flushCongestMon->report_delete(tb.get(), 1);
     }
+
+    int outstanding_processes()
+    {
+      return processCongestMon->queue_length();
+    }
 };
 
 
@@ -148,6 +153,15 @@ TEST_F(ProcessTest, LoopTest) {
   //insert_tuple2(*t, time_entered+i, "http:\\\\www.example.com", 200, 50, 1);
     cube->process(t);
   }
+
+  int waits = 0;
+  while(cube->outstanding_processes()> 0)
+  {
+    waits ++;
+    js_usleep(200000);
+  }
+
+  LOG(INFO) << "Outstanding " << cube->outstanding_processes()<<"; waits "<< waits;
   //js_usleep(200000);
 
   //delete cube;
