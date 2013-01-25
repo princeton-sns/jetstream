@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
-
+#include <limits>
 
 using namespace ::std;
 using namespace jetstream;
@@ -42,10 +42,10 @@ TEST(CMSketch, Quantile) {
     collisions += est - 1;
   }
 
-  int r = c.hash_range(0, UINT32_MAX);
+  int r = c.hash_range(0, numeric_limits<uint32_t>::max());
   cout << "maximal range has estimated sum: " << r << endl;
 
-  r = c.hash_range(1000, UINT32_MAX);
+  r = c.hash_range(1000, numeric_limits<uint32_t>::max());
   cout << "over-high range has estimated sum: " << r << endl;
   ASSERT_LE(r, collisions);
 
@@ -101,7 +101,7 @@ TEST(CMSketch, SketchVsSample) {
   int* data = new int[DATA_SIZE];
 
   boost::mt19937 gen;
-  boost::random::uniform_int_distribution<> randsrc(1,1<<22 -1);
+  boost::random::uniform_int_distribution<> randsrc(1,(1<<22) -1);
   for (int i=0; i < DATA_SIZE; ++ i)
     data[i] = randsrc(gen);
 

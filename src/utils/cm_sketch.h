@@ -9,6 +9,7 @@
 #ifndef JetStream_cm_sketch_h
 #define JetStream_cm_sketch_h
 
+#include <stdint.h>
 #include "js_defs.h"
 
 namespace jetstream {
