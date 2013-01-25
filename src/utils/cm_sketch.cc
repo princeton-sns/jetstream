@@ -50,6 +50,7 @@ CMSketch::estimate(char * data, int data_len) {
 void
 CMSketch::init(size_t w, size_t d, int rand_seed) {
   matrix = new u_int32_t[w * d];
+  memset(matrix, 0, w * d * sizeof(int));
   hashes = new hash_t[d];
   width = w;
   depth = d;
@@ -76,9 +77,12 @@ CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
 
   exact_counts = new count_val_t*[EXACT_LEVELS];
   
-  for(int i =0; i < EXACT_LEVELS; ++i)
-    exact_counts[i] = new count_val_t[ 1 << (EXACT_LEVELS- i) * BITS_PER_LEVEL];
-  
+  for(int i =0; i < EXACT_LEVELS; ++i) {
+    int sz = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
+    exact_counts[i] = new count_val_t[ sz];
+
+    memset(exact_counts[i], 0, sz * sizeof(int));
+  }
   panes = new CMSketch[LEVELS];
   for(int i =0; i < LEVELS; ++i) {
     panes[i].init(w, d, rand_seed);
@@ -109,7 +113,7 @@ CMMultiSketch::add_item_h(uint32_t data_as_int, count_val_t new_val) {
     data_as_int >>= BITS_PER_LEVEL;
   }
   for( int i=0; i < EXACT_LEVELS; ++i) {
-    assert (data_as_int <  (1 << (EXACT_LEVELS- i) * BITS_PER_LEVEL));
+    assert (data_as_int <  (1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL)));
     exact_counts[i][data_as_int] += new_val;
     data_as_int >>= BITS_PER_LEVEL;
   }
@@ -121,16 +125,19 @@ count_val_t
 CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
   //dyad_start should be trimmed to at most (32 - BITS_PER_LEVEL * level) non-zero bits.
 
-//  int rng_start = dyad_start <<  (level * BITS_PER_LEVEL);
-//  int rng_end = rng_start+ (1 << level * BITS_PER_LEVEL) ;
 
   count_val_t r;
-  if (level > LEVELS) {
+  if (level >= LEVELS) {
+    assert (dyad_start <  (1 << (EXACT_LEVELS- level) * BITS_PER_LEVEL));
     r = exact_counts[level - LEVELS][dyad_start];
   } else
     r = panes[level].estimate_h(dyad_start);
-//  cout << "adding range [" << rng_start<< ", " << rng_end << ") at level " << level
- //     << " = " << r << endl;
+  
+/*  uint32_t rng_start = dyad_start <<  (level * BITS_PER_LEVEL);
+  uint32_t rng_end = rng_start+ (1 << level * BITS_PER_LEVEL) ;
+  cout << "adding range [" << rng_start<< ", " << rng_end << ") at level " << level
+     << " = " << r << endl;*/
+  
   return r;
 }
 
@@ -148,27 +155,32 @@ CMMultiSketch::hash_range(uint32_t lower, uint32_t upper) {
 // and then moving up.
   count_val_t sum = 0;
   for (int level = 0; level < LEVELS + EXACT_LEVELS ; ++level) {
-//    int true_lower = (lower<< level *BITS_PER_LEVEL);
-//    int true_upper = (upper<< level *BITS_PER_LEVEL);
-//    cout << "range query [" <<  true_lower  << "," << true_upper<<"] at "<< level << "\n";
+//    uint32_t true_lower = (lower<< level *BITS_PER_LEVEL);
+//    uint32_t true_upper = (upper<< level *BITS_PER_LEVEL);
+//    cout << "range query [" <<  true_lower  << "," << true_upper<<"] at level "<< level << "\n";
 
-    uint32_t next_level_start = lower & (~0 << BITS_PER_LEVEL );
+    uint64_t next_level_start = lower & (~(0UL) << BITS_PER_LEVEL );
     if (lower != next_level_start)  //round up to next power of two
       next_level_start += (1 << BITS_PER_LEVEL);
 
-    uint32_t next_level_end = (upper & (~0 << BITS_PER_LEVEL )); //this endpoint is NOT included in next level
+    uint64_t next_level_end = (upper & (~(0UL) << BITS_PER_LEVEL )); //this endpoint is NOT included in next level
                 //note that upper & mask can be zero, meaning there's no power of two before this range
     
     if (next_level_start < next_level_end) {
-//      cout << " next level will be [" << next_level_start << ", "<< next_level_end <<")\n";
-      for (int j = lower; j < next_level_start; j++)
+  //    cout << " next level will be [" << next_level_start << ", "<< next_level_end <<")\n";
+      assert ( (next_level_start - lower) <  (1 << (BITS_PER_LEVEL )));
+      
+      for (uint64_t j = lower; j < next_level_start; j++)
         sum += contrib_from_level(level, j);
       
-      for (int j = next_level_end ; j <= upper; ++j)
+      assert ( (upper - next_level_end) <  (1 << (BITS_PER_LEVEL )));
+      
+      for (uint64_t j = next_level_end ; j <= upper; ++j)
         sum += contrib_from_level(level, j);
     } else {
 //      cout << " last level; [" << lower << "-" << upper << ")\n";
-      for(int j =lower; j <= upper; ++j)
+      assert ( (upper - lower) <  (1 << (BITS_PER_LEVEL + 1)));
+      for(uint64_t j =lower; j <= upper; ++j)
         sum += contrib_from_level(level, j);
       break;
     }
@@ -196,8 +208,8 @@ CMMultiSketch::quantile(float quantile) {
   while(bisect_hi > bisect_low + 1) {
     count_val_t mid = bisect_hi / 2 + bisect_low / 2;
     count_val_t range_sum = hash_range(0, mid);
-    std::cout << iters<< " scanning [0-" << mid << "]; sum was " << range_sum<< std::endl;
-    if (range_sum > target_sum) //guessed too high, lower upper bound
+//    std::cout << iters<< " scanning [0-" << mid << "]; sum was " << range_sum<< std::endl;
+    if (range_sum >= target_sum) //guessed too high, lower upper bound
       bisect_hi = mid;
     else
       bisect_low = mid;
@@ -206,13 +218,20 @@ CMMultiSketch::quantile(float quantile) {
       break;
   }
   count_val_t bound_from_left = bisect_hi;
-/*
+  cout << "finished approach from left; got " << bound_from_left << endl;
+  
+  
   iters = 0;
+  target_sum = panes[0].total_count * (1 - quantile);
+  bisect_hi = UINT32_MAX - 1;
+  bisect_low = 0;
+  cout << "searching from right for " << target_sum << endl;
   while(bisect_hi > bisect_low + 1) { //now repeat, but searching the right-side of the range
     count_val_t mid = bisect_hi / 2 + bisect_low / 2;
     count_val_t range_sum = hash_range(mid, UINT32_MAX);
-    std::cout << "scanning " << mid << "-max" << std::endl;
-    if (range_sum > target_sum) //guessed too high, lower upper bound
+    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
+
+    if (range_sum < target_sum) //guessed too high a lower bound
       bisect_hi = mid;
     else
       bisect_low = mid;
@@ -222,9 +241,7 @@ CMMultiSketch::quantile(float quantile) {
   }  
   
   return bound_from_left/2 + bisect_hi/2;
-  */
-  
-  return bound_from_left;
+   //return bound_from_left;
 }
 
 }

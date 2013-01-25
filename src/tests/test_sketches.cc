@@ -39,8 +39,16 @@ TEST(CMSketch, Quantile) {
     ASSERT_GE(est, 1);
     collisions += est - 1;
   }
+
+  int r = c.hash_range(0, UINT32_MAX);
+  cout << "maximal range has estimated sum: " << r << endl;
+
+  r = c.hash_range(1000, UINT32_MAX);
+  cout << "over-high range has estimated sum: " << r << endl;
+  ASSERT_LE(r, collisions);
+
   
-  int r = c.hash_range(0, 1);
+  r = c.hash_range(0, 1);
   cout << "range [0-1] has estimated sum: " << r << endl;
   ASSERT_GE(r, 2);
   
@@ -65,9 +73,14 @@ TEST(CMSketch, Quantile) {
   ASSERT_GE(r, 20);
   ASSERT_LE(r, 20+ collisions); //should be upper bounded by max
   
-  r =  c.hash_range(0, 1 << 30);
-  ASSERT_GE(r, 20);
-  ASSERT_LE(r, 20+ collisions); //should be upper bounded by max
+  for (int i = 30; i > 10; --i) {
+    r =  c.hash_range(0, 1 << i);
+    if (r < 20 ||  r > 20 + collisions) {
+      cout << "for range 0 - 2 ^ "<< i << " ("<<  (1 << i)<< ")" << endl;
+      ASSERT_GE(r, 20);
+      ASSERT_LE(r, 20+ collisions); //should be upper bounded by max
+    }
+  }
   
   int quantile_pts[] = {10, 25, 50, 75, 100};
   int quantile_list_len = sizeof(quantile_pts) / sizeof(int);
