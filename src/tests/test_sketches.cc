@@ -98,14 +98,23 @@ TEST(CMSketch, Quantile) {
 
 TEST(CMSketch, SketchVsSample) {
   const int DATA_SIZE = 1024 * 1024;
+  const int TRIALS = 10;
   int* data = new int[DATA_SIZE];
 
   boost::mt19937 gen;
-  boost::random::uniform_int_distribution<> randsrc(1,1<<22 -1);
+  boost::random::uniform_int_distribution<> randsrc(1,(1<<22) -1);
   for (int i=0; i < DATA_SIZE; ++ i)
     data[i] = randsrc(gen);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
+  
+  double mean_error_with_sketch = 0;
+  double quantile_pt = 0.9;
+  int true_quantile =  (int)( quantile_pt *  ((1<<22) -1));
+  
+  for (int i =0; i < trials; ++i) {
+    CMMultiSketch(40, 10, 2 + i);
+  }
   
 
   delete[] data;
