@@ -82,7 +82,7 @@ TEST(CMSketch, Quantile) {
     }
   }
   
-  int quantile_pts[] = {10, 25, 50, 75, 100};
+  int quantile_pts[] = {10, 25, 50, 75, 90};
   int quantile_list_len = sizeof(quantile_pts) / sizeof(int);
   for (int i =0; i < quantile_list_len; ++i) {
     int q = c.quantile( quantile_pts[i] / 100.0) ;

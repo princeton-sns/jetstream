@@ -225,11 +225,11 @@ CMMultiSketch::quantile(float quantile) {
   target_sum = panes[0].total_count * (1 - quantile);
   bisect_hi = UINT32_MAX - 1;
   bisect_low = 0;
-  cout << "searching from right for " << target_sum << endl;
+//  cout << "searching from right for " << target_sum << endl;
   while(bisect_hi > bisect_low + 1) { //now repeat, but searching the right-side of the range
     count_val_t mid = bisect_hi / 2 + bisect_low / 2;
     count_val_t range_sum = hash_range(mid, UINT32_MAX);
-    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
+//    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
 
     if (range_sum < target_sum) //guessed too high a lower bound
       bisect_hi = mid;
@@ -238,9 +238,9 @@ CMMultiSketch::quantile(float quantile) {
     
     if (iters ++ > 40)
       break;    
-  }  
-  
-  return bound_from_left/2 + bisect_hi/2;
+  }
+  cout << "scanning from right, got " << bisect_hi << endl;
+  return (bound_from_left+ bisect_hi)/2;
    //return bound_from_left;
 }
 
