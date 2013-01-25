@@ -141,12 +141,14 @@ TEST_F(ProcessTest, LoopTest) {
   
   time_t time_entered = time(NULL);
   boost::shared_ptr<jetstream::Tuple> t;
-  for(int i =0; i < 1000000; i++) {
   t = boost::make_shared<jetstream::Tuple>();
-  insert_tuple2(*t, time_entered+i, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(t);
+  insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  for(int i =0; i < 1000000; i++) {
+  //t = boost::make_shared<jetstream::Tuple>();
+  //insert_tuple2(*t, time_entered+i, "http:\\\\www.example.com", 200, 50, 1);
+    cube->process(t);
   }
-  js_usleep(200000);
+  //js_usleep(200000);
 
   //delete cube;
 }
