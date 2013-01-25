@@ -4,6 +4,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <iostream>
+#include <string.h>
 
 using namespace ::std;
 
@@ -19,7 +20,7 @@ CMSketch::hash(int hashid, int val) {
 void
 CMSketch::add_item_h(uint32_t data_as_int, int new_val) {
   total_count += new_val;
-  for(int i =0; i < depth; ++i) {
+  for(unsigned int i =0; i < depth; ++i) {
     val(hash(i, data_as_int), i )  += new_val;
   }
 }
@@ -33,8 +34,8 @@ CMSketch::add_item(char* data, int data_len, int new_val) {
 
 count_val_t
 CMSketch::estimate_h(uint32_t data_as_int) {
-  uint32_t m = UINT32_MAX;
-  for(int i =0; i < depth; ++i) {
+  uint32_t m = numeric_limits<uint32_t>::max();
+  for(unsigned int i =0; i < depth; ++i) {
     uint32_t v = val(hash(i, data_as_int), i);
     m = m < v ? m : v;
   }
@@ -58,9 +59,10 @@ CMSketch::init(size_t w, size_t d, int rand_seed) {
 
 
   boost::mt19937 gen;
-  boost::random::uniform_int_distribution<> randsrc(1,1<<31 -1);
+  uint32_t bound = (1U << 31) -1;
+  boost::random::uniform_int_distribution<> randsrc(1, bound);
   
-  for(int i = 0; i < d; ++ i) {
+  for(uint32_t i = 0; i < d; ++ i) {
     hashes[i].a = randsrc(gen);
     hashes[i].b = randsrc(gen);
   }
@@ -200,7 +202,7 @@ count_val_t
 CMMultiSketch::quantile(float quantile) {
   count_val_t target_sum = panes[0].total_count * quantile;
   
-  count_val_t bisect_low = 0, bisect_hi = UINT32_MAX;
+  count_val_t bisect_low = 0, bisect_hi = numeric_limits<uint32_t>::max();
   cout << "for quantile " <<quantile << "looking for a hash range that adds up to " << target_sum << endl;
     //do a search over the interval 0 - quantile
   
@@ -223,12 +225,12 @@ CMMultiSketch::quantile(float quantile) {
   
   iters = 0;
   target_sum = panes[0].total_count * (1 - quantile);
-  bisect_hi = UINT32_MAX - 1;
+  bisect_hi = numeric_limits<uint32_t>::max() - 1;
   bisect_low = 0;
 //  cout << "searching from right for " << target_sum << endl;
   while(bisect_hi > bisect_low + 1) { //now repeat, but searching the right-side of the range
     count_val_t mid = bisect_hi / 2 + bisect_low / 2;
-    count_val_t range_sum = hash_range(mid, UINT32_MAX);
+    count_val_t range_sum = hash_range(mid, numeric_limits<uint32_t>::max());
 //    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
 
     if (range_sum < target_sum) //guessed too high a lower bound
