@@ -160,7 +160,7 @@ class DataCube : public TupleReceiver {
 
     virtual void do_process(boost::shared_ptr<Tuple> t);
     void queue_flush();
-    void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
+    virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();
     void start_batch_timeout();
     void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher,const boost::system::error_code& ec);
@@ -169,6 +169,8 @@ class DataCube : public TupleReceiver {
     CountingExecutor flushExec;
     CountingExecutor processExec;
     boost::asio::deadline_timer batch_timeout_timer;
+  
+  protected: 
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 };
