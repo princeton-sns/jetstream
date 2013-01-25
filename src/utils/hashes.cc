@@ -6,9 +6,9 @@ namespace  jetstream {
 and from http://www.burtleburtle.net/bob/hash/doobs.html .  The code is in the 
 public domain and is therefore usable without legal incumbrence.  --ASR, 12/5/12
 */
-uint32_t jenkins_one_at_a_time_hash(const char *key, size_t len)
+u_int32_t jenkins_one_at_a_time_hash(const char *key, size_t len)
 {
-    uint32_t hash, i;
+    u_int32_t hash, i;
     for(hash = i = 0; i < len; ++i)
     {
         hash += key[i];

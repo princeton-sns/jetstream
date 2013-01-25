@@ -1,6 +1,8 @@
 #include "cm_sketch.h"
 
 #include <gtest/gtest.h>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int.hpp>
 
 
 using namespace ::std;
@@ -89,4 +91,24 @@ TEST(CMSketch, Quantile) {
     cout << quantile_pts[i]<<"th percentile is " << q << endl;
   }
 
+}
+
+
+
+
+TEST(CMSketch, SketchVsSample) {
+  const int DATA_SIZE = 1024 * 1024;
+  int* data = new int[DATA_SIZE];
+
+  boost::mt19937 gen;
+  boost::random::uniform_int_distribution<> randsrc(1,1<<22 -1);
+  for (int i=0; i < DATA_SIZE; ++ i)
+    data[i] = randsrc(gen);
+
+  cout << " checking which of sampling versus sketching is better: " << endl;
+  
+
+  delete[] data;
+  
+  
 }

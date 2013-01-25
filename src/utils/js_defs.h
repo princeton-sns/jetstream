@@ -33,7 +33,7 @@ static const u_int16_t MAX_UINT16            = 65535;
 // Global variables defined here
 extern timespec tsnow;
 
-uint32_t jenkins_one_at_a_time_hash(const char *key, size_t len);
+u_int32_t jenkins_one_at_a_time_hash(const char *key, size_t len);
 
 };
 
