@@ -121,6 +121,7 @@ class DataCube : public TupleReceiver {
 
     //only used by tuple batch
     virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
+    virtual void get_dimension_key(const Tuple &t, std::ostringstream &ostr) const = 0;
 
     void save_callback(jetstream::TupleProcessingInfo &tpi,
                        boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple);
@@ -162,13 +163,14 @@ class DataCube : public TupleReceiver {
     void queue_flush();
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();
-    void start_batch_timeout();
-    void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher,const boost::system::error_code& ec);
+    void start_batch_timeout(msec_t left);
+    void batch_timer_fired(const boost::system::error_code& ec);
 
     size_t elements_in_batch;
     CountingExecutor flushExec;
     CountingExecutor processExec;
     boost::asio::deadline_timer batch_timeout_timer;
+    std::ostringstream tmpostr;
   
   protected: 
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;

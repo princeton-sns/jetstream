@@ -89,15 +89,27 @@ void TupleBatch::flush()
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples; 
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > old_tuples; 
 
+  //TODO: can we remove the get_dimension_key calls
+  
+
+  std::ostringstream tmpostr;
   for(std::list<boost::shared_ptr<jetstream::Tuple> >::iterator it = new_tuple_list.begin();
       it != new_tuple_list.end(); ++it)
   {
-    new_tuples.insert(pair<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> >(cube->get_dimension_key(*(*it)), *it));
+    tmpostr.str("");
+    tmpostr.clear();
+    cube->get_dimension_key(*(*it), tmpostr);
+    DimensionKey key = tmpostr.str();
+    new_tuples.insert(pair<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> >(key, *it));
   }
   for(std::list<boost::shared_ptr<jetstream::Tuple> >::iterator it = old_tuple_list.begin();
       it != old_tuple_list.end(); ++it)
   {
-    old_tuples.insert(pair<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> >(cube->get_dimension_key(*(*it)), *it));
+    tmpostr.str("");
+    tmpostr.clear();
+    cube->get_dimension_key(*(*it), tmpostr);
+    DimensionKey key = tmpostr.str();
+    old_tuples.insert(pair<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> >(key, *it));
   }
 
   for(std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin(); iTpi != tpi_store.end(); ++iTpi) {
@@ -156,4 +168,11 @@ size_t TupleBatch::size()
 {
   assert(tpi_store.size() >= holes.size());
   return tpi_store.size() - holes.size();
+}
+
+void TupleBatch::clear()
+{
+  holes.clear();
+  tpi_store.clear();
+  lookup.clear();
 }

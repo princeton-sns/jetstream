@@ -21,6 +21,17 @@ jetstream::DataCube::DimensionKey MysqlDimensionTime::get_key(const  Tuple &t) c
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
+void MysqlDimensionTime::get_key(Tuple const &t, std::ostringstream &ostr) const
+{
+  const jetstream::Element& e = t.e(tuple_indexes[0]);
+  if(e.has_t_val()) {
+    ostr << e.t_val();
+    return;
+  }
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+}
+
+
 vector<string> MysqlDimensionTime::get_column_names() const {
   //this should be the leaf. No need for agg_level column
   //that goes in rollup table. to be done later;

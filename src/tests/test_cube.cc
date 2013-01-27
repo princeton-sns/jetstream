@@ -498,7 +498,7 @@ TEST_F(CubeTest, SubscriberBatchTimeout) {
   cube->process(t);
   js_usleep(500000);
   ASSERT_EQ(0U, sub->insert_q.size());
-  js_usleep(2000000);
+  js_usleep(1000000);
   ASSERT_EQ(1U, sub->insert_q.size());
 
   delete cube;

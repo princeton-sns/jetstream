@@ -100,13 +100,21 @@ class DataCubeImpl : public DataCube {
     }
 
     virtual DimensionKey get_dimension_key(const Tuple &t) const {
-      string key="";
+      std::ostringstream ostr;
 
       for(size_t i=0; i<dimensions.size(); ++i) {
-        key+=dimensions[i]->get_key(t)+"|";
+        dimensions[i]->get_key(t, ostr);
+        ostr << "|";
       }
 
-      return key;
+      return ostr.str();
+    }
+    
+    virtual void get_dimension_key(const Tuple &t, std::ostringstream &ostr) const {
+      for(size_t i=0; i<dimensions.size(); ++i) {
+        dimensions[i]->get_key(t, ostr);
+        ostr << "|";
+      }
     }
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {

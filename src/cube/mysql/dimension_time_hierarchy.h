@@ -21,6 +21,7 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
     MysqlDimensionTimeHierarchy() : MysqlDimension() {};
     
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
+    virtual void get_key(Tuple const &t, std::ostringstream &ostr) const;
 
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;

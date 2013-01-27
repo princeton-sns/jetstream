@@ -31,6 +31,9 @@ public:
   void set_max_batch_size(size_t size);
   bool contains(jetstream::DimensionKey key);
   boost::shared_ptr<jetstream::TupleProcessingInfo> get(DimensionKey key);
+
+  void clear();
+  
 private:
 
   void save_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi);

@@ -29,6 +29,16 @@ jetstream::DataCube::DimensionKey MysqlDimensionTimeHierarchy::get_key(Tuple con
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
+void MysqlDimensionTimeHierarchy::get_key(Tuple const &t, std::ostringstream &ostr) const
+{
+  const jetstream::Element& e = t.e(tuple_indexes[0]);
+  if(e.has_t_val()) {
+    ostr << e.t_val();
+    return;
+  }
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+}
+
 
 vector<string> MysqlDimensionTimeHierarchy::get_column_names() const {
   vector<string> decl;

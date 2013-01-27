@@ -167,3 +167,84 @@ TEST_F(ProcessTest, LoopTest) {
   //delete cube;
 }
 
+TEST_F(ProcessTest, KeyTest) {
+  //time, string, int
+
+
+  time_t t = time(NULL);
+  string s = "http:\\\\www.example.com";
+  int in = 200; 
+  string res;
+  for(int i =0; i < 1000000; i++) {
+
+    res = "";
+    struct tm temptm;
+    char timestring[30];
+    time_t clock = t;
+    gmtime_r(&clock, &temptm);
+    strftime(timestring, sizeof(timestring)-1, "%Y-%m-%d %H:%M:%S", &temptm);
+   
+    res += timestring;
+    res +="|"+s+"|"+boost::lexical_cast<string>(in)+"|";
+  }
+
+}
+TEST_F(ProcessTest, Key2Test) {
+  //time, string, int
+
+
+  time_t t = time(NULL);
+  string s = "http:\\\\www.example.com";
+  int in = 200; 
+  string res;
+  for(int i =0; i < 1000000; i++) {
+
+    res = "";
+    res += boost::lexical_cast<string>(t);
+    res +="|"+s+"|"+boost::lexical_cast<string>(in)+"|";
+  }
+
+}
+
+TEST_F(ProcessTest, Key3Test) {
+  //time, string, int
+
+  ostringstream test;
+  test << "1";
+  string s1 = test.str();
+  test.str("");
+  test.clear();
+  test << "2";
+  string s2 = test.str();
+  LOG(INFO) << s1 << " != " << s2;
+
+
+
+  time_t t = time(NULL);
+  string s = "http:\\\\www.example.com";
+  int in = 200; 
+  string res;
+  ostringstream st;
+  for(int i =0; i < 1000000; i++) {
+     st.str("");
+     st.clear();
+     st << t << "|" << s << "|" << in << "|";
+     res=st.str();
+  }
+
+}
+
+TEST_F(ProcessTest, Key4Test) {
+  //time, string, int
+
+  time_t t = time(NULL);
+  string s = "http:\\\\www.example.com";
+  int in = 200; 
+  string res;
+  for(int i =0; i < 1000000; i++) {
+     ostringstream st;
+     st << t << "|" << s << "|" << in << "|";
+     res=st.str();
+  }
+
+}
