@@ -6,6 +6,7 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <boost/timer/timer.hpp>
+#include <boost/random/exponential_distribution.hpp>
 
 #include <limits>
 #include <math.h>
@@ -136,7 +137,8 @@ double update_err(int q, double* mean_error, int64_t* true_quantile, uint32_t es
   return err;
 }
 
-TEST(CMSketch, SketchVsSample) {
+//use --gtest_also_run_disabled_tests to run
+TEST(DISABLED_CMSketch, SketchVsSample) {
   const unsigned int DATA_SIZE = 1024* 1024 * 8;
   const int TRIALS = 8;
   int* data = new int[DATA_SIZE];
@@ -144,7 +146,8 @@ TEST(CMSketch, SketchVsSample) {
 
   boost::mt19937 gen;
 //  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
-  boost::random::normal_distribution<> randsrc(10000, 1000);
+//  boost::random::normal_distribution<> randsrc(10000, 1000);
+  boost::random::exponential_distribution<> randsrc(0.002);
   
   for (int i=0; i < DATA_SIZE; ++ i)
     data[i] = (uint32_t) randsrc(gen);
@@ -170,7 +173,7 @@ TEST(CMSketch, SketchVsSample) {
 
   for (int i =0; i < TRIALS; ++i) {
     cout << "Trial " << i << endl;
-    CMMultiSketch sketch(10, 6, 2 + i);
+    CMMultiSketch sketch(9, 6, 2 + i);
     StatsSample sample;
     if (i ==0)
       cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb\n";
