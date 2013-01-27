@@ -25,7 +25,8 @@ class CMSketch {
  friend class CMMultiSketch;
  count_val_t * matrix;
  hash_t * hashes;
- size_t width;
+ int width;
+ size_t width_bitmask;
  size_t depth;
  count_val_t total_count;
  
@@ -39,14 +40,17 @@ class CMSketch {
 
   
   
- CMSketch(): matrix(0), hashes(0),  width(0), total_count(0) {} //levels(0),
+ CMSketch(): matrix(0), hashes(0),  width_bitmask(0), total_count(0) {} //levels(0),
 
  CMSketch(size_t w, size_t d, int rand_seed) { init(w, d, rand_seed); }
  
  ~CMSketch();
  
+  size_t size(); //size in bytes
+ 
  protected:
   uint32_t hash(int hashid, int hash_in_val); //returns a value in [0, width-1]
+  
   count_val_t& val(size_t w, size_t d) {
 //    assert (level < levels);
     assert (w < width);
@@ -65,10 +69,17 @@ class CMSketch {
 };
 
 
+/**
+exact level 0 has 2^(EXACT_LEVELS * BITS_PER_LEVEL) ints
+So if exact_levels =4, we have 2 ^ 10 bytes; for 5 exact levels, it'll be 4kb
+meanwhile each pane is depth * (width + 2) ints
+so if depth = 10 and width = 256, that's 10kb per pane
+                              
+*/
 class CMMultiSketch {
   
   static const int BITS_PER_LEVEL = 2;
-  static const int EXACT_LEVELS = 3; //need 2^BITS_PER_LEVEL +
+  static const int EXACT_LEVELS = 6;
   static const int LEVELS = (32 - BITS_PER_LEVEL * EXACT_LEVELS) / BITS_PER_LEVEL;
  private:
   CMSketch * panes;  //sorted from finest to coarsest. Panes[0] is the raw sketch
@@ -101,6 +112,8 @@ class CMMultiSketch {
 
 
   count_val_t quantile(float quantile);
+  
+  size_t size();//size in bytes
 
  private:
   void operator= (const CMMultiSketch &) 
