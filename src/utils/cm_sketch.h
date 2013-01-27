@@ -67,8 +67,8 @@ class CMSketch {
 
 class CMMultiSketch {
   
-  static const int BITS_PER_LEVEL = 2;
-  static const int EXACT_LEVELS = 3; //need 2^BITS_PER_LEVEL +
+  static const unsigned int BITS_PER_LEVEL = 2;
+  static const unsigned int EXACT_LEVELS = 3; //need 2^BITS_PER_LEVEL +
   static const int LEVELS = (32 - BITS_PER_LEVEL * EXACT_LEVELS) / BITS_PER_LEVEL;
  private:
   CMSketch * panes;  //sorted from finest to coarsest. Panes[0] is the raw sketch

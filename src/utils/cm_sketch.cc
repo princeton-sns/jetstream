@@ -79,7 +79,7 @@ CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
 
   exact_counts = new count_val_t*[EXACT_LEVELS];
   
-  for(int i =0; i < EXACT_LEVELS; ++i) {
+  for(unsigned int i =0; i < EXACT_LEVELS; ++i) {
     int sz = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
     exact_counts[i] = new count_val_t[ sz];
 
@@ -94,7 +94,7 @@ CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
 
 CMMultiSketch::~CMMultiSketch() {
   delete[] panes;
-  for(int i =0; i < EXACT_LEVELS; ++i)
+  for(unsigned int i =0; i < EXACT_LEVELS; ++i)
     delete[] exact_counts[i];
   delete[] exact_counts;
 }
@@ -114,8 +114,8 @@ CMMultiSketch::add_item_h(uint32_t data_as_int, count_val_t new_val) {
     panes[i].add_item_h(data_as_int, new_val);
     data_as_int >>= BITS_PER_LEVEL;
   }
-  for( int i=0; i < EXACT_LEVELS; ++i) {
-    assert (data_as_int <  (1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL)));
+  for(unsigned int i=0; i < EXACT_LEVELS; ++i) {
+    assert ( data_as_int <  (1U << ( (EXACT_LEVELS- i) * BITS_PER_LEVEL)));
     exact_counts[i][data_as_int] += new_val;
     data_as_int >>= BITS_PER_LEVEL;
   }
@@ -130,7 +130,7 @@ CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
 
   count_val_t r;
   if (level >= LEVELS) {
-    assert (dyad_start <  (1 << (EXACT_LEVELS- level) * BITS_PER_LEVEL));
+    assert (dyad_start <  (1U << (EXACT_LEVELS- level) * BITS_PER_LEVEL));
     r = exact_counts[level - LEVELS][dyad_start];
   } else
     r = panes[level].estimate_h(dyad_start);
@@ -156,7 +156,7 @@ CMMultiSketch::hash_range(uint32_t lower, uint32_t upper) {
 //The model is that we work up the hierarchy, at each time trimming off the ends
 // and then moving up.
   count_val_t sum = 0;
-  for (int level = 0; level < LEVELS + EXACT_LEVELS ; ++level) {
+  for (unsigned int level = 0; level < LEVELS + EXACT_LEVELS ; ++level) {
 //    uint32_t true_lower = (lower<< level *BITS_PER_LEVEL);
 //    uint32_t true_upper = (upper<< level *BITS_PER_LEVEL);
 //    cout << "range query [" <<  true_lower  << "," << true_upper<<"] at level "<< level << "\n";
