@@ -13,6 +13,7 @@ class MysqlDimensionTime : public MysqlDimensionFlat {
     MysqlDimensionTime() : MysqlDimensionFlat() {};
     
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
+    virtual void get_key(Tuple const &t, std::ostringstream &ostr) const;
 
     vector<string> get_column_names() const ;
 

@@ -41,7 +41,12 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
 
 void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   boost::shared_ptr<cube::TupleBatch> &tupleBatcher = get_tuple_batcher();
-  DimensionKey key = get_dimension_key(*t);
+
+  tmpostr.str("");
+  tmpostr.clear();
+  get_dimension_key(*t, tmpostr);
+  DimensionKey key = tmpostr.str();
+  //DimensionKey key = get_dimension_key(*t);
 
   bool in_batch = false;
 
@@ -52,7 +57,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   shared_ptr<TupleProcessingInfo> tpi;
   if(!in_batch)
   {
-    tpi = make_shared<TupleProcessingInfo>(t, get_dimension_key(*t));
+    tpi = make_shared<TupleProcessingInfo>(t, key);
   }
   else
   {

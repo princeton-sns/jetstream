@@ -15,6 +15,16 @@ jetstream::DataCube::DimensionKey MysqlDimensionDouble::get_key(Tuple const &t) 
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
+void MysqlDimensionDouble::get_key(Tuple const &t, std::ostringstream &ostr) const
+{
+  const jetstream::Element& e = t.e(tuple_indexes[0]);
+  if(e.has_d_val()) {
+    ostr << e.d_val();
+    return;
+  }
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+}
+
 vector<string> MysqlDimensionDouble::get_column_types() const {
   vector<string> decl;
   decl.push_back("DOUBLE");
