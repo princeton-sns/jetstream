@@ -49,7 +49,7 @@ class CMSketch {
   size_t size(); //size in bytes
  
  protected:
-  uint32_t hash(int hashid, int hash_in_val); //returns a value in [0, width-1]
+  inline uint32_t hash(int hashid, int hash_in_val); //returns a value in [0, width-1]
   
   count_val_t& val(size_t w, size_t d) {
 //    assert (level < levels);

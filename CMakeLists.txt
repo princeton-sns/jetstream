@@ -37,11 +37,13 @@ SET (CMAKE_C_FLAGS_DEBUG          "-g -O0")
 SET (CMAKE_C_FLAGS_RELEASE        "-O4 -DNDEBUG")
 SET (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-SET (CMAKE_CXX_FLAGS                "-Wall -Werror -DNO_SSL")
-SET (CMAKE_CXX_FLAGS_DEBUG          "-g -O0")
-SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
+SET (CMAKE_CXX_FLAGS                "-Wall -DNO_SSL")
+SET (CMAKE_CXX_FLAGS_DEBUG          "-g -O0 -Werror")
+SET (CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 
+# NOTE: can't use -Werror in release mode since it means asserts don't count as
+# variable uses, and that results in spurious warnings/errors.
 add_definitions (${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG})
 
 set (TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
