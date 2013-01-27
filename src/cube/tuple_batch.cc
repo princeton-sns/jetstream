@@ -169,3 +169,10 @@ size_t TupleBatch::size()
   assert(tpi_store.size() >= holes.size());
   return tpi_store.size() - holes.size();
 }
+
+void TupleBatch::clear()
+{
+  holes.clear();
+  tpi_store.clear();
+  lookup.clear();
+}

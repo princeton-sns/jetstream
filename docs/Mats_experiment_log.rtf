@@ -134,7 +134,8 @@ rtt wan = 80ms\
 \
 Note the following is just from throuput, may not be accurate:\
 from our data, latency of db w/o batch = 97 us\
-{\field{\*\fldinst{HYPERLINK "http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/"}}{\fldrslt http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/}}\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+{\field{\*\fldinst{HYPERLINK "http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/"}}{\fldrslt \cf0 http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/}}\
 shows insert rate of single-row inserts to be ~25k rows/sec = 40us on avg\
 note batch can get much higher numbers (~200-300k/sec).\
 {\field{\*\fldinst{HYPERLINK "http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking"}}{\fldrslt http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking}} - show much higher latency numbers\
@@ -150,15 +151,56 @@ hd =
 bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n -o ~/perftest.log --controller 128.112.171.38:3456\
 ./jsnoded -C ../config/princeton_mn.conf --start -d 128.112.171.44:0\
 -----------------------------------------------------------------------------\
-./bin/controller.sh -C config/vicci.conf \
-./jsnoded -C ../config/vicci.conf --start\
+experiment runner (not on controller, say node10.princeton):\
 bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n --controller 128.112.171.40:3456 -u 128.112.171.38:54628 -l ~/latency.log.1000 -r 1000 -o ~/perftest.log.1000\
 \
 workers:\
 csshX -l princeton_jetstream node10.princeton.vicci.org node1.stanford.vicci.org node10.stanford.vicci.org node1.mpisws.vicci.org node10.mpisws.vicci.org\
+./jsnoded -C ../config/vicci.conf --start\
 \
 controller:\
 run on node11.princeton\
+./bin/controller.sh -C config/vicci.conf\
+\
+rules:\
+workers and controller on different machines (otherwise controller gets wrong address for local worker).\
+-----------------------------------------------------------------------------------------------\
+ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream\
+ansible-playbook  -i ansible_hosts_vicci build_vicci.yml -u princeton_jetstream\
+ansible-playbook  -i ansible_hosts_vicci config_vicci.yml -u princeton_jetstream\
+\
+\
+Big data has undergone one revolution with the availability of Hadoop for centralized data. We aim to foment another revolution, this time for globally dispersed data.\
+\
+\
+\
+We expect both of these problems to be more common in the wide area than within a datacenter,\
+-------------------------------------------------------------------------------------------------------------------------------------------\
+bootstrap_vicci.yml\
+setup_vicci.yml\
+build_vicci.yml\
+config_vicci.yml [make sure controller add is correctly configured]\
+\
+controller node11.princeton:\
+cd /jestream/js\
+ ./bin/controller.sh -C config/vicci.conf   \
+\
+workers[use worker_generator to get list, take out controller]\
+csshX <list> -l princeton_jetstream\
+./build/jsnoded -C config/vicci.conf --start\
+\
+on experiment runner (node11.princeton)\
+cd /jetstream/js\
+bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n --controller 128.112.171.40:3456 -u 128.112.171.38 -l ~/latency.log.1000 -r 1000 -o ~/perftest.log.1000\
+------------------------------------------------------------------------------------------------------------------------------------------\
+profiling\
+uses google-profiler tool. pprof\
+macOSx does not work with multi-threading\
+so, profile on sns48\
+\
+rm /tmp/profile && CPUPROFILE=/tmp/profile LD_PRELOAD=/usr/local/lib/libprofiler.so ./js_unit_tests --gtest_filter=ProcessTest.LoopTest\
+pprof ./js_unit_tests /tmp/profile --pdf  > ~/profile.pdf\
+pprof ./js_unit_tests /tmp/profile \
 \
 \
 \

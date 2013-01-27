@@ -163,8 +163,8 @@ class DataCube : public TupleReceiver {
     void queue_flush();
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();
-    void start_batch_timeout();
-    void batch_timer_fired(boost::shared_ptr<cube::TupleBatch> batcher,const boost::system::error_code& ec);
+    void start_batch_timeout(msec_t left);
+    void batch_timer_fired(const boost::system::error_code& ec);
 
     size_t elements_in_batch;
     CountingExecutor flushExec;
