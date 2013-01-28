@@ -139,6 +139,7 @@ void insert_tuple2(jetstream::Tuple & t, time_t time, string url, int rc, int su
 TEST_F(ProcessTest, LoopTest) {
   MysqlCubeNoDB * cube = new MysqlCubeNoDB(*sc, "web_requests", true);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->set_elements_in_batch(20);
   //cube->add_subscriber(sub);
   cube->destroy();
   cube->create();
