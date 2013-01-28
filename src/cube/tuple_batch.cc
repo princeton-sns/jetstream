@@ -4,7 +4,7 @@
 using namespace std;
 using namespace jetstream::cube;
 
-TupleBatch::TupleBatch(jetstream::DataCube * cube, size_t batch):  cube(cube), batch(batch){};
+TupleBatch::TupleBatch(jetstream::DataCube * cube):  cube(cube) {};
 TupleBatch::~TupleBatch () {};
 
 jetstream::DataCube* TupleBatch::get_cube() { return cube; }
@@ -37,11 +37,6 @@ TupleBatch::update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInf
   }
    
 }
-
-void TupleBatch::set_max_batch_size(size_t size)
-{
-  batch = size;
-} 
 
 void TupleBatch::save_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi)
 {
@@ -152,11 +147,6 @@ boost::shared_ptr<jetstream::TupleProcessingInfo> TupleBatch::remove_tuple(size_
 {
   holes.push_back(pos);
   return tpi_store[pos];
-}
-
-bool TupleBatch::is_full()
-{
-  return holes.empty() && tpi_store.size() >= batch;
 }
 
 bool TupleBatch::is_empty()

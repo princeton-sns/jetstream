@@ -16,7 +16,7 @@ namespace cube {
 class TupleBatch {
 
 public:
-  TupleBatch(jetstream::DataCube * cube, size_t batch);
+  TupleBatch(jetstream::DataCube * cube);
   virtual ~TupleBatch ();
 
   void 
@@ -25,10 +25,8 @@ public:
     update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, bool batch);
 
   void flush();
-  bool is_full();
   bool is_empty();
   size_t size();
-  void set_max_batch_size(size_t size);
   bool contains(jetstream::DimensionKey key);
   boost::shared_ptr<jetstream::TupleProcessingInfo> get(DimensionKey key);
 
@@ -46,7 +44,6 @@ private:
 
   jetstream::DataCube * get_cube();
   jetstream::DataCube * cube;
-  size_t batch;
   std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> > tpi_store;  
   std::map<DimensionKey, size_t> lookup;
   std::list<size_t> holes;

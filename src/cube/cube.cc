@@ -15,7 +15,7 @@ unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigne
 
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch,  boost::posix_time::time_duration batch_timeout) :
   schema(_schema), name(_name), is_frozen(false), 
-  tupleBatcher(new cube::TupleBatch(this, elements_in_batch)), 
+  tupleBatcher(new cube::TupleBatch(this)), 
   batch_timeout(batch_timeout), version(0),
   elements_in_batch(elements_in_batch),
   flushExec(1), processExec(1),
@@ -115,7 +115,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   
   processCongestMon->report_delete(t.get(), 1);
 
-  if(tupleBatcher->is_full())
+  if(tupleBatcher->size() >= elements_in_batch)
   {
     queue_flush();
   }
@@ -169,7 +169,6 @@ void DataCube::set_batch_timeout(boost::posix_time::time_duration timeout)
 
 void DataCube::set_elements_in_batch(size_t size) {
   elements_in_batch = size;
-  tupleBatcher->set_max_batch_size(size);
 }
 
 void DataCube::queue_flush()
@@ -178,7 +177,7 @@ void DataCube::queue_flush()
     flushCongestMon->report_insert(tupleBatcher.get(), 1);
     flushExec.submit(boost::bind(&DataCube::do_flush, this, tupleBatcher));
   
-    cube::TupleBatch * batch = new cube::TupleBatch(this, elements_in_batch);
+    cube::TupleBatch * batch = new cube::TupleBatch(this);
     tupleBatcher.reset(batch);
 }
 
