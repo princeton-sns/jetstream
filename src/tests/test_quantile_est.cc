@@ -112,16 +112,30 @@ TEST(CMSketch, MultiInit) {
 TEST(LogHistogram, Boundaries) {
   const int BUCKETS = 30;
   LogHistogram hist(BUCKETS);
-  cout << "asked for " << BUCKETS << " and got " << hist.bucket_count();
+  cout << "asked for " << BUCKETS << " and got " << hist.bucket_count() << endl;
   ASSERT_EQ(0,hist.bucket_min(0));
   ASSERT_EQ(1,hist.bucket_min(1));
   for(int i = 0; i < hist.bucket_count()-1; ++i) {
     ASSERT_EQ(hist.bucket_max(i),hist.bucket_min(i+1)-1);
   }
-  
+
   hist.add_item(10, 2);
-  size_t b = hist.bucket_with(10);
-  ASSERT_EQ(2, hist.count_in_b(b));
+  ASSERT_EQ(2, hist.count_in_b(hist.bucket_with(10)));
+  
+  for (int i = 0; i < 1000; ++i) {
+    size_t b = hist.bucket_with(i);
+    std::pair<int, int> bucket_bounds = hist.bucket_bounds(b);
+    ASSERT_GE(i, bucket_bounds.first);
+    ASSERT_LE(i, bucket_bounds.second);
+    hist.add_item(i, 1);
+  }
+  
+/*
+  for(int b =0; b < hist.bucket_count(); ++b) {
+    std::pair<int, int> bucket_bounds = hist.bucket_bounds(b);
+    cout << "in "<< bucket_bounds.first << ", " << bucket_bounds.second <<"] "
+      << hist.count_in_b(b) << endl;
+  }*/
 }
 
 
@@ -136,7 +150,7 @@ int * make_rand_data(int size, const T& randsrc) {
 
 TEST(LogHistogram, Quantile) {
 
-  const int DATA_SIZE = 2048;
+  const int DATA_SIZE = 1000;
 //  int * data = make_rand_data<>(DATA_SIZE, boost::random::uniform_int_distribution<>(1, 1000));
   int * data = new int[DATA_SIZE];
   for (int i = 0; i < DATA_SIZE; ++i)
@@ -157,6 +171,7 @@ TEST(LogHistogram, Quantile) {
     LogHistogram hist(i);
     cout << "testing hist with size " << hist.bucket_count() << endl;
     hist.add_data(data, DATA_SIZE);
+    
     for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
       std::pair<int,int> range = hist.quantile_range(quantiles_to_check[q]);
       cout << "got q " << quantiles_to_check[q] << " in [" << range.first << ", "

@@ -82,20 +82,26 @@ class LogHistogram : public QuantileEstimation {
   public:
     LogHistogram(size_t buckets);
     virtual int quantile(double q);
-  
-    std::pair<int,int> quantile_range(double q);
-
     virtual void add_item(int v, count_val_t c);
+
+
+    virtual size_t size() {
+      return buckets.size() * sizeof(count_val_t);
+    }
   
-    size_t bucket_with(int item);
+    std::pair<int,int> quantile_range(double q) {
+      return bucket_bounds(quantile_bucket(q));
+    }
+
     count_val_t count_in_b(size_t b) {
       assert(b < buckets.size());
       return buckets[b];
     }
   
-    virtual size_t size() {
-      return buckets.size() * sizeof(count_val_t);
-    }
+  
+    std::pair<int,int> bucket_bounds(size_t b);
+    size_t bucket_with(int item);
+
   
     int bucket_min(size_t bucket_id) {
       return bucket_starts[bucket_id];
@@ -110,6 +116,7 @@ class LogHistogram : public QuantileEstimation {
    virtual size_t bucket_count() {
       return bucket_starts.size();
    }
+  
 };
 
 }

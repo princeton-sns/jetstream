@@ -1,6 +1,9 @@
 #include "quantile_est.h"
 #include "stdlib.h"
 #include <algorithm>
+#include <iostream>
+
+using namespace ::std;
 
 namespace jetstream {
 
@@ -46,13 +49,19 @@ LogHistogram::LogHistogram(size_t bucket_target):
   
   
   int exp = 1;
+//  cout << "buckets: 0 ";
   bucket_starts.push_back(0);
+  if (incr_per_layer[0] == 1)
+    bucket_starts.push_back(1);
+    
   for(int layer = 0; layer < layers; ++layer) {
-    for (int i =incr_per_layer[layer]; i <= 10; i+=incr_per_layer[layer]) {
+    for (int i = 2; i <= 10; i+=incr_per_layer[layer]) {
       bucket_starts.push_back(i * exp);
+//      cout << i * exp << " ";
     }
     exp *= 10;
   }
+//  cout << endl;
   
   buckets.assign(bucket_starts.size(), 0);
 }
@@ -64,8 +73,7 @@ LogHistogram::quantile(double q) {
 }
 
 std::pair<int,int>
-LogHistogram::quantile_range(double q) {
-  int i = quantile_bucket(q);
+LogHistogram::bucket_bounds(size_t i) {
   std::pair<int,int> p;
   p.first = bucket_min(i);
   p.second = bucket_max(i);
@@ -78,7 +86,9 @@ LogHistogram::quantile_bucket(double q) {
   count_val_t cum_sum = 0, target_sum = (count_val_t) (q * total_vals);
   
   for (unsigned int i = 0; i < buckets.size(); ++i) {
-    if (cum_sum + buckets[i] > target_sum) {
+
+    cum_sum += buckets[i];  
+    if (cum_sum > target_sum) {
       return i;
     }
   }
@@ -90,12 +100,12 @@ LogHistogram::bucket_with(int v) {
   size_t b_hi = buckets.size() -1;
   size_t b_low = 0;
   size_t b = b_low;
-  while ( b_hi > b_low + 1) {
+  while ( b_hi >= b_low) {
     b = (b_hi + b_low) /2;
     if( bucket_min(b) > v)
-      b_hi = b;
-    else if (bucket_max(b) <v )
-      b_low = b;
+      b_hi = b -1;
+    else if (bucket_max(b) < v )
+      b_low = b+1;
     else
       break; //    v is in bucket b!
   }
