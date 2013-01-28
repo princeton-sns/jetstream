@@ -1,10 +1,13 @@
 cmake_minimum_required (VERSION 2.4)
 
+
+set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+
 #######################################################
 # Require ProtoBufs
 include (FindProtobuf)
 find_package (Protobuf REQUIRED)
-include_directories (${PROTOBUF_INCLUDE_DIR})
+include_directories (SYSTEM ${PROTOBUF_INCLUDE_DIR})
 
 #######################################################
 
@@ -36,5 +39,12 @@ foreach (PROTO_FILE ${PROTO_FILES})
 
 endforeach (PROTO_FILE ${PROTO_FILES})
 
+SET (PREV_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+add_definitions (${CMAKE_CXX_FLAGS} " -w ")
+
+
 add_library (${LIBRARY_NAME} ${PROTO_SRCS})
 target_link_libraries (${LIBRARY_NAME} ${PROTOBUF_LIBRARY})
+
+
+SET (CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})

@@ -1,3 +1,4 @@
+
 #include "cm_sketch.h"
 #include "js_utils.h"
 
@@ -49,10 +50,10 @@ TEST(CMSketch, Quantile) {
     collisions += est - 1;
   }
 
-  int r = c.hash_range(0, numeric_limits<uint32_t>::max());
+  int r = c.hash_range(0, numeric_limits<int32_t>::max());
   cout << "maximal range has estimated sum: " << r << ", expected 20" << endl;
 
-  r = c.hash_range(1000, numeric_limits<uint32_t>::max());
+  r = c.hash_range(1000, numeric_limits<int32_t>::max());
   cout << "over-high range has estimated sum: " << r << ", expected 0"<< endl;
   ASSERT_LE(r, collisions);
 
@@ -94,6 +95,8 @@ TEST(CMSketch, Quantile) {
   int quantile_pts[] = {10, 25, 50, 75, 90};
   int quantile_list_len = sizeof(quantile_pts) / sizeof(int);
   for (int i =0; i < quantile_list_len; ++i) {
+    cout << i << endl;
+  
     int q = c.quantile( quantile_pts[i] / 100.0) ;
     cout << quantile_pts[i]<<"th percentile is " << q << endl;
   }
@@ -109,29 +112,7 @@ TEST(CMSketch, MultiInit) {
 
 }
 
-
-class StatsSample {
-  
-
-  public:
-    vector<int> sample_of_data;
-  
-    void snarf_data(int * data, int size_to_take) {
-      sample_of_data.reserve(size_to_take);
-      sample_of_data.assign(data, data + size_to_take);
-      std::sort (sample_of_data.begin(), sample_of_data.end());
-    }
-  
-    int quantile(double q) {
-      assert (q < 1 && q >= 0);
-      return sample_of_data[ sample_of_data.size() * q];
-    }
-
-
-};
-
-
-double update_err(int q, double* mean_error, int64_t* true_quantile, uint32_t est) {
+double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
   double err = abs( est - true_quantile[q]);
   mean_error[q] +=  err ;
   return err;
@@ -150,7 +131,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   boost::random::exponential_distribution<> randsrc(0.002);
   
   for (int i=0; i < DATA_SIZE; ++ i)
-    data[i] = (uint32_t) randsrc(gen);
+    data[i] = (int) randsrc(gen);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
   
@@ -163,7 +144,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   memset(mean_error_with_sketch, 0, sizeof(mean_error_with_sketch));
   memset(mean_error_with_sampling, 0, sizeof(mean_error_with_sampling));
   StatsSample full_population;
-  full_population.snarf_data(data, DATA_SIZE);
+  full_population.add_data(data, DATA_SIZE);
   for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
      true_quantile[q]= full_population.quantile(quantiles_to_check[q]);
   }
@@ -173,11 +154,11 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
 
   for (int i =0; i < TRIALS; ++i) {
     cout << "Trial " << i << endl;
-    CMMultiSketch sketch(9, 6, 2 + i);
+    CMMultiSketch sketch(10, 6, 2 + i);
     StatsSample sample;
     if (i ==0)
       cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb\n";
-    sample.snarf_data(data, min<size_t>( sketch.size() / sizeof(int), DATA_SIZE));
+    sample.add_data(data, min<size_t>( sketch.size() / sizeof(int), DATA_SIZE));
 
     {
 //      boost::timer::auto_cpu_timer t;

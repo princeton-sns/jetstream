@@ -13,7 +13,7 @@ using namespace boost;
 using namespace ::std;
 
 TEST(CongestMon, QueueMon) {
-  int TOTAL_ELEMS = 10;
+  const int TOTAL_ELEMS = 10;
   int elements[TOTAL_ELEMS];
   QueueCongestionMonitor mon(TOTAL_ELEMS, "test");
   

@@ -18,7 +18,7 @@ CMSketch::hash(int hashid, int val) {
 }
 
 void
-CMSketch::add_item_h(uint32_t data_as_int, int new_val) {
+CMSketch::add_item_h(int data_as_int, int new_val) {
   total_count += new_val;
   for(unsigned int i =0; i < depth; ++i) {
     val(hash(i, data_as_int), i )  += new_val;
@@ -27,13 +27,13 @@ CMSketch::add_item_h(uint32_t data_as_int, int new_val) {
 
 
 void
-CMSketch::add_item(char* data, int data_len, int new_val) {
+CMSketch::add_item(char* data, size_t data_len, int new_val) {
   uint32_t d =  jenkins_one_at_a_time_hash(data, data_len);  //TODO
   add_item_h(d, new_val);
 }
 
 count_val_t
-CMSketch::estimate_h(uint32_t data_as_int) {
+CMSketch::estimate_h(int data_as_int) {
   uint32_t m = numeric_limits<uint32_t>::max();
   for(unsigned int i =0; i < depth; ++i) {
     uint32_t v = val(hash(i, data_as_int), i);
@@ -43,7 +43,7 @@ CMSketch::estimate_h(uint32_t data_as_int) {
 }
 
 count_val_t
-CMSketch::estimate(char * data, int data_len) {
+CMSketch::estimate(char * data, size_t data_len) {
   uint32_t data_as_int = jenkins_one_at_a_time_hash(data, data_len);
   return estimate_h(data_as_int);
 }
@@ -110,14 +110,14 @@ CMMultiSketch::~CMMultiSketch() {
 }
 
 void
-CMMultiSketch::add_item(char* data, int data_len, count_val_t new_val) {
+CMMultiSketch::add_item(char* data, size_t data_len, count_val_t new_val) {
   
   uint32_t data_as_int = jenkins_one_at_a_time_hash(data, data_len);
   add_item_h(data_as_int, new_val);
 }
 
 void
-CMMultiSketch::add_item_h(uint32_t data_as_int, count_val_t new_val) {
+CMMultiSketch::add_item_h(int data_as_int, count_val_t new_val) {
   
   for (int i =0; i < LEVELS; ++i) {
 //    cout << "inserting "<<data_as_int << " at level " << i<< endl;
@@ -162,7 +162,7 @@ CMMultiSketch::range(char * lower, size_t l_size, char* upper, size_t u_size) {
 
 
 count_val_t
-CMMultiSketch::hash_range(uint32_t lower, uint32_t upper) {
+CMMultiSketch::hash_range(int lower, int upper) {
 //The model is that we work up the hierarchy, at each time trimming off the ends
 // and then moving up.
   count_val_t sum = 0;
@@ -208,19 +208,19 @@ CMMultiSketch::hash_range(uint32_t lower, uint32_t upper) {
 }
 
 
-count_val_t
-CMMultiSketch::quantile(float quantile) {
+int
+CMMultiSketch::quantile(double quantile) {
   assert (quantile >=0 && quantile <= 1);
   
   count_val_t target_sum = panes[0].total_count * quantile;
   
-  count_val_t bisect_low = 0, bisect_hi = numeric_limits<uint32_t>::max();
+  int bisect_low = 0, bisect_hi = numeric_limits<int32_t>::max();
 //  cout << "for quantile " <<quantile << "looking for a hash range that adds up to " << target_sum << endl;
     //do a search over the interval 0 - quantile
   
   int iters = 0;
   while(bisect_hi > bisect_low + 1) {
-    count_val_t mid = bisect_hi / 2 + bisect_low / 2;
+    int mid = bisect_hi / 2 + bisect_low / 2;
     count_val_t range_sum = hash_range(0, mid);
 //    std::cout << iters<< " scanning [0-" << mid << "]; sum was " << range_sum<< std::endl;
     if (range_sum >= target_sum) //guessed too high, lower upper bound
@@ -231,18 +231,18 @@ CMMultiSketch::quantile(float quantile) {
     if (iters ++ > 40)
       break;
   }
-  count_val_t bound_from_left = bisect_hi;
+  int bound_from_left = bisect_hi;
 //  cout << "finished approach from left; got " << bound_from_left << endl;
   
   
   iters = 0;
   target_sum = panes[0].total_count * (1 - quantile);
-  bisect_hi = numeric_limits<uint32_t>::max() - 1;
+  bisect_hi = numeric_limits<int32_t>::max();
   bisect_low = 0;
 //  cout << "searching from right for " << target_sum << endl;
   while(bisect_hi > bisect_low + 1) { //now repeat, but searching the right-side of the range
-    count_val_t mid = bisect_hi / 2 + bisect_low / 2;
-    count_val_t range_sum = hash_range(mid, numeric_limits<uint32_t>::max());
+    int mid = bisect_hi / 2 + bisect_low / 2;
+    count_val_t range_sum = hash_range(mid, numeric_limits<int32_t>::max());
 //    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
 
     if (range_sum < target_sum) //guessed too high a lower bound

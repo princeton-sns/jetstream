@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include "js_defs.h"
+#include "quantile_est.h"
 
 namespace jetstream {
 
@@ -19,24 +20,24 @@ struct hash_t {
 };
  
 typedef u_int32_t count_val_t; //the estimated counts
-const u_int32_t MAX_H_VAL = 1 << 31;
+const int32_t MAX_H_VAL = INT_MAX; //max OUTPUT from hash
 
 class CMSketch {
  friend class CMMultiSketch;
  count_val_t * matrix;
  hash_t * hashes;
- int width;
+ size_t width;
  size_t width_bitmask;
  size_t depth;
  count_val_t total_count;
  
  public:
  
-  void add_item_h(uint32_t data, int new_val);
-  void add_item(char* data, int data_len, int new_val); //add new_val, associated with data
+  void add_item_h(int data, int new_val);
+  void add_item(char* data, size_t data_len, int new_val); //add new_val, associated with data
 
-  count_val_t estimate_h(uint32_t data);
-  count_val_t estimate(char * data, int data_len);
+  count_val_t estimate_h(int data);
+  count_val_t estimate(char * data, size_t data_len);
 
   
   
@@ -61,7 +62,7 @@ class CMSketch {
  private:
   void init(size_t w, size_t d, int rand_seed);
  
-  void operator= (const CMSketch &)
+   void operator= (const CMSketch &)  
     { assert(false); } //LOG(FATAL) << "cannot copy a CMSketch"; }
   CMSketch (const CMSketch &) 
     { assert(false); } // LOG(FATAL) << "cannot copy a CMSketch"; }
@@ -76,7 +77,7 @@ meanwhile each pane is depth * (width + 2) ints
 so if depth = 10 and width = 256, that's 10kb per pane
                               
 */
-class CMMultiSketch {
+class CMMultiSketch: public QuantileEstimation {
   
   static const int BITS_PER_LEVEL = 2;
   static const int EXACT_LEVELS = 6;
@@ -92,11 +93,11 @@ class CMMultiSketch {
   CMMultiSketch(size_t w, size_t d, int rand_seed);
   ~CMMultiSketch();
 
-  void add_item(char* data, int data_len, count_val_t new_val); //add new_val, associated with data
+  void add_item(char* data, size_t data_len, count_val_t new_val); //add new_val, associated with data
   
-  void add_item_h(u_int32_t data, count_val_t new_val);
+  void add_item_h(int data, count_val_t new_val);
   
-  count_val_t estimate(char * data, int data_len) {
+  count_val_t estimate(char * data, size_t data_len) {
     return panes[0].estimate(data, data_len);
   }
   
@@ -109,10 +110,10 @@ class CMMultiSketch {
 
   count_val_t range(char * lower, size_t l_size, char* upper, size_t u_size);
 //  count_val_t range(uint32_t lower, uint32_t upper);
-  count_val_t hash_range(uint32_t lower, uint32_t upper);
+  count_val_t hash_range(int lower, int upper);
 
 
-  count_val_t quantile(float quantile);
+  int quantile(double quantile);
   
   size_t size();//size in bytes
 
