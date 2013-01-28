@@ -159,7 +159,7 @@ class DataCube : public TupleReceiver {
     static const std::string my_tyepename;
 
 
-    virtual void do_process(boost::shared_ptr<Tuple> t);
+    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key);
     void queue_flush();
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void post_flush();

@@ -183,7 +183,7 @@ TEST_F(ProcessTest, LoopWithDbTest) {
   //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   for(int i =0; i < 1000000; i++) {
     t = boost::make_shared<jetstream::Tuple>();
-    insert_tuple2(*t, time_entered+(i%25), "http:\\\\www.example.com", 200, 50, 1);
+    insert_tuple2(*t, time_entered+(i%5), "http:\\\\www.example.com", 200, 50, 1);
     cube->process(t);
   }
 

@@ -36,16 +36,17 @@ boost::shared_ptr<cube::TupleBatch> & DataCube::get_tuple_batcher()
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
   processCongestMon->report_insert(t.get(), 1);
-  processExec.submit(boost::bind(&DataCube::do_process, this, t));
+  DimensionKey key = get_dimension_key(*t);
+  processExec.submit(boost::bind(&DataCube::do_process, this, t, key));
 }
 
-void DataCube::do_process(boost::shared_ptr<Tuple> t) {
+void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key) {
   boost::shared_ptr<cube::TupleBatch> &tupleBatcher = get_tuple_batcher();
 
-  tmpostr.str("");
-  tmpostr.clear();
-  get_dimension_key(*t, tmpostr);
-  DimensionKey key = tmpostr.str();
+  //tmpostr.str("");
+  //tmpostr.clear();
+  //get_dimension_key(*t, tmpostr);
+  //DimensionKey key = tmpostr.str();
   //DimensionKey key = get_dimension_key(*t);
 
   bool in_batch = false;
