@@ -19,7 +19,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elem
   batch_timeout(batch_timeout), version(0),
   elements_in_batch(elements_in_batch),
   flushExec(1), processExec(1),
-  batch_timeout_timer(*(processExec.get_io_service())),
+  batch_timeout_timer(*(processExec.get_io_service())), time_check(0), tuples_before_time_check(0),
   flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
@@ -100,7 +100,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
 
   VLOG(2) <<"Process: "<< key << "in batch: "<<in_batch << " can batch:" << can_batch << " need new:" << tpi->need_new_value << " need old:"<< tpi->need_old_value;
 
-  //LOG(INFO) << "In do_process";
+  //LOG(INFO) << "In do_process. " << elements_in_batch  ;
 
   if(can_batch && tupleBatcher->is_empty())
   {
@@ -121,16 +121,39 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t) {
   }
   else if(!tupleBatcher->is_empty())
   {
-    msec_t elapsed = get_msec() - start_time;
-    msec_t timeout =  (msec_t) batch_timeout.total_milliseconds();
-    if(elapsed >= timeout)
+    if (processCongestMon->queue_length() == 0)
     {
-      queue_flush();
+      msec_t elapsed = get_msec() - start_time;
+      msec_t timeout =  (msec_t) batch_timeout.total_milliseconds();
+      if(elapsed >= timeout)
+      {
+        queue_flush();
+      }
+      else
+      { /* only need timeout if nothing is in process queue */
+        msec_t left = timeout - elapsed;
+        start_batch_timeout(left);
+      }
     }
-    else if (processCongestMon->queue_length() == 0)
-    { /* only need timeout if nothing is in process queue */
-      msec_t left = timeout - elapsed;
-      start_batch_timeout(left);
+    else
+    {
+      //check every tuple_before_time_check tuple to prevent call to get_msec()
+      if(time_check > tuples_before_time_check)
+      {
+        msec_t elapsed = get_msec() - start_time;
+        msec_t timeout =  (msec_t) batch_timeout.total_milliseconds();
+        if(elapsed >= timeout)
+        {
+          queue_flush();
+          tuples_before_time_check = (batch_timeout.total_milliseconds() / 1); //pessimistic assumption of 1 ms per tuple
+        }
+        else
+        {
+          tuples_before_time_check = (timeout-elapsed) / 1; //assume here too
+        }
+        time_check = 0;
+      }
+      time_check++;
     }
   }
 }

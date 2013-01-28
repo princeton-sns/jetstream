@@ -14,7 +14,7 @@ inline uint32_t
 CMSketch::hash(int hashid, int val) {
   uint64_t r = val; //note that we just went from 32 to 64 bits
   r =  hashes[hashid].a * r + hashes[hashid].b;
-  return (int) ( (r >> 31 + r)  &  width_bitmask);
+  return (int) ( (r >> (31 + r))  &  width_bitmask);
 }
 
 void
@@ -108,7 +108,7 @@ CMMultiSketch::~CMMultiSketch() {
     delete[] exact_counts[i];
   delete[] exact_counts;
 }
-
+/*
 void
 CMMultiSketch::add_item(char* data, size_t data_len, count_val_t new_val) {
   
@@ -116,8 +116,19 @@ CMMultiSketch::add_item(char* data, size_t data_len, count_val_t new_val) {
   add_item_h(data_as_int, new_val);
 }
 
+
+count_val_t
+CMMultiSketch::range(char * lower, size_t l_size, char* upper, size_t u_size) {
+  uint32_t l_as_int = jenkins_one_at_a_time_hash(lower, l_size);
+  uint32_t u_as_int = jenkins_one_at_a_time_hash(upper, u_size);
+  return hash_range(l_as_int, u_as_int);
+}
+
+
+
+*/
 void
-CMMultiSketch::add_item_h(int data_as_int, count_val_t new_val) {
+CMMultiSketch::add_data(int data_as_int, count_val_t new_val) {
   
   for (int i =0; i < LEVELS; ++i) {
 //    cout << "inserting "<<data_as_int << " at level " << i<< endl;
@@ -152,14 +163,6 @@ CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
   
   return r;
 }
-
-count_val_t
-CMMultiSketch::range(char * lower, size_t l_size, char* upper, size_t u_size) {
-  uint32_t l_as_int = jenkins_one_at_a_time_hash(lower, l_size);
-  uint32_t u_as_int = jenkins_one_at_a_time_hash(upper, u_size);
-  return hash_range(l_as_int, u_as_int);
-}
-
 
 count_val_t
 CMMultiSketch::hash_range(int lower, int upper) {
@@ -265,7 +268,7 @@ CMMultiSketch::size() {
   for (int level = 0; level < LEVELS; ++ level) {
     total += panes[level].size();
   }
-  for (int i =0; i < EXACT_LEVELS; ++ i) {
+  for (unsigned int i =0; i < EXACT_LEVELS; ++ i) {
     size_t t = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
     total += t;
   }

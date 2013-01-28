@@ -16,4 +16,12 @@ StatsSample::quantile(double q){
 }
 
 
+void
+StatsSample::add_data(int v, count_val_t c) {
+  is_sorted = false;
+  for (int i=0; i < c; ++i)
+    sample_of_data.push_back(v);
+}
+
+
 }

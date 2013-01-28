@@ -171,6 +171,8 @@ class DataCube : public TupleReceiver {
     CountingExecutor processExec;
     boost::asio::deadline_timer batch_timeout_timer;
     std::ostringstream tmpostr;
+    unsigned int time_check;
+    unsigned int tuples_before_time_check;
   
   protected: 
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;

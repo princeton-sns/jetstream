@@ -19,7 +19,6 @@ struct hash_t {
   int a, b;
 };
  
-typedef u_int32_t count_val_t; //the estimated counts
 const int32_t MAX_H_VAL = INT_MAX; //max OUTPUT from hash
 
 class CMSketch {
@@ -79,8 +78,8 @@ so if depth = 10 and width = 256, that's 10kb per pane
 */
 class CMMultiSketch: public QuantileEstimation {
   
-  static const int BITS_PER_LEVEL = 2;
-  static const int EXACT_LEVELS = 6;
+  static const unsigned int BITS_PER_LEVEL = 2;
+  static const unsigned int EXACT_LEVELS = 6;
 
   static const int LEVELS = (32 - BITS_PER_LEVEL * EXACT_LEVELS) / BITS_PER_LEVEL;
  private:
@@ -93,13 +92,8 @@ class CMMultiSketch: public QuantileEstimation {
   CMMultiSketch(size_t w, size_t d, int rand_seed);
   ~CMMultiSketch();
 
-  void add_item(char* data, size_t data_len, count_val_t new_val); //add new_val, associated with data
-  
-  void add_item_h(int data, count_val_t new_val);
-  
-  count_val_t estimate(char * data, size_t data_len) {
-    return panes[0].estimate(data, data_len);
-  }
+  virtual void add_data(int data, count_val_t new_val);
+
   
   count_val_t estimate_h(int data) {
     return panes[0].estimate_h(data);
@@ -108,14 +102,20 @@ class CMMultiSketch: public QuantileEstimation {
   
   count_val_t contrib_from_level(int level, uint32_t dyad_start);
 
-  count_val_t range(char * lower, size_t l_size, char* upper, size_t u_size);
-//  count_val_t range(uint32_t lower, uint32_t upper);
   count_val_t hash_range(int lower, int upper);
 
-
-  int quantile(double quantile);
+/*
+  count_val_t range(char * lower, size_t l_size, char* upper, size_t u_size);
   
-  size_t size();//size in bytes
+  count_val_t estimate(char * data, size_t data_len) {
+    return panes[0].estimate(data, data_len);
+  }
+  void add_item(char* data, size_t data_len, count_val_t new_val); //add new_val, associated with data
+  */
+
+  virtual int quantile(double quantile);
+  
+  virtual size_t size();//size in bytes
 
  private:
   void operator= (const CMMultiSketch &) 
