@@ -168,6 +168,43 @@ TEST_F(ProcessTest, LoopTest) {
   //delete cube;
 }
 
+TEST_F(ProcessTest, LoopWithDbTest) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  //boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  cube->set_elements_in_batch(20);
+  //cube->add_subscriber(sub);
+  cube->destroy();
+  cube->create();
+
+  
+  time_t time_entered = time(NULL);
+  boost::shared_ptr<jetstream::Tuple> t;
+  //t = boost::make_shared<jetstream::Tuple>();
+  //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  for(int i =0; i < 1000000; i++) {
+    t = boost::make_shared<jetstream::Tuple>();
+    insert_tuple2(*t, time_entered+(i%25), "http:\\\\www.example.com", 200, 50, 1);
+    cube->process(t);
+  }
+
+  int waits = 0;
+ 
+  ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
+   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
+
+  while(procMon->queue_length() > 0 || flushMon->queue_length() > 0)
+  {
+    waits ++;
+    LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length() <<"; waits "<< waits;
+    js_usleep(200000);
+  }
+
+  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
+  //js_usleep(200000);
+
+  //delete cube;
+}
+
 TEST_F(ProcessTest, KeyTest) {
   //time, string, int
 
