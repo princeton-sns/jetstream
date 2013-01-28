@@ -10,11 +10,11 @@ using namespace ::std;
 
 namespace jetstream {
 
-uint32_t
+inline uint32_t
 CMSketch::hash(int hashid, int val) {
-  uint64_t r = 0;
-  r =  hashes[hashid].a * val + hashes[hashid].b;
-  return (int) ( r % width);
+  uint64_t r = val; //note that we just went from 32 to 64 bits
+  r =  hashes[hashid].a * r + hashes[hashid].b;
+  return (int) ( (r >> 31 + r)  &  width_bitmask);
 }
 
 void
@@ -50,15 +50,18 @@ CMSketch::estimate(char * data, int data_len) {
 
 void
 CMSketch::init(size_t w, size_t d, int rand_seed) {
-  matrix = new u_int32_t[w * d];
-  memset(matrix, 0, w * d * sizeof(int));
-  hashes = new hash_t[d];
-  width = w;
+  assert(w > 2 && w < 12); // width is in bits
+  width =  1 << w;
+  width_bitmask = width - 1;
   depth = d;
   total_count = 0;
 
+  matrix = new u_int32_t[width * d];
+  memset(matrix, 0, width * d * sizeof(int));
+  hashes = new hash_t[d];
 
   boost::mt19937 gen;
+  gen.seed(rand_seed);
   uint32_t bound = (1U << 31) -1;
   boost::random::uniform_int_distribution<> randsrc(1, bound);
   
@@ -66,6 +69,9 @@ CMSketch::init(size_t w, size_t d, int rand_seed) {
     hashes[i].a = randsrc(gen);
     hashes[i].b = randsrc(gen);
   }
+//  cout << "first sketch params " << hashes[0].a << " " << hashes[0].b << endl;
+  
+  
 }
 
 
@@ -74,6 +80,10 @@ CMSketch::~CMSketch() {
   delete[] matrix;
 }
 
+size_t
+CMSketch::size() {
+  return depth * ( 2 +width ) * sizeof(int);
+}
 
 CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
 
@@ -87,7 +97,7 @@ CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
   }
   panes = new CMSketch[LEVELS];
   for(int i =0; i < LEVELS; ++i) {
-    panes[i].init(w, d, rand_seed);
+    panes[i].init(w, d, rand_seed); //10 * rand_seed + i );
   }
 }
 
@@ -200,10 +210,12 @@ CMMultiSketch::hash_range(uint32_t lower, uint32_t upper) {
 
 count_val_t
 CMMultiSketch::quantile(float quantile) {
+  assert (quantile >=0 && quantile <= 1);
+  
   count_val_t target_sum = panes[0].total_count * quantile;
   
   count_val_t bisect_low = 0, bisect_hi = numeric_limits<uint32_t>::max();
-  cout << "for quantile " <<quantile << "looking for a hash range that adds up to " << target_sum << endl;
+//  cout << "for quantile " <<quantile << "looking for a hash range that adds up to " << target_sum << endl;
     //do a search over the interval 0 - quantile
   
   int iters = 0;
@@ -220,7 +232,7 @@ CMMultiSketch::quantile(float quantile) {
       break;
   }
   count_val_t bound_from_left = bisect_hi;
-  cout << "finished approach from left; got " << bound_from_left << endl;
+//  cout << "finished approach from left; got " << bound_from_left << endl;
   
   
   iters = 0;
@@ -241,9 +253,25 @@ CMMultiSketch::quantile(float quantile) {
     if (iters ++ > 40)
       break;    
   }
-  cout << "scanning from right, got " << bisect_hi << endl;
+//  cout << "scanning from right, got " << bisect_hi << endl;
   return (bound_from_left+ bisect_hi)/2;
    //return bound_from_left;
 }
+
+
+size_t
+CMMultiSketch::size() {
+  size_t total = 0;
+  for (int level = 0; level < LEVELS; ++ level) {
+    total += panes[level].size();
+  }
+  for (int i =0; i < EXACT_LEVELS; ++ i) {
+    size_t t = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
+    total += t;
+  }
+
+  return total;
+}
+
 
 }
