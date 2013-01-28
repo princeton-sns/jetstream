@@ -14,7 +14,7 @@ inline uint32_t
 CMSketch::hash(int hashid, int val) {
   uint64_t r = val; //note that we just went from 32 to 64 bits
   r =  hashes[hashid].a * r + hashes[hashid].b;
-  return (int) ( (r >> 31 + r)  &  width_bitmask);
+  return (int) ( (r >> (31 + r))  &  width_bitmask);
 }
 
 void
