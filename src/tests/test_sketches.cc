@@ -149,7 +149,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
 //  boost::random::normal_distribution<> randsrc(10000, 1000);
   boost::random::exponential_distribution<> randsrc(0.002);
   
-  for (int i=0; i < DATA_SIZE; ++ i)
+  for (unsigned int i=0; i < DATA_SIZE; ++ i)
     data[i] = (uint32_t) randsrc(gen);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
@@ -182,7 +182,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     {
 //      boost::timer::auto_cpu_timer t;
       usec_t now = get_usec();
-      for (int j =0; j < DATA_SIZE; ++j)
+      for (unsigned int j =0; j < DATA_SIZE; ++j)
         sketch.add_item_h(data[j], 1);
       time_adding_items += (get_usec() - now);
     }

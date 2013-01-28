@@ -265,7 +265,7 @@ CMMultiSketch::size() {
   for (int level = 0; level < LEVELS; ++ level) {
     total += panes[level].size();
   }
-  for (int i =0; i < EXACT_LEVELS; ++ i) {
+  for (unsigned int i =0; i < EXACT_LEVELS; ++ i) {
     size_t t = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
     total += t;
   }

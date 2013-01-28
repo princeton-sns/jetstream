@@ -25,7 +25,7 @@ class CMSketch {
  friend class CMMultiSketch;
  count_val_t * matrix;
  hash_t * hashes;
- int width;
+ unsigned int width;
  size_t width_bitmask;
  size_t depth;
  count_val_t total_count;
@@ -78,8 +78,8 @@ so if depth = 10 and width = 256, that's 10kb per pane
 */
 class CMMultiSketch {
   
-  static const int BITS_PER_LEVEL = 2;
-  static const int EXACT_LEVELS = 6;
+  static const unsigned int BITS_PER_LEVEL = 2;
+  static const unsigned int EXACT_LEVELS = 6;
 
   static const int LEVELS = (32 - BITS_PER_LEVEL * EXACT_LEVELS) / BITS_PER_LEVEL;
  private:
