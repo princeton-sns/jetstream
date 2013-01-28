@@ -92,9 +92,8 @@ class CMMultiSketch: public QuantileEstimation {
   CMMultiSketch(size_t w, size_t d, int rand_seed);
   ~CMMultiSketch();
 
-  virtual void add_data(int data, count_val_t new_val);
+  virtual void add_item(int data, count_val_t new_val);
 
-  
   count_val_t estimate_h(int data) {
     return panes[0].estimate_h(data);
   }

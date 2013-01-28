@@ -128,7 +128,7 @@ CMMultiSketch::range(char * lower, size_t l_size, char* upper, size_t u_size) {
 
 */
 void
-CMMultiSketch::add_data(int data_as_int, count_val_t new_val) {
+CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
   
   for (int i =0; i < LEVELS; ++i) {
 //    cout << "inserting "<<data_as_int << " at level " << i<< endl;

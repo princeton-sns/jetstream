@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <assert.h>
+#include <limits>
 
 namespace jetstream {
 
@@ -23,11 +24,11 @@ class QuantileEstimation {
     virtual int quantile(double q) =0;
     virtual size_t size() = 0; //
   
-    virtual void add_data(int, count_val_t) = 0;
+    virtual void add_item(int, count_val_t) = 0;
   
     virtual void add_data(int * data, size_t size_to_take) {
       for (int i =0; i < size_to_take; ++i)
-        add_data( data[i], 1);
+        add_item( data[i], 1);
     }
 
 //    virtual size_t elems_represented() = 0;
@@ -37,7 +38,7 @@ class QuantileEstimation {
 
 
 
-class StatsSample: public QuantileEstimation {
+class GrowableSample: public QuantileEstimation {
 
   protected:
     std::vector<int> sample_of_data;
@@ -45,7 +46,7 @@ class StatsSample: public QuantileEstimation {
 
   public:
   
-    StatsSample(): is_sorted(false) {}
+    GrowableSample(): is_sorted(false) {}
   
     virtual void add_data(int * data, size_t size_to_take) {
       is_sorted = false;
@@ -53,7 +54,7 @@ class StatsSample: public QuantileEstimation {
       sample_of_data.assign(data, data + size_to_take);
     }
   
-    virtual void add_data(int v, count_val_t c);
+    virtual void add_item(int v, count_val_t c);
 
   
     virtual int quantile(double q);
@@ -61,27 +62,54 @@ class StatsSample: public QuantileEstimation {
     virtual size_t size() {
       return sample_of_data.size() * sizeof(int);
    }
+
 };
 
-class LogDistHistogram : public QuantileEstimation {
+// could have a base histogram class here if need be
+
+class LogHistogram : public QuantileEstimation {
 /*
   Histogram of data, with a log distribution 
 */
   protected:
-    std::vector<count_val_t> counts;
-    size_t buckets;
+    std::vector<count_val_t> buckets;
+//    size_t num_buckets;
+    std::vector<int> bucket_starts;
+
+    count_val_t total_vals;  
+    size_t quantile_bucket(double d); //the bucket holding quantile d
   
   public:
-    LogDistHistogram(int min, int max, size_t buckets);
+    LogHistogram(size_t buckets);
     virtual int quantile(double q);
+  
+    std::pair<int,int> quantile_range(double q);
 
-    virtual void add_data(int v, count_val_t c);
+    virtual void add_item(int v, count_val_t c);
+  
+    size_t bucket_with(int item);
+    count_val_t count_in_b(size_t b) {
+      assert(b < buckets.size());
+      return buckets[b];
+    }
   
     virtual size_t size() {
-    
+      return buckets.size() * sizeof(count_val_t);
     }
-
-
+  
+    int bucket_min(size_t bucket_id) {
+      return bucket_starts[bucket_id];
+    }
+    int bucket_max(size_t bucket_id) { //largest element that'll get sorted into bucket_id
+      assert(bucket_id < buckets.size());
+      if (bucket_id == buckets.size() -1)
+        return std::numeric_limits<int>::max();
+      return bucket_starts[bucket_id+1] -1;
+    }
+  
+   virtual size_t bucket_count() {
+      return bucket_starts.size();
+   }
 };
 
 }
