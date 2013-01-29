@@ -18,6 +18,9 @@ if(USE_CLANG)
 #    SET (CMAKE_NM      "/usr/bin/llvm-nm")
 #    SET (CMAKE_OBJDUMP "/usr/bin/llvm-objdump")
 #    SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib")
+else (USE_CLANG)
+    SET (CMAKE_C_COMPILER             "/usr/bin/gcc")
+    SET (CMAKE_CXX_COMPILER           "/usr/bin/g++")
 endif(USE_CLANG)
 
 set (CMAKE_VERBOSE_MAKEFILE ON)
@@ -57,6 +60,10 @@ set (TESTLIB "js_tests") #name for the library containing our unit tests
 
 project (jetstream)
 
+if(CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
+endif()
+
 set (JETSTREAM_VERSION_MAJOR "0" CACHE STRING "Jetstream's major version" FORCE)
 set (JETSTREAM_VERSION_MINOR "0" CACHE STRING "Jetstream's minor version" FORCE)
 set (JETSTREAM_VERSION_REVISION "1" CACHE STRING "Jetstream's revision version" FORCE)
@@ -76,7 +83,11 @@ if (APPLE)
   set (Boost_USE_STATIC_LIBS ON)
   set (Boost_USE_MULTITHREADED ON) 
 endif ()
-include_directories (${Boost_INCLUDE_DIRS})
+
+
+include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
+
+#message ("after adding boost, includes were ${INCLUDE_DIRECTORIES}")
 
 #hack because something messes up the suffixes
 if (FULL_STATIC)
@@ -86,12 +97,12 @@ endif (FULL_STATIC)
 # Require ProtoBufs
 include (FindProtobuf)
 find_package (Protobuf REQUIRED)
-include_directories (${PROTOBUF_INCLUDE_DIR})
+include_directories (SYSTEM ${PROTOBUF_INCLUDE_DIR})
 
 # Require Google Test
 include (FindGTest)
 find_package (GTest REQUIRED)
-include_directories (${GTEST_INCLUDE_DIR})
+include_directories (SYSTEM ${GTEST_INCLUDE_DIR})
 
 #  Google's glog logger
 find_library(GLOG_LIB glog) #glog has no dependencies and so this is safe. --ASR
@@ -104,7 +115,7 @@ set (LIBRARY_NAME jsproto)
 add_subdirectory (${SRC_DIR}/proto)
 link_directories (${BUILD_DIR}/proto)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
-include_directories (${SRC_DIR}/proto/cpp)
+include_directories (SYSTEM ${SRC_DIR}/proto/cpp)
 
 
 set (LIBRARY_NAME jsutils)
