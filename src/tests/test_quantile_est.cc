@@ -156,7 +156,7 @@ TEST(LogHistogram, Quantile) {
   for (int i = 0; i < DATA_SIZE; ++i)
     data[i] = i;
 
-  GrowableSample full_population;
+  SampleEstimation full_population;
   full_population.add_data(data, DATA_SIZE);
   
   double quantiles_to_check[] = {0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95};
@@ -206,6 +206,7 @@ double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
 TEST(DISABLED_CMSketch, SketchVsSample) {
   const unsigned int DATA_SIZE = 1024* 1024 * 8;
   const int TRIALS = 8;
+  const int APPROACHES = 3;
   
   
   size_t data_bytes = DATA_SIZE * sizeof(int);
@@ -219,62 +220,82 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   
   double quantiles_to_check[] = {0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95};
   int QUANTILES_TO_CHECK = sizeof(quantiles_to_check) /sizeof(double);
-  double mean_error_with_sketch[QUANTILES_TO_CHECK];
-  double mean_error_with_sampling[QUANTILES_TO_CHECK];
+    
+  double mean_error_with[APPROACHES][QUANTILES_TO_CHECK];
+//  double mean_error_with_sampling[QUANTILES_TO_CHECK];
   int64_t true_quantile[QUANTILES_TO_CHECK];
 
-  memset(mean_error_with_sketch, 0, sizeof(mean_error_with_sketch));
-  memset(mean_error_with_sampling, 0, sizeof(mean_error_with_sampling));
-  GrowableSample full_population;
+  memset(mean_error_with, 0, sizeof(mean_error_with));
+//  memset(mean_error_with_sampling, 0, sizeof(mean_error_with_sampling));
+  SampleEstimation full_population;
   full_population.add_data(data, DATA_SIZE);
   for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
      true_quantile[q]= full_population.quantile(quantiles_to_check[q]);
   }
   
-  usec_t time_adding_items = 0;
-  usec_t time_querying = 0;
+  usec_t time_adding_items[APPROACHES];
+  memset(time_adding_items, 0, sizeof(time_adding_items));
+  usec_t time_querying[APPROACHES];
+  memset(time_querying, 0, sizeof(time_querying));
+
+
+  vector<string> labels;
+  labels.push_back("sketch");
+  labels.push_back("sample");
+  labels.push_back("histogram");
 
   for (int i =0; i < TRIALS; ++i) {
     cout << "Trial " << i << endl;
+    QuantileEstimation * estimators[APPROACHES];
     CMMultiSketch sketch(10, 6, 2 + i);
-    GrowableSample sample;
+    ReservoirSample sample(sketch.size()/ sizeof(int));
+    LogHistogram histo(40);
+    
+    estimators[0] = &sketch;
+    estimators[1] = &sample;
+    estimators[2] = &histo;
+    
     if (i ==0)
       cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb\n";
-    sample.add_data(data, min<size_t>( sketch.size() / sizeof(int), DATA_SIZE));
-
-    {
+    
+    
+    for (int a = 0; a < APPROACHES; ++a) {
 //      boost::timer::auto_cpu_timer t;
       usec_t now = get_usec();
-      sketch.add_data(data, DATA_SIZE);
-      time_adding_items += (get_usec() - now);
-    }
+      
+      estimators[a]->add_data(data, DATA_SIZE);
+      
+      time_adding_items[a] += (get_usec() - now);
 
-    usec_t query_start = get_usec();
-    for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
-      double quantile_pt = quantiles_to_check[q];
+      usec_t query_start = get_usec();
+      for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
+        double quantile_pt = quantiles_to_check[q];
       
 //      cout << " checking quantile " << quantile_pt<< " ("<<q<<"/"<< 5<<")\n";
-      double d=  update_err(q, mean_error_with_sketch, true_quantile, sketch.quantile(quantile_pt));
-      cout << "  error was " << d << " or " << 100.0 * d /true_quantile[q] << "%\n";
-      
-      update_err(q, mean_error_with_sampling, true_quantile, sample.quantile(quantile_pt));
+        update_err(q, mean_error_with[a], true_quantile, estimators[a]->quantile(quantile_pt));
+      }
+      time_querying[a] += (get_usec() - query_start);
     }
-    time_querying += (get_usec() - query_start);
+//      cout << "  error was " << d << " or " << 100.0 * d /true_quantile[q] << "%\n";
   }
   
+    //end queries, now we report results
+  
   for (int q =0; q < QUANTILES_TO_CHECK; ++q) {
-    mean_error_with_sketch[q] /= TRIALS;
-    mean_error_with_sampling[q] /= TRIALS;
 
     cout << "\nQuantile " << quantiles_to_check[q] << " ("  << true_quantile[q]<< ")\n";
-    cout << "sketch mean error: " << mean_error_with_sketch[q] << " or " <<
-        (100.0 * mean_error_with_sketch[q] /true_quantile[q])<< "%"  << endl;
-    
-    cout << "sample mean error: " << mean_error_with_sampling[q] << " or " <<
-        (100.0 * mean_error_with_sampling[q] /true_quantile[q])<< "%"  << endl;
+    for (int a = 0; a < APPROACHES; ++a) {
+      mean_error_with[a][q] /= TRIALS;
+
+      cout << labels[a] << " mean error: " << mean_error_with[a][q] << " or " <<
+          (100.0 * mean_error_with[a][q] /true_quantile[q])<< "%"  << endl;
+      }
   }
-  cout << "Adding data to sketches took " << time_adding_items/TRIALS / 1000 <<
-    "ms per sketch; each query took " << time_querying/TRIALS/QUANTILES_TO_CHECK << "us .\n";
+  
+  for (int a = 0; a < APPROACHES; ++a) {
+    cout << "Adding data to "<<labels[a] <<"  took " << time_adding_items[a]/TRIALS / 1000 <<
+    "ms per " <<labels[a] << "; each query took " << time_querying[a]/TRIALS/QUANTILES_TO_CHECK << "us .\n";
+  }
   delete[] data;
   
 }

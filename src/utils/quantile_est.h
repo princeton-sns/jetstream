@@ -36,9 +36,7 @@ class QuantileEstimation {
 };
 
 
-
-
-class GrowableSample: public QuantileEstimation {
+class SampleEstimation: public QuantileEstimation {
 
   protected:
     std::vector<int> sample_of_data;
@@ -46,7 +44,7 @@ class GrowableSample: public QuantileEstimation {
 
   public:
   
-    GrowableSample(): is_sorted(false) {}
+    SampleEstimation(): is_sorted(false) {}
   
     virtual void add_data(int * data, size_t size_to_take) {
       is_sorted = false;
@@ -62,7 +60,17 @@ class GrowableSample: public QuantileEstimation {
     virtual size_t size() {
       return sample_of_data.size() * sizeof(int);
    }
+};
 
+class ReservoirSample: public SampleEstimation {
+  protected:
+    size_t max_size;
+
+  public:
+    ReservoirSample(int reserv_size): max_size(reserv_size) {}
+    virtual void add_item(int v, count_val_t c);
+    virtual void add_data(int * data, size_t size_to_take);
+  
 };
 
 // could have a base histogram class here if need be

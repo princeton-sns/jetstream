@@ -8,7 +8,7 @@ using namespace ::std;
 namespace jetstream {
 
 int
-GrowableSample::quantile(double q){
+SampleEstimation::quantile(double q){
   assert (q < 1 && q >= 0);
   
   if (!is_sorted) {
@@ -20,11 +20,30 @@ GrowableSample::quantile(double q){
 
 
 void
-GrowableSample::add_item(int v, count_val_t c) {
+SampleEstimation::add_item(int v, count_val_t c) {
   is_sorted = false;
   for (int i=0; i < c; ++i)
     sample_of_data.push_back(v);
 }
+
+void
+ReservoirSample::add_item(int v, count_val_t c) {
+  for (int i =0; i < c; ++i)
+    if( sample_of_data.size() < max_size)
+      sample_of_data.push_back(v);
+    else {
+    
+    }
+}
+
+
+void
+ReservoirSample::add_data(int * data, size_t size_to_take) {
+  sample_of_data.reserve(size_to_take);
+  for (int i =0; i < size_to_take; ++i)
+    add_item( data[i], 1);
+}
+
 
 
 LogHistogram::LogHistogram(size_t bucket_target):
