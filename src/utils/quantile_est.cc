@@ -2,8 +2,11 @@
 #include "stdlib.h"
 #include <algorithm>
 #include <iostream>
+#include <boost/random/uniform_int.hpp>
+
 
 using namespace ::std;
+using namespace boost::random;
 
 namespace jetstream {
 
@@ -26,14 +29,23 @@ SampleEstimation::add_item(int v, count_val_t c) {
     sample_of_data.push_back(v);
 }
 
+inline void
+ReservoirSample::add_one(int v) {
+  if( sample_of_data.size() < max_size)
+      sample_of_data.push_back(v);
+  else {
+    uniform_int_distribution<int64_t> randsrc(0, total_seen-1); //note that this is different each time
+    int64_t i_to_replace = randsrc(gen);
+    if (i_to_replace < max_size)
+      sample_of_data[i_to_replace] = v;
+  }
+  total_seen += 1;  
+}
+
 void
 ReservoirSample::add_item(int v, count_val_t c) {
   for (int i =0; i < c; ++i)
-    if( sample_of_data.size() < max_size)
-      sample_of_data.push_back(v);
-    else {
-    
-    }
+    add_one(v);
 }
 
 
@@ -41,7 +53,7 @@ void
 ReservoirSample::add_data(int * data, size_t size_to_take) {
   sample_of_data.reserve(size_to_take);
   for (int i =0; i < size_to_take; ++i)
-    add_item( data[i], 1);
+    add_one(data[i]);
 }
 
 

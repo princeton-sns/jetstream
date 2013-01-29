@@ -12,6 +12,8 @@
 #include <vector>
 #include <assert.h>
 #include <limits>
+#include <boost/random/mersenne_twister.hpp>
+
 
 namespace jetstream {
 
@@ -65,9 +67,12 @@ class SampleEstimation: public QuantileEstimation {
 class ReservoirSample: public SampleEstimation {
   protected:
     size_t max_size;
+    size_t total_seen;
+    inline void add_one(int v);
+    boost::mt19937 gen;
 
   public:
-    ReservoirSample(int reserv_size): max_size(reserv_size) {}
+    ReservoirSample(int reserv_size): max_size(reserv_size),total_seen(0) {}
     virtual void add_item(int v, count_val_t c);
     virtual void add_data(int * data, size_t size_to_take);
   
