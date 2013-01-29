@@ -13,7 +13,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
-#include "js_counting_executor.h"
+#include "js_executor.h"
 
 namespace jetstream {
 class DataCube;
@@ -162,8 +162,8 @@ class DataCube : public TupleReceiver {
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
     void check_tuple_batcher_flush();
     void post_flush();
-    CountingExecutor flushExec;
-    CountingExecutor processExec;
+    Executor flushExec;
+    Executor processExec;
     std::ostringstream tmpostr;
   
   protected: 
