@@ -26,11 +26,12 @@ message TaskID {
 
 message Element {
   // Keep this type consistent with the optional fields below
-  enum ElementType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4;}
+  enum ElementType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; BLOB = 5;}
   optional string s_val = 1;
   optional int32 i_val = 2;
   optional double d_val = 3;
   optional int32 t_val = 4;
+  optional bytes blob = 5;
 }
 
 

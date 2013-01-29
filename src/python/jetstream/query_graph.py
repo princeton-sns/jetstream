@@ -380,10 +380,11 @@ class Cube(Destination):
     else:
       return self.name
 
+    #maps from a dimension-type to a typecode. Note that dimensions can't be blobs
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
-      Element.DOUBLE: 'D', Element.TIME: 'T' } #, Element.TIME_HIERARCHY: 'H'}
+      Element.DOUBLE: 'D', Element.TIME: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
 
-  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T' }
+  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T',  'blob': 'b'}
 
   def in_schema_map(self):
     """ Returns a map from offset-in-input-tuple to field-type,name pair"""
