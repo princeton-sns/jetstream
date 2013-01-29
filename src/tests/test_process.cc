@@ -135,6 +135,18 @@ void insert_tuple2(jetstream::Tuple & t, time_t time, string url, int rc, int su
   e->set_i_val(count);  //5
 }
 
+void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, unsigned int count, unsigned int rep)
+{
+  time_t time_entered = time(NULL);
+  boost::shared_ptr<jetstream::Tuple> t;
+  for(unsigned int i =0; i < count; i++) {
+    t = boost::make_shared<jetstream::Tuple>();
+    insert_tuple2(*t, time_entered+( i % rep ), "http:\\\\www.example.com", 200, 50, 1);
+    vector.push_back(t);
+  }
+}
+
+
 TEST_F(ProcessTest, LoopTest) {
   MysqlCubeNoDB * cube = new MysqlCubeNoDB(*sc, "web_requests", true);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
@@ -142,19 +154,19 @@ TEST_F(ProcessTest, LoopTest) {
   cube->destroy();
   cube->create();
 
-  
-  time_t time_entered = time(NULL);
-  boost::shared_ptr<jetstream::Tuple> t;
-  
   ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
-  
-  //t = boost::make_shared<jetstream::Tuple>();
-  //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  for(int i =0; i < 1000000; i++) {
-    t = boost::make_shared<jetstream::Tuple>();
-    insert_tuple2(*t, time_entered+(i%100), "http:\\\\www.example.com", 200, 50, 1);
-    cube->process(t);
+ 
+  std::vector< boost::shared_ptr<jetstream::Tuple> > vector;
+  make_tuples(vector, 1000000, 100);
+
+  unsigned int i = 0;
+
+  msec_t start = get_msec();
+  for(std::vector< boost::shared_ptr<jetstream::Tuple> >::const_iterator it = vector.begin(); it != vector.end(); ++it)
+  {
+    cube->process(*it);
+    ++i;
     if(i%100000 == 0)
       LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
@@ -169,8 +181,8 @@ TEST_F(ProcessTest, LoopTest) {
   
   LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
 
+  LOG(INFO) << "The time it took was: " << (get_msec() - start);
   //js_usleep(200000);
-
   //delete cube;
 }
 
@@ -181,25 +193,24 @@ TEST_F(ProcessTest, LoopWithDbTest) {
   cube->destroy();
   cube->create();
 
-  
-  time_t time_entered = time(NULL);
-  boost::shared_ptr<jetstream::Tuple> t;
-  
   ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
   
-  //t = boost::make_shared<jetstream::Tuple>();
-  //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  for(int i =0; i < 1000000; i++) {
-    t = boost::make_shared<jetstream::Tuple>();
-    insert_tuple2(*t, time_entered+(i%100), "http:\\\\www.example.com", 200, 50, 1);
+  std::vector< boost::shared_ptr<jetstream::Tuple> > vector;
+  make_tuples(vector, 1000000, 100);
+
+  unsigned int i = 0;
+
+  msec_t start = get_msec();
+  for(std::vector< boost::shared_ptr<jetstream::Tuple> >::const_iterator it = vector.begin(); it != vector.end(); ++it)
+  {
+    cube->process(*it);
+    ++i;
     if(i%100000 == 0)
       LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
-    cube->process(t);
   }
 
   int waits = 0;
- 
 
   while(procMon->queue_length() > 0 || flushMon->queue_length() > 0)
   {
@@ -209,12 +220,13 @@ TEST_F(ProcessTest, LoopWithDbTest) {
   }
 
   LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
+  LOG(INFO) << "The time it took was: " << (get_msec() - start);
   //js_usleep(200000);
 
   //delete cube;
 }
 
-TEST_F(ProcessTest, KeyTest) {
+TEST_F(ProcessTest, DISABLED_KeyTest) {
   //time, string, int
 
 
@@ -236,7 +248,7 @@ TEST_F(ProcessTest, KeyTest) {
   }
 
 }
-TEST_F(ProcessTest, Key2Test) {
+TEST_F(ProcessTest, DISABLED_Key2Test) {
   //time, string, int
 
 
@@ -253,7 +265,7 @@ TEST_F(ProcessTest, Key2Test) {
 
 }
 
-TEST_F(ProcessTest, Key3Test) {
+TEST_F(ProcessTest, DISABLED_Key3Test) {
   //time, string, int
 
   ostringstream test;
@@ -281,7 +293,7 @@ TEST_F(ProcessTest, Key3Test) {
 
 }
 
-TEST_F(ProcessTest, Key4Test) {
+TEST_F(ProcessTest, DISABLED_Key4Test) {
   //time, string, int
 
   time_t t = time(NULL);
