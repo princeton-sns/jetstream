@@ -13,13 +13,11 @@ using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
-DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, size_t elements_in_batch,  boost::posix_time::time_duration batch_timeout) :
+DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name) :
   schema(_schema), name(_name), is_frozen(false), 
   tupleBatcher(new cube::TupleBatch(this)), 
   batch_timeout(batch_timeout), version(0),
-  elements_in_batch(elements_in_batch),
   flushExec(1), processExec(1),
-  batch_timeout_timer(*(processExec.get_io_service())), time_check(0), tuples_before_time_check(0),
   flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
@@ -103,6 +101,25 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key) {
 
   //LOG(INFO) << "In do_process. " << elements_in_batch  ;
 
+
+  if(!in_batch) {
+    tupleBatcher->insert_tuple(tpi, can_batch);
+  }
+  else {
+    tupleBatcher->update_batched_tuple(tpi, can_batch);
+  }
+
+  
+  if(flushCongestMon->queue_length() < 1 && !tupleBatcher->is_empty()) 
+  {
+    //tupleBatcher->clear();
+    queue_flush();
+  }
+  
+  processCongestMon->report_delete(t.get(), 1);
+
+
+/*
   if(can_batch && tupleBatcher->is_empty())
   {
     start_time = get_msec();
@@ -131,7 +148,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key) {
         queue_flush();
       }
       else
-      { /* only need timeout if nothing is in process queue */
+      { // only need timeout if nothing is in process queue 
         msec_t left = timeout - elapsed;
         start_batch_timeout(left);
       }
@@ -157,23 +174,23 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key) {
       time_check++;
     }
   }
+  */
+}
+
+void DataCube::wait_for_commits() {
+  while(flushCongestMon->queue_length() > 0 || processCongestMon->queue_length() > 0)
+  {
+    js_usleep(processCongestMon->queue_length() + (flushCongestMon->queue_length()*10));
+  }
 }
 
 size_t DataCube::batch_size() {
   return tupleBatcher->size();
 }
 
-void DataCube::set_batch_timeout(boost::posix_time::time_duration timeout)
-{
-  batch_timeout = timeout;  
-}
-
-void DataCube::set_elements_in_batch(size_t size) {
-  elements_in_batch = size;
-}
-
 void DataCube::queue_flush()
 {
+    //LOG_EVERY_N(INFO, 10) << "flushing size:" << tupleBatcher->size();
     //batch_timeout_timer.cancel();
     flushCongestMon->report_insert(tupleBatcher.get(), 1);
     flushExec.submit(boost::bind(&DataCube::do_flush, this, tupleBatcher));
@@ -184,30 +201,26 @@ void DataCube::queue_flush()
 
 void DataCube::do_flush(boost::shared_ptr<cube::TupleBatch> tb){
   tb->flush();
+
+  if(flushCongestMon->queue_length() == 1 && processCongestMon->queue_length() < 1)
+  {
+    //we just flushed and there is nothing in the process q
+    //but there may be stuff in tupleBatcher we need to flush (slow incoming rate)
+    processCongestMon->report_insert(NULL, 1);
+    processExec.submit(boost::bind(&DataCube::check_tuple_batcher_flush, this));
+  }
+  
   flushCongestMon->report_delete(tb.get(), 1);
 }
 
-/* the batch timer is only meant for the case that there are very few
- * tuples going through the system, otherwise should flush in do_process() */
-
-void DataCube::start_batch_timeout(msec_t left) {
-  batch_timeout_timer.expires_from_now(boost::posix_time::milliseconds(left));
-  batch_timeout_timer.async_wait(boost::bind(&DataCube::batch_timer_fired, this,  boost::asio::placeholders::error));
-}
-
-void DataCube::batch_timer_fired(const boost::system::error_code& error) {
-  if (error)
-    return;
-
-  if((!tupleBatcher->is_empty() && (get_msec() - start_time >= (msec_t) batch_timeout.total_milliseconds())))
+void DataCube::check_tuple_batcher_flush() {
+  if(!tupleBatcher->is_empty())
   {
     queue_flush();
   }
-    //need consider the following case:
-    //flush() was called after batch_timeout_timer went off and put batch_timer_fired on strand
-    //but before batch_timer_fired could be executed by the processExec();
-    //actually we never cancel timer so queue_flush could have happened
+  processCongestMon->report_delete(NULL, 1);
 }
+
 
 void DataCube::save_callback(jetstream::TupleProcessingInfo &tpi, boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple) {
     shared_lock<boost::shared_mutex> lock(subscriberLock);

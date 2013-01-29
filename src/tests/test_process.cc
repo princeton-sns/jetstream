@@ -19,8 +19,7 @@ using namespace boost;
 
     MysqlCubeNoDB (jetstream::CubeSchema const _schema,
                string _name,
-               bool overwrite_if_present,
-               size_t batch=1): MysqlCube ( _schema, _name, overwrite_if_present, batch) {}
+               bool overwrite_if_present): MysqlCube ( _schema, _name, overwrite_if_present) {}
 
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb) {
       flushCongestMon->report_delete(tb.get(), 1);
@@ -139,7 +138,6 @@ void insert_tuple2(jetstream::Tuple & t, time_t time, string url, int rc, int su
 TEST_F(ProcessTest, LoopTest) {
   MysqlCubeNoDB * cube = new MysqlCubeNoDB(*sc, "web_requests", true);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
-  cube->set_elements_in_batch(20);
   //cube->add_subscriber(sub);
   cube->destroy();
   cube->create();
@@ -147,22 +145,30 @@ TEST_F(ProcessTest, LoopTest) {
   
   time_t time_entered = time(NULL);
   boost::shared_ptr<jetstream::Tuple> t;
-  t = boost::make_shared<jetstream::Tuple>();
-  insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  for(int i =0; i < 1000000; i++) {
+  
+  ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
+  QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
+  
   //t = boost::make_shared<jetstream::Tuple>();
-  //insert_tuple2(*t, time_entered+i, "http:\\\\www.example.com", 200, 50, 1);
+  //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  for(int i =0; i < 1000000; i++) {
+    t = boost::make_shared<jetstream::Tuple>();
+    insert_tuple2(*t, time_entered+(i%100), "http:\\\\www.example.com", 200, 50, 1);
     cube->process(t);
+    if(i%100000 == 0)
+      LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
 
   int waits = 0;
-  while(cube->outstanding_processes()> 0)
+  while(procMon->queue_length() > 0 || flushMon->queue_length() > 0)
   {
     waits ++;
     js_usleep(200000);
+    LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
+  
+  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
 
-  LOG(INFO) << "Outstanding " << cube->outstanding_processes()<<"; waits "<< waits;
   //js_usleep(200000);
 
   //delete cube;
@@ -171,7 +177,6 @@ TEST_F(ProcessTest, LoopTest) {
 TEST_F(ProcessTest, LoopWithDbTest) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   //boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
-  cube->set_elements_in_batch(20);
   //cube->add_subscriber(sub);
   cube->destroy();
   cube->create();
@@ -179,18 +184,22 @@ TEST_F(ProcessTest, LoopWithDbTest) {
   
   time_t time_entered = time(NULL);
   boost::shared_ptr<jetstream::Tuple> t;
+  
+  ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
+  QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
+  
   //t = boost::make_shared<jetstream::Tuple>();
   //insert_tuple2(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   for(int i =0; i < 1000000; i++) {
     t = boost::make_shared<jetstream::Tuple>();
-    insert_tuple2(*t, time_entered+(i%5), "http:\\\\www.example.com", 200, 50, 1);
+    insert_tuple2(*t, time_entered+(i%100), "http:\\\\www.example.com", 200, 50, 1);
+    if(i%100000 == 0)
+      LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
     cube->process(t);
   }
 
   int waits = 0;
  
-  ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
-   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
 
   while(procMon->queue_length() > 0 || flushMon->queue_length() > 0)
   {

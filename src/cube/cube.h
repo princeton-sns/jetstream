@@ -45,7 +45,7 @@ class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name, size_t batch=1, boost::posix_time::time_duration batch_timeout = boost::posix_time::millisec(100));
+    DataCube(jetstream::CubeSchema _schema, std::string _name);
     virtual ~DataCube() {}
 
     //main external functions
@@ -65,8 +65,8 @@ class DataCube : public TupleReceiver {
     }
 
     size_t batch_size();
-    void set_batch_timeout(boost::posix_time::time_duration batch_timeout);
-    void set_elements_in_batch(size_t size);
+
+    void wait_for_commits();
 
 
     //query functions
@@ -162,17 +162,11 @@ class DataCube : public TupleReceiver {
     virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key);
     void queue_flush();
     virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
+    void check_tuple_batcher_flush();
     void post_flush();
-    void start_batch_timeout(msec_t left);
-    void batch_timer_fired(const boost::system::error_code& ec);
-
-    size_t elements_in_batch;
     CountingExecutor flushExec;
     CountingExecutor processExec;
-    boost::asio::deadline_timer batch_timeout_timer;
     std::ostringstream tmpostr;
-    unsigned int time_check;
-    unsigned int tuples_before_time_check;
   
   protected: 
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;

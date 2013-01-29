@@ -56,7 +56,7 @@ CubeManager::create_cube ( const std::string &name,
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
   
-  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config.cube_max_elements_in_batch));
+  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present));
 //  set_batch(10)
   c->create();
   cubeMap[name] = c;

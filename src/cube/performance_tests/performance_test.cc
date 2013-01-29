@@ -86,14 +86,13 @@ boost::shared_ptr<jetstream::CubeSchema> get_schema()
 int main(int argc, const char **argv)
 {	
 
-  if(argc < 3)
+  if(argc < 2)
   {
-    cout<< "need 2 arguments"<< endl;
+    cout<< "need 1 arguments"<< endl;
     exit(1);
   }
 
   string query;
-  int batch = atoi(argv[2]);
   std::ifstream myfile (argv[1]);
 
 
@@ -102,7 +101,7 @@ int main(int argc, const char **argv)
   
   boost::shared_ptr<jetstream::CubeSchema> sc = get_schema();
   boost::shared_ptr<jetstream::cube::MysqlCube> cube =   boost::make_shared<jetstream::cube::MysqlCube>(*sc, "web_requests", true);
-  cube->set_elements_in_batch(batch);
+  //cube->set_elements_in_batch(batch);
 
   cube->destroy();
   cube->create();
