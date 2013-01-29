@@ -165,9 +165,9 @@ run on node11.princeton\
 rules:\
 workers and controller on different machines (otherwise controller gets wrong address for local worker).\
 -----------------------------------------------------------------------------------------------\
-ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream\
-ansible-playbook  -i ansible_hosts_vicci build_vicci.yml -u princeton_jetstream\
-ansible-playbook  -i ansible_hosts_vicci config_vicci.yml -u princeton_jetstream\
+ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream --module-path=modules/\
+ansible-playbook  -i ansible_hosts_vicci build_vicci.yml -u princeton_jetstream --module-path=modules/\
+ansible-playbook  -i ansible_hosts_vicci config_vicci.yml -u princeton_jetstream --module-path=modules/\
 \
 \
 Big data has undergone one revolution with the availability of Hadoop for centralized data. We aim to foment another revolution, this time for globally dispersed data.\
@@ -201,7 +201,30 @@ so, profile on sns48\
 rm /tmp/profile && CPUPROFILE=/tmp/profile LD_PRELOAD=/usr/local/lib/libprofiler.so ./js_unit_tests --gtest_filter=ProcessTest.LoopTest\
 pprof ./js_unit_tests /tmp/profile --pdf  > ~/profile.pdf\
 pprof ./js_unit_tests /tmp/profile \
+---------------------------------------------------------------------------------------------------------------------------------------------\
+cube experiments\
+using sizes and timeouts\
+on Mat's mac with 1,000,000 inserts:\
+LoopTest( No DB) - 11s\
+LoopTest with DB - depends on data - high overlap (high process q) - 15s, low overlap (high flush q)- 79s \
 \
+moving get_dimension_key to before process:\
+LoopTest( No DB) - 9s\
+LoopTest with DB - depends on data - high overlap (high process q) - 13-14s\
+\
+\
+The high dependency on data causes me to re-write.\
+\
+--Numbers Not Directly comparable because now creating 1M new tuples instead of re-using the old one.\
+--w/o queue_flush\
+--w and w/o db same at about 13s\
+\
+refactored to create tuples before process. Now #s are comparable again:\
+LoopTest( No DB) - 10s\
+LoopTest (with DB) - 12.5-13s\
+\
+Took out CountingExecutor \
+LoopTest( No DB) - 9s\
 \
 \
 \
