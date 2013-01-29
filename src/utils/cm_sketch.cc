@@ -174,28 +174,28 @@ CMMultiSketch::hash_range(int lower, int upper) {
 //    uint32_t true_upper = (upper<< level *BITS_PER_LEVEL);
 //    cout << "range query [" <<  true_lower  << "," << true_upper<<"] at level "<< level << "\n";
 
-    uint64_t next_level_start = lower & (~(0UL) << BITS_PER_LEVEL );
-    if (lower != next_level_start)  //round up to next power of two
+    int64_t next_level_start = lower & (~(0UL) << BITS_PER_LEVEL );
+    if ( lower != next_level_start)  //round up to next power of two
       next_level_start += (1 << BITS_PER_LEVEL);
 
-    uint64_t next_level_end = (upper & (~(0UL) << BITS_PER_LEVEL )); //this endpoint is NOT included in next level
+    int64_t next_level_end = (upper & (~(0UL) << BITS_PER_LEVEL )); //this endpoint is NOT included in next level
                 //note that upper & mask can be zero, meaning there's no power of two before this range
     
     if (next_level_start < next_level_end) {
   //    cout << " next level will be [" << next_level_start << ", "<< next_level_end <<")\n";
       assert ( (next_level_start - lower) <  (1 << (BITS_PER_LEVEL )));
       
-      for (uint64_t j = lower; j < next_level_start; j++)
+      for (int64_t j = lower; j < next_level_start; j++)
         sum += contrib_from_level(level, j);
       
       assert ( (upper - next_level_end) <  (1 << (BITS_PER_LEVEL )));
       
-      for (uint64_t j = next_level_end ; j <= upper; ++j)
+      for (int64_t j = next_level_end ; j <= upper; ++j)
         sum += contrib_from_level(level, j);
     } else {
 //      cout << " last level; [" << lower << "-" << upper << ")\n";
       assert ( (upper - lower) <  (1 << (BITS_PER_LEVEL + 1)));
-      for(uint64_t j =lower; j <= upper; ++j)
+      for(int64_t j =lower; j <= upper; ++j)
         sum += contrib_from_level(level, j);
       break;
     }

@@ -29,7 +29,7 @@ class QuantileEstimation {
     virtual void add_item(int, count_val_t) = 0;
   
     virtual void add_data(int * data, size_t size_to_take) {
-      for (int i =0; i < size_to_take; ++i)
+      for (unsigned int i =0; i < size_to_take; ++i)
         add_item( data[i], 1);
     }
 

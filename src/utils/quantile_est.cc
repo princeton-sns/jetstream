@@ -25,7 +25,7 @@ SampleEstimation::quantile(double q){
 void
 SampleEstimation::add_item(int v, count_val_t c) {
   is_sorted = false;
-  for (int i=0; i < c; ++i)
+  for (size_t i=0; i < c; ++i)
     sample_of_data.push_back(v);
 }
 
@@ -34,8 +34,8 @@ ReservoirSample::add_one(int v) {
   if( sample_of_data.size() < max_size)
       sample_of_data.push_back(v);
   else {
-    uniform_int_distribution<int64_t> randsrc(0, total_seen-1); //note that this is different each time
-    int64_t i_to_replace = randsrc(gen);
+    uniform_int_distribution<uint64_t> randsrc(0, total_seen-1); //note that this is different each time
+    uint64_t i_to_replace = randsrc(gen);
     if (i_to_replace < max_size)
       sample_of_data[i_to_replace] = v;
   }
@@ -44,7 +44,7 @@ ReservoirSample::add_one(int v) {
 
 void
 ReservoirSample::add_item(int v, count_val_t c) {
-  for (int i =0; i < c; ++i)
+  for (count_val_t i =0; i < c; ++i)
     add_one(v);
 }
 
@@ -52,7 +52,7 @@ ReservoirSample::add_item(int v, count_val_t c) {
 void
 ReservoirSample::add_data(int * data, size_t size_to_take) {
   sample_of_data.reserve(size_to_take);
-  for (int i =0; i < size_to_take; ++i)
+  for (size_t i =0; i < size_to_take; ++i)
     add_one(data[i]);
 }
 
@@ -60,7 +60,7 @@ ReservoirSample::add_data(int * data, size_t size_to_take) {
 
 LogHistogram::LogHistogram(size_t bucket_target):
   total_vals(0) {
-  const int MAX_LAYERS = 10;
+  const size_t MAX_LAYERS = 10;
   
   size_t incr_per_layer[MAX_LAYERS];
 
@@ -69,13 +69,13 @@ LogHistogram::LogHistogram(size_t bucket_target):
 
   layers = std::max( (size_t)3, bucket_target / 10);
 
-  for(int i =0; i < layers; ++i)
+  for(size_t i =0; i < layers; ++i)
     incr_per_layer[i] = 2;
   
   if(bucket_target < 5 * layers)
     bucket_target = 5 * layers;
   size_t precise_layers = std::min(bucket_target/5 -layers, layers);
-  for (int b = 0; b < precise_layers; ++b)
+  for (size_t b = 0; b < precise_layers; ++b)
     incr_per_layer[b] = 1;
   
   
@@ -85,7 +85,7 @@ LogHistogram::LogHistogram(size_t bucket_target):
   if (incr_per_layer[0] == 1)
     bucket_starts.push_back(1);
     
-  for(int layer = 0; layer < layers; ++layer) {
+  for(size_t layer = 0; layer < layers; ++layer) {
     for (int i = 2; i <= 10; i+=incr_per_layer[layer]) {
       bucket_starts.push_back(i * exp);
 //      cout << i * exp << " ";

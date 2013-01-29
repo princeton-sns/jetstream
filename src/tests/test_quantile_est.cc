@@ -116,7 +116,7 @@ TEST(LogHistogram, Boundaries) {
   cout << "asked for " << BUCKETS << " and got " << hist.bucket_count() << endl;
   ASSERT_EQ(0,hist.bucket_min(0));
   ASSERT_EQ(1,hist.bucket_min(1));
-  for(int i = 0; i < hist.bucket_count()-1; ++i) {
+  for(unsigned int i = 0; i < hist.bucket_count()-1; ++i) {
     ASSERT_EQ(hist.bucket_max(i),hist.bucket_min(i+1)-1);
   }
 
@@ -141,7 +141,7 @@ TEST(LogHistogram, Boundaries) {
 
 
 template <typename T>
-int * make_rand_data(int size, const T& randsrc) {
+int * make_rand_data(size_t size, const T& randsrc) {
   boost::mt19937 gen;
   int* data = new int[size];
   for (unsigned int i=0; i < size; ++ i)
