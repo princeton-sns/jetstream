@@ -136,7 +136,7 @@ CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
     data_as_int >>= BITS_PER_LEVEL;
   }
   for(unsigned int i=0; i < EXACT_LEVELS; ++i) {
-    assert ( data_as_int <  (1U << ( (EXACT_LEVELS- i) * BITS_PER_LEVEL)));
+    assert ( data_as_int <  (1 << ( (EXACT_LEVELS- i) * BITS_PER_LEVEL)));
     exact_counts[i][data_as_int] += new_val;
     data_as_int >>= BITS_PER_LEVEL;
   }

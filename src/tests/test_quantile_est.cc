@@ -121,7 +121,7 @@ TEST(LogHistogram, Boundaries) {
   }
 
   hist.add_item(10, 2);
-  ASSERT_EQ(2, hist.count_in_b(hist.bucket_with(10)));
+  ASSERT_EQ(2U, hist.count_in_b(hist.bucket_with(10)));
   
   for (int i = 0; i < 1000; ++i) {
     size_t b = hist.bucket_with(i);
