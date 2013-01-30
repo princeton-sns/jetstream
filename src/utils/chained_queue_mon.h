@@ -11,8 +11,8 @@ class ChainedQueueMonitor: public  QueueCongestionMonitor {
     boost::shared_ptr<CongestionMonitor> dest;
 
     
-  ChainedQueueMonitor(uint32_t qTarg, const std::string& nm, double max_per_sec_ = INFINITY):
-  QueueCongestionMonitor(qTarg, nm, max_per_sec_) {}
+  ChainedQueueMonitor(uint32_t qTarg, const std::string& nm):
+  QueueCongestionMonitor(qTarg, nm) {}
 
   void set_next_monitor(boost::shared_ptr<CongestionMonitor> next) {
     dest=next;

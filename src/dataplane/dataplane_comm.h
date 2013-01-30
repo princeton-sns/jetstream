@@ -13,6 +13,8 @@
 #include "dataplaneoperator.h"
 #include "node_config.h"
 #include "queue_congestion_mon.h"
+#include "window_congest_mon.h"
+
 
 namespace  jetstream {
   
@@ -32,7 +34,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   DataplaneConnManager& mgr;
   boost::asio::io_service & iosrv;
 
-  boost::shared_ptr<QueueCongestionMonitor> remote_processing;
+  boost::shared_ptr<NetCongestionMonitor> remote_processing;
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;

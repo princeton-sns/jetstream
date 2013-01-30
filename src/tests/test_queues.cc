@@ -45,10 +45,10 @@ TEST(CongestMon, QueueMon) {
 
 
 TEST(CongestMon, WindowLen) {
-    WindowCongestionMonitor mon;
+    WindowCongestionMonitor mon("testing monitor");
   
     for (int i =0; i < 100; ++i) {
-      mon.tuple();
+      mon.report_insert(0, 1);
     }
     js_usleep(50 * 1000);
     mon.end_of_window(250);
