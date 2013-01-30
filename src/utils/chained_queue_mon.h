@@ -14,14 +14,12 @@ class ChainedQueueMonitor: public  QueueCongestionMonitor {
   ChainedQueueMonitor(uint32_t qTarg, const std::string& nm, double max_per_sec_ = INFINITY):
   QueueCongestionMonitor(qTarg, nm, max_per_sec_) {}
 
-  void set_next_monitor(boost::shared_ptr<CongestionMonitor> next)
-  {
+  void set_next_monitor(boost::shared_ptr<CongestionMonitor> next) {
     dest=next;
   }
 
   virtual double capacity_ratio() {
-    if(dest)
-    {
+    if(dest) {
       double downstream = dest->capacity_ratio();
       set_downstream_congestion(downstream);
     }

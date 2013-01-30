@@ -209,15 +209,16 @@ TimeBasedSubscriber::operator()() {
   while (running)  {
   
     if(congested->is_congested()) {
-      js_usleep(1000 * 10);
+      js_usleep(1000 * 10);  //10 ms
       continue;
     }
   
     cube::CubeIterator it = querier.do_query();
     while ( it != cube->end()) {
       emit(*it);
-      it++;      
+      it++;
     }
+    end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
     js_usleep(1000 * windowSizeMs);
   

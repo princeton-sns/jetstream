@@ -186,13 +186,6 @@ TEST(LogHistogram, Quantile) {
     
   }
   delete data;
-/*  const int BUCKETS = 30;
-  LogHistogram hist(BUCKETS);
-  ASSERT_EQ(0,hist.bucket_min(0));
-  ASSERT_EQ(1,hist.bucket_min(1));
-  for(int i = 0; i < BUCKETS-1; ++i) {
-    ASSERT_EQ(hist.bucket_max(i),hist.bucket_min(i+1)-1);
-  }*/
 }
 
 

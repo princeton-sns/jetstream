@@ -5,6 +5,8 @@
 
 #include "js_utils.h"
 #include "queue_congestion_mon.h"
+#include "window_congest_mon.h"
+
 
 #include <gtest/gtest.h>
 
@@ -39,6 +41,18 @@ TEST(CongestMon, QueueMon) {
  rate remains the same then the queue will fill up.
  */
    ASSERT_DOUBLE_EQ(1, lev);
+}
 
+
+TEST(CongestMon, WindowLen) {
+    WindowCongestionMonitor mon;
+  
+    for (int i =0; i < 100; ++i) {
+      mon.tuple();
+    }
+    js_usleep(50 * 1000);
+    mon.end_of_window(250);
+    ASSERT_LE(4.8, mon.capacity_ratio());
+    ASSERT_GE(5.2, mon.capacity_ratio());
 
 }

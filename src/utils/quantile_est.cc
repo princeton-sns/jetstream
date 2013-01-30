@@ -152,4 +152,14 @@ LogHistogram::add_item(int v, count_val_t c) {
   buckets[b] += c;
 }
 
+
+std::ostream& operator<<(std::ostream& out, LogHistogram hist) {
+  for(int b =0; b < hist.bucket_count(); ++b) {
+    std::pair<int, int> bucket_bounds = hist.bucket_bounds(b);
+    out << "in "<< bucket_bounds.first << ", " << bucket_bounds.second <<"] "
+      << hist.count_in_b(b) << endl;
+  }
+  return out;
+}
+
 }
