@@ -45,7 +45,7 @@ TEST(CMSketch, Quantile) {
   
   int collisions = 0;
   for(int i = 0; i < 20; ++i) {
-    int est = c.estimate_h(i);
+    int est = c.estimate_point(i);
 //    cout << "estimate for " << i << " is " << est << endl;
     ASSERT_GE(est, 1);
     collisions += est - 1;
@@ -107,6 +107,46 @@ TEST(CMSketch, MultiInit) {
   for(int i = 0; i < 100; ++i) {
     CMSketch c(8, 10, 2 + i);
   }
+}
+
+TEST(CMSketch, Merge) {
+  const int ITEMS = 20;
+  CMSketch s1(6, 8, 3);
+  CMMultiSketch s1_multi(6, 8, 3);
+  for(int i = 0; i < ITEMS; ++i) {
+    s1.add_item_h(i*i, i + 2);
+    s1_multi.add_item(i * i, i + 2);
+  }
+
+  CMSketch s2(6, 6, 3); //fewer rows
+  CMMultiSketch s2_multi(6, 6, 3);
+  for(int i = 0; i < ITEMS; ++i) {
+    s2.add_item_h(i*i, i + 10);
+    s2_multi.add_item(i * i, i + 10);
+  }
+  
+  s1.merge_in(s2);
+  s1_multi.merge_in(s2_multi);
+  for(int i = 0; i < ITEMS; ++i) {
+    ASSERT_GT( i + 12, s1.estimate_h(i*i));
+    ASSERT_GT( i + 12, s1_multi.estimate_point(i*i));
+  }
+  ASSERT_EQ(s1.depth(), 6);
+  
+  CMSketch s3(6, 8, 4);
+  ASSERT_FALSE( s3.can_accept(s1)); //due to different random seeds
+
+//  CMMultiSketch s3_m(6, 8, 4);
+//  ASSERT_FALSE( s3_m.can_accept(s1_multi));
+}
+
+
+TEST(ReservSample, Merge) {
+
+  ReservoirSample a(50);
+  ReservoirSample b(50);
+  
+  
 }
 
 TEST(LogHistogram, Boundaries) {

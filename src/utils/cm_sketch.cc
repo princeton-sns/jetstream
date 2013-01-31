@@ -20,7 +20,7 @@ CMSketch::hash(int hashid, int val) {
 void
 CMSketch::add_item_h(int data_as_int, int new_val) {
   total_count += new_val;
-  for(unsigned int i =0; i < depth; ++i) {
+  for(unsigned int i =0; i < depth_; ++i) {
     val(hash(i, data_as_int), i )  += new_val;
   }
 }
@@ -35,7 +35,7 @@ CMSketch::add_item(char* data, size_t data_len, int new_val) {
 count_val_t
 CMSketch::estimate_h(int data_as_int) {
   uint32_t m = numeric_limits<uint32_t>::max();
-  for(unsigned int i =0; i < depth; ++i) {
+  for(unsigned int i =0; i < depth_; ++i) {
     uint32_t v = val(hash(i, data_as_int), i);
     m = m < v ? m : v;
   }
@@ -53,7 +53,7 @@ CMSketch::init(size_t w, size_t d, int rand_seed) {
   assert(w > 2 && w < 12); // width is in bits
   width =  1 << w;
   width_bitmask = width - 1;
-  depth = d;
+  depth_ = d;
   total_count = 0;
 
   matrix = new u_int32_t[width * d];
@@ -82,8 +82,38 @@ CMSketch::~CMSketch() {
 
 size_t
 CMSketch::size() {
-  return depth * ( 2 +width ) * sizeof(int);
+  return depth_ * ( 2 +width ) * sizeof(int);
 }
+
+
+bool
+CMSketch::can_accept(const CMSketch & rhs) {
+  if (width != rhs.width)
+    return false;
+  int new_depth = min(depth_, rhs.depth_);
+  for (int i=0; i < new_depth; ++i) {
+    if( (rhs.hashes[i].a != hashes[i].a)  || (rhs.hashes[i].b != hashes[i].b))
+      return false;
+  }
+  return true;
+}
+
+bool
+CMSketch::merge_in(const CMSketch & rhs) {
+
+  if(!can_accept(rhs))
+    return false;
+  
+  depth_ = min(depth_, rhs.depth_);
+  for(int i = 0; i < depth_; ++i) {
+    for(int j = 0; j < width; ++j)
+      matrix[i * width + j] = rhs.matrix[i * width + j];
+  }
+  total_count += rhs.total_count;
+  
+  return true;
+}
+
 
 CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
 
@@ -123,10 +153,8 @@ CMMultiSketch::range(char * lower, size_t l_size, char* upper, size_t u_size) {
   uint32_t u_as_int = jenkins_one_at_a_time_hash(upper, u_size);
   return hash_range(l_as_int, u_as_int);
 }
-
-
-
 */
+
 void
 CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
   
@@ -136,7 +164,7 @@ CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
     data_as_int >>= BITS_PER_LEVEL;
   }
   for(unsigned int i=0; i < EXACT_LEVELS; ++i) {
-    assert ( data_as_int <  (1 << ( (EXACT_LEVELS- i) * BITS_PER_LEVEL)));
+    assert ( data_as_int <  exact_l_size(i));
     exact_counts[i][data_as_int] += new_val;
     data_as_int >>= BITS_PER_LEVEL;
   }
@@ -145,9 +173,8 @@ CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
 
 
 count_val_t
-CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
+CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) const {
   //dyad_start should be trimmed to at most (32 - BITS_PER_LEVEL * level) non-zero bits.
-
 
   count_val_t r;
   if (level >= LEVELS) {
@@ -165,7 +192,7 @@ CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
 }
 
 count_val_t
-CMMultiSketch::hash_range(int lower, int upper) {
+CMMultiSketch::hash_range(int lower, int upper) const {
 //The model is that we work up the hierarchy, at each time trimming off the ends
 // and then moving up.
   count_val_t sum = 0;
@@ -263,18 +290,38 @@ CMMultiSketch::quantile(double quantile) {
 
 
 size_t
-CMMultiSketch::size() {
+CMMultiSketch::size() const {
   size_t total = 0;
   for (int level = 0; level < LEVELS; ++ level) {
     total += panes[level].size();
   }
   for (unsigned int i =0; i < EXACT_LEVELS; ++ i) {
     size_t t = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
-    total += t;
+    total += t * sizeof(count_val_t);
   }
-
   return total;
 }
+
+bool
+CMMultiSketch::merge_in(const CMMultiSketch & rhs) {
+
+  for (int i =0; i < LEVELS; ++i) {
+    if (!panes[i].can_accept(rhs.panes[i]))
+      return false;
+  }
+  //if we got here, sketches are compatible and we can merge
+  
+  for (int i =0; i < LEVELS; ++i) {
+    panes[i].merge_in(rhs.panes[i]);
+  }
+  
+  for (int i =0; i < EXACT_LEVELS; ++i) {
+      for (int j = 0; j < exact_l_size(i); ++j)
+        exact_counts[i][j] += rhs.exact_counts[i][j];
+  }
+  return true;
+}
+
 
 
 }

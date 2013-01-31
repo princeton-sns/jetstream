@@ -24,7 +24,7 @@ class QuantileEstimation {
 
   public:
     virtual int quantile(double q) =0;
-    virtual size_t size() = 0; //
+    virtual size_t size() const = 0; //
   
     virtual void add_item(int, count_val_t) = 0;
   
@@ -59,7 +59,11 @@ class SampleEstimation: public QuantileEstimation {
   
     virtual int quantile(double q);
   
-    virtual size_t size() {
+    size_t elements() const {
+      return sample_of_data.size();
+    }
+  
+    virtual size_t size() const {
       return sample_of_data.size() * sizeof(int);
    }
 };
@@ -75,6 +79,7 @@ class ReservoirSample: public SampleEstimation {
     ReservoirSample(int reserv_size): max_size(reserv_size),total_seen(0) {}
     virtual void add_item(int v, count_val_t c);
     virtual void add_data(int * data, size_t size_to_take);
+    bool merge_in(const ReservoirSample& s);
   
 };
 
@@ -89,7 +94,7 @@ class LogHistogram : public QuantileEstimation {
     std::vector<int> bucket_starts;
 
     count_val_t total_vals;  
-    size_t quantile_bucket(double d); //the bucket holding quantile d
+    size_t quantile_bucket(double d) const; //the bucket holding quantile d
   
   public:
     LogHistogram(size_t buckets);
@@ -97,39 +102,40 @@ class LogHistogram : public QuantileEstimation {
     virtual void add_item(int v, count_val_t c);
 
 
-    virtual size_t size() {
+    virtual size_t size() const {
       return buckets.size() * sizeof(count_val_t);
     }
   
-    std::pair<int,int> quantile_range(double q) {
+    std::pair<int,int> quantile_range(double q) const {
       return bucket_bounds(quantile_bucket(q));
     }
 
-    count_val_t count_in_b(size_t b) {
+    count_val_t count_in_b(size_t b) const {
       assert(b < buckets.size());
       return buckets[b];
     }  
   
-    std::pair<int,int> bucket_bounds(size_t b);
-    size_t bucket_with(int item);
+    std::pair<int,int> bucket_bounds(size_t b) const ;
+    size_t bucket_with(int item) const ;
 
-    int bucket_min(size_t bucket_id) {
+    int bucket_min(size_t bucket_id) const {
       return bucket_starts[bucket_id];
     }
-    int bucket_max(size_t bucket_id) { //largest element that'll get sorted into bucket_id
+  
+    int bucket_max(size_t bucket_id) const { //largest element that'll get sorted into bucket_id
       assert(bucket_id < buckets.size());
       if (bucket_id == buckets.size() -1)
         return std::numeric_limits<int>::max();
       return bucket_starts[bucket_id+1] -1;
     }
   
-   virtual size_t bucket_count() {
+   virtual size_t bucket_count() const {
       return bucket_starts.size();
    }
   
 };
 
-std::ostream& operator<<(std::ostream& out, LogHistogram);
+std::ostream& operator<<(std::ostream& out, const LogHistogram&);
 
 
 }

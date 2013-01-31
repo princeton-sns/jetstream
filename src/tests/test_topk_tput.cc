@@ -94,10 +94,11 @@ TEST(Topk_TPUT, TwoLocal) {
   //wait for query to run.
   int tries = 0;
   cout << "waiting for tput to run" << endl;
-  while (tries ++ < 20 &&  (dest_cube->num_leaf_cells() == 0  || coord_op->phase != NOT_STARTED))
+  while (tries ++ < 200 &&  (dest_cube->num_leaf_cells() == 0  || coord_op->phase != NOT_STARTED))
     js_usleep(50*1000);
 
-  js_usleep(500*1000);  // and wait for DB to process the update
+  dest_cube->wait_for_commits();
+//  js_usleep(500*1000);  // and wait for DB to process the update
 
   
   //now check that DB has what it should
