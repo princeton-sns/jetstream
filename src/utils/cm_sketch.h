@@ -27,7 +27,7 @@ class CMSketch {
  hash_t * hashes;
  size_t width;
  size_t width_bitmask;
- size_t depth;
+ size_t depth_;
  count_val_t total_count;
  
  public:
@@ -38,8 +38,6 @@ class CMSketch {
   count_val_t estimate_h(int data);
   count_val_t estimate(char * data, size_t data_len);
 
-  
-  
  CMSketch(): matrix(0), hashes(0),  width_bitmask(0), total_count(0) {} //levels(0),
 
  CMSketch(size_t w, size_t d, int rand_seed) { init(w, d, rand_seed); }
@@ -47,6 +45,12 @@ class CMSketch {
  ~CMSketch();
  
   size_t size(); //size in bytes
+  
+  size_t depth() {return depth_;}
+  
+  bool can_accept(const CMSketch & rhs);
+  
+  bool merge_in(const CMSketch & rhs);
  
  protected:
   inline uint32_t hash(int hashid, int hash_in_val); //returns a value in [0, width-1]
@@ -54,8 +58,8 @@ class CMSketch {
   count_val_t& val(size_t w, size_t d) {
 //    assert (level < levels);
     assert (w < width);
-    assert (d < depth);
-    return matrix[w * depth + d];// level * (width*depth) + 
+    assert (d < depth_);
+    return matrix[d * width + w];// level * (width*depth) +
   }
 
  private:
@@ -94,7 +98,7 @@ class CMMultiSketch: public QuantileEstimation {
 
   virtual void add_item(int data, count_val_t new_val);
 
-  count_val_t estimate_h(int data) {
+  count_val_t estimate_point(int data) {
     return panes[0].estimate_h(data);
   }
 
@@ -116,6 +120,12 @@ class CMMultiSketch: public QuantileEstimation {
   
   virtual size_t size();//size in bytes
 
+  bool merge_in(const CMMultiSketch & rhs);
+
+  size_t exact_l_size(size_t lev) {
+    return (1U << ( (EXACT_LEVELS- lev) * BITS_PER_LEVEL));
+  }
+  
  private:
   void operator= (const CMMultiSketch &) 
     { assert(false); } //LOG(FATAL) << "cannot copy a CMSketch"; }
