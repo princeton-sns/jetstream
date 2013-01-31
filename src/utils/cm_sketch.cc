@@ -173,7 +173,7 @@ CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
 
 
 count_val_t
-CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
+CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) const {
   //dyad_start should be trimmed to at most (32 - BITS_PER_LEVEL * level) non-zero bits.
 
   count_val_t r;
@@ -192,7 +192,7 @@ CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) {
 }
 
 count_val_t
-CMMultiSketch::hash_range(int lower, int upper) {
+CMMultiSketch::hash_range(int lower, int upper) const {
 //The model is that we work up the hierarchy, at each time trimming off the ends
 // and then moving up.
   count_val_t sum = 0;
@@ -290,7 +290,7 @@ CMMultiSketch::quantile(double quantile) {
 
 
 size_t
-CMMultiSketch::size() {
+CMMultiSketch::size() const {
   size_t total = 0;
   for (int level = 0; level < LEVELS; ++ level) {
     total += panes[level].size();

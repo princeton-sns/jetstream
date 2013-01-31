@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <boost/random/uniform_int.hpp>
+#include <boost/random/discrete_distribution.hpp>
 
 
 using namespace ::std;
@@ -11,7 +12,7 @@ using namespace boost::random;
 namespace jetstream {
 
 int
-SampleEstimation::quantile(double q){
+SampleEstimation::quantile(double q) {
   assert (q < 1 && q >= 0);
   
   if (!is_sorted) {
@@ -56,6 +57,46 @@ ReservoirSample::add_data(int * data, size_t size_to_take) {
     add_one(data[i]);
 }
 
+
+//http://gregable.com/2007/10/reservoir-sampling.html
+bool
+ReservoirSample::merge_in(const ReservoirSample& rhs) {
+/**
+  Four cases:  this reservoir not full and rhs not full. No sampling has happened yet.
+  Can just add each element in rhs to this.
+    Ditto for this reservoir full and rhs not full.
+    
+    If this reservoir is full, can handle rhs-full and not-full using weighted choice below.
+    
+    Last case:  This reservoir not-full but RHS is full. 
+*/
+
+  if (rhs.elements() < rhs.max_size) { //RHS is unweighted
+    for (size_t i = 0; i < rhs.elements(); ++i) {
+      add_item(rhs.sample_of_data[i], 1);
+    }
+    return true;
+  } else {
+    assert (total_seen >= max_size);
+    //TODO all this code assumes the destination reservoir is full
+
+    double probabilities[2];
+    probabilities[0] = (double) total_seen / (total_seen + rhs.total_seen);
+    probabilities[1] = 1.0 - probabilities[0];
+    boost::random::discrete_distribution<> which_source(probabilities);
+
+    uniform_int_distribution<size_t> start_pos_distrib(0, rhs.elements() -1 );
+    size_t rhs_idx = start_pos_distrib(gen);
+    for (size_t i = 0; i < elements(); ++i) {
+      int which = which_source(gen);
+      if (which == 1) {
+        sample_of_data[i] = rhs.sample_of_data[rhs_idx];
+        rhs_idx = (rhs_idx + 1) % rhs.elements();
+      }  
+    }
+    return true;
+  }
+}
 
 
 LogHistogram::LogHistogram(size_t bucket_target):
@@ -104,7 +145,7 @@ LogHistogram::quantile(double q) {
 }
 
 std::pair<int,int>
-LogHistogram::bucket_bounds(size_t i) {
+LogHistogram::bucket_bounds(size_t i) const {
   std::pair<int,int> p;
   p.first = bucket_min(i);
   p.second = bucket_max(i);
@@ -112,7 +153,7 @@ LogHistogram::bucket_bounds(size_t i) {
 }
 
 size_t
-LogHistogram::quantile_bucket(double q) {
+LogHistogram::quantile_bucket(double q) const {
   
   count_val_t cum_sum = 0, target_sum = (count_val_t) (q * total_vals);
   
@@ -127,7 +168,7 @@ LogHistogram::quantile_bucket(double q) {
 }
 
 size_t
-LogHistogram::bucket_with(int v) {
+LogHistogram::bucket_with(int v) const {
   size_t b_hi = buckets.size() -1;
   size_t b_low = 0;
   size_t b = b_low;
@@ -153,7 +194,7 @@ LogHistogram::add_item(int v, count_val_t c) {
 }
 
 
-std::ostream& operator<<(std::ostream& out, LogHistogram hist) {
+std::ostream& operator<<(std::ostream& out, const LogHistogram& hist) {
   for(int b =0; b < hist.bucket_count(); ++b) {
     std::pair<int, int> bucket_bounds = hist.bucket_bounds(b);
     out << "in "<< bucket_bounds.first << ", " << bucket_bounds.second <<"] "

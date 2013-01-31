@@ -98,14 +98,14 @@ class CMMultiSketch: public QuantileEstimation {
 
   virtual void add_item(int data, count_val_t new_val);
 
-  count_val_t estimate_point(int data) {
+  count_val_t estimate_point(int data) const {
     return panes[0].estimate_h(data);
   }
 
   
-  count_val_t contrib_from_level(int level, uint32_t dyad_start);
+  count_val_t contrib_from_level(int level, uint32_t dyad_start) const;
 
-  count_val_t hash_range(int lower, int upper);
+  count_val_t hash_range(int lower, int upper) const ;
 
 /*
   count_val_t range(char * lower, size_t l_size, char* upper, size_t u_size);
@@ -118,11 +118,11 @@ class CMMultiSketch: public QuantileEstimation {
 
   virtual int quantile(double quantile);
   
-  virtual size_t size();//size in bytes
+  virtual size_t size() const ;//size in bytes
 
   bool merge_in(const CMMultiSketch & rhs);
 
-  size_t exact_l_size(size_t lev) {
+  size_t exact_l_size(size_t lev) const {
     return (1U << ( (EXACT_LEVELS- lev) * BITS_PER_LEVEL));
   }
   

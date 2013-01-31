@@ -140,6 +140,15 @@ TEST(CMSketch, Merge) {
 //  ASSERT_FALSE( s3_m.can_accept(s1_multi));
 }
 
+
+TEST(ReservSample, Merge) {
+
+  ReservoirSample a(50);
+  ReservoirSample b(50);
+  
+  
+}
+
 TEST(LogHistogram, Boundaries) {
   const int BUCKETS = 30;
   LogHistogram hist(BUCKETS);
