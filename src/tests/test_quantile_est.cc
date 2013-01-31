@@ -128,10 +128,10 @@ TEST(CMSketch, Merge) {
   s1.merge_in(s2);
   s1_multi.merge_in(s2_multi);
   for(int i = 0; i < ITEMS; ++i) {
-    ASSERT_GT( i + 12, s1.estimate_h(i*i));
-    ASSERT_GT( i + 12, s1_multi.estimate_point(i*i));
+    ASSERT_GT( (unsigned int) i + 12, s1.estimate_h(i*i));
+    ASSERT_GT( (unsigned int) i + 12, s1_multi.estimate_point(i*i));
   }
-  ASSERT_EQ(s1.depth(), 6);
+  ASSERT_EQ(s1.depth(), 6U);
   
   CMSketch s3(6, 8, 4);
   ASSERT_FALSE( s3.can_accept(s1)); //due to different random seeds
