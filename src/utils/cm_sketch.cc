@@ -105,8 +105,8 @@ CMSketch::merge_in(const CMSketch & rhs) {
     return false;
   
   depth_ = min(depth_, rhs.depth_);
-  for(int i = 0; i < depth_; ++i) {
-    for(int j = 0; j < width; ++j)
+  for(unsigned int i = 0; i < depth_; ++i) {
+    for(unsigned int j = 0; j < width; ++j)
       matrix[i * width + j] = rhs.matrix[i * width + j];
   }
   total_count += rhs.total_count;
@@ -164,7 +164,7 @@ CMMultiSketch::add_item(int data_as_int, count_val_t new_val) {
     data_as_int >>= BITS_PER_LEVEL;
   }
   for(unsigned int i=0; i < EXACT_LEVELS; ++i) {
-    assert ( data_as_int <  exact_l_size(i));
+    assert ( (unsigned) data_as_int <  exact_l_size(i));
     exact_counts[i][data_as_int] += new_val;
     data_as_int >>= BITS_PER_LEVEL;
   }
@@ -315,8 +315,8 @@ CMMultiSketch::merge_in(const CMMultiSketch & rhs) {
     panes[i].merge_in(rhs.panes[i]);
   }
   
-  for (int i =0; i < EXACT_LEVELS; ++i) {
-      for (int j = 0; j < exact_l_size(i); ++j)
+  for (unsigned int i =0; i < EXACT_LEVELS; ++i) {
+      for (unsigned int j = 0; j < exact_l_size(i); ++j)
         exact_counts[i][j] += rhs.exact_counts[i][j];
   }
   return true;
