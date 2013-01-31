@@ -183,7 +183,7 @@ class DataCube : public TupleReceiver {
     static const std::string my_tyepename;
 
 
-    void check_flush();
+    virtual void check_flush();
     void post_flush();
     Executor flushExec;
     std::ostringstream tmpostr;
