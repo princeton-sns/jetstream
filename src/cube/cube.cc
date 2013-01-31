@@ -177,7 +177,7 @@ void DataCube::check_flush() {
     if(processors[current_processor]->batcher_ready())
     {
        boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
-       VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size();
+       VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id();
        tb->flush();
        flushCongestMon->report_delete(tb.get(), 1);
     }
