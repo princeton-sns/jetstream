@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <boost/functional/hash.hpp>
 #include "dataplaneoperator.h"  //needed only for Receiver
 #include "cube_iterator.h"
 #include "subscriber.h"
@@ -41,6 +42,33 @@ class TupleProcessingInfo {
     bool need_old_value;
 };
 
+class ProcessCallable {
+
+  public:
+  ProcessCallable(DataCube * cube);
+  ~ProcessCallable();
+
+  void run();
+
+  void assign(boost::shared_ptr<Tuple> t, DimensionKey key);
+  boost::shared_ptr<cube::TupleBatch> batch_flush();
+  bool batcher_ready();
+
+  // This runs in the internal thread
+  void process(boost::shared_ptr<Tuple> t, DimensionKey key); 
+  
+  private:
+    boost::thread internal_thread;
+    shared_ptr<io_service> service;
+    io_service::work work;
+    jetstream::DataCube * cube;
+
+    boost::shared_ptr<cube::TupleBatch> tupleBatcher;
+    mutable boost::mutex batcherLock; // protects tupleBatcher
+};
+
+
+
 class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
@@ -63,8 +91,6 @@ class DataCube : public TupleReceiver {
     virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t src) {
       process(t);
     }
-
-    size_t batch_size();
 
     void wait_for_commits();
 
@@ -138,6 +164,9 @@ class DataCube : public TupleReceiver {
     virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return processCongestMon;}
   
     virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {}
+    
+    
+    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
 
   protected:
     jetstream::CubeSchema schema;
@@ -148,27 +177,24 @@ class DataCube : public TupleReceiver {
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
-  
-    boost::shared_ptr<cube::TupleBatch> tupleBatcher;
-    boost::shared_ptr<cube::TupleBatch> & get_tuple_batcher();
     uint64_t version;
 
   private:
     static const std::string my_tyepename;
 
 
-    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key);
-    void queue_flush();
-    virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb);
-    void check_tuple_batcher_flush();
+    void check_flush();
     void post_flush();
     Executor flushExec;
-    Executor processExec;
     std::ostringstream tmpostr;
+    size_t current_processor;
   
   protected: 
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
+
+    std::vector<boost::shared_ptr<ProcessCallable> > processors;
+    boost::hash<std::string> hash_fn;
 };
 
 }

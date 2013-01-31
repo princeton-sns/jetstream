@@ -37,7 +37,7 @@ QueueCongestionMonitor::capacity_ratio() {
     int32_t removes = inserts - queueDelta;
     LOG_IF(FATAL, removes < 0) << "Shouldn't have data leaking out of queue inserts: " << inserts <<" queueDelta: " <<queueDelta;
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
-    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 ||prevRatio == 0 , 20) << "Queue for " << name << ": " << inserts <<
+    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 ||prevRatio == 0 , 21) << "Queue for " << name << ": " << inserts <<
          " inserts (max is " << max_per_sec << "); " << removes  <<"removes. Queue length " << readQLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status<< " and final result is " << result;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = readQLen;
