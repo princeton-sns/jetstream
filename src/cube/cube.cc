@@ -64,7 +64,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name) :
 {
   processCongestMon->set_next_monitor(flushCongestMon);
 
-  for(int i=0; i<1;i++) {
+  for(int i=0; i<4;i++) {
     boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this));
     processors.push_back(proc);
   }
@@ -148,11 +148,13 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key,  boost::
   
   if(!tupleBatcher->is_empty() && was_empty)
   {
+    bool start_flush = (flushCongestMon->queue_length() <= 0);
+
     //INVARIANT: flushCongestMon contains a count of non-empty, non-flushed TupleBatchers in the system
     //add one for every TB only once when it becomes non-empty. 
     flushCongestMon->report_insert(tupleBatcher.get() , 1);
 
-    if(flushCongestMon->queue_length() <= 1)
+    if(start_flush)
     {
       //queue up flush, because check_flush may not be running
       //INVARIANT: check_flush run after some tuples in tupleBatcher (needs to be posted after insert) 
