@@ -21,14 +21,20 @@ using namespace boost;
                string _name,
                bool overwrite_if_present): MysqlCube ( _schema, _name, overwrite_if_present) {}
 
-    virtual void do_flush(boost::shared_ptr<cube::TupleBatch> tb) {
+void check_flush() {
+  while(flushCongestMon->queue_length() > 0) {
+    if(processors[current_processor]->batcher_ready()) {
+      boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
+      VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size();
+      js_usleep(500);
       flushCongestMon->report_delete(tb.get(), 1);
     }
 
-    int outstanding_processes()
-    {
-      return processCongestMon->queue_length();
-    }
+    current_processor = (current_processor+1) % processors.size();
+  }
+
+}
+
 };
 
 
