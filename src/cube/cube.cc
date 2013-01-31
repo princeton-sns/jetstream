@@ -13,7 +13,7 @@ using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
-ProcessCallable::ProcessCallable(DataCube * cube): service(new io_service(1)), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
+ProcessCallable::ProcessCallable(DataCube * cube): service(new io_service(1)), work(*service), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
 
   // this should always be the last line in the constructor
   internal_thread = boost::thread(&ProcessCallable::run, this);
