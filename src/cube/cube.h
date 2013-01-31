@@ -15,6 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
 #include "js_executor.h"
+//#include "js_atomic_uint.h"
 
 namespace jetstream {
 class DataCube;
@@ -64,6 +65,7 @@ class ProcessCallable {
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     mutable boost::mutex batcherLock; // protects tupleBatcher
+    //jetstream::AtomicUint queuedForFlush;
 
 
 };

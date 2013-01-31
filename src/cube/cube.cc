@@ -77,7 +77,7 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   processCongestMon->report_insert(t.get(), 1);
   DimensionKey key = get_dimension_key(*t);
   size_t kh = hash_fn(key);
-  processors[kh % processors.size()]->process(t, key);
+  processors[kh % processors.size()]->assign(t, key);
 }
 
 void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key,  boost::shared_ptr<cube::TupleBatch> &tupleBatcher) {
