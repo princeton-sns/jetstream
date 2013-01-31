@@ -64,7 +64,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name) :
 {
   processCongestMon->set_next_monitor(flushCongestMon);
 
-  for(int i=0; i<4;i++) {
+  for(int i=0; i<2;i++) {
     boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this));
     processors.push_back(proc);
   }
