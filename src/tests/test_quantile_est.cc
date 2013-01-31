@@ -96,7 +96,6 @@ TEST(CMSketch, Quantile) {
   int quantile_pts[] = {10, 25, 50, 75, 90};
   int quantile_list_len = sizeof(quantile_pts) / sizeof(int);
   for (int i =0; i < quantile_list_len; ++i) {
-    cout << i << endl;
     int q = c.quantile( quantile_pts[i] / 100.0) ;
     cout << quantile_pts[i]<<"th percentile is " << q << endl;
   }
@@ -141,7 +140,7 @@ TEST(LogHistogram, Boundaries) {
 
 
 template <typename T>
-int * make_rand_data(size_t size, const T& randsrc) {
+int * make_rand_data(size_t size, T& randsrc) {
   boost::mt19937 gen;
   int* data = new int[size];
   for (unsigned int i=0; i < size; ++ i)
@@ -187,13 +186,6 @@ TEST(LogHistogram, Quantile) {
     
   }
   delete data;
-/*  const int BUCKETS = 30;
-  LogHistogram hist(BUCKETS);
-  ASSERT_EQ(0,hist.bucket_min(0));
-  ASSERT_EQ(1,hist.bucket_min(1));
-  for(int i = 0; i < BUCKETS-1; ++i) {
-    ASSERT_EQ(hist.bucket_max(i),hist.bucket_min(i+1)-1);
-  }*/
 }
 
 
@@ -213,8 +205,8 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   size_t data_bytes = DATA_SIZE * sizeof(int);
 
 //  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
-//  boost::random::normal_distribution<> randsrc(10000, 1000);
-  boost::random::exponential_distribution<> randsrc(0.002);
+  boost::random::normal_distribution<> randsrc(10000, 1000);
+//  boost::random::exponential_distribution<> randsrc(0.002);
   int * data = make_rand_data<>(DATA_SIZE, randsrc);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
@@ -223,11 +215,9 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   int QUANTILES_TO_CHECK = sizeof(quantiles_to_check) /sizeof(double);
     
   double mean_error_with[APPROACHES][QUANTILES_TO_CHECK];
-//  double mean_error_with_sampling[QUANTILES_TO_CHECK];
   int64_t true_quantile[QUANTILES_TO_CHECK];
 
   memset(mean_error_with, 0, sizeof(mean_error_with));
-//  memset(mean_error_with_sampling, 0, sizeof(mean_error_with_sampling));
   SampleEstimation full_population;
   full_population.add_data(data, DATA_SIZE);
   for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
@@ -239,7 +229,6 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   usec_t time_querying[APPROACHES];
   memset(time_querying, 0, sizeof(time_querying));
 
-
   vector<string> labels;
   labels.push_back("sketch");
   labels.push_back("sample");
@@ -250,7 +239,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     QuantileEstimation * estimators[APPROACHES];
     CMMultiSketch sketch(10, 6, 2 + i);
     ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo(40);
+    LogHistogram histo(80);
     
     estimators[0] = &sketch;
     estimators[1] = &sample;
@@ -259,19 +248,15 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     if (i ==0)
       cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb\n";
     
-    
     for (int a = 0; a < APPROACHES; ++a) {
-//      boost::timer::auto_cpu_timer t;
+
       usec_t now = get_usec();
-      
       estimators[a]->add_data(data, DATA_SIZE);
-      
       time_adding_items[a] += (get_usec() - now);
 
       usec_t query_start = get_usec();
       for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
         double quantile_pt = quantiles_to_check[q];
-      
 //      cout << " checking quantile " << quantile_pt<< " ("<<q<<"/"<< 5<<")\n";
         update_err(q, mean_error_with[a], true_quantile, estimators[a]->quantile(quantile_pt));
       }

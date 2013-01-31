@@ -86,7 +86,6 @@ class LogHistogram : public QuantileEstimation {
 */
   protected:
     std::vector<count_val_t> buckets;
-//    size_t num_buckets;
     std::vector<int> bucket_starts;
 
     count_val_t total_vals;  
@@ -109,13 +108,11 @@ class LogHistogram : public QuantileEstimation {
     count_val_t count_in_b(size_t b) {
       assert(b < buckets.size());
       return buckets[b];
-    }
-  
+    }  
   
     std::pair<int,int> bucket_bounds(size_t b);
     size_t bucket_with(int item);
 
-  
     int bucket_min(size_t bucket_id) {
       return bucket_starts[bucket_id];
     }
@@ -131,6 +128,9 @@ class LogHistogram : public QuantileEstimation {
    }
   
 };
+
+std::ostream& operator<<(std::ostream& out, LogHistogram);
+
 
 }
 
