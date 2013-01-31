@@ -492,7 +492,7 @@ TEST_F(CubeTest, SubscriberNoBatch) {
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
   delete cube;
 }
-
+/*
 TEST_F(CubeTest, DISABLED_SubscriberBatchInsertNoBatch) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
@@ -542,6 +542,8 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchInsertNoBatch) {
 
   delete cube;
 }
+*/
+
 
 TEST_F(CubeTest, DISABLED_SubscriberBatchTimeout) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
