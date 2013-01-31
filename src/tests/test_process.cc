@@ -25,8 +25,8 @@ void check_flush() {
   while(flushCongestMon->queue_length() > 0) {
     if(processors[current_processor]->batcher_ready()) {
       boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
-      VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size();
-      js_usleep(500);
+VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id();      
+      js_usleep(2000);
       flushCongestMon->report_delete(tb.get(), 1);
     }
 
