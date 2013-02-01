@@ -51,7 +51,7 @@ class TestTupleGenerator {
         create_tuple(*t, time_entered+( i % 100 ), "http:\\\\www.example.com", 200, 50, 1);
         tuples.push_back(t);
       }
-
+      LOG(INFO) << "Generated "<< tuples.size() << " tuples.";
 
     }
 
@@ -83,7 +83,7 @@ class TestTupleGenerator {
         ++i;
 
         if(i%100000 == 0)
-          LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+          LOG(INFO) << "Insert into cube: outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
       }
     }
 
@@ -234,10 +234,18 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
 
   msec_t start = get_msec();
 
+  LOG(INFO) << "starting timer: "<< start;
+
+  js_usleep(5000);
+  
+  boost::thread_group tg;
   for(size_t i = 0; i<gens.size(); ++i) {
     TestTupleGenerator * g= gens[i];
-    boost::thread(&TestTupleGenerator::insert_into_cube, g);
+    boost::thread *t1 = new boost::thread(&TestTupleGenerator::insert_into_cube, g);
+    tg.add_thread(t1);
   }
+
+  tg.join_all();
 
   ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
@@ -249,12 +257,12 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
   while(procMon->queue_length() > 0 || flushMon->queue_length() > 0) {
     waits ++;
     js_usleep(200000);
-    LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+    LOG(INFO) << "Waiting on completeness. outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
 
-  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
+  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits << "; start" << start << "; now "<< get_msec();
 
-  LOG(INFO) << "The time it took was: " << (get_msec() - start);
+  LOG(INFO) << "Finished Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads << ". The time it took was: " << (get_msec() - start);
 
 
 
