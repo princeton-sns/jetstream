@@ -75,13 +75,18 @@ const std::string jetstream::DataCube::my_tyepename("data cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
   processCongestMon->report_insert(t.get(), 1);
-  DimensionKey key = get_dimension_key(*t);
+  tmpostr.str("");
+  tmpostr.clear();
+  get_dimension_key(*t, tmpostr);
+  DimensionKey key = tmpostr.str();
   size_t kh = hash_fn(key);
   processors[kh % processors.size()]->assign(t, key);
 }
 
 void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key,  boost::shared_ptr<cube::TupleBatch> &tupleBatcher) {
   bool in_batch = false;
+
+  VLOG(1) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
 
   if (tupleBatcher->contains(key)) {
     in_batch = true;
