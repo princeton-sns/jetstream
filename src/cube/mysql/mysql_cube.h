@@ -28,7 +28,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     MysqlCube (jetstream::CubeSchema const _schema,
                string _name,
-               bool overwrite_if_present);
+               bool overwrite_if_present, const NodeConfig &conf = NodeConfig());
 
     class ThreadConnection{
       public:

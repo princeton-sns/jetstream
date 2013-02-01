@@ -19,12 +19,12 @@ class NodeConfig {
   std::string cube_db_user;
   std::string cube_db_pass;
   std::string cube_db_name;
-  size_t cube_max_elements_in_batch;
+  size_t cube_processor_threads;
   NodeConfig () 
     : dataplane_ep("0.0.0.0", 0), webinterface_port (0),
     heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000),sendQueueSize(1E5),
     cube_db_host("localhost"), cube_db_user("root"), cube_db_pass(""), cube_db_name("test_cube"),
-    cube_max_elements_in_batch(1)
+    cube_processor_threads(1)
     {}
 };
 

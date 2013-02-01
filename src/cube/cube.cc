@@ -55,7 +55,7 @@ bool ProcessCallable::batcher_ready() {
 
 
 
-DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name) :
+DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf) :
   schema(_schema), name(_name), is_frozen(false), 
   version(0),
   flushExec(1), current_processor(0),  
@@ -64,7 +64,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name) :
 {
   processCongestMon->set_next_monitor(flushCongestMon);
 
-  for(int i=0; i<2;i++) {
+  for(size_t i=0; i<conf.cube_processor_threads;i++) {
     boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this));
     processors.push_back(proc);
   }

@@ -13,30 +13,85 @@
 using namespace jetstream;
 using namespace jetstream::cube;
 using namespace boost;
-  class MysqlCubeNoDB: public MysqlCube {
-   
-    public:
+
+
+class MysqlCubeNoDB: public MysqlCube {
+
+  public:
 
     MysqlCubeNoDB (jetstream::CubeSchema const _schema,
-               string _name,
-               bool overwrite_if_present): MysqlCube ( _schema, _name, overwrite_if_present) {}
+                   string _name,
+                   bool overwrite_if_present, const NodeConfig &conf): MysqlCube ( _schema, _name, overwrite_if_present, conf) {}
 
-void check_flush() {
-  while(flushCongestMon->queue_length() > 0) {
-    if(processors[current_processor]->batcher_ready()) {
-      boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
-VLOG(1) << "Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id();      
-      js_usleep(2000);
-      flushCongestMon->report_delete(tb.get(), 1);
+    virtual void check_flush() {
+      while(flushCongestMon->queue_length() > 0) {
+        if(processors[current_processor]->batcher_ready()) {
+          boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
+          VLOG(1) << "Fake Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id();;
+          js_usleep(500);
+          flushCongestMon->report_delete(tb.get(), 1);
+        }
+        current_processor = (current_processor+1) % processors.size();
+      }
     }
-
-    current_processor = (current_processor+1) % processors.size();
-  }
-
-}
 
 };
 
+
+class TestTupleGenerator {
+
+  public:
+    TestTupleGenerator(size_t num, DataCube * cube): cube(cube) {
+
+      time_t time_entered = time(NULL);
+      boost::shared_ptr<jetstream::Tuple> t;
+
+      for(unsigned int i =0; i < num; i++) {
+        t = boost::make_shared<jetstream::Tuple>();
+        create_tuple(*t, time_entered+( i % 100 ), "http:\\\\www.example.com", 200, 50, 1);
+        tuples.push_back(t);
+      }
+
+
+    }
+
+    void create_tuple(jetstream::Tuple & t, time_t time, string url, int rc, int sum, int count) {
+      t.clear_e();
+      jetstream::Element *e = t.add_e();
+      e->set_t_val(time);  //0
+      e=t.add_e();
+      e->set_s_val(url);  //1
+      e=t.add_e();
+      e->set_i_val(rc);  //2
+      e=t.add_e();
+      e->set_i_val(sum);  //3
+      e=t.add_e();
+      e->set_i_val(count);  //4
+      e=t.add_e();
+      e->set_i_val(count);  //5
+    }
+
+    void insert_into_cube() {
+      unsigned int i = 0;
+    
+      ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
+      QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
+
+
+      for(std::vector< boost::shared_ptr<jetstream::Tuple> >::const_iterator it = tuples.begin(); it != tuples.end(); ++it) {
+        cube->process(*it);
+        ++i;
+
+        if(i%100000 == 0)
+          LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+      }
+    }
+
+  protected:
+  DataCube * cube;
+    std::vector< boost::shared_ptr<jetstream::Tuple> > tuples;
+
+};
 
 class ProcessTest : public ::testing::Test {
   
@@ -152,7 +207,80 @@ void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, un
   }
 }
 
+void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads) {
+  NodeConfig conf;
+  conf.cube_processor_threads = num_process_threads;
+  
+  LOG(INFO) << "Running Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads ;
 
+  MysqlCube * cube;
+
+  if(use_db) {
+    cube = new MysqlCube(*sc, "web_requests", true, conf);
+  }
+  else {
+    cube = new MysqlCubeNoDB(*sc, "web_requests", true, conf);
+  }
+
+  cube->destroy();
+  cube->create();
+
+  std::vector< TestTupleGenerator * > gens;
+
+  for(size_t i = 0; i<num_tuple_insert_threads; ++i) {
+    TestTupleGenerator * g= new TestTupleGenerator(num_tuples/num_tuple_insert_threads, cube);
+    gens.push_back(g);
+  }
+
+  msec_t start = get_msec();
+
+  for(size_t i = 0; i<gens.size(); ++i) {
+    TestTupleGenerator * g= gens[i];
+    boost::thread(&TestTupleGenerator::insert_into_cube, g);
+  }
+
+  ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
+  QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
+
+
+
+  int waits = 0;
+
+  while(procMon->queue_length() > 0 || flushMon->queue_length() > 0) {
+    waits ++;
+    js_usleep(200000);
+    LOG(INFO) << "Outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+  }
+
+  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits;
+
+  LOG(INFO) << "The time it took was: " << (get_msec() - start);
+
+
+
+}
+
+TEST_F(ProcessTest, ND1M22) {
+  run_test(sc, false, 1000000, 2, 2);
+}
+
+TEST_F(ProcessTest, ND1M12) {
+  run_test(sc, false, 1000000, 1, 1);
+}
+
+TEST_F(ProcessTest, D1M22) {
+  run_test(sc, false, 1000000, 2, 2);
+}
+
+TEST_F(ProcessTest, ND200K22) {
+  run_test(sc, false, 200000, 2, 2);
+}
+
+TEST_F(ProcessTest, ND1M11) {
+  run_test(sc, false, 1000000, 1, 1);
+}
+
+/*
 TEST_F(ProcessTest, LoopTest) {
   MysqlCubeNoDB * cube = new MysqlCubeNoDB(*sc, "web_requests", true);
   boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
@@ -230,7 +358,7 @@ TEST_F(ProcessTest, LoopWithDbTest) {
   //js_usleep(200000);
 
   //delete cube;
-}
+}*/
 
 TEST_F(ProcessTest, DISABLED_KeyTest) {
   //time, string, int
