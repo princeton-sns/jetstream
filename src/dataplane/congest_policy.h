@@ -10,16 +10,35 @@
 #define JetStream_congest_policy_h
 
 #include "js_utils.h"
+#include "congestion_monitor.h"
 #include <map>
+#include <boost/thread.hpp>
+
 
 namespace jetstream {
 
 class CongestionPolicy {
-  protected:
-//    std::map<operator_id_t, 
 
+  struct OperatorState {
+    operator_id_t op;
+    int availStepsDown;
+    int availStepsUp;
+    msec_t last_state_change;
+    
+    OperatorState() :availStepsDown(0), availStepsUp(0), last_state_change (0) {}
+  };
+
+  protected:
+    mutable boost::mutex stateLock; //no need for locking if access all within a chain?
+    std::vector<OperatorState> status;
+    boost::shared_ptr<CongestionMonitor> congest;
+  
   public:
-    double get_step(operator_id_t op, double min_ratio, double next_step_down, double next_step_up, double max_ratio);
+    //-1 means "lower send rate", +1 means "raise send rate, and "0" means no shift
+    int get_step(operator_id_t op, int availDown, int availUp);
+    void add_operator() {
+      status.push_back( OperatorState() );
+    }
 
 };
 

@@ -330,10 +330,24 @@ unparse_id (const TaskID& id) {
   return parsed;
 }
 
+void
+Node::establish_congest_policies(const AlterTopo & topo, ControlMessage & resp) {
+  for (int i =0; i < topo.congest_policies_size(); ++ i) {
+//    establish_policies(topo.congest_policies(i));
+      boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+  }
 
-ControlMessage
-Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
-{
+}
+
+boost::shared_ptr<CongestionPolicy>
+get_default_policy(DataPlaneOperator* op) {
+  boost::shared_ptr<CongestionPolicy> policy;
+  return policy;
+}
+
+
+void
+Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
@@ -386,7 +400,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       response.set_type(ControlMessage::ERROR);
       Error * err_msg = response.mutable_error_msg();
       err_msg->set_msg(err);
-      return response;
+      return;
     }
   }
   
@@ -506,6 +520,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
       }
     }
   }
+
+  establish_congest_policies(topo, response);
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
@@ -513,7 +529,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
   for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
     shared_ptr<DataPlaneOperator> op = get_operator(name);
-    assert (op);
+    LOG_IF(FATAL, !op) << "operator " << name << " vanished before start";
     op->start();
     dataConnMgr.created_operator(op);
   }
@@ -522,9 +538,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response)
     const CubeMeta &task = topo.tocreate(i);
     shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
     assert (c);
-    dataConnMgr.created_operator(c);
+    dataConnMgr.created_operator(c); //unblock connections into cubes
   }
-  return response;
 }
 
 void

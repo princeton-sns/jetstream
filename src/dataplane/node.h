@@ -14,6 +14,7 @@
 #include "dataplane_comm.h"
 #include "node_web_interface.h"
 #include "node_config.h"
+#include "congest_policy.h"
 
 namespace jetstream {
   
@@ -69,6 +70,8 @@ class Node {
 
   std::string make_op_list();
   
+  void establish_congest_policies(const AlterTopo & topo, ControlMessage & resp);
+  
  public:
   Node (const NodeConfig &conf, boost::system::error_code &error);
   ~Node ();
@@ -104,12 +107,13 @@ class Node {
   const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
   { return listeningSock->get_local_endpoint(); }
 
-  /* Returns by value; typically the response is very short and so the dynamic alloc
-   * overhead isn't worth it.
-   */
-  ControlMessage handle_alter (const AlterTopo& t, ControlMessage& response);
+  void handle_alter (const AlterTopo& t, ControlMessage& response);
 
+
+  //To support oeprators:
   
+  boost::shared_ptr<CongestionPolicy> get_default_policy(DataPlaneOperator* op);
+
   boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
     return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
   }
