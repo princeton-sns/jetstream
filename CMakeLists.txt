@@ -7,7 +7,7 @@ cmake_policy(SET CMP0003 NEW)
 
 # Add Compiler Definitions.  Must be done before project or language set.
 
-option(USE_CLANG "build application with clang" OFF)
+option(USE_CLANG "build application with clang" ON)
 option(FULL_STATIC "build application maximally statically" OFF)
 
 if(USE_CLANG)
