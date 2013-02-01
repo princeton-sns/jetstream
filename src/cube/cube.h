@@ -11,6 +11,7 @@
 #include "subscriber.h"
 #include "queue_congestion_mon.h"
 #include "chained_queue_mon.h"
+#include "node_config.h"
 
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
@@ -45,23 +46,23 @@ class TupleProcessingInfo {
 class ProcessCallable {
 
   public:
-  ProcessCallable(DataCube * cube);
-  ~ProcessCallable();
+    ProcessCallable(DataCube * cube);
+    ~ProcessCallable();
 
-  void run();
+    void run();
 
-  void assign(boost::shared_ptr<Tuple> t, DimensionKey key);
-  boost::shared_ptr<cube::TupleBatch> batch_flush();
-  bool batcher_ready();
+    void assign(boost::shared_ptr<Tuple> t, DimensionKey key);
+    boost::shared_ptr<cube::TupleBatch> batch_flush();
+    bool batcher_ready();
 
-  // This runs in the internal thread
-  void process(boost::shared_ptr<Tuple> t, DimensionKey key); 
-  
   private:
     boost::thread internal_thread;
     shared_ptr<io_service> service;
     io_service::work work;
     jetstream::DataCube * cube;
+
+    // This runs in the internal thread
+    void process(boost::shared_ptr<Tuple> t, DimensionKey key);
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     mutable boost::mutex batcherLock; // protects tupleBatcher
@@ -73,7 +74,7 @@ class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
 
-    DataCube(jetstream::CubeSchema _schema, std::string _name);
+    DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf);
     virtual ~DataCube() {}
 
     //main external functions

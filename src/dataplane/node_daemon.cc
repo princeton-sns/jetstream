@@ -45,8 +45,8 @@ parse_config (program_options::variables_map *inputopts,
      "liveness monitoring timer (in milliseconds)")
     ("thread_pool_size,p", value<u_int16_t>(),
      "thread pool size")
-    ("cube_max_elements_in_batch", value<size_t>(),
-     "batch queue size for cubes")
+    ("cube_processor_threads", value<size_t>(),
+     "Number of threads the cubes use")
     ;
   
   
@@ -116,8 +116,8 @@ parse_config (program_options::variables_map *inputopts,
     config.thread_pool_size = input_opts["thread_pool_size"].as<u_int16_t>();
 
 
-  if (input_opts.count("cube_max_elements_in_batch"))
-    config.cube_max_elements_in_batch = input_opts["cube_max_elements_in_batch"].as<size_t>();
+  if (input_opts.count("cube_processor_threads"))
+    config.cube_processor_threads = input_opts["cube_processor_threads"].as<size_t>();
 
 
   //if (input_opts.count("dataplane_port"))

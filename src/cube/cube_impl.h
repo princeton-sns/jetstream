@@ -23,7 +23,7 @@ template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=je
 class DataCubeImpl : public DataCube {
   public:
 
-    DataCubeImpl(jetstream::CubeSchema _schema, std::string n): DataCube(_schema, n) {
+    DataCubeImpl(jetstream::CubeSchema _schema, std::string n, const NodeConfig &conf): DataCube(_schema, n, conf) {
       build(_schema);
     }
 

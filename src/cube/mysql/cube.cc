@@ -11,8 +11,8 @@ using namespace jetstream::cube;
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
-                                       bool delete_if_exists) :
-  DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name),
+                                       bool delete_if_exists, const NodeConfig &conf ) :
+  DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name, conf),
 
   assumeOnlyWriter(true)
   {
