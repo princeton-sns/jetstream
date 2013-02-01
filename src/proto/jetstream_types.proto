@@ -129,7 +129,7 @@ message Edge {
   optional double max_kb_per_sec = 8;
 }
 
-message CongestPolicy {
+message CongestPolicySpec {
   repeated TaskID op = 1;
 }
 
@@ -154,7 +154,7 @@ message AlterTopo {
   repeated TaskID taskToStop = 4; 
   repeated string cubesToStop = 5; 
   repeated Edge edges = 6;
-  repeated CongestPolicy congest_policies = 7;
+  repeated CongestPolicySpec congest_policies = 7;
 }
 
 

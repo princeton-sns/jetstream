@@ -331,10 +331,26 @@ unparse_id (const TaskID& id) {
 }
 
 void
-Node::establish_congest_policies(const AlterTopo & topo, ControlMessage & resp) {
+Node::establish_congest_policies( const AlterTopo & topo,
+                                  ControlMessage & resp,
+                                  const vector<operator_id_t>& toStart) {
+  map<operator_id_t, bool> operators_with_policies;
   for (int i =0; i < topo.congest_policies_size(); ++ i) {
 //    establish_policies(topo.congest_policies(i));
-      boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+    const CongestPolicySpec& p_spec = topo.congest_policies(i);
+    boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+    for (int t = 0;  t < p_spec.op_size(); ++t) {
+      operator_id_t id = unparse_id(p_spec.op(t));
+      policy->add_operator(id);
+      get_operator(id)->set_congestion_policy(policy);
+      operators_with_policies[id] = true;
+    }
+  }
+  
+  for (int i = 0; i < toStart.size(); ++i) {
+    if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
+      //default policy
+    }
   }
 
 }
@@ -521,7 +537,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     }
   }
 
-  establish_congest_policies(topo, response);
+  establish_congest_policies(topo, response, operators_to_start);
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.

@@ -70,7 +70,9 @@ class Node {
 
   std::string make_op_list();
   
-  void establish_congest_policies(const AlterTopo & topo, ControlMessage & resp);
+  void establish_congest_policies( const AlterTopo & topo,
+                                   ControlMessage & resp,
+                                   const std::vector<operator_id_t>& toStart);
   
  public:
   Node (const NodeConfig &conf, boost::system::error_code &error);

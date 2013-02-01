@@ -12,7 +12,9 @@
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "congestion_monitor.h"
+#include "congest_policy.h"
 #include <glog/logging.h>
+
 
 //#include "node.h"
 
@@ -106,6 +108,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   */
   void set_node (Node * n) { node = n; }
   
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {}
   
   /** A variety of (self-explanatory) debugging aids and metadata */
   operator_id_t & id() {return operID;}

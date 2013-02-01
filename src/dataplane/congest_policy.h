@@ -25,7 +25,7 @@ class CongestionPolicy {
     int availStepsUp;
     msec_t last_state_change;
     
-    OperatorState() :availStepsDown(0), availStepsUp(0), last_state_change (0) {}
+    OperatorState(operator_id_t i) : op(i),availStepsDown(0), availStepsUp(0), last_state_change (0) {}
   };
 
   protected:
@@ -36,8 +36,8 @@ class CongestionPolicy {
   public:
     //-1 means "lower send rate", +1 means "raise send rate, and "0" means no shift
     int get_step(operator_id_t op, int availDown, int availUp);
-    void add_operator() {
-      status.push_back( OperatorState() );
+    void add_operator(operator_id_t id) {
+      status.push_back( OperatorState(id));
     }
 
 };
