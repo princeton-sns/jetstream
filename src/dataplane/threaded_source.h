@@ -16,6 +16,11 @@ class ThreadedSource: public DataPlaneOperator {
   virtual void stop();
   virtual void process(boost::shared_ptr<Tuple> t);
   void operator()();  // A thread that will loop while reading the file
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+    congest_policy = p;
+  }
+  
+  
   
  protected:
   ThreadedSource(): running(false),send_now(false),exit_at_end(true) {}
@@ -23,6 +28,7 @@ class ThreadedSource: public DataPlaneOperator {
   virtual bool emit_1() = 0; //returns true to stop sending; else false
 
   boost::shared_ptr<boost::thread> loopThread;
+  boost::shared_ptr<CongestionPolicy> congest_policy;
   volatile bool running;
   volatile bool send_now, exit_at_end;
   

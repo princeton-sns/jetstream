@@ -46,17 +46,18 @@ ThreadedSource::stop() {
 
 void
 ThreadedSource::operator()() {
-
-  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-  if (!congested) { //connection failed, e.g.
-    LOG(WARNING) << "Operator " << id() << " exiting because chain setup failed";
-    return;
+  const int MAX_WAIT_TICKS = 10;
+  int ticks_to_wait = 0;
+  
+  if( !congest_policy ) {
+    congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
   }
   
   do {
-      if (congested->is_congested()) {
+      ticks_to_wait -= congest_policy->get_step(id(), ticks_to_wait, MAX_WAIT_TICKS - ticks_to_wait);
+      if (ticks_to_wait > 0) {
         boost::this_thread::yield();
-        js_usleep(100 * 1000);
+        js_usleep(ticks_to_wait * 100 * 1000);
         //don't loop here; need to re-check running
       }
       else if (emit_1())

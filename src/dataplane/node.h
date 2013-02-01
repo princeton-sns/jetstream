@@ -111,11 +111,6 @@ class Node {
 
   void handle_alter (const AlterTopo& t, ControlMessage& response);
 
-
-  //To support oeprators:
-  
-  boost::shared_ptr<CongestionPolicy> get_default_policy(DataPlaneOperator* op);
-
   boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
     return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
   }

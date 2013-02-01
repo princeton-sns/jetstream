@@ -339,28 +339,26 @@ Node::establish_congest_policies( const AlterTopo & topo,
 //    establish_policies(topo.congest_policies(i));
     const CongestPolicySpec& p_spec = topo.congest_policies(i);
     boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+    boost::shared_ptr<DataPlaneOperator> op;
     for (int t = 0;  t < p_spec.op_size(); ++t) {
       operator_id_t id = unparse_id(p_spec.op(t));
       policy->add_operator(id);
-      get_operator(id)->set_congestion_policy(policy);
+      op = get_operator(id);
+      op->set_congestion_policy(policy);
       operators_with_policies[id] = true;
     }
+    policy->set_congest_monitor( op->congestion_monitor() );
   }
   
-  for (int i = 0; i < toStart.size(); ++i) {
+  for (unsigned int i = 0; i < toStart.size(); ++i) {
     if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
-      //default policy
+      boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+      boost::shared_ptr<DataPlaneOperator> op = get_operator(toStart[i]);
+      policy->add_operator(toStart[i]);
+      policy->set_congest_monitor( op->congestion_monitor() );
     }
   }
-
 }
-
-boost::shared_ptr<CongestionPolicy>
-get_default_policy(DataPlaneOperator* op) {
-  boost::shared_ptr<CongestionPolicy> policy;
-  return policy;
-}
-
 
 void
 Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {

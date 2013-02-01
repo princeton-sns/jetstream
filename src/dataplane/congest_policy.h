@@ -39,6 +39,10 @@ class CongestionPolicy {
     void add_operator(operator_id_t id) {
       status.push_back( OperatorState(id));
     }
+  
+    void set_congest_monitor(boost::shared_ptr<CongestionMonitor> c) {
+      congest = c;
+    }
 
 };
 

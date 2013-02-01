@@ -88,7 +88,6 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
   void send_meta_downstream(const DataplaneMessage & msg);
   
-  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
 //  Node * get_node() {return node;} //not sure if we should allow operators this much access --asr
   
   boost::shared_ptr<boost::asio::deadline_timer> get_timer();
@@ -96,6 +95,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
  public:
   DataPlaneOperator ():node(0),tuplesEmitted(0)  {}
   virtual ~DataPlaneOperator ();
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor();
 
   
   void set_dest (boost::shared_ptr<TupleReceiver> d) { dest = d; }
