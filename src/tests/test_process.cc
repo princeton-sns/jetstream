@@ -277,7 +277,19 @@ TEST_F(ProcessTest, ND1M12) {
 }
 
 TEST_F(ProcessTest, D1M22) {
-  run_test(sc, false, 1000000, 2, 2);
+  run_test(sc, true, 1000000, 2, 2);
+}
+
+TEST_F(ProcessTest, D1M12) {
+  run_test(sc, true, 1000000, 1, 2);
+}
+
+TEST_F(ProcessTest, D1M21) {
+  run_test(sc, true, 1000000, 2, 1);
+}
+
+TEST_F(ProcessTest, D1M11) {
+  run_test(sc, true, 1000000, 1, 1);
 }
 
 TEST_F(ProcessTest, ND200K22) {
