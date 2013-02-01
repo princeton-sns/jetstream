@@ -35,6 +35,10 @@ struct operator_id_t {
       && task_id == rhs.task_id;
   }
   
+  bool operator!= (const operator_id_t& rhs) const {
+    return !( *this == rhs);
+  }
+  
   std::string to_string () {
     std::ostringstream buf;
     buf << "(" << computation_id << "," << task_id << ")";

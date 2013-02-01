@@ -356,6 +356,14 @@ Node::establish_congest_policies( const AlterTopo & topo,
       boost::shared_ptr<DataPlaneOperator> op = get_operator(toStart[i]);
       policy->add_operator(toStart[i]);
       policy->set_congest_monitor( op->congestion_monitor() );
+      op->set_congestion_policy(policy);
+
+      string monitor_name = "undefined";
+      if( op->congestion_monitor()) {
+        monitor_name = "defined";
+      }
+      LOG(INFO) << "added default congestion policy for " << toStart[i]<<
+        ". Monitor is " << monitor_name;
     }
   }
 }

@@ -11,11 +11,19 @@ namespace jetstream {
 void
 ThreadedSource::start() {
   if (send_now) {
-    boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
-    while (congested->is_congested()) {
+
+    int is_running = 1;
+    
+    if( !congest_policy ) {
+      congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
+    }
+    do {
+      is_running += congest_policy->get_step(id(), is_running, 1 - is_running);
       boost::this_thread::yield();
       js_usleep(100 * 1000);
-    }
+      //don't loop here; need to re-check running
+    } while (is_running < 1);
+
     while (! emit_1())
       ;
   }
@@ -46,18 +54,18 @@ ThreadedSource::stop() {
 
 void
 ThreadedSource::operator()() {
-  const int MAX_WAIT_TICKS = 10;
-  int ticks_to_wait = 0;
+//  const int MAX_WAIT_TICKS = 10;
+  int is_running = 1;
   
   if( !congest_policy ) {
     congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
   }
   
   do {
-      ticks_to_wait -= congest_policy->get_step(id(), ticks_to_wait, MAX_WAIT_TICKS - ticks_to_wait);
-      if (ticks_to_wait > 0) {
+      is_running += congest_policy->get_step(id(), is_running, 1 - is_running);
+      if (is_running == 0) {
         boost::this_thread::yield();
-        js_usleep(ticks_to_wait * 100 * 1000);
+        js_usleep(100 * 1000);
         //don't loop here; need to re-check running
       }
       else if (emit_1())

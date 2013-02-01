@@ -30,14 +30,14 @@ class CongestionPolicy {
 
   protected:
     mutable boost::mutex stateLock; //no need for locking if access all within a chain?
-    std::vector<OperatorState> status;
+    std::vector<OperatorState> statuses;
     boost::shared_ptr<CongestionMonitor> congest;
   
   public:
     //-1 means "lower send rate", +1 means "raise send rate, and "0" means no shift
     int get_step(operator_id_t op, int availDown, int availUp);
     void add_operator(operator_id_t id) {
-      status.push_back( OperatorState(id));
+      statuses.push_back( OperatorState(id));
     }
   
     void set_congest_monitor(boost::shared_ptr<CongestionMonitor> c) {
