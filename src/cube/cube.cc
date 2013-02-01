@@ -74,12 +74,20 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 const std::string jetstream::DataCube::my_tyepename("data cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
+   static boost::thread_specific_ptr<std::ostringstream> tmpostr;
+   static boost::thread_specific_ptr<boost::hash<std::string> > hash_fn;
+
+   if (!tmpostr.get()) 
+    tmpostr.reset(new std::ostringstream());
+   if(!hash_fn.get())
+    hash_fn.reset(new boost::hash<std::string>());
+  
   processCongestMon->report_insert(t.get(), 1);
-  tmpostr.str("");
-  tmpostr.clear();
-  get_dimension_key(*t, tmpostr);
-  DimensionKey key = tmpostr.str();
-  size_t kh = hash_fn(key);
+  tmpostr->str("");
+  tmpostr->clear();
+  get_dimension_key(*t, *tmpostr);
+  DimensionKey key = tmpostr->str();
+  size_t kh = (*hash_fn)(key);
   processors[kh % processors.size()]->assign(t, key);
 }
 

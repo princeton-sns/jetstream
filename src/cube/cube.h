@@ -187,7 +187,6 @@ class DataCube : public TupleReceiver {
     virtual void check_flush();
     void post_flush();
     Executor flushExec;
-    std::ostringstream tmpostr;
   
   protected: 
     size_t current_processor;
@@ -195,7 +194,6 @@ class DataCube : public TupleReceiver {
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 
     std::vector<boost::shared_ptr<ProcessCallable> > processors;
-    boost::hash<std::string> hash_fn;
 };
 
 }

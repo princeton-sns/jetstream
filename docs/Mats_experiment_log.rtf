@@ -138,7 +138,8 @@ from our data, latency of db w/o batch = 97 us\
 {\field{\*\fldinst{HYPERLINK "http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/"}}{\fldrslt \cf0 http://www.mysqlperformanceblog.com/2012/05/16/benchmarking-single-row-insert-performance-on-amazon-ec2/}}\
 shows insert rate of single-row inserts to be ~25k rows/sec = 40us on avg\
 note batch can get much higher numbers (~200-300k/sec).\
-{\field{\*\fldinst{HYPERLINK "http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking"}}{\fldrslt http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking}} - show much higher latency numbers\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+{\field{\*\fldinst{HYPERLINK "http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking"}}{\fldrslt \cf0 http://www.slideshare.net/tazija/evaluating-nosql-performance-time-for-benchmarking}} - show much higher latency numbers\
 \
 \
 \
@@ -220,11 +221,23 @@ The high dependency on data causes me to re-write.\
 --w and w/o db same at about 13s\
 \
 refactored to create tuples before process. Now #s are comparable again:\
+macbook:\
 LoopTest( No DB) - 10s\
 LoopTest (with DB) - 12.5-13s\
+sns48\
+LoopTest( No DB) - 11s, 8s, 8s\
+LoopTest (with DB) - 6s, 5s, 8s\
+\
+\
 \
 Took out CountingExecutor \
 LoopTest( No DB) - 9s\
+\
+--------------multi thread--------------\
+on sns48\
+\
+LoopTest, 1M 4Threads - 33s, 11s very variable\
+\
 \
 \
 \
