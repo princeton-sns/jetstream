@@ -1,9 +1,6 @@
 from jetstream_types_pb2 import *
 
-import string
-
 from itertools import izip, tee
-from operator import itemgetter
 from collections import deque
 
 from remote_controller import RemoteController
@@ -61,9 +58,9 @@ def remote_deploy(serv_addr, serv_port, graph, cube=None):
 def parse_setup():
   (serv_addr, serv_port), file_to_parse = js_client_config.arg_config()
 
-  k2 = 20 #how many to pull to top level
-  k = 10 #how many to display
-  
+  k2 = 20 # how many to pull to top level
+  k = 10 # how many to display
+
   # specify the query fields that this computation is interested in
   #which_coral_fields = [coral_fidxs['URL_requested']]
   agg_field_idx = coral_fidxs['URL_requested']
@@ -79,10 +76,10 @@ def parse_setup():
 
   local_cube = g.add_cube("coral_results")
   local_cube.add_dim("Requested_domains", Element.STRING, 0)
-  ## index past end of tuple is a magic API to the "count" aggregate that tells
-  ## it to assume a count of 1
+  # index past end of tuple is a magic API to the "count" aggregate that tells
+  # it to assume a count of 1
   local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
-  local_cube.set_overwrite(True) #fresh results
+  local_cube.set_overwrite(True)  # fresh results
 
   g.chain([f, csvp, grab_domain, local_cube, pull_k2])
 

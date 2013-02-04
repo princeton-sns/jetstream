@@ -121,31 +121,30 @@ class QueryGraph(object):
           print "cubes:",self.cubes
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
-    
-  """ Add an edge from the the first operator to the second. """
+
   def connect(self, oper1, oper2):
+    """ Add an edge from the the first operator to the second. """
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
     oper2.add_pred(oper1)
 
-  """ Add edges from each destitnation in the list to the next destination in
-      the list. Cubes are allowed. """
   def chain(self, operators):
+    """ Add edges from each destination in the list to the next destination in
+        the list. Cubes are allowed. """
     assert all(isinstance(op, Destination) for op in operators)
     for oper, next_oper in pairwise(operators):
       self.connect(oper, next_oper)
 
-
   # right now this is for adding an edge to the client so it can act as a
   # receiver
-  """ Add an edge from an operator to a node """
   def connectExternal(self, operator, nodeid):
+      """ Add an edge from an operator to a node """
       e = Edge()
-      e.computation = 0 # dummy
+      e.computation = 0  # dummy
       e.src = operator.get_id()
       e.dest_addr.CopyFrom(nodeid)
 
       self.externalEdges.append(e)
-    
+
   def clone_back_from(self, head, numcopies):
     to_copy = {}  #maps id to object
     to_inspect = set([head])
@@ -202,38 +201,35 @@ class QueryGraph(object):
     input_schema = {}
     for n in worklist:
       input_schema[n] = ()
-    
+
     forward_edges = self.forward_edge_map();
     for n in worklist:
-      
-#      print "validating schemas for outputs of %d" % n
-      #note that cubes don't have an output schema and subscribers are a special case
-      if n in self.operators:     
+      # print "validating schemas for outputs of %d" % n
+      # note that cubes don't have an output schema and subscribers are a special case
+      if n in self.operators:
 #        print "found operator",n,"of type",self.operators[n].type 
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
       else:
         out_schema = self.cubes[n].out_schema (input_schema[n])
-        
-      print "out-schema for",n,self.node_type(n),"is",out_schema
-  
+
+      print "out-schema for", n, self.node_type(n), "is", out_schema
+
       for o in forward_edges.get(n, []):
-        
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
             err_msg = "Edge from %d of type %s to %d of type %s (%s) doesn't match existing schema %s" \
-                % (n,self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
+                % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          input_schema[o] = out_schema 
+          input_schema[o] = out_schema
           worklist.append(o)
         # TODO need to verify the subscribers, and add them to worklist
   #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
-      
+
 # This represents the abstract concept of an operator or cube, for building
 # the query graphs. The concrete executable implementations are elsewhere.
 class Destination(object):
-  
   def __init__(self, graph, id):
     self.preds = set()
     self.graph = graph  #keep link to parent QueryGraph
