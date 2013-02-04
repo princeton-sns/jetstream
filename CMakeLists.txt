@@ -125,6 +125,13 @@ set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 include_directories (${SRC_DIR}/utils)
 
+set (LIBRARY_NAME jsaggregates)
+add_subdirectory (${SRC_DIR}/aggregates)
+link_directories (${BUILD_DIR}/aggregates)
+set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
+
+include_directories (${SRC_DIR}/aggregates)
+
 set (LIBRARY_NAME jscomm)
 add_subdirectory (${SRC_DIR}/comm)
 link_directories (${BUILD_DIR}/comm)

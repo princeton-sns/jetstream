@@ -18,6 +18,7 @@ target_link_libraries (${LIBRARY_NAME} jsproto)
 target_link_libraries (${LIBRARY_NAME} jscomm)
 target_link_libraries (${LIBRARY_NAME} mongoose)
 target_link_libraries (${LIBRARY_NAME} jscube)
+target_link_libraries (${LIBRARY_NAME} jsaggregates)
 
 
 foreach(OP ${OPS})
