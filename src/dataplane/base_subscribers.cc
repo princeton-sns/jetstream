@@ -187,11 +187,13 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+double shouldRun[] = {0, 1};
+
 void 
 TimeBasedSubscriber::respond_to_congestion() {
     int should_run = 1;
     while(running && should_run == 0) {
-      should_run += congest_policy->get_step(id(), should_run, 1 - should_run);
+      should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
       js_usleep(1000 * 50);  //10 ms
     }
 }

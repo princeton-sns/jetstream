@@ -8,6 +8,8 @@ using namespace std;
 
 namespace jetstream {
 
+double congestSteps[] = {0, 1};
+
 void
 ThreadedSource::start() {
   if (send_now) {
@@ -18,7 +20,7 @@ ThreadedSource::start() {
       congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
     }
     do {
-      is_running += congest_policy->get_step(id(), is_running, 1 - is_running);
+      is_running += congest_policy->get_step(id(), congestSteps, 2, is_running);
       boost::this_thread::yield();
       js_usleep(100 * 1000);
       //don't loop here; need to re-check running
@@ -62,7 +64,7 @@ ThreadedSource::operator()() {
   }
   
   do {
-      is_running += congest_policy->get_step(id(), is_running, 1 - is_running);
+      is_running += congest_policy->get_step(id(), congestSteps, 2, is_running);
       if (is_running == 0) {
         boost::this_thread::yield();
         js_usleep(100 * 1000);
