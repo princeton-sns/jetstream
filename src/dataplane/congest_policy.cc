@@ -10,7 +10,7 @@ namespace jetstream {
 const unsigned int MIN_MS_BETWEEN_ACTIONS = 50;
 
 int
-CongestionPolicy::get_step(operator_id_t op, int availDown, int availUp) {
+CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel) {
   
   if (!congest) {
 //    LOG(WARNING) << "no congestion monitor ahead of " << op;
@@ -35,9 +35,9 @@ CongestionPolicy::get_step(operator_id_t op, int availDown, int availUp) {
   
 //  cout << "XXX congest level was " << congest_level << endl;
   
-  if ( congest_level < 0.95 && availDown > 0) {
+  if ( congest_level < 0.95 && curLevel > 0) {
     return -1;
-  } else if (congest_level > 1.1&& availUp > 0)
+  } else if (congest_level > 1.1  &&  (levelsLen - curLevel ) > 1)
     return 1;
   else
     return 0;

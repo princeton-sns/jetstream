@@ -187,6 +187,16 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+double shouldRun[] = {0, 1};
+
+void 
+TimeBasedSubscriber::respond_to_congestion() {
+    int should_run = 1;
+    while(running && should_run == 0) {
+      should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
+      js_usleep(1000 * 50);  //10 ms
+    }
+}
 
 void 
 TimeBasedSubscriber::operator()() {
@@ -201,17 +211,11 @@ TimeBasedSubscriber::operator()() {
     LOG(FATAL) << id() << " trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
   }
   LOG(INFO) << id() << " is attached to " << cube->id_as_str();
-  boost::shared_ptr<CongestionMonitor> congested = congestion_monitor();
   
   DataplaneMessage end_msg;
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
 
   while (running)  {
-  
-    if(congested->is_congested()) {
-      js_usleep(1000 * 10);  //10 ms
-      continue;
-    }
   
     cube::CubeIterator it = querier.do_query();
     while ( it != cube->end()) {
@@ -221,6 +225,8 @@ TimeBasedSubscriber::operator()() {
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
     js_usleep(1000 * windowSizeMs);
+  
+    respond_to_congestion(); //do this BEFORE updating window
   
     if (ts_field >= 0) {
       next_window_start_time = querier.max.e(ts_field).t_val();
@@ -416,6 +422,23 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
     line << "Analysis time "<< (current_time_ms-start_time_ms)<<endl;*/
   }
 }
+
+
+void
+VariableCoarseningSubscriber::respond_to_congestion() {
+
+}
+
+operator_err_t
+VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &config) {
+  operator_err_t base_err = TimeBasedSubscriber::configure(config);
+  if (base_err != NO_ERR)
+    return base_err;
+  
+  return NO_ERR;
+
+}
+
 
 
 } //end namespace

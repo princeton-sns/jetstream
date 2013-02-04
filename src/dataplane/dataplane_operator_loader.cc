@@ -92,6 +92,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(TimeBasedSubscriber);
   REGISTER_OP(LatencyMeasureSubscriber);
   REGISTER_OP(OneShotSubscriber);
+  REGISTER_OP(VariableCoarseningSubscriber);
   
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);

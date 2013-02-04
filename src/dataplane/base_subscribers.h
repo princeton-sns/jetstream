@@ -111,17 +111,23 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
   private:
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
   
-    int windowSizeMs;  //query interval
     int ts_field; //which field is the timestamp?
-    int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
 //    int32_t maxTsSeen;
   
 //    boost::mutex mutex; //protects next_window_start_time
-    time_t next_window_start_time; //all data from before this should be visible
     int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
         //estimate will tend to be high: some of this data still arrived "in time"
+
+  protected:
+    int windowSizeMs;  //query interval
+    int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
+    time_t next_window_start_time; //all data from before this should be visible
+    boost::shared_ptr<CongestionPolicy> congest_policy;
+
+    virtual void respond_to_congestion();
+
   public:
-    TimeBasedSubscriber(): next_window_start_time(0),backfill_tuples(0) {};
+    TimeBasedSubscriber(): backfill_tuples(0), next_window_start_time(0) {};
 
     virtual ~TimeBasedSubscriber() {};
 
@@ -140,15 +146,27 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual std::string long_description();
 
+    virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+      congest_policy = p;
+    }
+
 
   private:
     const static std::string my_type_name;
-
 
   public:
     virtual const std::string& typename_as_str() {
       return my_type_name;
     }
+};
+
+class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
+
+  public:
+    virtual void respond_to_congestion();
+    virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+
 };
 
 class OneShotSubscriber : public jetstream::ThreadedSubscriber {
