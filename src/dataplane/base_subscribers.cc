@@ -178,23 +178,23 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
   if ((config["window_offset"].length() > 0) &&
-    !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
-    
-   return operator_err_t("window_offset must be a number");
+      !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
 
-  if (config.find("simulation_rate") != config.end()) {
-    VLOG(1) << "configuring a TimeSubscriber simulation" << endl;
+    return operator_err_t("window_offset must be a number");
 
-    simulation = true;
-    simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
+    if (config.find("simulation_rate") != config.end()) {
+      VLOG(1) << "configuring a TimeSubscriber simulation" << endl;
 
-    VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
-    VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
-    VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
-  } else {
-    simulation = false;
-    simulation_rate = -1;
-  }
+      simulation = true;
+      simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
+
+      VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
+      VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+      VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
+    } else {
+      simulation = false;
+      simulation_rate = -1;
+    }
   }
 
   return NO_ERR;
@@ -204,61 +204,30 @@ double shouldRun[] = {0, 1};
 
 void 
 TimeBasedSubscriber::respond_to_congestion() {
-    int should_run = 1;
-    while(running && should_run == 0) {
-      should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
-      js_usleep(1000 * 50);  //10 ms
-    }
+  int should_run = 1;
+  while(running && should_run == 0) {
+    should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
+    js_usleep(1000 * 50);  //10 ms
+  }
 }
-
-class TimeTeller {
-    public:
-        virtual time_t now() { return time(NULL); };
-};
-
-class TimeSimulator : public TimeTeller {
-  public:
-    TimeSimulator() : real_start(time(NULL)), sim_start(time(NULL)), rate(1) {}
-
-    TimeSimulator(time_t sim_start, int rate)
-        : real_start(time(NULL)), sim_start(sim_start), rate(rate) {} 
-
-    virtual time_t now() {
-        return sim_start +
-            numeric_cast<time_t>(rate * (time(NULL) - real_start));
-    }
-    
-  private:
-    const time_t real_start;
-    const time_t sim_start;
-    const int rate;
-};
 
 void 
 TimeBasedSubscriber::operator()() {
   boost::shared_ptr<TimeTeller> tt(new TimeTeller());
 
   if (simulation) {
-      // FIXME I hope this is right 
-      tt.reset(new TimeSimulator(start_ts, simulation_rate));
-
-      time_t t = tt->now();
-      struct tm parsed_time;
-      gmtime_r(&t, &parsed_time);
-      char tmbuf[80];
-      strftime(tmbuf, sizeof(tmbuf), "%d-%m-%y %H:%M:%S", &parsed_time);
-
-      VLOG(3) << "this time simulator starts at time: " << tmbuf << endl;
+    // FIXME I hope this is right 
+    tt.reset(new TimeSimulator(start_ts, simulation_rate));
   }
 
   time_t newMax = tt->now() - (windowOffsetMs + 999) / 1000; // can be cautious here since it's just first window
 
   if (ts_field >= 0)
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
-  
+
   int slice_fields = querier.min.e_size();
   int cube_dims = cube->get_schema().dimensions_size();
-  
+
   if (slice_fields != cube_dims) {
     LOG(FATAL) << id() << " trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
   }
