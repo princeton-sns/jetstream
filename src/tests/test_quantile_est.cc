@@ -219,7 +219,7 @@ TEST(LogHistogram, SerDe) {
   summary.serialize_to(serialized);
   string s = serialized.SerializeAsString();
   JSHistogram * s2 = serialized.mutable_histo();
-  ASSERT_EQ(s2->bucket_vals_size(), summary.bucket_count());
+  ASSERT_EQ( (size_t) s2->bucket_vals_size(), summary.bucket_count());
   LogHistogram deserialized(*s2);
   ASSERT_EQ(summary.bucket_count(), deserialized.bucket_count());
 
