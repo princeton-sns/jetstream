@@ -93,8 +93,9 @@ class LogHistogram : public QuantileEstimation {
   protected:
     std::vector<count_val_t> buckets;
     std::vector<int> bucket_starts;
-
-    count_val_t total_vals;  
+    count_val_t total_vals;
+    size_t bucket_target;
+  
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
   
     virtual void set_bucket_starts(size_t b_count);

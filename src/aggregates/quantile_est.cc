@@ -99,8 +99,8 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
 }
 
 
-LogHistogram::LogHistogram(size_t bucket_target):
-  total_vals(0) {
+LogHistogram::LogHistogram(size_t bt):
+  total_vals(0), bucket_target(bt) {
   set_bucket_starts(bucket_target);
   buckets.assign(bucket_starts.size(), 0);
 }
@@ -198,8 +198,9 @@ LogHistogram::add_item(int v, count_val_t c) {
   buckets[b] += c;
 }
 
-LogHistogram::LogHistogram(const JSHistogram& serialized): total_vals(0) {
-  set_bucket_starts( (unsigned) serialized.bucket_vals_size());
+LogHistogram::LogHistogram(const JSHistogram& serialized):
+  total_vals(0), bucket_target(serialized.num_buckets()){
+  set_bucket_starts( bucket_target);
   buckets.assign(bucket_starts.size(), 0);
 
   for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
@@ -211,6 +212,7 @@ LogHistogram::LogHistogram(const JSHistogram& serialized): total_vals(0) {
 void
 LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
+  serialized_hist->set_num_buckets(bucket_target);
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }

@@ -254,6 +254,8 @@ message JSSample {
 
 message JSHistogram {
   repeated uint32 bucket_vals = 1;
+  required uint32 num_buckets = 2;  //works around a bug in histogram code where num
+      //buckets isn't always what was requested by programmer due to rounding
 }
 
 message JSCMSketch {
