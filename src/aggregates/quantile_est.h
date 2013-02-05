@@ -67,6 +67,8 @@ class SampleEstimation: public QuantileEstimation {
       return sample_of_data.size() * sizeof(int);
    }
   
+    double mean() const;
+  
 };
 
 class ReservoirSample: public SampleEstimation {

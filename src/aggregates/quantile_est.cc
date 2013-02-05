@@ -30,6 +30,14 @@ SampleEstimation::add_item(int v, count_val_t c) {
     sample_of_data.push_back(v);
 }
 
+double
+SampleEstimation::mean() const {
+  int64_t total = 0;
+  for (size_t i=0; i < sample_of_data.size(); ++i)
+    total+= sample_of_data[i];
+  return (double) total /  sample_of_data.size();
+}
+
 inline void
 ReservoirSample::add_one(int v) {
   if( sample_of_data.size() < max_size)
@@ -77,11 +85,19 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
     }
     return true;
   } else {
+  
+    size_t rhs_seen = rhs.total_seen;
+    while (total_seen < max_size) {
+      uniform_int_distribution<size_t> start_pos_distrib(0, rhs.elements() -1 );
+      size_t rhs_idx = start_pos_distrib(gen);
+      add_item(rhs.sample_of_data[rhs_idx], 1);
+      rhs_seen --;
+    }
     assert (total_seen >= max_size);
     //TODO all this code assumes the destination reservoir is full
 
     double probabilities[2];
-    probabilities[0] = (double) total_seen / (total_seen + rhs.total_seen);
+    probabilities[0] = (double) total_seen / (total_seen + rhs_seen);
     probabilities[1] = 1.0 - probabilities[0];
     boost::random::discrete_distribution<> which_source(probabilities);
 

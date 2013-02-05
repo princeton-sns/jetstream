@@ -163,8 +163,30 @@ TEST(CMSketch, SerDe) {
 
 TEST(ReservSample, Merge) {
 
-  ReservoirSample a(50);
-  ReservoirSample b(50);
+  for (int a_elems = 1; a_elems < 4; ++a_elems) {
+    for (int b_elems = 1; b_elems < 4; ++b_elems) {
+      ReservoirSample a(800);
+      ReservoirSample b(800);
+      a.add_item(1000, 400 * a_elems);
+      b.add_item(500, 400 * b_elems);
+      
+      a.merge_in(b);
+      int expected_mean = (1000 * a_elems + 500 * b_elems) / (a_elems + b_elems);
+      int mean = (int) a.mean();
+      if (  abs(expected_mean - mean) > 30) {
+        cout << "test run "<< a_elems <<"," << b_elems << ": merged population mean is "
+            << mean<< " expected " << expected_mean << endl;
+      }
+      EXPECT_EQ( a.quantile(0.1), 500); //at least a tenth from b
+      EXPECT_EQ( a.quantile(0.9), 1000); //at least a tenth from a
+      
+      if (a_elems > b_elems) {
+        EXPECT_EQ(a.quantile(0.5), 1000);
+      } else if (b_elems > a_elems) {
+        EXPECT_EQ(a.quantile(0.5), 500);
+      }
+    }
+  }
 }
 
 TEST(LogHistogram, SerDe) {
