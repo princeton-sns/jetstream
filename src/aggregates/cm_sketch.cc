@@ -57,7 +57,7 @@ CMSketch::init(size_t w, size_t d, int rand_seed) {
   total_count = 0;
 
   matrix = new u_int32_t[width * d];
-  memset(matrix, 0, width * d * sizeof(int));
+  memset(matrix, 0, matrix_bytes());
   hashes = new hash_t[d];
 
   boost::mt19937 gen;
@@ -82,7 +82,7 @@ CMSketch::~CMSketch() {
 
 size_t
 CMSketch::size() {
-  return depth_ * ( 2 +width ) * sizeof(int);
+  return depth_ * ( 2 +width ) * sizeof(count_val_t);
 }
 
 
@@ -115,7 +115,8 @@ CMSketch::merge_in(const CMSketch & rhs) {
 }
 
 
-CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
+CMMultiSketch::CMMultiSketch(size_t w, size_t d, int seed):
+  rand_seed(seed){
 
   exact_counts = new count_val_t*[EXACT_LEVELS];
   
@@ -123,7 +124,7 @@ CMMultiSketch::CMMultiSketch(size_t w, size_t d, int rand_seed) {
     int sz = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
     exact_counts[i] = new count_val_t[ sz];
 
-    memset(exact_counts[i], 0, sz * sizeof(int));
+    memset(exact_counts[i], 0, sz * sizeof(count_val_t));
   }
   panes = new CMSketch[LEVELS];
   for(int i =0; i < LEVELS; ++i) {
@@ -192,7 +193,7 @@ CMMultiSketch::contrib_from_level(int level, uint32_t dyad_start) const {
 }
 
 count_val_t
-CMMultiSketch::hash_range(int lower, int upper) const {
+CMMultiSketch::hash_range(unsigned lower, unsigned upper) const {
 //The model is that we work up the hierarchy, at each time trimming off the ends
 // and then moving up.
   count_val_t sum = 0;
@@ -264,7 +265,6 @@ CMMultiSketch::quantile(double quantile) {
   int bound_from_left = bisect_hi;
 //  cout << "finished approach from left; got " << bound_from_left << endl;
   
-  
   iters = 0;
   target_sum = panes[0].total_count * (1 - quantile);
   bisect_hi = numeric_limits<int32_t>::max();
@@ -275,7 +275,7 @@ CMMultiSketch::quantile(double quantile) {
     count_val_t range_sum = hash_range(mid, numeric_limits<int32_t>::max());
 //    std::cout << iters<< " scanning " << mid << "-max, sum was " << range_sum<< std::endl;
 
-    if (range_sum < target_sum) //guessed too high a lower bound
+    if (range_sum <= target_sum) //guessed too high a lower bound
       bisect_hi = mid;
     else
       bisect_low = mid;
@@ -331,27 +331,41 @@ CMMultiSketch::CMMultiSketch(const JSCMSketch& serialized) {
     int sz = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
     exact_counts[i] = new count_val_t[ sz];
     
-    assert( sz == serialized.exact_levels(i).size());
-    memcpy(exact_counts[i], serialized.exact_levels(i).data(), sz);
+    assert(sizeof(count_val_t) *  sz == serialized.exact_levels(i).size());
+    memcpy(exact_counts[i], serialized.exact_levels(i).data(), sizeof(count_val_t) * sz);
   }
+  
   panes = new CMSketch[LEVELS];
   for(int i =0; i < LEVELS; ++i) {
     panes[i].init(serialized.w(), serialized.d(), serialized.rand_seed()); //10 * rand_seed + i );
+    panes[i].total_count = serialized.total_items();
+    memcpy(panes[i].matrix, serialized.panes(i).data(), panes[i].matrix_bytes());
   }
-  
 
 }
 
 
 void
 CMMultiSketch::serialize_to(JSSummary& q) const {
+
+  int width_raw = panes[0].width;
+  int log_w = 0;
+  while ( width_raw > 1) {
+    log_w++;
+    width_raw >>= 1;
+  }
+
   JSCMSketch * serialized = q.mutable_sketch();
   serialized->set_d(panes[0].depth());
-  serialized->set_w(panes[0].width);
+  serialized->set_w(log_w);
+  serialized->set_rand_seed(rand_seed);
+  serialized->set_total_items(panes[0].total_count);
   for(unsigned int i =0; i < EXACT_LEVELS; ++i) {
-    serialized->add_exact_levels(exact_counts[i], exact_l_size(i) * sizeof(int));
+    serialized->add_exact_levels(exact_counts[i], exact_l_size(i) * sizeof(count_val_t));
   }
-  
+  for(int i =0; i < LEVELS; ++i) {
+    serialized->add_panes(panes[i].matrix, panes[i].matrix_bytes());
+  }
   
 }
 

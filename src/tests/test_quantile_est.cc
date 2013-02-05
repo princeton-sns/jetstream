@@ -146,6 +146,9 @@ TEST(CMSketch, SerDe) {
   for(int i = 0; i < ITEMS; ++i) {
     summary.add_item(i*i, 1);
   }
+  
+  cout << "top quantile is " << summary.quantile(1) << endl;
+  
   JSSummary serialized;
   summary.serialize_to(serialized);
   string s = serialized.SerializeAsString();
@@ -153,7 +156,7 @@ TEST(CMSketch, SerDe) {
   CMMultiSketch deserialized(*s2);
   
   for (int i = 0; i < ITEMS; ++i) {
-    ASSERT_EQ(deserialized.quantile( i * i ), summary.quantile(i * i));
+    ASSERT_EQ(deserialized.estimate_point(i*i), summary.estimate_point(i * i));
   }
 }
 
@@ -171,6 +174,7 @@ TEST(LogHistogram, SerDe) {
   for(int i = 0; i < ITEMS; ++i) {
     summary.add_item(i*i, 1);
   }
+  
   JSSummary serialized;
   summary.serialize_to(serialized);
   string s = serialized.SerializeAsString();

@@ -25,7 +25,7 @@ class CMSketch {
  friend class CMMultiSketch;
  count_val_t * matrix;
  hash_t * hashes;
- size_t width;
+ size_t width; //in elements, not in log-format
  size_t width_bitmask;
  size_t depth_;
  count_val_t total_count;
@@ -61,6 +61,10 @@ class CMSketch {
     assert (d < depth_);
     return matrix[d * width + w];// level * (width*depth) +
   }
+  
+  size_t matrix_bytes() {
+    return depth_ * width * sizeof(count_val_t);
+  }
 
  private:
   void init(size_t w, size_t d, int rand_seed);
@@ -90,10 +94,10 @@ class CMMultiSketch: public QuantileEstimation {
   CMSketch * panes;  //sorted from finest to coarsest. Panes[0] is the raw sketch
               //panes[1] is the dyadic ranges of length 2^BITS_PER_LEVEL.
   count_val_t ** exact_counts; //also finest to coarsest. Last entry has 2 ^ BITS_PER_LEVEL entries
-
+  int rand_seed;
 
  public:
-  CMMultiSketch(size_t w, size_t d, int rand_seed);
+  CMMultiSketch(size_t w, size_t d, int random_seed);
   CMMultiSketch(const JSCMSketch&);
   ~CMMultiSketch();
 
@@ -106,7 +110,7 @@ class CMMultiSketch: public QuantileEstimation {
   
   count_val_t contrib_from_level(int level, uint32_t dyad_start) const;
 
-  count_val_t hash_range(int lower, int upper) const ;
+  count_val_t hash_range(unsigned lower, unsigned upper) const ;
 
 /*
   count_val_t range(char * lower, size_t l_size, char* upper, size_t u_size);
