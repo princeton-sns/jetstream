@@ -91,9 +91,10 @@ class TestClientReaderIntegration(unittest.TestCase):
 
     # validate SendK by counting
     tuplesReceived = []
-    resultReader.blocking_read(lambda x: tuplesReceived.append(x))
+    map(tuplesReceived.append, resultReader)
 
     self.assertEquals(len(tuplesReceived), k)
+    print "client reader test succeeded"
 
 
 if __name__ == '__main__':

@@ -27,48 +27,37 @@ def element_str(e):
   else:
     raise AttributeError
 
-# client reader instance only cleans up during blocking_read(), so right now
-# blocking_read() is the only way to call it without leaving a mess of
-# sockets/threads.
 # TODO Raise exceptions when an instance's "run-once" methods are called more
-# than once
+# than once?
 class ClientDataReader():
-  """ Receive and process tuples sent over the network.
+  """ Receive and process tuples at the end of an operator chain.
+
+    An instance of this class presents an iterator returning tuples received
+    from the operator chain it is appended to.
+    Alternatively, the constructor option raw_data=True iterates through complete
+    dataplane messages (which contain lists of tuples), because the groups of
+    tuples can have meaning in addition, to the individual tuples' contents.
 
     Usage: see int_tests/client_reader_test.py
-
-    g = jsapi.QueryGraph()
-
-    k = 40
-    echoer = jsapi.SendK(g, k)
-
-    resultReader = ClientDataReader()
-    # as it stands, this adds an edge from an operator to this bare
-    # node, which specifies that tuples should come here.
-    selfNodeID = resultReader.prep_to_receive_data()
-    g.connectExternal(echoer, selfNodeID)
-
-    self.make_local_worker()
-    #self.controller.deploy(g)
-    self.validate_response(self.make_deploy_request(g))
-
-    # validate SendK by counting
-    tuplesReceived = []
-    resultReader.blocking_read(lambda x: tuplesReceived.append(x))
-
-    self.assertEquals(len(tuplesReceived), k)
   """
 
   # TODO get SO_REUSEADDR or SO_LINGER to work
   portno = randint(9000, 65536)
   DoneSentinel = None
 
-  def __init__(self, sync=False, raw_data=False):
+  def __init__(self, raw_data=False):
     self.HOST = 'localhost'
     self.PORT = ClientDataReader.portno
-    self.raw_data = raw_data
+    self.raw_data = bool(raw_data)
     # allow multiple ClientDataReaders?
     ClientDataReader.portno += 1
+
+  @staticmethod
+  def bound_socket(addr, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((self.HOST, self.PORT))
+    return s
 
   def prep_to_receive_data(self):
     """ Start collecting tuples from the wire. Return a NodeID corresponding to
@@ -77,9 +66,7 @@ class ClientDataReader():
     addr.address = self.HOST
     addr.portno = self.PORT
 
-    self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    self.listen_sock.bind((self.HOST, self.PORT))
+    self.listen_sock = self.bound_socket(self.HOST, self.PORT)
 
     # only one connecting sender for now TODO this probably needs to change
     nSenders = 0
@@ -91,7 +78,6 @@ class ClientDataReader():
     # spawn a thread to listen/receive tuples (the producer)
     self.receiver_thread = threading.Thread(target=self.receive_tuples)
     self.receiver_thread.daemon = True
-
     self.receiver_thread.start()
 
     return addr
@@ -99,6 +85,7 @@ class ClientDataReader():
   # establish connection with sender
   def accept_sender(self):
     self.conn_sock, remote_addr = self.listen_sock.accept()
+    self.listen_sock.close()
 
   # accept and respond to a CHAIN_CONNECT
   def chain_establish(self):
@@ -109,6 +96,11 @@ class ClientDataReader():
     else:
       raise Exception("First received message was not CHAIN_CONNECT")
 
+  def respond_ready(self):
+    response = DataplaneMessage()
+    response.type = DataplaneMessage.CHAIN_READY
+    sock_send_pb(self.conn_sock, response)
+
   # get stream of tuples and stick them in a list: method executed by producer
   # thread.
   def receive_tuples(self):
@@ -118,11 +110,10 @@ class ClientDataReader():
     while 1:
       mesg = sock_read_data_pb(self.conn_sock)
       if mesg.type == DataplaneMessage.DATA:
-
         # TODO is this redundant?
         assert mesg.data is not ClientDataReader.DoneSentinel
         assert mesg.data is not None
-
+  
         # default is to map to each tuple individually
         if not self.raw_data:
           map(self.tuples.put, mesg.data)
@@ -130,36 +121,30 @@ class ClientDataReader():
           self.tuples.put(mesg.data)
 
       elif mesg.type == DataplaneMessage.NO_MORE_DATA:
-        # TODO add option: hand more information back to the caller: entire
-        # dataplane message?
         self.tuples.put(ClientDataReader.DoneSentinel)
         break
-
       else:
-        raise Exception('Unexpected message type')
+        raise ValueError('Unexpected message type')
 
     self.conn_sock.close()
 
-  def respond_ready(self):
-    response = DataplaneMessage()
-    response.type = DataplaneMessage.CHAIN_READY
-    sock_send_pb(self.conn_sock, response)
-
-  def tuple_consumer(self):
+  def __iter__(self):
     while True:
       item = self.tuples.get(block=True)
       if item is ClientDataReader.DoneSentinel:
         break
       yield item
-    # TODO does this work? probably need to reread threads chapter of OS text
+
+    self.finish()
 
   def finish(self):
-    self.listen_sock.close()
+    self.conn_sock.close()
     if self.receiver_thread.isAlive():
       self.receiver_thread.join()
 
+  # Deprecated; using this class as an iterator is more flexible.
   def blocking_read(self, callback):
     """ Give every received tuple to a callback function. """
-    vals = map(callback, self.tuple_consumer())
+    vals = map(callback, self)
     print '%d tuples received in blocking_read' % len(vals)
     self.finish()
