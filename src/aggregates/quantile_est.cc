@@ -101,6 +101,12 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
 
 LogHistogram::LogHistogram(size_t bucket_target):
   total_vals(0) {
+  set_bucket_starts(bucket_target);
+  buckets.assign(bucket_starts.size(), 0);
+}
+
+void
+LogHistogram::set_bucket_starts(size_t bucket_target) {
   const size_t MAX_LAYERS = 10;
   
   size_t incr_per_layer[MAX_LAYERS];
@@ -134,9 +140,8 @@ LogHistogram::LogHistogram(size_t bucket_target):
     exp *= 10;
   }
 //  cout << endl;
-  
-  buckets.assign(bucket_starts.size(), 0);
 }
+
 
 int
 LogHistogram::quantile(double q) {
@@ -191,6 +196,45 @@ LogHistogram::add_item(int v, count_val_t c) {
   int b = bucket_with(v);
   //post-condition:  v is in bucket b
   buckets[b] += c;
+}
+
+LogHistogram::LogHistogram(const JSHistogram& serialized): total_vals(0) {
+  set_bucket_starts( (unsigned) serialized.bucket_vals_size());
+  buckets.assign(bucket_starts.size(), 0);
+
+  for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
+    buckets[i] = serialized.bucket_vals(i);
+    total_vals += buckets[i];
+  }
+}
+
+void
+LogHistogram::serialize_to(JSSummary& q) const {
+  JSHistogram * serialized_hist = q.mutable_histo();
+  for(unsigned int b =0; b <  bucket_count(); ++b) {
+    serialized_hist->add_bucket_vals(buckets[b]);
+  }
+}
+
+bool
+LogHistogram::merge_in(const LogHistogram & rhs) {
+  assert ( rhs.bucket_count() == bucket_count());
+  for(unsigned int b =0; b <  bucket_count(); ++b) {
+    buckets[b] += rhs.buckets[b];
+  }
+  
+  return true;
+}
+
+bool
+LogHistogram::operator==(const LogHistogram & rhs) const {
+  if (rhs.bucket_count() != bucket_count())
+    return false;
+  for (size_t i = 0; i < bucket_count(); ++i)
+    if (buckets[i] != rhs.buckets[i])
+      return false;
+  assert(total_vals == rhs.total_vals);
+  return true;
 }
 
 

@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <limits>
 #include <boost/random/mersenne_twister.hpp>
-
+#include "jetstream_types.pb.h"
 
 namespace jetstream {
 
@@ -66,6 +66,7 @@ class SampleEstimation: public QuantileEstimation {
     virtual size_t size() const {
       return sample_of_data.size() * sizeof(int);
    }
+  
 };
 
 class ReservoirSample: public SampleEstimation {
@@ -96,8 +97,11 @@ class LogHistogram : public QuantileEstimation {
     count_val_t total_vals;  
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
   
+    virtual void set_bucket_starts(size_t b_count);
+  
   public:
     LogHistogram(size_t buckets);
+    LogHistogram(const JSHistogram&);
     virtual int quantile(double q);
     virtual void add_item(int v, count_val_t c);
 
@@ -105,7 +109,7 @@ class LogHistogram : public QuantileEstimation {
     virtual size_t size() const {
       return buckets.size() * sizeof(count_val_t);
     }
-  
+
     std::pair<int,int> quantile_range(double q) const {
       return bucket_bounds(quantile_bucket(q));
     }
@@ -113,15 +117,17 @@ class LogHistogram : public QuantileEstimation {
     count_val_t count_in_b(size_t b) const {
       assert(b < buckets.size());
       return buckets[b];
-    }  
+    }
   
+    bool operator==(const LogHistogram & h) const;
+
     std::pair<int,int> bucket_bounds(size_t b) const ;
     size_t bucket_with(int item) const ;
 
     int bucket_min(size_t bucket_id) const {
       return bucket_starts[bucket_id];
     }
-  
+
     int bucket_max(size_t bucket_id) const { //largest element that'll get sorted into bucket_id
       assert(bucket_id < buckets.size());
       if (bucket_id == buckets.size() -1)
@@ -129,9 +135,13 @@ class LogHistogram : public QuantileEstimation {
       return bucket_starts[bucket_id+1] -1;
     }
   
-   virtual size_t bucket_count() const {
+    virtual size_t bucket_count() const {
       return bucket_starts.size();
-   }
+    }
+
+    virtual void serialize_to(JSSummary&) const;
+  
+    bool merge_in(const LogHistogram & rhs);
   
 };
 

@@ -323,5 +323,38 @@ CMMultiSketch::merge_in(const CMMultiSketch & rhs) {
 }
 
 
+CMMultiSketch::CMMultiSketch(const JSCMSketch& serialized) {
+
+  exact_counts = new count_val_t*[EXACT_LEVELS];
+  
+  for(unsigned int i =0; i < EXACT_LEVELS; ++i) {
+    int sz = 1 << ((EXACT_LEVELS- i) * BITS_PER_LEVEL);
+    exact_counts[i] = new count_val_t[ sz];
+    
+    assert( sz == serialized.exact_levels(i).size());
+    memcpy(exact_counts[i], serialized.exact_levels(i).data(), sz);
+  }
+  panes = new CMSketch[LEVELS];
+  for(int i =0; i < LEVELS; ++i) {
+    panes[i].init(serialized.w(), serialized.d(), serialized.rand_seed()); //10 * rand_seed + i );
+  }
+  
+
+}
+
+
+void
+CMMultiSketch::serialize_to(JSSummary& q) const {
+  JSCMSketch * serialized = q.mutable_sketch();
+  serialized->set_d(panes[0].depth());
+  serialized->set_w(panes[0].width);
+  for(unsigned int i =0; i < EXACT_LEVELS; ++i) {
+    serialized->add_exact_levels(exact_counts[i], exact_l_size(i) * sizeof(int));
+  }
+  
+  
+}
+
+
 
 }

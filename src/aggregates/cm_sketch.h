@@ -94,6 +94,7 @@ class CMMultiSketch: public QuantileEstimation {
 
  public:
   CMMultiSketch(size_t w, size_t d, int rand_seed);
+  CMMultiSketch(const JSCMSketch&);
   ~CMMultiSketch();
 
   virtual void add_item(int data, count_val_t new_val);
@@ -122,9 +123,12 @@ class CMMultiSketch: public QuantileEstimation {
 
   bool merge_in(const CMMultiSketch & rhs);
 
-  size_t exact_l_size(size_t lev) const {
+  size_t exact_l_size(size_t lev) const { //size in elements [not bytes]
     return (1U << ( (EXACT_LEVELS- lev) * BITS_PER_LEVEL));
   }
+  
+  virtual void serialize_to(JSSummary&) const;
+  
   
  private:
   void operator= (const CMMultiSketch &) 

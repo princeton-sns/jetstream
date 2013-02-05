@@ -244,5 +244,35 @@ message DataplaneMessage {
   optional double tput_r2_threshold = 25;
   repeated Tuple tput_r3_query = 26;
   optional int32 tput_round = 27;
+}
+
+
+message JSSample {
+  repeated int32 items = 1;
+  required uint32 total_items = 2;
+}
+
+message JSHistogram {
+  repeated uint32 bucket_vals = 1;
+}
+
+message JSCMSketch {
+  required uint32 d = 1 ;
+  required uint32 w = 2;
+  required uint32 rand_seed = 3;  
+//  repeated fixed32 hash_vals = 3; // a1 b1 a2 b2, etc
+  
+    //TODO THIS IS DANGEROUS SINCE WE DON'T HANDLE ENDIAN-NESS
+  repeated bytes exact_levels = 4;
+  repeated bytes panes = 5;
+  required uint32 total_items = 6;
+
+}
+
+
+message JSSummary {
+ optional JSSample sample = 1;
+ optional JSHistogram histo = 2;
+ optional JSCMSketch sketch = 3;
 
 }

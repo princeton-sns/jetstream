@@ -140,13 +140,46 @@ TEST(CMSketch, Merge) {
 //  ASSERT_FALSE( s3_m.can_accept(s1_multi));
 }
 
+TEST(CMSketch, SerDe) {
+  CMMultiSketch summary(6, 8, 4);
+  const int ITEMS = 20;
+  for(int i = 0; i < ITEMS; ++i) {
+    summary.add_item(i*i, 1);
+  }
+  JSSummary serialized;
+  summary.serialize_to(serialized);
+  string s = serialized.SerializeAsString();
+  JSCMSketch * s2 = serialized.mutable_sketch();
+  CMMultiSketch deserialized(*s2);
+  
+  for (int i = 0; i < ITEMS; ++i) {
+    ASSERT_EQ(deserialized.quantile( i * i ), summary.quantile(i * i));
+  }
+}
+
 
 TEST(ReservSample, Merge) {
 
   ReservoirSample a(50);
   ReservoirSample b(50);
-  
-  
+}
+
+TEST(LogHistogram, SerDe) {
+
+  LogHistogram summary(30);
+  const int ITEMS = 20;
+  for(int i = 0; i < ITEMS; ++i) {
+    summary.add_item(i*i, 1);
+  }
+  JSSummary serialized;
+  summary.serialize_to(serialized);
+  string s = serialized.SerializeAsString();
+  JSHistogram * s2 = serialized.mutable_histo();
+  ASSERT_EQ(s2->bucket_vals_size(), summary.bucket_count());
+  LogHistogram deserialized(*s2);
+  ASSERT_EQ(summary.bucket_count(), deserialized.bucket_count());
+
+  ASSERT_EQ(summary, deserialized);
 }
 
 TEST(LogHistogram, Boundaries) {
