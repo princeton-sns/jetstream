@@ -38,6 +38,32 @@ SampleEstimation::mean() const {
   return (double) total /  sample_of_data.size();
 }
 
+void
+SampleEstimation::serialize_to(JSSummary& q) const {
+  JSSample * serialized = q.mutable_sample();
+  serialized->set_total_items(pop_seen());
+  for (size_t i = 0; i < sample_of_data.size(); ++ i)
+    serialized->add_items(sample_of_data[i]);
+}
+
+
+void
+ReservoirSample::serialize_to(JSSummary& q) const {
+  SampleEstimation::serialize_to(q);
+  q.mutable_sample()->set_max_items(max_size);
+}
+
+ReservoirSample::ReservoirSample(const JSSample& s) {
+  total_seen = s.total_items();
+  sample_of_data.reserve(s.items_size());
+  max_size = s.max_items();
+  for (int i = 0; i < s.items_size(); ++i) {
+    sample_of_data.push_back(s.items(i));
+  }
+}
+
+
+
 inline void
 ReservoirSample::add_one(int v) {
   if( sample_of_data.size() < max_size)

@@ -32,6 +32,9 @@ class QuantileEstimation {
       for (unsigned int i =0; i < size_to_take; ++i)
         add_item( data[i], 1);
     }
+  
+    virtual void serialize_to(JSSummary&) const = 0;
+  
 
 //    virtual size_t elems_represented() = 0;
     virtual ~QuantileEstimation() {}
@@ -43,6 +46,10 @@ class SampleEstimation: public QuantileEstimation {
   protected:
     std::vector<int> sample_of_data;
     bool is_sorted;
+
+    virtual size_t pop_seen() const {
+      return sample_of_data.size();
+    }
 
   public:
   
@@ -65,10 +72,11 @@ class SampleEstimation: public QuantileEstimation {
   
     virtual size_t size() const {
       return sample_of_data.size() * sizeof(int);
-   }
+    }
   
     double mean() const;
-  
+
+    virtual void serialize_to(JSSummary&) const;  
 };
 
 class ReservoirSample: public SampleEstimation {
@@ -78,8 +86,16 @@ class ReservoirSample: public SampleEstimation {
     inline void add_one(int v);
     boost::mt19937 gen;
 
+    virtual size_t pop_seen() const {
+      return total_seen;
+    }
+
   public:
     ReservoirSample(int reserv_size): max_size(reserv_size),total_seen(0) {}
+    ReservoirSample(const JSSample&);
+  
+    virtual void serialize_to(JSSummary& q) const ;
+  
     virtual void add_item(int v, count_val_t c);
     virtual void add_data(int * data, size_t size_to_take);
     bool merge_in(const ReservoirSample& s);

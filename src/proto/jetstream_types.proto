@@ -250,6 +250,7 @@ message DataplaneMessage {
 message JSSample {
   repeated int32 items = 1;
   required uint32 total_items = 2;
+  required uint32 max_items = 3;
 }
 
 message JSHistogram {

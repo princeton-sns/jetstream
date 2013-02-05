@@ -161,7 +161,7 @@ TEST(CMSketch, SerDe) {
 }
 
 
-TEST(ReservSample, Merge) {
+TEST(ReservoirSample, Merge) {
 
   for (int a_elems = 1; a_elems < 4; ++a_elems) {
     for (int b_elems = 1; b_elems < 4; ++b_elems) {
@@ -187,6 +187,24 @@ TEST(ReservSample, Merge) {
       }
     }
   }
+}
+
+TEST(ReservoirSample, SerDe) {
+
+  ReservoirSample summary(30);
+  const int ITEMS = 20;
+  for(int i = 0; i < ITEMS; ++i) {
+    summary.add_item(i*i, 1);
+  }
+  
+  JSSummary serialized;
+  summary.serialize_to(serialized);
+  string s = serialized.SerializeAsString();
+  JSSample* s2 = serialized.mutable_sample();
+  ReservoirSample deserialized(*s2);
+
+  ASSERT_EQ(summary.mean(), deserialized.mean());
+  ASSERT_EQ(summary.elements(), deserialized.elements());
 }
 
 TEST(LogHistogram, SerDe) {
