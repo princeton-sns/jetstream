@@ -169,6 +169,8 @@ class DataCube : public TupleReceiver {
     
     virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
 
+    virtual bool is_unrolled(std::vector<unsigned int> levels) const = 0;
+
   protected:
     jetstream::CubeSchema schema;
     std::string name;
