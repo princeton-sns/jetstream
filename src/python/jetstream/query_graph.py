@@ -121,31 +121,30 @@ class QueryGraph(object):
           print "cubes:",self.cubes
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
-    
-  """ Add an edge from the the first operator to the second. """
+
   def connect(self, oper1, oper2):
+    """ Add an edge from the the first operator to the second. """
     self.edges.add( (oper1.get_id(), oper2.get_id()) )
     oper2.add_pred(oper1)
 
-  """ Add edges from each destitnation in the list to the next destination in
-      the list. Cubes are allowed. """
   def chain(self, operators):
+    """ Add edges from each destination in the list to the next destination in
+        the list. Cubes are allowed. """
     assert all(isinstance(op, Destination) for op in operators)
     for oper, next_oper in pairwise(operators):
       self.connect(oper, next_oper)
 
-
   # right now this is for adding an edge to the client so it can act as a
   # receiver
-  """ Add an edge from an operator to a node """
   def connectExternal(self, operator, nodeid):
+      """ Add an edge from an operator to a node """
       e = Edge()
-      e.computation = 0 # dummy
+      e.computation = 0  # dummy
       e.src = operator.get_id()
       e.dest_addr.CopyFrom(nodeid)
 
       self.externalEdges.append(e)
-    
+
   def clone_back_from(self, head, numcopies):
     to_copy = {}  #maps id to object
     to_inspect = set([head])
@@ -202,38 +201,35 @@ class QueryGraph(object):
     input_schema = {}
     for n in worklist:
       input_schema[n] = ()
-    
+
     forward_edges = self.forward_edge_map();
     for n in worklist:
-      
-#      print "validating schemas for outputs of %d" % n
-      #note that cubes don't have an output schema and subscribers are a special case
-      if n in self.operators:     
+      # print "validating schemas for outputs of %d" % n
+      # note that cubes don't have an output schema and subscribers are a special case
+      if n in self.operators:
 #        print "found operator",n,"of type",self.operators[n].type 
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
       else:
         out_schema = self.cubes[n].out_schema (input_schema[n])
-        
-      print "out-schema for",n,self.node_type(n),"is",out_schema
-  
+
+      print "out-schema for", n, self.node_type(n), "is", out_schema
+
       for o in forward_edges.get(n, []):
-        
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
             err_msg = "Edge from %d of type %s to %d of type %s (%s) doesn't match existing schema %s" \
-                % (n,self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
+                % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          input_schema[o] = out_schema 
+          input_schema[o] = out_schema
           worklist.append(o)
         # TODO need to verify the subscribers, and add them to worklist
   #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
-      
+
 # This represents the abstract concept of an operator or cube, for building
 # the query graphs. The concrete executable implementations are elsewhere.
 class Destination(object):
-  
   def __init__(self, graph, id):
     self.preds = set()
     self.graph = graph  #keep link to parent QueryGraph
@@ -380,7 +376,7 @@ class Cube(Destination):
     else:
       return self.name
 
-    #maps from a dimension-type to a typecode. Note that dimensions can't be blobs
+    # maps from a dimension-type to a typecode. Note that dimensions can't be blobs
   typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
       Element.DOUBLE: 'D', Element.TIME: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
 
@@ -415,7 +411,7 @@ class Cube(Destination):
     if len(in_schema) > 0:
       for field_id,(ty,name) in r.items():
         if field_id >= len(in_schema):
-          print "assuming COUNT for field %s"% name
+          print "assuming COUNT for field %s" % name
           continue
         
         if in_schema[field_id][0] != ty:
@@ -453,8 +449,13 @@ def CSVParse(graph, types, fields_to_keep='all'):
 
    keepStr = fields_to_keep
    if fields_to_keep != 'all':
-     keepLst = ('1' if x in fields_to_keep else '0' for x in range(len(types)))
-     keepStr = ' '.join(keeplst)
+     if not all(isinstance(f, int) for f in fields_to_keep):
+       raise "CSVParse needs either \"all\" or list of field indices to keep,"\
+             " got {0}".format(str(fields_to_keep))
+     
+     keepStr = ' '.join(map(str, fields_to_keep))
+
+   assert isinstance(keepStr, str)
 
    cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)
@@ -475,7 +476,6 @@ def TimestampOperator(graph, typeStr):
   return graph.add_operator(OpType.TIMESTAMP, cfg)
 
 
-
 def GenericParse(graph,
                  pattern, typeStr, field_to_parse = 0, keep_unparsed=True):
     cfg = {"types" : typeStr,
@@ -488,19 +488,21 @@ def GenericParse(graph,
 
 
 def RandSource(graph, n, k):
-   cfg = {"n":str(n), "k":str(k)} # "rate":str(rate)
-   return graph.add_operator(OpType.RAND_SOURCE, cfg)      
+   cfg = {"n": str(n), "k": str(k)}  # "rate":str(rate)
+   return graph.add_operator(OpType.RAND_SOURCE, cfg)
 
 
 def RandEval(graph):
   return graph.add_operator(OpType.RAND_EVAL, {} )
 
 
-def TRoundOperator(graph, fld, round_to):
-   cfg = {"fld_offset":str(fld), "round_to":str(round_to)} # "rate":str(rate)
-   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)      
-    
-    
+def TRoundOperator(graph, fld, round_to, add_offset=0):
+  cfg = {"fld_offset": str(fld),
+         "round_to": str(round_to),
+         "add_offset": str(add_offset)}  # "rate":str(rate)
+  return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)
+
+
 def NoOp(graph, file):
    cfg = {}
    return graph.add_operator(OpType.EXTEND, cfg)  
@@ -538,11 +540,12 @@ class TimeSubscriber(Operator):
         if dim_type == Element.STRING:
           el.s_val = val
         else:
-          raise "Panic; trying to filter on dimension without type"
+          raise ValueError("Panic; trying to filter on dimension without type")
     
     if len(self.filter) > 0:
       unmatched_fields = ",".join(self.filter.keys())
-      raise "Panic: filter field unknown in cube. Unmatched fields:",unmatched_fields
+      raise ValueError("Panic: filter field unknown in cube. Unmatched "
+                       "fields: {}".format(unmatched_fields))
 #    print "final filter tuple:", tuple
     #We do this in two phases
     
@@ -554,6 +557,8 @@ class TimeSubscriber(Operator):
 
   def out_schema(self, in_schema):
 #    print "time subscriber schema"
+    if 'ts_field' in self.cfg and in_schema[int(self.cfg['ts_field'])][0] != 'T':
+      raise SchemaError('Expected a time element')
     return in_schema  #everything is just passed through    
     
  

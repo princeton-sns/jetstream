@@ -1,9 +1,6 @@
 from jetstream_types_pb2 import *
 
-import string
-
 from itertools import izip, tee
-from operator import itemgetter
 from collections import deque
 
 from remote_controller import RemoteController
@@ -61,9 +58,9 @@ def remote_deploy(serv_addr, serv_port, graph, cube=None):
 def parse_setup():
   (serv_addr, serv_port), file_to_parse = js_client_config.arg_config()
 
-  k2 = 20 #how many to pull to top level
-  k = 10 #how many to display
-  
+  k2 = 20 # how many to pull to top level
+  k = 10 # how many to display
+
   # specify the query fields that this computation is interested in
   #which_coral_fields = [coral_fidxs['URL_requested']]
   agg_field_idx = coral_fidxs['URL_requested']
@@ -79,10 +76,10 @@ def parse_setup():
 
   local_cube = g.add_cube("coral_results")
   local_cube.add_dim("Requested_domains", Element.STRING, 0)
-  ## index past end of tuple is a magic API to the "count" aggregate that tells
-  ## it to assume a count of 1
+  # index past end of tuple is a magic API to the "count" aggregate that tells
+  # it to assume a count of 1
   local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
-  local_cube.set_overwrite(True) #fresh results
+  local_cube.set_overwrite(True)  # fresh results
 
   g.chain([f, csvp, grab_domain, local_cube, pull_k2])
 
@@ -92,43 +89,6 @@ def parse_setup():
 
   return cr
 
-class CoralLogLine():
-  def __init__(self, coral_tuple, fields, types):
-    self.fields = []
-    for i, (field, t) in enumerate(izip(fields, types)):
-      assert field != "fields"
-
-      if t == "S":
-        setattr(self, field, string.strip(coral_tuple.e[i].s_val, '"'))
-      elif t == "I":
-        setattr(self, field, int(coral_tuple.e[i].i_val))
-      elif t == "D":
-        setattr(self, field, float(coral_tuple.e[i].d_val))
-      else:
-        raise TypeError("Unxpected field type: %s" % str(typ))
-      self.fields.append(getattr(self, field))
-
-    #print self.fields
-
-
-# This method adds correctly typed fields to the cube, assuming that they are
-# stored in the order provided in the argument. 
-# ### OR DOES IT? This is old and probably doesn't work, because I didn't
-# understand the semantics of cube.add_dim() when I wrote this.
-def add_cube_dims(cube, field_indices):
-  specifier_to_type = {"I" : Element.INT32,  "S" : Element.STRING,
-                       "D" : Element.DOUBLE, "T" : Element.TIME}
-  subfields = itemgetter(*field_indices)
-  names = subfields(coral_fnames)
-  types = subfields(coral_types)
-
-  for index, (name, kind) in enumerate(izip(names, types)):
-    t = None
-    try:
-      t = specifier_to_type[kind]
-    except KeyError:
-      raise KeyError("Invalid cube format type: %s" % kind)
-    cube.add_dim(name, t, index)
 
 if __name__ == '__main__':
   import coral_analyzer

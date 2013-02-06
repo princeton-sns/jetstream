@@ -57,8 +57,8 @@ class TestSchemas(unittest.TestCase):
     qGraph.connect(reader, csvprs)
     qGraph.connect(csvprs, csvprs_fail)
     self.assertRaises(SchemaError, qGraph.validate_schemas)
-    # a hack for exceptions with types. also this is new in python 2.7..., so
-    # will fail in 2.6 or earlier...
+    # a hack for exceptions with types. This unittest function is new in python
+    # 2.7, so will fail in 2.6 or earlier...
     self.assertRaisesRegexp(SchemaError, '[.\s]*requires a string[.\s]*',
                             qGraph.validate_schemas)
 

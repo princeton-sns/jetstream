@@ -2,9 +2,12 @@
 #define _JS_UTILS_H_
 
 #include <string>
+//#include <boost/numeric/conversion/cast.hpp>
 #include "js_defs.h"
 #include "js_boost_defs.h"
 #include "jetstream_types.pb.h"
+
+#include <glog/logging.h>
 
 namespace jetstream {
 void         jetstream_init ();

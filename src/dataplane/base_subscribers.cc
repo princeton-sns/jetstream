@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-
+#include "timeteller.h"
 #include "base_subscribers.h"
 #include "js_utils.h"
 #include "node.h"
@@ -154,15 +154,20 @@ TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upda
 
 operator_err_t
 TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
-
   operator_err_t r = querier.configure(config, id());
   if (r != NO_ERR)
     return r;
 
-  time_t start_ts = time(NULL); //now
+  if (config.find("window_size") != config.end())
+    windowSizeMs = boost::lexical_cast<time_t>(config["window_size"]);
+  else
+    windowSizeMs = 1000;
+
+  start_ts = time(NULL); //now
+
   if (config.find("start_ts") != config.end())
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
-  
+
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
     querier.min.mutable_e(ts_field)->set_t_val(start_ts);
@@ -173,16 +178,24 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
   if ((config["window_offset"].length() > 0) &&
-    !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
-    
-   return operator_err_t("window_offset must be a number");
+      !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
+
+    return operator_err_t("window_offset must be a number");
+
+    if (config.find("simulation_rate") != config.end()) {
+      VLOG(1) << "configuring a TimeSubscriber simulation" << endl;
+
+      simulation = true;
+      simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
+
+      VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
+      VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+      VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
+    } else {
+      simulation = false;
+      simulation_rate = -1;
+    }
   }
-
-
-  if (config.find("window_size") != config.end())
-    windowSizeMs = boost::lexical_cast<time_t>(config["window_size"]);
-  else
-    windowSizeMs = 1000;
 
   return NO_ERR;
 }
@@ -191,25 +204,34 @@ double shouldRun[] = {0, 1};
 
 void 
 TimeBasedSubscriber::respond_to_congestion() {
-    int should_run = 1;
-    while(running && should_run == 0) {
-      should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
-      js_usleep(1000 * 50);  //10 ms
-    }
+  int should_run = 1;
+  while(running && should_run == 0) {
+    should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
+    js_usleep(1000 * 50);  //10 ms
+  }
 }
 
 void 
 TimeBasedSubscriber::operator()() {
-  time_t newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //can be cautious here since it's just first window
+  boost::shared_ptr<TimeTeller> tt(new TimeTeller());
+
+  if (simulation) {
+    // FIXME I hope this is right 
+    tt.reset(new TimeSimulator(start_ts, simulation_rate));
+  }
+
+  time_t newMax = tt->now() - (windowOffsetMs + 999) / 1000; // can be cautious here since it's just first window
+
   if (ts_field >= 0)
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
-  
+
   int slice_fields = querier.min.e_size();
   int cube_dims = cube->get_schema().dimensions_size();
-  
+
   if (slice_fields != cube_dims) {
     LOG(FATAL) << id() << " trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
   }
+
   LOG(INFO) << id() << " is attached to " << cube->id_as_str();
   
   DataplaneMessage end_msg;
@@ -225,16 +247,15 @@ TimeBasedSubscriber::operator()() {
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
     js_usleep(1000 * windowSizeMs);
-  
     respond_to_congestion(); //do this BEFORE updating window
   
     if (ts_field >= 0) {
       next_window_start_time = querier.max.e(ts_field).t_val();
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
-      newMax = time(NULL) - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+      newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
     }
-      //else leave next_window_start_time as 0; data is never backfill because we always send everything
+    // else leave next_window_start_time as 0; data is never backfill because we always send everything
     if (!get_dest()) {
       LOG(WARNING) << "Subscriber " << id() << " exiting because no successor.";
       running = false;

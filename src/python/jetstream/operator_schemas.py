@@ -19,8 +19,8 @@ class OpType (object):
   T_ROUND_OPERATOR = "TRoundingOperator"
   VARIABLE_SAMPLING = "VariableSamplingOperator"
   CONGEST_CONTROL = "CongestionController"
-  
-  
+
+
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
   RATE_RECEIVER = "RateRecordReceiver"
@@ -30,7 +30,7 @@ class OpType (object):
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
-  
+
 
   # Supported by Python local controller/worker only
   UNIX = "Unix"
@@ -56,16 +56,17 @@ def validate_parse(in_schema, cfg):
   parsed_field_type = in_schema[field_to_parse][0]
   if parsed_field_type != 'S':
     raise SchemaError("GenericParse needs string field to parse, got: "\
-        "{0}".format(parsed_field_type))
+                      "{0}".format(parsed_field_type))
 
-  cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
   allowed_bool_str = [str(val).lower() for val in [True, False]]
-  if not any(val == cfg['keep_unparsed'] for val in allowed_bool_str):
-    raise SchemaError("Needed one of (case-insensitive) {0} for "\
-                      "'keep_unparsed' generic parse config field, got: "\
-                      "{1}".format(str(allowed_bool_str), cfg['keep_unparsed']))
+  keep_option = cfg['keep_unparsed'] = cfg['keep_unparsed'].lower()
 
-  keep_unparsed = cfg['keep_unparsed'] == 'true'
+  if not keep_option in allowed_bool_str:
+    raise SchemaError("Needed one of (case-insensitive) {0} for "
+                      "'keep_unparsed' generic parse config field, got: "
+                      "{1}".format(str(allowed_bool_str), keep_option))
+
+  keep_unparsed = keep_option.lower() == 'true'
 
   ret = []
 
@@ -73,17 +74,17 @@ def validate_parse(in_schema, cfg):
     ret.extend( in_schema[0:field_to_parse] )
 
   for c in cfg['types']:
-    ret.append( (c, '') )
+    ret.append((c, ''))
   if keep_unparsed:
-    ret.extend( in_schema[field_to_parse+1:] )
+    ret.extend(in_schema[field_to_parse + 1:])
   return ret
 
 def validate_extend(in_schema, cfg):
 #  print "extend with cfg",cfg
   newS = []
   newS.extend(in_schema)
-  for x in cfg['types']:
-    newS.append( (x.upper(), '') )
+  for t in cfg['types']:
+    newS.append((t.upper(), ''))
   return newS
 
 def validate_timestamp(in_schema, cfg):
@@ -91,10 +92,12 @@ def validate_timestamp(in_schema, cfg):
   newS.extend(in_schema)
   if cfg["type"]=="s":
     newS.append( ("T", 'timestamp(s)') )
-  if cfg["type"]=="ms":
+  elif cfg["type"]=="ms":
     newS.append( ("D", 'timestamp(ms)') )
-  if cfg["type"]=="us":
+  elif cfg["type"]=="us":
     newS.append( ("D", 'timestamp(us)') )
+  else:
+    raise SchemaError("Needed time granularity specifier, got: " + cfg["type"])
   return newS
 
 def validate_latency_measure(in_schema, cfg):
@@ -107,10 +110,17 @@ def validate_TRound(in_schema, cfg):
     raise SchemaError("can't round field %d since input only has %d fields (%s)." % \
          (fld_offset, len(in_schema), str(in_schema)))
     
+  roundable_types = list('TDI')
   t = in_schema[fld_offset][0]
-  if t != "T":
+  if t not in roundable_types:
     raise SchemaError("rounding operator requires that field %d be a time, instead was %s" % (fld_offset,t))
-  return in_schema
+
+  # NC being sneaky here...
+  cfg['in_type'] = t
+
+  out_schema = list(in_schema)
+  out_schema[fld_offset] = ('T', in_schema[fld_offset][1])
+  return out_schema
 
 def validate_RandEval(in_schema, cfg):
   in_types = [ty for ty,name in in_schema[0:3]]
@@ -124,12 +134,20 @@ def validate_CSVParse(in_schema, cfg):
     raise SchemaError("CSVParse currently requires a string as the first "\
                        "element of an input tuple")
 
-  valid_types = 'SDI'
+  valid_types = ['S', 'D', 'I']
   if any(t not in valid_types for t in cfg['types']):
     raise SchemaError("CSVParse currently only accepts string, double, and "\
                       "32-bit integer types")
 
-  return [(t, '') for t in cfg['types']]
+  types = cfg['types']
+  if cfg['fields_to_keep'] == 'all':
+    return [(t, '') for t in types]
+
+  try:
+    flds_to_keep = map(int, cfg['fields_to_keep'].split())
+    return [(types[field], '') for field in flds_to_keep]
+  except ValueError as e:
+    raise SchemaError("Needed field indices. " + str(e))
 
   
 # Schemas are represented as a function that maps from an input schema and configuration

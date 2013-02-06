@@ -111,6 +111,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
   private:
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
   
+    time_t start_ts;
     int ts_field; //which field is the timestamp?
 //    int32_t maxTsSeen;
   
@@ -153,6 +154,9 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
 
   private:
     const static std::string my_type_name;
+
+    bool simulation;
+    int simulation_rate;
 
   public:
     virtual const std::string& typename_as_str() {

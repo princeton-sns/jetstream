@@ -12,6 +12,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/range/istream_range.hpp>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
@@ -112,28 +114,31 @@ CSVParse::configure(map<string,string> &config) {
   types = config["types"];
   string keep = config["fields_to_keep"];
 
-  int n = types.length();
+  n_fields = types.length();
 
   if (string("all") == keep) {
-    while (n-- > 0)
+    for (int i = 0; i < n_fields; i++)
       keep_fields.push_back(true);
     return NO_ERR;
   }
 
-  int i = 0;
+  // skip all fields unless told to keep them
+  for (int i = 0; i < n_fields; i++)
+    keep_fields.push_back(false);
+
+  // mark "true" at each specified position
   istringstream sscanf(keep);
-  BOOST_FOREACH( bool keep_field, istream_range<bool>(sscanf)) {
+  BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
     if (!sscanf)
       return operator_err_t("Invalid \"fields to keep\" string.");
 
-    if (keep_field && i++ > n)
-      return operator_err_t("Not enough types specified.");
+    if (fld_to_keep >= n_fields) {
+      string err_fmt("%d types given; %d is too high for field index.");
+      return operator_err_t((format(err_fmt) % n_fields % fld_to_keep).str());
+    }
 
-    keep_fields.push_back(keep_field);
+    keep_fields[fld_to_keep] = true;
   }
-
-  if (i < n)
-    return operator_err_t("Too many types specified");
 
   return NO_ERR;
 }
@@ -153,18 +158,19 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
   shared_ptr<Tuple> t2(new Tuple);
   t2->set_version(t->version());
 
-  int i = 0, i_type = 0;
+  int i = 0;
   BOOST_FOREACH(string csv_field, csv_parser) {
-    if (!keep_fields[i++]) {
-      continue;
-    }
-    parse_with_types(t2->add_e(), csv_field, types[i_type++]);
+    if (i >= n_fields)
+      LOG(FATAL) << "Parsed more fields than types specified." << endl;
+
+    if (keep_fields[i])
+      parse_with_types(t2->add_e(), csv_field, types[i]);
+    i++;
   }
 
   emit(t2);
-
   // assume we don't need to pass through any other elements...
-  // TODO
+  // TODO unassume
 }
 
 std::string
@@ -235,7 +241,8 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   try {
     re.assign(pattern);
   } catch( regex_error e) {
-    return operator_err_t("regex " + pattern + " did not compile:" + e.std::exception::what());
+    return operator_err_t("regex " + pattern + " did not compile:" +
+        e.std::exception::what());
   }
   
   istringstream(config["field_to_parse"]) >> fld_to_parse;
@@ -260,18 +267,24 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
 }
 
 void parse_with_types(Element * e, const string& s, char typecode) {
- switch (typecode) {
+  switch (typecode) {
     case 'I':
       {
         int i;
-        istringstream(s) >> i;
+        istringstream parser(s);
+        parser >> i;
+        if (!parser)
+          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s << endl;
         e->set_i_val( i );
         break;
       }
     case 'D':
       {
         double d;
-        istringstream(s) >> d;
+        istringstream parser(s);
+        parser >> d;
+        if (!parser)
+          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s << endl;
         e->set_d_val( d );
         break;
       }
@@ -287,8 +300,7 @@ void parse_with_types(Element * e, const string& s, char typecode) {
 
 void
 GenericParse::process(const boost::shared_ptr<Tuple> t) {
-
-  shared_ptr<Tuple> t2( new Tuple);
+  shared_ptr<Tuple> t2(new Tuple);
 
   if (keep_unparsed) {
     for(int i = 0; i < t->e_size() && i < fld_to_parse; ++i) {
@@ -473,8 +485,24 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
 
 void
 TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
-  time_t old_val = t->e(fld_offset).t_val();
-  t->mutable_e(fld_offset)->set_t_val(  (old_val / round_to) * round_to);
+  if (in_type == T) {
+    time_t old_val = t->e(fld_offset).t_val();
+    t->mutable_e(fld_offset)->set_t_val((old_val / round_to) * round_to + add_offset);
+  }
+
+  // FIXME is it okay to add fixed offset _outside_ of the numeric cast?
+
+  if (in_type == I) {
+    int old_val = t->e(fld_offset).i_val();
+    t->mutable_e(fld_offset)->clear_i_val();
+    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+  }
+
+  if (in_type == D) {
+    double old_val = t->e(fld_offset).d_val();
+    t->mutable_e(fld_offset)->clear_d_val();
+    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+  }
 
   emit(t);
 }
@@ -489,6 +517,28 @@ TRoundingOperator::configure (std::map<std::string,std::string> &config) {
   if ( !(istringstream(config["fld_offset"]) >> fld_offset)) {
     return operator_err_t("must specify an int as fld_offset; got " + config["fld_offset"] +  " instead");
   }
+
+  if (!(istringstream(config["add_offset"]) >> add_offset)) {
+    return operator_err_t("must specify number to add to result; got " + config["add_offset"] + "instead");
+  }
+
+  if (config["in_type"].length() != 1)
+    return operator_err_t("Invalid input type: " + config["in_type"]);
+
+  switch (config["in_type"][0]) {
+    case 'T':
+      in_type = T;
+      break;
+    case 'D':
+      in_type = D;
+      break;
+    case 'I':
+      in_type = I;
+      break;
+    default:
+      return operator_err_t("Invalid input type: " + config["in_type"]);
+  }
+
   return NO_ERR;
 }
 
@@ -589,7 +639,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
 }
 
 const string FileRead::my_type_name("FileRead operator");
-//const string CSVParse::my_type_name("CSVParse operator");
+const string CSVParse::my_type_name("CSVParse operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");

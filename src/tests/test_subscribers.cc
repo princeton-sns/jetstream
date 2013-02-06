@@ -1,4 +1,7 @@
 #include <iostream>
+#include <time.h>
+#include <gtest/gtest.h>
+
 #include "cube_manager.h"
 #include "node.h"
 
@@ -7,8 +10,7 @@
 #include "experiment_operators.h"
 
 #include "js_utils.h"
-
-#include <gtest/gtest.h>
+#include "timeteller.h"
 
 using namespace jetstream;
 using namespace jetstream::cube;
@@ -136,6 +138,26 @@ class SubscriberTest : public ::testing::Test {
   
 };
 
+TEST(TimeTellerTest, TellsNormalTimeCorrectly) {
+  TimeTeller t;
+
+  int N = 1000;
+  while (N-- > 0)
+    EXPECT_EQ(t.now(), time(NULL));
+}
+
+TEST(TimeTellerTest, TellsSimulatedTimeCorrectly) {
+  enum {D_PER_Y = 365, S_PER_D = 86400, MICROS_PER_S = 1000000};
+  const time_t start_1984 = 44178120000;
+  const int y_per_s = D_PER_Y * S_PER_D;
+  int nSeconds = 3, iIter = -1;
+  TimeSimulator t(start_1984, y_per_s);
+  while (iIter++ < nSeconds) {
+    time_t sim_time = start_1984 + y_per_s * iIter;
+    EXPECT_EQ(sim_time, t.now());
+    js_usleep(MICROS_PER_S);
+  }
+}
 
 TEST_F(SubscriberTest,TimeSubscriber) {
   shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
