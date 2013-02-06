@@ -616,7 +616,13 @@ jetstream::cube::CubeIterator jetstream::cube::MysqlCube::slice_query(jetstream:
   return get_result_iterator(sql, final);
 }
 
-jetstream::cube::CubeIterator jetstream::cube::MysqlCube::rollup_slice_query(std::list<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const &max, bool final, list<string> const &sort, size_t limit) const {
+jetstream::cube::CubeIterator
+jetstream::cube::MysqlCube::rollup_slice_query(std::vector<unsigned int> const &levels,
+                                               jetstream::Tuple const &min,
+                                               jetstream::Tuple const &max,
+                                               bool final,
+                                               list<string> const &sort,
+                                               size_t limit) const {
   string sql = "SELECT * FROM `"+get_rollup_table_name()+"`";
   sql += get_where_clause(min, max, levels);
   sql += get_sort_clause(sort);
@@ -665,14 +671,14 @@ string MysqlCube::get_limit_clause(size_t limit) const {
   return limit_sql;
 }
 
-string MysqlCube::get_where_clause(jetstream::Tuple const &min, jetstream::Tuple const &max, std::list<unsigned int> const &levels) const {
+string MysqlCube::get_where_clause(jetstream::Tuple const &min, jetstream::Tuple const &max, std::vector<unsigned int> const &levels) const {
 
   assert(levels.empty() || levels.size() == dimensions.size());
   int tuple_index_min = 0;
   int tuple_index_max = 0;
   vector<string> where_clauses;
 
-  list<unsigned int>::const_iterator iLevel = levels.begin();
+  vector<unsigned int>::const_iterator iLevel = levels.begin();
 
   for(size_t i=0; i<dimensions.size(); i++) {
     string where = dimensions[i]->get_where_clause_greater_than_eq(min, tuple_index_min, true);
@@ -740,14 +746,14 @@ size_t jetstream::cube::MysqlCube::num_leaf_cells() const {
 }
 
 void
-MysqlCube::do_rollup(std::list<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) {
+MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) {
   assert(levels.size() == dimensions.size());
 
   vector<string> column_names;
   vector<string> select_clause;
   vector<string> groupby_clause;
 
-  list<unsigned int>::const_iterator iLevel = levels.begin();
+  vector<unsigned int>::const_iterator iLevel = levels.begin();
 
   for(size_t i=0; i<dimensions.size(); i++) {
     vector<string> names = dimensions[i]->get_column_names();

@@ -72,7 +72,7 @@ class Querier {
     volatile bool rollup_is_dirty; //should have real rollup manager eventually.
     operator_id_t id;
     std::list<std::string> sort_order;
-    std::list<unsigned int> rollup_levels; //length will be zero if no rollups
+    std::vector<unsigned int> rollup_levels; //length will be zero if no rollups
     DataCube * cube;
     int32_t num_results; //a limit on the number of results returned. 0 = infinite
 

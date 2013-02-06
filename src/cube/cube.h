@@ -106,12 +106,12 @@ class DataCube : public TupleReceiver {
                 bool final = true, std::list<std::string> const &sort = std::list<std::string>(),
                 size_t limit = 0) const = 0;
 
-    virtual cube::CubeIterator rollup_slice_query(std::list<unsigned int> const &levels,
+    virtual cube::CubeIterator rollup_slice_query(std::vector<unsigned int> const &levels,
         jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true,
         std::list<std::string> const &sort = std::list<std::string>(), size_t limit = 0) const = 0;
 
     virtual void
-    do_rollup(std::list<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max) = 0;
+    do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max) = 0;
 
 
     // info/utility functions
