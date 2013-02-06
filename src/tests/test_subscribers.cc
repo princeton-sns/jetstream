@@ -1,4 +1,7 @@
 #include <iostream>
+#include <time.h>
+#include <gtest/gtest.h>
+
 #include "cube_manager.h"
 #include "node.h"
 
@@ -7,9 +10,7 @@
 #include "experiment_operators.h"
 
 #include "js_utils.h"
-#include <time.h>
-
-#include <gtest/gtest.h>
+#include "timeteller.h"
 
 using namespace jetstream;
 using namespace jetstream::cube;

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-
+#include "timeteller.h"
 #include "base_subscribers.h"
 #include "js_utils.h"
 #include "node.h"
