@@ -1,5 +1,5 @@
-#ifndef DIMENSION_TIME_HIER_Q8TYGR7Q
-#define DIMENSION_TIME_HIER_Q8TYGR7Q
+#ifndef DIMENSION_TIME_CONT_Q8TYGR7Q
+#define DIMENSION_TIME_CONT_Q8TYGR7Q
 
 #include "dimension_flat.h"
 #include <time.h>
@@ -17,6 +17,14 @@ class MysqlDimensionTimeContainment : public MysqlDimension {
   public:
 
     MysqlDimensionTimeContainment() : MysqlDimension() {};
+
+    static const unsigned int LEVEL_SECOND;
+    static const unsigned int LEVEL_MINUTE;
+    static const unsigned int LEVEL_HOUR;
+
+    virtual unsigned leaf_level() const{
+      return DTC_LEVEL_COUNT-1;
+    }
 
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
     virtual void get_key(Tuple const &t, std::ostringstream &ostr) const;
@@ -40,4 +48,4 @@ class MysqlDimensionTimeContainment : public MysqlDimension {
 } /* jetstream */
 
 
-#endif /* end of include guard: DIMENSION_TIME_Q8TYGR7Q */
+#endif /* end of include guard: DIMENSION_CONT_Q8TYGR7Q */

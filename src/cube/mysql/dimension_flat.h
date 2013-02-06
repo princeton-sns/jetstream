@@ -5,7 +5,7 @@
 
 namespace jetstream {
 namespace cube {
-  
+
 class MysqlDimensionFlat: public MysqlDimension{
   public:
     MysqlDimensionFlat() : MysqlDimension(){};
@@ -13,7 +13,7 @@ class MysqlDimensionFlat: public MysqlDimension{
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;
 
-    virtual unsigned leaf_level() {
+    virtual unsigned leaf_level() const {
       return 1;
     }
 

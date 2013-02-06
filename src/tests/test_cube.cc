@@ -1096,27 +1096,27 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
 
 TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   jetstream::CubeSchema schema;
-  jetstream::CubeSchema_Dimension * dim = schema->add_dimensions();
+  jetstream::CubeSchema_Dimension * dim = schema.add_dimensions();
   dim->set_name("time");
   dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
   dim->add_tuple_indexes(0);
 
-  dim = schema->add_dimensions();
+  dim = schema.add_dimensions();
   dim->set_name("url");
   dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
   dim->add_tuple_indexes(1);
 
-  dim = schema->add_dimensions();
+  dim = schema.add_dimensions();
   dim->set_name("response_code");
   dim->set_type(CubeSchema_Dimension_DimensionType_INT32);
   dim->add_tuple_indexes(2);
 
-  jetstream::CubeSchema_Aggregate * agg = schema->add_aggregates();
+  jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
   agg->set_name("count");
   agg->set_type("count");
   agg->add_tuple_indexes(4);
 
-  agg = schema->add_aggregates();
+  agg = schema.add_aggregates();
   agg->set_name("avg_size");
   agg->set_type("avg");
   agg->add_tuple_indexes(3);
@@ -1161,8 +1161,8 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   e=max.add_e(); //url
   e=max.add_e(); //rc
 
-  list<unsigned int> levels;
-  levels.push_back(DTC_LEVEL_COUNT);
+  vector<unsigned int> levels;
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_SECOND);
   levels.push_back(1);
   levels.push_back(0);
 
@@ -1181,7 +1181,7 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   ASSERT_EQ(5, ptrTup->e(4).i_val());
 
   levels.clear();
-  levels.push_back(DTC_LEVEL_COUNT-1); //5sec
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_SECOND-1);//5sec
   levels.push_back(1);
   levels.push_back(0);
 
@@ -1204,6 +1204,23 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   ASSERT_EQ(0, ptrTup->e(2).i_val());
   //ASSERT_EQ(0, ptrTup->e(4).i_val());
   ASSERT_EQ(200, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
+
+  //test full rollup
+  levels.clear();
+  levels.push_back(0);
+  levels.push_back(1);
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  it = cube->rollup_slice_query(levels, empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(0, ptrTup->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  ASSERT_EQ(400, ptrTup->e(3).i_val());
   ASSERT_EQ(5, ptrTup->e(4).i_val());
 
 }

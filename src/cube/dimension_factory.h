@@ -4,6 +4,7 @@
 #include "mysql/dimension_time.h"
 
 #include "mysql/dimension_time_hierarchy.h"
+#include "mysql/dimension_time_containment.h"
 #include "mysql/dimension_int.h"
 #include "mysql/dimension_string.h"
 #include "mysql/dimension_double.h"

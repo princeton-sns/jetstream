@@ -17,22 +17,22 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
     static unsigned int const LEVEL_MINUTE;
     static unsigned int const LEVEL_SECOND;
 
-    virtual unsigned leaf_level() {
+    virtual unsigned leaf_level() const {
       return 7;
     }
 
     MysqlDimensionTimeHierarchy() : MysqlDimension() {};
-    
+
     virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const;
     virtual void get_key(Tuple const &t, std::ostringstream &ostr) const;
 
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;
-    
+
     vector<string> get_column_names() const ;
 
     vector<string> get_column_types() const ;
-    
+
     virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const;
 
     string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) const ;
