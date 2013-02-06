@@ -60,7 +60,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
       slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, 
         list<string> const &sort = list<string>(), size_t limit = 0) const;
     virtual CubeIterator 
-      rollup_slice_query(std::list<unsigned int> const &levels, jetstream::Tuple const &min, 
+      rollup_slice_query(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, 
         jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
     
     virtual CubeIterator end() const;
@@ -78,7 +78,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     string create_sql(bool aggregate_table = false) const;
 
     virtual void
-    do_rollup(std::list<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max);
+    do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max);
 
     virtual ~MysqlCube();
 
@@ -91,7 +91,9 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     string get_sort_clause(list<string> const &sort) const;
     string get_limit_clause(size_t limit) const;
-    string get_where_clause(jetstream::Tuple const &min, jetstream::Tuple const &max,  std::list<unsigned int> const &levels = std::list<unsigned int>()) const;
+    string get_where_clause(jetstream::Tuple const &min,
+                            jetstream::Tuple const &max,
+                            std::vector<unsigned int> const &levels = std::vector<unsigned int>()) const;
     CubeIterator get_result_iterator(string sql, bool final, bool rollup=false) const;
 
 

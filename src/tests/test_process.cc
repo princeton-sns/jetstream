@@ -268,35 +268,35 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
 
 }
 
-TEST_F(ProcessTest, ND1M22) {
+TEST_F(ProcessTest, DISABLED_ND1M22) {
   run_test(sc, false, 1000000, 2, 2);
 }
 
-TEST_F(ProcessTest, ND1M12) {
+TEST_F(ProcessTest, DISABLED_ND1M12) {
   run_test(sc, false, 1000000, 1, 1);
 }
 
-TEST_F(ProcessTest, D1M22) {
+TEST_F(ProcessTest, DISABLED_D1M22) {
   run_test(sc, true, 1000000, 2, 2);
 }
 
-TEST_F(ProcessTest, D1M12) {
+TEST_F(ProcessTest, DISABLED_D1M12) {
   run_test(sc, true, 1000000, 1, 2);
 }
 
-TEST_F(ProcessTest, D1M21) {
+TEST_F(ProcessTest, DISABLED_D1M21) {
   run_test(sc, true, 1000000, 2, 1);
 }
 
-TEST_F(ProcessTest, D1M11) {
+TEST_F(ProcessTest, DISABLED_D1M11) {
   run_test(sc, true, 1000000, 1, 1);
 }
 
-TEST_F(ProcessTest, ND200K22) {
+TEST_F(ProcessTest, DISABLED_ND200K22) {
   run_test(sc, false, 200000, 2, 2);
 }
 
-TEST_F(ProcessTest, ND1M11) {
+TEST_F(ProcessTest, DISABLED_ND1M11) {
   run_test(sc, false, 1000000, 1, 1);
 }
 

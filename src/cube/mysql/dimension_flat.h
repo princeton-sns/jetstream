@@ -13,6 +13,10 @@ class MysqlDimensionFlat: public MysqlDimension{
     virtual string get_select_clause_for_rollup(unsigned int const level) const;
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const;
 
+    virtual unsigned leaf_level() {
+      return 1;
+    }
+
   protected:
     virtual vector<string> get_default_value() const = 0;
 };

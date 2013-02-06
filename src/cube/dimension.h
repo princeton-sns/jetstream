@@ -23,6 +23,8 @@ public:
   virtual jetstream::DataCube::DimensionKey get_key(Tuple const &t) const = 0;
   virtual void get_key(Tuple const &t, std::ostringstream &ostr) const = 0;
   virtual size_t tuple_element_count();
+  
+  virtual unsigned leaf_level() = 0;
 
 protected:
   string name;

@@ -139,12 +139,10 @@ char* merge_histogram(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned l
   hist_ptr->serialize_to(summary);
 
   size_t msg_sz = summary.ByteSize();
-  if(store->max_buffer_size < msg_sz)
-  {
-    size_t min_sz = min_sz < store->max_buffer_size * 2? store->max_buffer_size*2: min_sz;
+  if(store->max_buffer_size < msg_sz) {
+    size_t min_sz = msg_sz < store->max_buffer_size * 2? store->max_buffer_size*2: msg_sz; //max(msg_sz, store->max_buffer_size * 2)
     char *buffer = (char *) realloc(store->buffer, min_sz*sizeof(char));
-    if(buffer == NULL)
-    {
+    if(buffer == NULL) {
       *error = 1;
       return NULL;
     }

@@ -9,6 +9,7 @@
 #include "js_utils.h"
 #include "node.h"
 #include "dimension_time_containment.h"
+#include "cube.h"
 
 using namespace std;
 using namespace boost;
@@ -82,9 +83,9 @@ Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id)
 }
 
 template<typename T>
-std::string fmt_list(const std::list<T>& l) {
+std::string fmt_list(const T& l) {
   ostringstream out;
-  typename list<T>::const_iterator i;
+  typename T::const_iterator i;
   out << "(";
 	for( i = l.begin(); i != l.end(); ++i)
 		out << *i << " ";
@@ -107,6 +108,21 @@ cube::CubeIterator Querier::do_query() {
     return cube->slice_query(min, max, true, sort_order, num_results);
   }
 }
+
+void
+Querier::set_rollup_level(int fieldID, unsigned r_level) {
+  if(rollup_levels.size() == 0) {
+    for(int i =0; i < min.e_size(); ++i)
+      rollup_levels.push_back(DataCube::LEAF_LEVEL);
+  }
+  
+  assert (fieldID < rollup_levels.size());
+  
+  rollup_levels[fieldID] = r_level;
+  
+  
+}
+
 
 operator_err_t
 OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
@@ -279,10 +295,6 @@ TimeBasedSubscriber::long_description() {
 }
 
 
-const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
-
-
-
 operator_err_t
 LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
 
@@ -445,29 +457,36 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
   }
 }
 
-const unsigned int MAX_TL = MysqlDimensionTimeContainment::MAX_LEVEL;
-double time_rollup_levels[MAX_TL];
+double time_rollup_levels[DTC_LEVEL_COUNT];
 
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
-
- congest_policy->get_step(id(), time_rollup_levels, MysqlDimensionTimeContainment::MAX_LEVEL, cur_level);
+//  int prev_level = cur_level;
+  cur_level += congest_policy->get_step(id(), time_rollup_levels, DTC_LEVEL_COUNT, cur_level);
+  int change_in_window = DTC_SECS_PER_LEVEL[cur_level] * 1000 - windowSizeMs;
+  // interval_ms = secs_per_level[cur_level] * 1000;
+  windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
+  js_usleep( 1000 * change_in_window);
+  querier.set_rollup_level(ts_field, cur_level);
 }
 
 operator_err_t
 VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &config) {
-  cur_level = MysqlDimensionTimeContainment::MAX_LEVEL -1;
+  cur_level = DTC_LEVEL_COUNT -1;
   operator_err_t base_err = TimeBasedSubscriber::configure(config);
   if (base_err != NO_ERR)
     return base_err;
   if (ts_field < 0)
     return "time field is mandatory for variable coarsening for now";
 
-  for (int i = 0; i < MysqlDimensionTimeContainment::MAX_LEVEL; ++i)
-    time_rollup_levels[i] = 1.0 / MysqlDimensionTimeContainment::SECS_PER_LEVEL[i];
+  for (int i = 0; i < DTC_LEVEL_COUNT; ++i)
+    time_rollup_levels[i] = 1.0 / DTC_SECS_PER_LEVEL[i];
   return NO_ERR;
 }
 
+
+const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
+//const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
 
 
 } //end namespace

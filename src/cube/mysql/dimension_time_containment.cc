@@ -5,8 +5,6 @@
 using namespace std;
 using namespace jetstream::cube;
 
-unsigned int const  MysqlDimensionTimeContainment::SECS_PER_LEVEL[] = {INT_MAX, 3600, 1800, 600, 300, 60, 30, 10, 5, 1};
-unsigned int const  MysqlDimensionTimeContainment::MAX_LEVEL = sizeof(MysqlDimensionTimeContainment::SECS_PER_LEVEL)/sizeof(unsigned int);
 
 
 jetstream::DataCube::DimensionKey MysqlDimensionTimeContainment::get_key(Tuple const &t) const {
@@ -90,17 +88,17 @@ string
 MysqlDimensionTimeContainment::get_select_clause_for_rollup(unsigned int const level) const {
   vector<string>cols = get_column_names();
   string start_time_col_name = cols[0];
-  unsigned int secs_in_level = MysqlDimensionTimeContainment::SECS_PER_LEVEL[level];
+  unsigned int secs_in_level = DTC_SECS_PER_LEVEL[level];
   string secs_in_level_str =  boost::lexical_cast<std::string>(secs_in_level);
   string start_time_for_group_sql = "( (`"+start_time_col_name+"`/"+secs_in_level_str+") * "+secs_in_level_str+")";
-  string level_str = boost::lexical_cast<std::string>((level > MysqlDimensionTimeContainment::MAX_LEVEL ? MysqlDimensionTimeContainment::MAX_LEVEL: level));
+  string level_str = boost::lexical_cast<std::string>((level > DTC_LEVEL_COUNT ? DTC_LEVEL_COUNT: level));
   return start_time_for_group_sql+", "+level_str;
 }
 
 string MysqlDimensionTimeContainment::get_groupby_clause_for_rollup(unsigned int const level) const {
   vector<string>cols = get_column_names();
   string start_time_col_name = cols[0];
-  unsigned int secs_in_level = MysqlDimensionTimeContainment::SECS_PER_LEVEL[level];
+  unsigned int secs_in_level = DTC_SECS_PER_LEVEL[level];
   string secs_in_level_str =  boost::lexical_cast<std::string>(secs_in_level);
   string start_time_for_group_sql = "( (`"+start_time_col_name+"`/"+secs_in_level_str+") * "+secs_in_level_str+")";
   return start_time_for_group_sql;

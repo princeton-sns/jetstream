@@ -9,11 +9,12 @@
 namespace jetstream {
 namespace cube {
 
+const unsigned int  DTC_SECS_PER_LEVEL[] = {INT_MAX, 3600, 1800, 600, 300, 60, 30, 10, 5, 1};
+const unsigned int DTC_LEVEL_COUNT = sizeof(DTC_SECS_PER_LEVEL)/sizeof(unsigned int);
+
+
 class MysqlDimensionTimeContainment : public MysqlDimension {
   public:
-
-    static unsigned int const SECS_PER_LEVEL[];
-    static unsigned int const MAX_LEVEL;
 
     MysqlDimensionTimeContainment() : MysqlDimension() {};
 
@@ -32,6 +33,7 @@ class MysqlDimensionTimeContainment : public MysqlDimension {
     string get_where_clause(jetstream::Tuple const &t, int &tuple_index, string op, bool is_optional=true) const ;
 
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
+
 };
 
 } /* cube */

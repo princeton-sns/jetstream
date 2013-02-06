@@ -969,7 +969,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   e=empty.add_e(); //url
   e=empty.add_e(); //rc
 
-  list<unsigned int> levels;
+  vector<unsigned int> levels;
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
   levels.push_back(1);
   levels.push_back(0);
@@ -1047,7 +1047,7 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   e=max.add_e(); //url
   e=max.add_e(); //rc
 
-  list<unsigned int> levels;
+  vector<unsigned int> levels;
   levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
   levels.push_back(1);
   levels.push_back(0);
