@@ -8,6 +8,7 @@
 #include "base_subscribers.h"
 #include "js_utils.h"
 #include "node.h"
+#include "dimension_time_containment.h"
 
 using namespace std;
 using namespace boost;
@@ -200,13 +201,13 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-double shouldRun[] = {0, 1};
+double shouldRunArr[] = {0, 1};
 
 void 
 TimeBasedSubscriber::respond_to_congestion() {
   int should_run = 1;
   while(running && should_run == 0) {
-    should_run += congest_policy->get_step(id(), shouldRun, 2, should_run);
+    should_run += congest_policy->get_step(id(), shouldRunArr, 2, should_run);
     js_usleep(1000 * 50);  //10 ms
   }
 }
@@ -445,19 +446,27 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
 }
 
 
+const int R_LEVELS = sizeof(secs_per_level) / sizeof(int);
+double time_rollup_levels[R_LEVELS];
+
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
 
+ congest_policy->get_step(id(), time_rollup_levels, R_LEVELS, cur_level);
 }
 
 operator_err_t
 VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &config) {
+  cur_level = R_LEVELS -1;
   operator_err_t base_err = TimeBasedSubscriber::configure(config);
   if (base_err != NO_ERR)
     return base_err;
-  
-  return NO_ERR;
+  if (ts_field < 0)
+    return "time field is mandatory for variable coarsening for now";
 
+  for (int i = 0; i < R_LEVELS; ++i)
+    time_rollup_levels[i] = 1.0 /secs_per_level[i];
+  return NO_ERR;
 }
 
 

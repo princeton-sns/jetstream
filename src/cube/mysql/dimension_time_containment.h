@@ -30,6 +30,8 @@ class MysqlDimensionTimeContainment : public MysqlDimension {
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 };
 
+const int secs_per_level[] = {3600, 1800, 600, 300, 60, 30, 10, 5, 1};
+
 
 } /* cube */
 } /* jetstream */

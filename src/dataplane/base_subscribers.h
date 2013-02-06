@@ -112,14 +112,14 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
   
     time_t start_ts;
+
+  protected:
     int ts_field; //which field is the timestamp?
 //    int32_t maxTsSeen;
   
 //    boost::mutex mutex; //protects next_window_start_time
     int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
         //estimate will tend to be high: some of this data still arrived "in time"
-
-  protected:
     int windowSizeMs;  //query interval
     int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
     time_t next_window_start_time; //all data from before this should be visible
@@ -164,12 +164,20 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     }
 };
 
+/**
+   Switches to rollups in the presence of congestion. 
+   For now, only does time rollups.
+*/
 class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
 
   public:
     virtual void respond_to_congestion();
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
+  protected:
+    int cur_level;
+//    int dim_to_coarsen;
+  
 
 };
 
