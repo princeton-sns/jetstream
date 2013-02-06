@@ -119,7 +119,9 @@ Querier::set_rollup_level(int fieldID, unsigned r_level) {
   assert (fieldID < rollup_levels.size());
   
   rollup_levels[fieldID] = r_level;
-  
+  if (cube->is_unrolled(rollup_levels)) {
+    rollup_levels.clear();
+  }
   
 }
 

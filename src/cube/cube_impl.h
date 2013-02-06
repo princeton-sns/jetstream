@@ -84,6 +84,14 @@ class DataCubeImpl : public DataCube {
 
 
 
+    virtual bool is_unrolled(std::vector<unsigned int> levels) const {
+      for (unsigned i = 0; i < dimensions.size(); ++i) {
+        if (levels[i] < dimensions[i]->leaf_level())
+          return false;
+      }
+      return true;
+    }
+
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
     std::vector<boost::shared_ptr<CubeAggregate> > aggregates;
