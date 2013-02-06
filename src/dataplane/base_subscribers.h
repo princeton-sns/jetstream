@@ -65,7 +65,8 @@ class Querier {
     jetstream::Tuple max;
     void set_cube(DataCube *c) {cube = c;}
   
-    void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;} 
+    void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;}
+    void set_rollup_level(int fieldID, unsigned r_level);
 
  protected:
     volatile bool rollup_is_dirty; //should have real rollup manager eventually.

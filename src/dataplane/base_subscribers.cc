@@ -9,6 +9,7 @@
 #include "js_utils.h"
 #include "node.h"
 #include "dimension_time_containment.h"
+#include "cube.h"
 
 using namespace std;
 using namespace boost;
@@ -107,6 +108,21 @@ cube::CubeIterator Querier::do_query() {
     return cube->slice_query(min, max, true, sort_order, num_results);
   }
 }
+
+void
+Querier::set_rollup_level(int fieldID, unsigned r_level) {
+  if(rollup_levels.size() == 0) {
+    for(int i =0; i < min.e_size(); ++i)
+      rollup_levels.push_back(DataCube::LEAF_LEVEL);
+  }
+  
+  assert (fieldID < rollup_levels.size());
+  
+  rollup_levels[fieldID] = r_level;
+  
+  
+}
+
 
 operator_err_t
 OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
@@ -279,10 +295,6 @@ TimeBasedSubscriber::long_description() {
 }
 
 
-const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
-
-
-
 operator_err_t
 LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
 
@@ -452,7 +464,13 @@ double time_rollup_levels[R_LEVELS];
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
 
- congest_policy->get_step(id(), time_rollup_levels, R_LEVELS, cur_level);
+//  int prev_level = cur_level;
+  cur_level += congest_policy->get_step(id(), time_rollup_levels, R_LEVELS, cur_level);
+  int change_in_window = secs_per_level[cur_level] * 1000 - windowSizeMs;
+  // interval_ms = secs_per_level[cur_level] * 1000;
+  windowSizeMs = secs_per_level[cur_level] * 1000;
+  js_usleep( 1000 * change_in_window);
+  querier.set_rollup_level(ts_field, cur_level);
 }
 
 operator_err_t
@@ -469,6 +487,9 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
   return NO_ERR;
 }
 
+
+const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
+//const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
 
 
 } //end namespace

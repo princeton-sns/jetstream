@@ -17,6 +17,9 @@ class MysqlDimensionTimeHierarchy : public MysqlDimension {
     static unsigned int const LEVEL_MINUTE;
     static unsigned int const LEVEL_SECOND;
 
+    virtual unsigned leaf_level() {
+      return 7;
+    }
 
     MysqlDimensionTimeHierarchy() : MysqlDimension() {};
     
