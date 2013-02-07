@@ -10,12 +10,12 @@ class NetCongestionMonitor : public CongestionMonitor {
   protected:
     double downstream_status;
     mutable boost::mutex internals;
-    std::string name;
     double max_per_sec;
 
   
   public:
-    NetCongestionMonitor(const std::string& n) : downstream_status(INFINITY), name(n), max_per_sec(INFINITY) {}
+    NetCongestionMonitor(const std::string& n) : CongestionMonitor(n),
+            downstream_status(INFINITY),  max_per_sec(INFINITY) {}
   
     virtual void report_insert(void * item, uint32_t weight) = 0;
   
@@ -29,11 +29,6 @@ class NetCongestionMonitor : public CongestionMonitor {
     }
   
     void set_max_rate(double d) {max_per_sec = d;}
-  
-  
-  
-  
-    
 
 };
 

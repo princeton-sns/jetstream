@@ -212,20 +212,19 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
       !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
 
     return operator_err_t("window_offset must be a number");
+  }
+  if (config.find("simulation_rate") != config.end()) {
+    LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
 
-    if (config.find("simulation_rate") != config.end()) {
-      VLOG(1) << "configuring a TimeSubscriber simulation" << endl;
+    simulation = true;
+    simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
 
-      simulation = true;
-      simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
-
-      VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
-      VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
-      VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
-    } else {
-      simulation = false;
-      simulation_rate = -1;
-    }
+    VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
+    VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+    VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
+  } else {
+    simulation = false;
+    simulation_rate = -1;
   }
 
   return NO_ERR;
@@ -272,12 +271,15 @@ TimeBasedSubscriber::operator()() {
   while (running)  {
 
     cube::CubeIterator it = querier.do_query();
+    size_t elems = 0;
     while ( it != cube->end()) {
       emit(*it);
       it++;
+      elems ++;
     }
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
+    VLOG(1) << id() << " read " << elems << " tuples from cube";
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
 

@@ -1,5 +1,6 @@
 
 #include "queue_congestion_mon.h"
+#include "window_congest_mon.h"
 #include <glog/logging.h>
 
 using namespace boost::interprocess::ipcdetail;
@@ -37,7 +38,7 @@ QueueCongestionMonitor::capacity_ratio() {
     int32_t removes = inserts - queueDelta;
     LOG_IF(FATAL, removes < 0) << "Shouldn't have data leaking out of queue inserts: " << inserts <<" queueDelta: " <<queueDelta;
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
-    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 ||prevRatio == 0 , 21) << "Queue for " << name << ": " << inserts <<
+    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 ||prevRatio == 0 , 21) << "Queue for " << name() << ": " << inserts <<
          " inserts (max is " << max_per_sec << "); " << removes  <<" removes. Queue length " << readQLen << "/" << queueTarget << ". Space Ratio is " << prevRatio << ", downstream is " << downstream_status<< " and final result is " << result;
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = readQLen;
@@ -46,6 +47,18 @@ QueueCongestionMonitor::capacity_ratio() {
   
   return result;
 }
+
+
+void
+WindowCongestionMonitor::end_of_window(int window_ms) {
+  if (window_start_time != 0) {
+    last_ratio = window_ms / double(get_msec() - window_start_time); 
+    window_start_time = 0;
+    std::cout << "End of window!  New congestion level at " << name() << " is " <<
+       last_ratio << std::endl;
+  }
+}
+
 
 
 }

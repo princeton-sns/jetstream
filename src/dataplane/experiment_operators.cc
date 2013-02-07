@@ -208,7 +208,7 @@ EchoOperator::~EchoOperator() {
 class MyMon: public CongestionMonitor {
   public:
     MockCongestion & m;
-    MyMon(MockCongestion & m2):m(m2) {}
+    MyMon(MockCongestion & m2): CongestionMonitor("mock"),m(m2) {}
   
     virtual double capacity_ratio() {
       return m.congestion;
@@ -276,17 +276,20 @@ FixedRateQueue::stop() {
 void
 FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
   boost::lock_guard<boost::mutex> lock (mutex);
-  q.push(t);
+  DataplaneMessage msg;
+  Tuple * t2 = msg.add_data();
+  t2->CopyFrom(*t);
+  q.push(msg);
   mon->report_insert(t.get(), 1);
 }
 
 void
 FixedRateQueue::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+//  boost::shared_ptr<DataplaneMessage> msg2(new DataplaneMessage);
+//  msg2->CopyFrom(msg);
+  q.push(msg);
   
-  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
-    mon->end_of_window(msg.window_length_ms());
-  }
-  DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
+
 }
 
 
@@ -299,16 +302,23 @@ FixedRateQueue::process1() {
   {
     boost::lock_guard<boost::mutex> lock (mutex);
     //deqeue
-    boost::shared_ptr<Tuple> t;
+    DataplaneMessage msg;
     
     if (! q.empty()) {
-      t = q.front();
+      msg = q.front();
       q.pop();
     }
   //  cout << "dequeue, length = " << q.size() << endl;
-    if (t) {
+    if( msg.data_size() > 0) {
+      boost::shared_ptr<Tuple> t(new Tuple);
+      t->CopyFrom(msg.data(0));
       mon->report_delete(t.get(), 1);
       emit(t);
+    } else {
+      if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+        mon->end_of_window(msg.window_length_ms());
+      }
+      DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
     }
 
     timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));

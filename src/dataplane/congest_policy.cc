@@ -33,7 +33,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
   double congest_level = congest->capacity_ratio();
   
-//  cout << "XXX congest level was " << congest_level << endl;
+  VLOG(1) << congest->name() << " congest level was " << congest_level << endl;
   
   if ( congest_level < 0.95 && curLevel > 0) {
     return -1;

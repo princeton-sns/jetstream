@@ -90,7 +90,7 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
     char tmbuf[80];
     strftime(tmbuf, sizeof(tmbuf), "%d-%m-%y %H:%M:%S", &parsed_time);
     buf << tmbuf;
-  } if (el.has_blob()) {
+  } else if (el.has_blob()) {
     buf << el.blob().size() << "-byte blob";
   } else
     buf << "UNDEF";

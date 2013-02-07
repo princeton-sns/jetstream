@@ -94,7 +94,7 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
 void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key,  boost::shared_ptr<cube::TupleBatch> &tupleBatcher) {
   bool in_batch = false;
 
-  VLOG(1) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
+  VLOG(2) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
 
   if (tupleBatcher->contains(key)) {
     in_batch = true;

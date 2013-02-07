@@ -203,7 +203,7 @@ private:
   int ms_per_dequeue;
 //  int elements_queued;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
-  std::queue< boost::shared_ptr<Tuple> > q;
+  std::queue< DataplaneMessage > q;
   boost::mutex mutex;
   boost::shared_ptr<NetCongestionMonitor> mon;
 

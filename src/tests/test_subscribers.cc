@@ -327,13 +327,13 @@ TEST_F(SubscriberTest,VariableSubscriber) {
   
     AlterTopo topo;
     Tuple query_tuple = cube->empty_tuple();
-    TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "TimeBasedSubscriber"); //"VariableCoarseningSubscriber");
+    TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "VariableCoarseningSubscriber");
     add_cfg_to_task(subsc, "num_results", "100");
     add_cfg_to_task(subsc, "ts_field","1");
     add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
 
     TaskMeta* recv =  add_operator_to_alter(topo, operator_id_t(compID, 2), "FixedRateQueue");
-    add_cfg_to_task(recv, "ms_wait", "250"); //4 dequeues per second
+    add_cfg_to_task(recv, "ms_wait", "333"); //3 dequeues per second
     add_operator_to_alter(topo, operator_id_t(compID, 3), "DummyReceiver");
 
     add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
@@ -344,13 +344,32 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     node->handle_alter(topo, r);
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     
-    shared_ptr<DataPlaneOperator> dest = node->get_operator( operator_id_t(compID, 3));
-    shared_ptr<DummyReceiver> receiver = boost::static_pointer_cast<DummyReceiver>(dest);
+    shared_ptr<DummyReceiver> receiver = boost::static_pointer_cast<DummyReceiver>(
+    node->get_operator( operator_id_t(compID, 3)));
 
-
-
-
-    js_usleep(50 * 1000);
+  const int URL_COUNT = 10;
+  string urls[URL_COUNT];
+  for (int i =0; i < URL_COUNT; ++i)
+    urls[i] = "url" + boost::lexical_cast<string>(i);
+  
+  for (int t= 0; t < 10; ++t) {
+    time_t now = time(NULL);
+    for( int i =0; i < URL_COUNT; ++i) {
+      boost::shared_ptr<Tuple> tuple(new Tuple);
+      extend_tuple(*tuple, urls[i]);
+      extend_tuple_time(*tuple, now);
+      extend_tuple(*tuple, 1);
+      tuple->set_version(0);
+      cube->process(tuple);
+    }
+    js_usleep(1000 * 1000);
+    if (t % 2 == 0)
+      cout << "tick" << endl;
+  }
+  cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
+//  for (int i = 0; i < receiver->tuples.size(); ++i)
+//    cout << fmt( (*receiver->tuples[i])) << endl;
+//    js_usleep(50 * 1000);
 //subscriber, attached to a limited-rate sender, attached to a dest.
   
 
