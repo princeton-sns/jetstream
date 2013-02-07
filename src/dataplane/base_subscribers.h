@@ -154,6 +154,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
       congest_policy = p;
     }
 
+    int window_size() {return windowSizeMs;}
 
   private:
     const static std::string my_type_name;

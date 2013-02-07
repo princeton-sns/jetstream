@@ -482,8 +482,13 @@ VariableCoarseningSubscriber::respond_to_congestion() {
   cur_level += congest_policy->get_step(id(), time_rollup_levels, DTC_LEVEL_COUNT, cur_level);
   int change_in_window = DTC_SECS_PER_LEVEL[cur_level] * 1000 - windowSizeMs;
   // interval_ms = secs_per_level[cur_level] * 1000;
+  int prev_window = windowSizeMs;
   windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
-  LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs;
+  if (prev_window == windowSizeMs)
+    VLOG(1) << "Subscriber " << id() << " staying at period " << windowSizeMs;
+  else
+    LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
+        << " from " << prev_window;
   js_usleep( 1000 * change_in_window);
   querier.set_rollup_level(ts_field, cur_level);
 }
