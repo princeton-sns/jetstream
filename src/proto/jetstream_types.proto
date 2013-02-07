@@ -15,7 +15,7 @@ message NodeID {
 
 /**
 * The ID of a task (aka operator). The computationID is globally unique within a
-* particular JetStream cluster and identifies the computation or topology to which 
+* particular JetStream cluster and identifies the computation or topology to which
 * this task belongs. The task field is unique within a computation.
 */
 message TaskID {
@@ -57,7 +57,7 @@ message TaskMeta {
     required string val = 2;
   }
   repeated DictEntry config = 4;    // list of key-value pairs.
- 
+
   //TODO: Determine minimal set of attributes client must specify for submitted operators.
   // optional int32 partialAggRatio
 }
@@ -68,7 +68,7 @@ message CubeSchema {
  //un-needed; this is present in the CubeMeta
 
   message Dimension {
-    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; TIME_HIERARCHY = 5; }
+    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; TIME_HIERARCHY = 5; TIME_CONTAINMENT=6; }
     required string name = 1;
     required DimensionType type = 2;
     repeated int32 tuple_indexes = 3;
@@ -77,7 +77,7 @@ message CubeSchema {
 
   message Aggregate {
     required string name = 1;
-    required string type = 2;  // class name of aggregate type, e.g. 'average' or 'count', 
+    required string type = 2;  // class name of aggregate type, e.g. 'average' or 'count',
     repeated int32 tuple_indexes = 3;
   }
   repeated Aggregate aggregates = 3;
@@ -96,7 +96,7 @@ message CubeMeta {
   // If overwrite_old set to true, cube will be emptied on create; schema will be
   // changed if table already existed. If set to false, schema will not be changed.
   // TODO: Create should succeed only if existing table has same schema.
-  optional bool overwrite_old = 4 [default = false];  
+  optional bool overwrite_old = 4 [default = false];
 }
 
 
@@ -125,7 +125,7 @@ message Edge {
   optional int32 dest = 5;         // operator ID, local
   optional string dest_cube = 6;   // cube name, local or remote
   optional NodeID dest_addr = 7;   // dest address if remote
-  
+
   optional double max_kb_per_sec = 8;
 }
 
@@ -135,13 +135,13 @@ message CongestPolicySpec {
 
 /**
 * An AlterTopo specifies a set of mutations to the query graph of a single
-* computation. 
+* computation.
 *
 * When used as a request, it includes operators and cubes to start, operators and
-* cubes to stop, and edges to add. Since cubes are shared across computations, care 
+* cubes to stop, and edges to add. Since cubes are shared across computations, care
 * must be taken when starting/stopping them (but the directive should still be
-* associated with a computation ID). 
-* 
+* associated with a computation ID).
+*
 * When used as a response, the AlterTopo message indicates which operators and cubes
 * were successfully started/stopped.
 */
@@ -151,8 +151,8 @@ message AlterTopo {
 
   repeated TaskMeta toStart = 2;
   repeated CubeMeta toCreate = 3;
-  repeated TaskID taskToStop = 4; 
-  repeated string cubesToStop = 5; 
+  repeated TaskID taskToStop = 4;
+  repeated string cubesToStop = 5;
   repeated Edge edges = 6;
   repeated CongestPolicySpec congest_policies = 7;
 }
@@ -173,7 +173,7 @@ message Error {
 }
 
 
-/*** 
+/***
 * A message between controller and workers, or from client to controller.
 * The fields of the message should line up with the type field. This is a human
 * notational convenience, and not enforced or used in the code.
@@ -184,16 +184,16 @@ message Error {
 *   NODE_COUNT_REQ is currently un-implemented
 *   ALTER to client should result in an ALTER_RESPONSE
 *   ALTER to controller should result in OK or ERROR. If OK, started_comp_id should be set
-*   
-*   STOP_COMPUTATION to worker should result in ALTER_RESPONSE with a list of stopped operators.  
+*
+*   STOP_COMPUTATION to worker should result in ALTER_RESPONSE with a list of stopped operators.
 *   STOP_COMPUTATION to controller will result in OK if comp. was running, else ERROR.
 *
 */
 message ControlMessage {
-  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5; 
+  enum ControlType { ERROR = 2; HEARTBEAT = 3; GET_NODE_LIST_REQ = 4; NODE_COUNT_REQ = 5;
                      ALTER = 6; ALTER_RESPONSE = 7; NODES_RESPONSE = 8; STOP_COMPUTATION  = 9;  OK = 10;}
-  required ControlType type = 1; 
-  
+  required ControlType type = 1;
+
   optional Error error_msg = 2;
   optional Heartbeat heartbeat = 3;
   optional int32 node_count = 5;  // present if type is NODE_COUNT_REQ
@@ -201,7 +201,7 @@ message ControlMessage {
   repeated NodeID nodes = 7;      // present if type is NODES_RESPONSE
   optional int32 started_comp_id = 8; // present in an OK sent back from controller in response to an alter
   optional int32 comp_to_stop = 9;  // present if type is STOP_COMPUTATION
-   
+
 }
 
 
@@ -216,11 +216,11 @@ message ControlMessage {
 *    A TPUT_START has a set of bounds, as tuples, a sort order, and k
 *    A TPUT_ROUND_2 has just a threshold n and a column id
 *    A TPUT_ROUND_3 has a list of dimension values, as tuples
-*/ 
+*/
 message DataplaneMessage {
-  enum DataplaneType { ERROR = 2; 
+  enum DataplaneType { ERROR = 2;
   DATA = 3; ACK = 11;
-  CHAIN_CONNECT = 4; CHAIN_READY = 5; NO_MORE_DATA = 6; 
+  CHAIN_CONNECT = 4; CHAIN_READY = 5; NO_MORE_DATA = 6;
   TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9; END_OF_WINDOW = 10;
   TPUT_START = 20; TPUT_ROUND_2 = 25; TPUT_ROUND_3 = 26;
   }
@@ -232,10 +232,10 @@ message DataplaneMessage {
   optional sfixed64 timestamp = 7;
   optional double congestion_level = 8; // ratio between queue capacity and data sent. > 1 means uncongested.
   optional double filter_level = 9; //the level of filtering to impose. Same units as above.
-  optional int32 window_length_ms = 10; //the time-length for the window that just ended 
-  
+  optional int32 window_length_ms = 10; //the time-length for the window that just ended
+
   optional int32 bytes_processed =11;  // an ack
-  
+
   optional Tuple tput_r1_start = 20;
   optional Tuple tput_r1_end = 21;
   optional string tput_sort_key = 22;
@@ -262,9 +262,9 @@ message JSHistogram {
 message JSCMSketch {
   required uint32 d = 1 ;
   required uint32 w = 2;
-  required uint32 rand_seed = 3;  
+  required uint32 rand_seed = 3;
 //  repeated fixed32 hash_vals = 3; // a1 b1 a2 b2, etc
-  
+
     //TODO THIS IS DANGEROUS SINCE WE DON'T HANDLE ENDIAN-NESS
   repeated bytes exact_levels = 4;
   repeated bytes panes = 5;

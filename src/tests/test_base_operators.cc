@@ -156,7 +156,7 @@ TEST(Operator, GrepOperator)
     boost::shared_ptr<Tuple> t(new Tuple);
     t->add_e()->set_s_val("/user/foo");
     t->add_e()->set_s_val("/var/bar"); //should NOT match
-    t->set_version(0);    
+    t->set_version(0);
     grepper->process(t);
   }
   ASSERT_EQ((size_t)1, rec->tuples.size());
@@ -179,7 +179,7 @@ TEST(Operator, OperatorChain)
   // For convenience, use the same config table for multiple operators
   map<string,string> config;
 
-  // Create a chain of operators that reads lines from a file, filters them, and 
+  // Create a chain of operators that reads lines from a file, filters them, and
   // stores the results
   FileRead reader;
   config["file"] = "src/tests/data/base_operators_data.txt";
@@ -424,7 +424,7 @@ TEST(Operator, TRoundingOperator) {
     ASSERT_EQ((size_t)1, rec2->tuples.size());
     boost::shared_ptr<Tuple> result = rec2->tuples[0];
 
-    ASSERT_EQ((size_t)3, result->e_size());
+    ASSERT_EQ((size_t)3, (size_t) result->e_size());
     ASSERT_EQ(correct, result->e(2).t_val()) << "input was " << fmt(*t) << endl
                                        << "result was " << fmt(*result) << endl;
   }

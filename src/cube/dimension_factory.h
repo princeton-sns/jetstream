@@ -4,6 +4,7 @@
 #include "mysql/dimension_time.h"
 
 #include "mysql/dimension_time_hierarchy.h"
+#include "mysql/dimension_time_containment.h"
 #include "mysql/dimension_int.h"
 #include "mysql/dimension_string.h"
 #include "mysql/dimension_double.h"
@@ -13,7 +14,7 @@
 
 namespace jetstream {
 namespace cube {
-  
+
 template <class I>
 struct DimensionFactory{
   static boost::shared_ptr<I> create(jetstream::CubeSchema_Dimension _schema)
@@ -34,6 +35,10 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
     }
     else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_HIERARCHY){
         boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeHierarchy>();
+        obj->init(_schema);
+      return obj;
+    }else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT){
+        boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeContainment>();
         obj->init(_schema);
       return obj;
     }

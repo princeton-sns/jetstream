@@ -45,7 +45,7 @@ class CubeTest : public ::testing::Test {
       agg->set_type("avg");
       agg->add_tuple_indexes(3);
       agg->add_tuple_indexes(5);
-      
+
       MysqlCube::set_db_params("localhost", "root", "", "test_cube");
     }
 
@@ -269,7 +269,7 @@ TEST_F(CubeTest, ProcessTest) {
   ASSERT_EQ(1U, it.numCells());
   shared_ptr<Tuple> ret = *it;
   check_tuple(ret, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  ASSERT_EQ(0U, ret->version()); 
+  ASSERT_EQ(0U, ret->version());
 
   t = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
@@ -280,7 +280,7 @@ TEST_F(CubeTest, ProcessTest) {
   ASSERT_EQ(1U, it.numCells());
   ret = *it;
   check_tuple(ret, time_entered, "http:\\\\www.example.com", 200, 100, 2 );
-  ASSERT_EQ(1U, ret->version()); 
+  ASSERT_EQ(1U, ret->version());
 
 }
 
@@ -921,17 +921,17 @@ TEST(Cube,Attach) {
 
   ASSERT_EQ(1U, it.numCells());
   unsigned int total_count = 0;
- 
+
   {  //scope to hide 't'
     shared_ptr<Tuple> t = *it;
     ASSERT_EQ(2, t->e_size()); //two elements; the dimension and the the count
     //ASSERT_EQ(K-1, t->version()); //k - 1
-    
+
     total_count += t->e(1).i_val();
   }
   ASSERT_EQ(K, total_count);
-  
-  
+
+
   cout << "done"<< endl;
   node.stop();
 
@@ -1094,6 +1094,141 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
 
 }
 
+TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
+  jetstream::CubeSchema schema;
+  jetstream::CubeSchema_Dimension * dim = schema.add_dimensions();
+  dim->set_name("time");
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
+  dim->add_tuple_indexes(0);
+
+  dim = schema.add_dimensions();
+  dim->set_name("url");
+  dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
+  dim->add_tuple_indexes(1);
+
+  dim = schema.add_dimensions();
+  dim->set_name("response_code");
+  dim->set_type(CubeSchema_Dimension_DimensionType_INT32);
+  dim->add_tuple_indexes(2);
+
+  jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
+  agg->set_name("count");
+  agg->set_type("count");
+  agg->add_tuple_indexes(4);
+
+  agg = schema.add_aggregates();
+  agg->set_name("avg_size");
+  agg->set_type("avg");
+  agg->add_tuple_indexes(3);
+  agg->add_tuple_indexes(5);
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "web_requests", true);
+
+  cube->destroy();
+  cube->create();
+
+  jetstream::Element *e;
+
+  //make it even on the minute
+  time_t time_entered = time(NULL);
+  struct tm temptm;
+  gmtime_r(&time_entered, &temptm);
+  temptm.tm_sec=0;
+  time_entered = timegm(&temptm);
+
+  list<int> rscs;
+  rscs.push_back(1);
+  rscs.push_back(2);
+  rscs.push_back(60*60+1);
+  rscs.push_back(60*60+1);
+
+  for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
+    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+    insert_tuple(*t, time_entered+(*i), "http:\\\\www.example.com", *i, 500, 100);
+    cube->process(t);
+  }
+
+  cube->wait_for_commits();
+
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+  e=empty.add_e(); //url
+  e=empty.add_e(); //rc
+
+  jetstream::Tuple max;
+  e=max.add_e(); //time
+  e->set_t_val(time_entered+1);
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+
+  vector<unsigned int> levels;
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_SECOND);
+  levels.push_back(1);
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  CubeIterator it = cube->rollup_slice_query(levels, max, max);
+  ASSERT_EQ(1U, it.numCells());
+  boost::shared_ptr<Tuple> ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(time_entered+1, ptrTup->e(0).t_val());
+  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  //ASSERT_EQ(1, ptrTup->e(2).i_val());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  //ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(100, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
+
+  levels.clear();
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_SECOND-1);//5sec
+  levels.push_back(1);
+  levels.push_back(0);
+
+  max.clear_e();
+  e=max.add_e(); //time
+  e->set_t_val(time_entered);
+  e=max.add_e(); //url
+  e=max.add_e(); //rc
+
+
+  cube->do_rollup(levels, empty, empty);
+  it = cube->rollup_slice_query(levels, max, max);
+  ASSERT_EQ(1U, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
+  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  //ASSERT_EQ(1, ptrTup->e(2).i_val());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  //ASSERT_EQ(0, ptrTup->e(4).i_val());
+  ASSERT_EQ(200, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
+
+  //test full rollup
+  levels.clear();
+  levels.push_back(0);
+  levels.push_back(1);
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  it = cube->rollup_slice_query(levels, empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+  ptrTup = *it;
+  ASSERT_TRUE(ptrTup);
+  ASSERT_EQ(0, ptrTup->e(0).t_val());
+  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
+  ASSERT_EQ(0, ptrTup->e(2).i_val());
+  ASSERT_EQ(400, ptrTup->e(3).i_val());
+  ASSERT_EQ(5, ptrTup->e(4).i_val());
+
+}
+
+
+
+
+
 TEST_F(CubeTest, Aggregates) {
 
   sc = new jetstream::CubeSchema();
@@ -1130,10 +1265,10 @@ TEST_F(CubeTest, Aggregates) {
   agg->add_tuple_indexes(6);
 
   MysqlCube * cube = new MysqlCube(*sc, "agg_tests", true);
-  
+
   boost::shared_ptr<Aggregate> vers_agg = cube->get_aggregate("version");
   ASSERT_TRUE( vers_agg != NULL );
-  
+
   //  cube->destroy();
   cube->create();
 
@@ -1156,13 +1291,13 @@ TEST_F(CubeTest, Aggregates) {
   e->set_d_val((double) 1);  //5 - min-d
   e=t.add_e();
   e->set_t_val((time_t) 1);  //6 - min-t
-  
+
   boost::shared_ptr<jetstream::Tuple> new_tuple;
   boost::shared_ptr<jetstream::Tuple> old_tuple;
   try {
     cube->save_tuple(t, true, false, new_tuple, old_tuple);
   } catch (sql::SQLException &e) {
-    LOG(FATAL) << e.what();    
+    LOG(FATAL) << e.what();
   }
   t.clear_e();
   e = t.add_e();
@@ -1179,7 +1314,7 @@ TEST_F(CubeTest, Aggregates) {
   e->set_d_val((double) 2);  //5 - min-d
   e=t.add_e();
   e->set_t_val((time_t) 2);  //6 - min-t
-  
+
   cube->save_tuple(t, true, false, new_tuple, old_tuple);
 
   ASSERT_EQ(time_entered, new_tuple->e(0).t_val());
@@ -1190,7 +1325,7 @@ TEST_F(CubeTest, Aggregates) {
   ASSERT_EQ((double)1, new_tuple->e(5).d_val());
   ASSERT_EQ((time_t)1, new_tuple->e(6).t_val());
 
-  
+
 }
 /*
 TEST_F(CubeTest, TimeRollupManager) {

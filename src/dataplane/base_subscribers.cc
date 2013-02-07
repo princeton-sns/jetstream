@@ -121,14 +121,14 @@ Querier::set_rollup_level(int fieldID, unsigned r_level) {
     for(int i =0; i < min.e_size(); ++i)
       rollup_levels.push_back(DataCube::LEAF_LEVEL);
   }
-  
-  assert (fieldID < rollup_levels.size());
-  
+
+  assert ((unsigned int) fieldID < rollup_levels.size());
+
   rollup_levels[fieldID] = r_level;
   if (cube->is_unrolled(rollup_levels)) {
     rollup_levels.clear();
   }
-  
+
 }
 
 
@@ -495,7 +495,7 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
   if (ts_field < 0)
     return "time field is mandatory for variable coarsening for now";
 
-  for (int i = 0; i < DTC_LEVEL_COUNT; ++i)
+  for (unsigned int i = 0; i < DTC_LEVEL_COUNT; ++i)
     time_rollup_levels[i] = 1.0 / DTC_SECS_PER_LEVEL[i];
   return NO_ERR;
 }

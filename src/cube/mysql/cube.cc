@@ -68,7 +68,7 @@ boost::shared_ptr<MysqlCube::ThreadConnection> MysqlCube::get_thread_connection(
   if(connectionPool.count(tid) == 0) {
     upgrade_lock<boost::upgrade_mutex> writeLock(connectionLock);
     VLOG(1) << "creating new SQL connection for thread " << tid;
-    
+
     sql::Driver * driver = sql::mysql::get_driver_instance();
 
     boost::shared_ptr<MysqlCube::ThreadConnection> tc = get_uncached_connection(driver);
@@ -320,7 +320,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_lock_prepared_statement
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
     string sql= "LOCK TABLES `"+table_name+"` WRITE" ;
-    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql);
   }
 
   return tc->preparedStatementCache[key];
@@ -332,7 +332,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_unlock_prepared_stateme
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
     string sql= "UNLOCK TABLES";
-    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql);
   }
 
   return tc->preparedStatementCache[key];
@@ -344,7 +344,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_select_cell_prepared_st
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
     string sql= get_select_cell_prepared_sql(batch);
-    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql);
   }
 
   return tc->preparedStatementCache[key];
@@ -355,7 +355,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_stateme
   boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
   if(tc->preparedStatementCache.count(key) == 0) {
     string sql= get_insert_prepared_sql(batch);
-    tc->preparedStatementCache[key] = create_prepared_statement(sql); 
+    tc->preparedStatementCache[key] = create_prepared_statement(sql);
   }
 
   return tc->preparedStatementCache[key];
@@ -365,13 +365,13 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::get_insert_prepared_stateme
 void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple) {
   boost::shared_ptr<sql::PreparedStatement> lock_stmt;
   boost::shared_ptr<sql::PreparedStatement> old_value_stmt;
-  boost::shared_ptr<sql::PreparedStatement> insert_stmt; 
+  boost::shared_ptr<sql::PreparedStatement> insert_stmt;
   boost::shared_ptr<sql::PreparedStatement> new_value_stmt;
   boost::shared_ptr<sql::PreparedStatement> unlock_stmt;
 
   /**** Setup statements *****/
   int field_index;
-  
+
   if(!assumeOnlyWriter) {
     lock_stmt = get_lock_prepared_statement(get_table_name());
     unlock_stmt = get_unlock_prepared_statement();
@@ -385,7 +385,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
       dimensions[i]->set_value_for_insert_tuple(old_value_stmt, t, field_index);
     }
   }
-  
+
   insert_stmt = get_insert_prepared_statement(1);
   field_index = 1;
 //  LOG(INFO) << "Saving tuple; statement is " << insert_stmt->;
@@ -423,7 +423,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
   if(need_new_value) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
-  
+
   if(!assumeOnlyWriter) {
     unlock_stmt->execute();
   }
@@ -435,7 +435,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
   else {
     old_tuple.reset();
   }
-  
+
   if(need_new_value && new_value_results->first())
     new_tuple = make_tuple_from_result_set(new_value_results, false);
   else
@@ -443,19 +443,19 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
 }
 
 
-void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
-       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
+void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store,
+       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
        std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list) {
 
   boost::shared_ptr<sql::PreparedStatement> lock_stmt;
   boost::shared_ptr<sql::PreparedStatement> old_value_stmt;
-  boost::shared_ptr<sql::PreparedStatement> insert_stmt; 
+  boost::shared_ptr<sql::PreparedStatement> insert_stmt;
   boost::shared_ptr<sql::PreparedStatement> new_value_stmt;
   boost::shared_ptr<sql::PreparedStatement> unlock_stmt;
 
   /**** Setup statements *****/
   int field_index;
-  
+
   if(!assumeOnlyWriter) {
     lock_stmt = get_lock_prepared_statement(get_table_name());
     unlock_stmt = get_unlock_prepared_statement();
@@ -473,7 +473,7 @@ void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple>
       }
     }
   }
-    
+
   insert_stmt = get_insert_prepared_statement(tuple_store.size());
 
   field_index = 1;
@@ -487,7 +487,7 @@ void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple>
       aggregates[i]->set_value_for_insert_tuple(insert_stmt, *(tuple_store[ti]), field_index);
     }
   }
-  
+
   size_t count_new = std::count(need_new_value_store.begin(), need_new_value_store.end(), true);
   if(count_new > 0) {
     new_value_stmt = get_select_cell_prepared_statement(count_new, "new_value");
@@ -519,7 +519,7 @@ void MysqlCube::save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple>
   if(count_new > 0) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
-  
+
   if(!assumeOnlyWriter) {
     unlock_stmt->execute();
   }
@@ -764,12 +764,13 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
 
     column_names.push_back(dimensions[i]->get_rollup_level_column_name());
     select_clause.push_back(dimensions[i]->get_select_clause_for_rollup(*iLevel));
-    string groupby = dimensions[i]->get_groupby_clause_for_rollup(*iLevel);
+    if(*iLevel > 0) {
+      string groupby = dimensions[i]->get_groupby_clause_for_rollup(*iLevel);
 
-    if(!groupby.empty()) {
-      groupby_clause.push_back(groupby);
+      if(!groupby.empty()) {
+        groupby_clause.push_back(groupby);
+      }
     }
-
     iLevel++;
   }
 
@@ -814,7 +815,7 @@ MysqlCube::list_sql_cubes() {
       (*cubeList)[s] = 1;
     }
   }
-  
+
   return cubeList;
 }
 
