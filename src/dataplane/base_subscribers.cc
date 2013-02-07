@@ -45,6 +45,12 @@ namespace jetstream {
 
 void
 ThreadedSubscriber::start() {
+
+  if (!has_cube()) {
+    LOG(ERROR) << "No cube for subscriber " << id() << " aborting";
+    return;
+  }
+
   running = true;
   querier.set_cube(cube);
   loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
@@ -141,7 +147,7 @@ OneShotSubscriber::operator()() {
     it++;
   }
   no_more_tuples();
-
+  node->stop_operator(id());
 }
 
 cube::Subscriber::Action
@@ -189,6 +195,12 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
+    if (querier.min.e_size() <= ts_field) {
+      ostringstream of;
+      of << "can't use field " << ts_field << " as time; input only has "
+         << querier.min.e_size() << " fields";
+      return of.str();
+    }
     querier.min.mutable_e(ts_field)->set_t_val(start_ts);
 
   } else
@@ -232,6 +244,7 @@ TimeBasedSubscriber::respond_to_congestion() {
 
 void
 TimeBasedSubscriber::operator()() {
+
   boost::shared_ptr<TimeTeller> tt(new TimeTeller());
 
   if (simulation) {
@@ -468,6 +481,7 @@ VariableCoarseningSubscriber::respond_to_congestion() {
   int change_in_window = DTC_SECS_PER_LEVEL[cur_level] * 1000 - windowSizeMs;
   // interval_ms = secs_per_level[cur_level] * 1000;
   windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
+  LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs;
   js_usleep( 1000 * change_in_window);
   querier.set_rollup_level(ts_field, cur_level);
 }

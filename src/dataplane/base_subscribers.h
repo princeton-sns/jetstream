@@ -86,11 +86,13 @@ class ThreadedSubscriber: public jetstream::cube::Subscriber {
     virtual void start();
     virtual void operator()() = 0;  // A thread that will loop while reading the file
     virtual void stop() {
-      LOG(INFO) << id() << " received stop()";
+      LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
         running = false;
+        loopThread->interrupt();
         loopThread->join();
       }
+      VLOG(1) << id() <<  " joined with loop thread";
     }  
   
   

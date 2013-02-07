@@ -172,12 +172,17 @@ GENERIC_CLNAME
 class FixedRateQueue: public DataPlaneOperator {
  public:
 
-  FixedRateQueue() : running(false) {}
+  FixedRateQueue() : running(false) //,elements_queued(0)
+  {}
+  
+  virtual ~FixedRateQueue() {
+    stop();
+  }
   
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
   virtual void process(boost::shared_ptr<Tuple> t);
-  virtual void stop() { running = false; timer->cancel(); }
+  virtual void stop();
 
   void process1();
   
@@ -186,16 +191,21 @@ class FixedRateQueue: public DataPlaneOperator {
   }
   
   int queue_length() {
-    return mon->queue_length();
+//    return mon->queue_length();
+    return q.size();
   }
   
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
+  
 private:
-  bool running;
+  volatile bool running;
   int ms_per_dequeue;
+//  int elements_queued;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
   std::queue< boost::shared_ptr<Tuple> > q;
   boost::mutex mutex;
-  boost::shared_ptr<QueueCongestionMonitor> mon;
+  boost::shared_ptr<NetCongestionMonitor> mon;
 
 
 GENERIC_CLNAME

@@ -316,6 +316,42 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
     cout << fmt( *(rec->tuples[i]) ) << endl;
   }
   sub.stop();
+}
 
+
+
+TEST_F(SubscriberTest,VariableSubscriber) {
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+  ASSERT_EQ(2, cube->get_schema().dimensions_size());
+  //schema is URL, time, count
+  
+    AlterTopo topo;
+    Tuple query_tuple = cube->empty_tuple();
+    TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "TimeBasedSubscriber"); //"VariableCoarseningSubscriber");
+    add_cfg_to_task(subsc, "num_results", "100");
+    add_cfg_to_task(subsc, "ts_field","1");
+    add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
+
+    TaskMeta* recv =  add_operator_to_alter(topo, operator_id_t(compID, 2), "FixedRateQueue");
+    add_cfg_to_task(recv, "ms_wait", "250"); //4 dequeues per second
+    add_operator_to_alter(topo, operator_id_t(compID, 3), "DummyReceiver");
+
+    add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
+    add_edge_to_alter(topo, compID, 1,2);
+    add_edge_to_alter(topo, compID, 2,3);
+    
+    ControlMessage r;
+    node->handle_alter(topo, r);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
+    
+    shared_ptr<DataPlaneOperator> dest = node->get_operator( operator_id_t(compID, 3));
+    shared_ptr<DummyReceiver> receiver = boost::static_pointer_cast<DummyReceiver>(dest);
+
+
+
+
+    js_usleep(50 * 1000);
+//subscriber, attached to a limited-rate sender, attached to a dest.
+  
 
 }

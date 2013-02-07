@@ -173,6 +173,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
     TaskMeta * queueTask = add_operator_to_alter(topo, mockCongestID[i], "FixedRateQueue");
     add_cfg_to_task(queueTask, "ms_wait", boost::lexical_cast<string>(queueWait)); //twenty tuples per second =  20/sec
     add_cfg_to_task(queueTask, "queue_length", boost::lexical_cast<string>(targetLen));
+    add_cfg_to_task(queueTask, "mon_type", "queue");
 
     add_edge_to_alter(topo,  chainHeadIDs[i], filterID);
     add_edge_to_alter(topo,  filterID, mockCongestID[i]);

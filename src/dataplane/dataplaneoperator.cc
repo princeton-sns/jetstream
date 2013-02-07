@@ -67,7 +67,8 @@ DataPlaneOperator::no_more_tuples () {
     dest.reset(); //trigger destruction if no more pointers.
   }
   if (node != NULL) {
-    node->stop_operator(operID); 
+    //can't stop here -- causes a cycle. Also probably unnecessary.
+//    node->stop_operator(operID);
   }
 }
 
