@@ -8,7 +8,13 @@
 namespace jetstream {
 
 class CongestionMonitor {
+  protected:
+    std::string name_;
+  
+
   public:
+    CongestionMonitor(const std::string& n) : name_(n) {};
+
     /** Returns the ratio between the capacity and the current send rate.
       Upstream sources should scale their send rate by this ratio
     */
@@ -17,6 +23,8 @@ class CongestionMonitor {
     bool is_congested() {return capacity_ratio() < 1;}
 
     virtual ~CongestionMonitor() {};
+  
+    const std::string& name() { return name_; }
   /*
     void wait_for_space() {
       while (is_congested()) {
@@ -31,6 +39,9 @@ class CongestionMonitor {
 
 class UncongestedMonitor: public CongestionMonitor {
   public:
+    UncongestedMonitor() : CongestionMonitor("UncongestedMonitor") {}
+    
+  
     virtual double capacity_ratio() {
       return 10; // can ramp up exponentially with this ratio
     }

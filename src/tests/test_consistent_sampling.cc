@@ -149,7 +149,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   operator_id_t stub_id (compID, nextOpID++);
   operator_id_t c_controller_id(compID, nextOpID++);
   
-  {       //First, set up job 1
+  {       //First, set up a task and show that it reaches a steady state filter rate
     AlterTopo topo;
     int i = 0;
 
@@ -173,6 +173,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
     TaskMeta * queueTask = add_operator_to_alter(topo, mockCongestID[i], "FixedRateQueue");
     add_cfg_to_task(queueTask, "ms_wait", boost::lexical_cast<string>(queueWait)); //twenty tuples per second =  20/sec
     add_cfg_to_task(queueTask, "queue_length", boost::lexical_cast<string>(targetLen));
+    add_cfg_to_task(queueTask, "mon_type", "queue");
 
     add_edge_to_alter(topo,  chainHeadIDs[i], filterID);
     add_edge_to_alter(topo,  filterID, mockCongestID[i]);
@@ -193,7 +194,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
             nodes[0]->get_operator( receiver_id ));
   
   
-  js_usleep(1000 * 1000 * 2);
+  js_usleep(1000 * 1000 * 12);
   int qLen = congest_op->queue_length();
   cout << "queue length is " << qLen << " congestion ratio is " <<
       congest_op->congestion_monitor()->capacity_ratio()  << endl;
@@ -205,6 +206,8 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
 
   int SECOND_HALF_WAIT = 5; //seconds
 
+/** Now we're adding a second source, without a bottleneck
+*/
   {
     AlterTopo topo;  
 

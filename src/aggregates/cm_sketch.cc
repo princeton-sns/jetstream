@@ -322,8 +322,8 @@ CMMultiSketch::merge_in(const CMMultiSketch & rhs) {
   return true;
 }
 
-
-CMMultiSketch::CMMultiSketch(const JSCMSketch& serialized) {
+void
+CMMultiSketch::fillIn(const JSCMSketch& serialized) {
 
   exact_counts = new count_val_t*[EXACT_LEVELS];
   

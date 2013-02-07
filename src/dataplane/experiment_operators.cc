@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <glog/logging.h>
+#include "window_congest_mon.h"
 
 using namespace std;
 using namespace boost;
@@ -85,6 +86,7 @@ ContinuousSendK::emit_1() {
   t->set_version(num_sent++ );
   emit(t);
   boost::this_thread::sleep(boost::posix_time::milliseconds(period));
+  
   return false; //never break out of loop
 }
 
@@ -206,7 +208,7 @@ EchoOperator::~EchoOperator() {
 class MyMon: public CongestionMonitor {
   public:
     MockCongestion & m;
-    MyMon(MockCongestion & m2):m(m2) {}
+    MyMon(MockCongestion & m2): CongestionMonitor("mock"),m(m2) {}
   
     virtual double capacity_ratio() {
       return m.congestion;
@@ -231,60 +233,97 @@ FixedRateQueue::configure(std::map<std::string,std::string> &config) {
     return operator_err_t(id().to_string() + ": Must set parameter ms_wait");
 //    ms_per_dequeue = 500;
 
-  int max_q_len = 0;
-  if (config["queue_length"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["queue_length"]) >> max_q_len)) {
-      LOG(WARNING) << "invalid queue length: " << config["queue_length"]<< " for " << id() << endl;
-      return operator_err_t("Invalid  queue length: '" + config["queue_length"] + "' is not a number.");
-    }
+
+  if (config["mon_type"] == "queue") {
+    int max_q_len = 0;
+    if (config["queue_length"].length() > 0) {
+      // stringstream overloads the '!' operator to check the fail or bad bit
+      if (!(stringstream(config["queue_length"]) >> max_q_len)) {
+        LOG(WARNING) << "invalid queue length: " << config["queue_length"]<< " for " << id() << endl;
+        return operator_err_t("Invalid  queue length: '" + config["queue_length"] + "' is not a number.");
+      }
+    } else
+      return operator_err_t(id().to_string() + ": Must set parameter queue_length");
+  
+    mon = boost::shared_ptr<NetCongestionMonitor>(new QueueCongestionMonitor(max_q_len, id().to_string()));
   } else
-    return operator_err_t(id().to_string() + ": Must set parameter queue_length");
-
-
-  mon = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(max_q_len, id().to_string()));
-
+    mon = boost::shared_ptr<NetCongestionMonitor>(new WindowCongestionMonitor(id().to_string()));
+  
   return NO_ERR;
 }
 
-void FixedRateQueue::start() {
+void
+FixedRateQueue::start() {
   running = true;
   timer = get_timer();
   timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
   timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
 }
 
+void
+FixedRateQueue::stop() {
+//  cout << "in FixedRateQueue stop" << endl;
+  boost::lock_guard<boost::mutex> lock (mutex);
+  running = false;
+  timer->cancel();
+  while (!q.empty())
+    q.pop();
+//  cout << "FixedRateQueue stopped" << endl;
+}
+
+
 
 void
 FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
   boost::lock_guard<boost::mutex> lock (mutex);
-  q.push(t);
+  DataplaneMessage msg;
+  Tuple * t2 = msg.add_data();
+  t2->CopyFrom(*t);
+  q.push(msg);
   mon->report_insert(t.get(), 1);
 }
 
 void
-FixedRateQueue::process1() {
+FixedRateQueue::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+//  boost::shared_ptr<DataplaneMessage> msg2(new DataplaneMessage);
+//  msg2->CopyFrom(msg);
+  q.push(msg);
+  
 
+}
+
+
+void
+FixedRateQueue::process1() {
   if (!running) {
     return; //spurious wakeup, e.g. on close
   }
-
-  //deqeue
-  boost::shared_ptr<Tuple> t;
+  
   {
     boost::lock_guard<boost::mutex> lock (mutex);
-    if (! q.empty())
-      t = q.front();
-    q.pop();
-  }
-//  cout << "dequeue, length = " << q.size() << endl;
-  if (t) {
-    mon->report_delete(t.get(), 1);
-    emit(t);
-  }
+    //deqeue
+    DataplaneMessage msg;
+    
+    if (! q.empty()) {
+      msg = q.front();
+      q.pop();
+    }
+  //  cout << "dequeue, length = " << q.size() << endl;
+    if( msg.data_size() > 0) {
+      boost::shared_ptr<Tuple> t(new Tuple);
+      t->CopyFrom(msg.data(0));
+      mon->report_delete(t.get(), 1);
+      emit(t);
+    } else {
+      if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+        mon->end_of_window(msg.window_length_ms());
+      }
+      DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
+    }
 
-  timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
-  timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
+    timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
+    timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
+  }
 }
 
 

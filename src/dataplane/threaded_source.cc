@@ -79,4 +79,13 @@ ThreadedSource::operator()() {
     no_more_tuples();
 }
 
+void
+ThreadedSource::end_of_window(msec_t duration) {
+  DataplaneMessage end_msg;
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+  end_msg.set_window_length_ms(duration);
+  send_meta_downstream(end_msg);
+  
+}
+
 }

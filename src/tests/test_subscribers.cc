@@ -316,6 +316,66 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
     cout << fmt( *(rec->tuples[i]) ) << endl;
   }
   sub.stop();
+}
 
+
+
+TEST_F(SubscriberTest,VariableSubscriber) {
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+  ASSERT_EQ(2, cube->get_schema().dimensions_size());
+  //schema is URL, time, count
+  
+    AlterTopo topo;
+    Tuple query_tuple = cube->empty_tuple();
+    TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "VariableCoarseningSubscriber");
+    add_cfg_to_task(subsc, "num_results", "100");
+    add_cfg_to_task(subsc, "ts_field","1");
+    add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
+
+    TaskMeta* recv =  add_operator_to_alter(topo, operator_id_t(compID, 2), "FixedRateQueue");
+    add_cfg_to_task(recv, "ms_wait", "250"); //4 dequeues per second
+    add_operator_to_alter(topo, operator_id_t(compID, 3), "DummyReceiver");
+
+    add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
+    add_edge_to_alter(topo, compID, 1,2);
+    add_edge_to_alter(topo, compID, 2,3);
+    
+    ControlMessage r;
+    node->handle_alter(topo, r);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
+    
+  shared_ptr<DummyReceiver> receiver = boost::static_pointer_cast<DummyReceiver>(
+  node->get_operator( operator_id_t(compID, 3)));
+
+  shared_ptr<VariableCoarseningSubscriber> subscriber = boost::static_pointer_cast<VariableCoarseningSubscriber>(
+  node->get_operator( operator_id_t(compID, 1)));
+
+
+  const int URL_COUNT = 10;
+  string urls[URL_COUNT];
+  for (int i =0; i < URL_COUNT; ++i)
+    urls[i] = "url" + boost::lexical_cast<string>(i);
+  
+  for (int t= 0; t < 15; ++t) {
+    time_t now = time(NULL);
+    for( int i =0; i < URL_COUNT; ++i) {
+      boost::shared_ptr<Tuple> tuple(new Tuple);
+      extend_tuple(*tuple, urls[i]);
+      extend_tuple_time(*tuple, now);
+      extend_tuple(*tuple, 1);
+      tuple->set_version(0);
+      cube->process(tuple);
+    }
+    js_usleep(1000 * 1000);
+    if (t % 2 == 0)
+      cout << "tick" << endl;
+  }
+  cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
+  ASSERT_EQ(10000, subscriber->window_size());
+//  for (int i = 0; i < receiver->tuples.size(); ++i)
+//    cout << fmt( (*receiver->tuples[i])) << endl;
+//    js_usleep(50 * 1000);
+//subscriber, attached to a limited-rate sender, attached to a dest.
+  
 
 }

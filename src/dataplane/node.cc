@@ -109,7 +109,7 @@ Node::start ()
 void
 Node::stop ()
 {
-  unique_lock<boost::mutex> lock(threadpoolLock);
+  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
  
   // Use the io service status as a marker for an already-stopped node
   if (iosrv->stopped()) {
@@ -126,8 +126,9 @@ Node::stop ()
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
   while (iter != operators.end()) {
-    LOG(INFO) << " stopping " << iter->first << " (" << iter->second->typename_as_str() << ")";
     shared_ptr<DataPlaneOperator> op = iter->second;
+    assert (op);
+    LOG(INFO) << " stopping " << iter->first << " (" << op->typename_as_str() << ")";
     iter++;
     op->stop(); //note that stop will sometimes remove the operator from the table so we advance iterator first;
   }
@@ -581,22 +582,24 @@ vector<int32_t>
 Node::stop_computation(int32_t compID) {
   LOG(INFO) << "stopping computation " << compID;
   vector<int32_t> stopped_ops;
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
-  
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
-  for ( iter = operators.begin(); iter != operators.end(); ) {
-    operator_id_t op_id = iter->first;
-    boost::shared_ptr<DataPlaneOperator>  op = iter->second;
-     //need to advance iterator BEFORE stop, since iterator to removed element is invalid
-    iter ++;
+  {
+    unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     
-    if (op_id.computation_id == compID) {
-    
-      stopped_ops.push_back(op_id.task_id);
-      // The actual stop. 
-      operator_cleanup.stop_on_strand(op);
-      operators.erase(op_id);
-      operator_cleanup.cleanup(op);      
+    std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+    for ( iter = operators.begin(); iter != operators.end(); ) {
+      operator_id_t op_id = iter->first;
+      boost::shared_ptr<DataPlaneOperator>  op = iter->second;
+       //need to advance iterator BEFORE stop, since iterator to removed element is invalid
+      iter ++;
+      
+      if (op_id.computation_id == compID) {
+      
+        stopped_ops.push_back(op_id.task_id);
+        // The actual stop. 
+        operator_cleanup.stop_on_strand(op);
+        operators.erase(op_id);
+        operator_cleanup.cleanup(op);      
+      }
     }
   }
   LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " <<

@@ -14,7 +14,7 @@ namespace jetstream {
 class WindowCongestionMonitor: public NetCongestionMonitor {
 
   protected:
-    double last_ratio;
+    volatile double last_ratio;
     msec_t window_start_time;
   
   public:
@@ -31,12 +31,7 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
       }
     }
   
-    virtual void end_of_window(int window_ms) {
-      if (window_start_time != 0) {
-        last_ratio = window_ms / double(get_msec() - window_start_time); 
-        window_start_time = 0;
-      }
-    }
+    virtual void end_of_window(int window_ms);
 };
 
 }
