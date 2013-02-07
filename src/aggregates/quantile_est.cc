@@ -147,6 +147,27 @@ LogHistogram::LogHistogram(size_t bt):
   buckets.assign(bucket_starts.size(), 0);
 }
 
+void buckets(unsigned int n, std::vector<unsigned int> &sequence, unsigned int max=UINT_MAX) {
+  // return 1, 2, ..., 2^31, 3, 6, ..., 3 * 2^30, wrapping around before max
+
+  max = min(max, UINT_MAX);  //is this necessary? -asr
+
+  int base = 1;
+  int exp = 0;
+  while (n-- > 0) {
+    sequence.push_back(base * (1 << exp++)); 
+
+    if (sequence.back() > (max >> 1)) {
+      // the next element is always twice the previous element (until wrapping
+      // around), so we wrap around now to avoid overflow. 
+
+      //std::cout << "ending subsequence: " << base << " * 2^" << exp - 1 << std::endl;
+      base += 2; // bases are consecutive odd numbers
+      exp = 0;
+    }
+  }
+}
+
 void
 LogHistogram::set_bucket_starts(size_t bucket_target) {
   const size_t MAX_LAYERS = 10;
