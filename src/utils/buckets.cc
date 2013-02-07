@@ -11,7 +11,6 @@ void buckets(unsigned int n, std::vector<unsigned int> &sequence, unsigned int m
   // return 1, 2, ..., 2^31, 3, 6, ..., 3 * 2^30, wrapping around before max
   // TODO how to indicate error?
 
-  const int bits = 32; // FIXME portability
   max = MIN(max, UINT_MAX);
 
   int base = 1;
