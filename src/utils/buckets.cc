@@ -30,7 +30,7 @@ void buckets(unsigned int n, std::vector<unsigned int> &sequence, unsigned int m
   }
 }
 
-
+/*
 #include <iostream>
 static void print_vec(std::vector<unsigned int> v) {
   std::cout << "length: " << v.size() << ' ';
@@ -62,3 +62,4 @@ int main(void) {
   buckets(400, sequence);
   print_vec(sequence);
 }
+*/
