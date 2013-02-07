@@ -89,10 +89,14 @@ class ReservoirSample: public SampleEstimation {
     virtual size_t pop_seen() const {
       return total_seen;
     }
+  
+    void fillIn(const JSSample&);
 
   public:
     ReservoirSample(int reserv_size): max_size(reserv_size),total_seen(0) {}
-    ReservoirSample(const JSSample&);
+    ReservoirSample(const JSSample& s) {fillIn(s);};
+    ReservoirSample(const JSSummary& s) { fillIn(s.sample()) ; }
+
   
     virtual void serialize_to(JSSummary& q) const ;
   
@@ -117,10 +121,15 @@ class LogHistogram : public QuantileEstimation {
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
   
     virtual void set_bucket_starts(size_t b_count);
+
+    void fillIn(const JSHistogram&);
+
   
   public:
     LogHistogram(size_t buckets);
-    LogHistogram(const JSHistogram&);
+    LogHistogram(const JSHistogram& s) { fillIn(s); }
+    LogHistogram(const JSSummary& s) { fillIn(s.histo()); }
+  
     virtual int quantile(double q);
     virtual void add_item(int v, count_val_t c);
 

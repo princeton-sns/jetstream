@@ -149,7 +149,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   operator_id_t stub_id (compID, nextOpID++);
   operator_id_t c_controller_id(compID, nextOpID++);
   
-  {       //First, set up job 1
+  {       //First, set up a task and show that it reaches a steady state filter rate
     AlterTopo topo;
     int i = 0;
 
@@ -194,7 +194,7 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
             nodes[0]->get_operator( receiver_id ));
   
   
-  js_usleep(1000 * 1000 * 2);
+  js_usleep(1000 * 1000 * 12);
   int qLen = congest_op->queue_length();
   cout << "queue length is " << qLen << " congestion ratio is " <<
       congest_op->congestion_monitor()->capacity_ratio()  << endl;
@@ -206,6 +206,8 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
 
   int SECOND_HALF_WAIT = 5; //seconds
 
+/** Now we're adding a second source, without a bottleneck
+*/
   {
     AlterTopo topo;  
 

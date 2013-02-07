@@ -53,7 +53,8 @@ ReservoirSample::serialize_to(JSSummary& q) const {
   q.mutable_sample()->set_max_items(max_size);
 }
 
-ReservoirSample::ReservoirSample(const JSSample& s) {
+void
+ReservoirSample::fillIn(const JSSample& s) {
   total_seen = s.total_items();
   sample_of_data.reserve(s.items_size());
   max_size = s.max_items();
@@ -261,8 +262,11 @@ LogHistogram::add_item(int v, count_val_t c) {
   buckets[b] += c;
 }
 
-LogHistogram::LogHistogram(const JSHistogram& serialized):
-  total_vals(0), bucket_target(serialized.num_buckets()){
+void
+LogHistogram::fillIn(const JSHistogram& serialized) {
+  total_vals = 0;
+  bucket_target = serialized.num_buckets();
+
   set_bucket_starts( bucket_target);
   buckets.assign(bucket_starts.size(), 0);
 

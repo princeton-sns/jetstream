@@ -95,10 +95,15 @@ class CMMultiSketch: public QuantileEstimation {
               //panes[1] is the dyadic ranges of length 2^BITS_PER_LEVEL.
   count_val_t ** exact_counts; //also finest to coarsest. Last entry has 2 ^ BITS_PER_LEVEL entries
   int rand_seed;
+  void fillIn(const JSCMSketch&);
+
 
  public:
   CMMultiSketch(size_t w, size_t d, int random_seed);
-  CMMultiSketch(const JSCMSketch&);
+  
+  CMMultiSketch(const JSCMSketch& s) {fillIn(s);}
+  CMMultiSketch(const JSSummary& s) {fillIn(s.sketch());}
+  
   ~CMMultiSketch();
 
   virtual void add_item(int data, count_val_t new_val);
