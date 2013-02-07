@@ -56,7 +56,7 @@ class ClientDataReader():
   def bound_socket(addr, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((self.HOST, self.PORT))
+    s.bind((addr, port))
     return s
 
   def prep_to_receive_data(self):
@@ -124,7 +124,7 @@ class ClientDataReader():
         self.tuples.put(ClientDataReader.DoneSentinel)
         break
       else:
-        raise ValueError('Unexpected message type')
+        print 'Unexpected message type: {}'.format(mesg.type)
 
     self.conn_sock.close()
 
