@@ -6,6 +6,7 @@
 #include "mysql_cube.h"
 #include "base_subscribers.h"
 #include "cube_iterator_impl.h"
+#include "quantile_est.h"
 //#include "time_rollup_manager.h"
 
 #include <gtest/gtest.h>
@@ -1225,7 +1226,45 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
 
 }
 
+TEST_F(CubeTest, MysqlTestHistogram) {
+  jetstream::CubeSchema schema;
+  jetstream::CubeSchema_Dimension * dim = schema.add_dimensions();
+  dim->set_name("time");
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
+  dim->add_tuple_indexes(0);
 
+  jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
+  agg->set_name("responses");
+  agg->set_type("quantile");
+  agg->add_tuple_indexes(1);
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "quantiles", true);
+
+  cube->destroy();
+  cube->create();
+
+  time_t time_entered = time(NULL);
+  jetstream::Element *e;
+
+  for (int j = 0; j< 2; ++j ) {
+    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+    e=t->add_e();
+    e->set_t_val(time_entered+j);
+    LogHistogram histo(30);
+    const int ITEMS = 20;
+
+    for(int i = 0; i < ITEMS; ++i) {
+      histo.add_item(i*i+j, 1);
+    }
+
+    e = t->add_e();
+    JSSummary * summary = e->mutable_summary();
+    histo.serialize_to(*summary);
+    cube->process(t);
+  }
+
+  cube->wait_for_commits();
+}
 
 
 

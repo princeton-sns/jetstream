@@ -18,6 +18,7 @@ add_library (jscube ${LIB_SRCS})
 target_link_libraries (jscube ${Boost_LIBRARIES})
 target_link_libraries (jscube jsproto)
 target_link_libraries (jscube jsutils)
+target_link_libraries (jscube jsaggregates)
 target_link_libraries (jscube ${GLOG_LIB})
 target_link_libraries (jscube ${MYSQL_LIBS})
 

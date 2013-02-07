@@ -6,6 +6,7 @@
 #include "mysql/aggregate_string.h"
 #include "mysql/aggregate_min.h"
 #include "mysql/aggregate_version.h"
+#include "mysql/aggregate_quantile.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -32,6 +33,9 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
     else if(_schema.type() == "string") {
       obj = boost::make_shared<MysqlAggregateString>();
     }
+    else if(_schema.type() == "quantile") {
+      obj = boost::make_shared<MysqlAggregateQuantile>();
+    }
     else if(_schema.type() == "min_i") {
       obj = boost::make_shared<MysqlAggregateMin<int> >();
     }
@@ -47,12 +51,12 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
     obj->init(_schema);
     return obj;
   }
-  
+
   static boost::shared_ptr<jetstream::cube::MysqlAggregate> version_aggregate(uint64_t& v) {
     return boost::shared_ptr<MysqlAggregateVersion>(new MysqlAggregateVersion(v));
   }
 
-  
+
 };
 
 } /* cube */
