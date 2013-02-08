@@ -21,7 +21,8 @@
 
 #define STANDARD 1
 #include "mysqludf.h"
-#define HISTOGRAM_SIZE 40
+#define HISTOGRAM_SIZE 30
+#define RESERVOIR_SAMPLE_SIZE 30
 
 #include "jetstream_types.pb.h"
 #include "quantile_est.h"
@@ -50,24 +51,27 @@ extern "C" {
 }
 #endif
 
-struct histo_storage {
-   jetstream::LogHistogram *hist_ptr;
+template<class Aggregate>
+Aggregate *create_new()
+{
+  assert(0);
+}
+
+template<class Aggregate>
+struct storage {
+   Aggregate *aggregate_ptr;
    char * buffer;
    size_t max_buffer_size;
 };
 
-/*
- * Output the library version.
- * merge_histogram()
- */
-
-my_bool merge_histogram_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+template<class Aggregate>
+my_bool merge_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
   if (args->arg_count != 1) {
-    strcpy(message,"merge_histogram requires one argumente");
+    strcpy(message,"merge requires one argumente");
     return 1;
   }
   if (args->arg_type[0] != STRING_RESULT) {
-    strcpy(message,"merge_histogram requires a string parameter");
+    strcpy(message,"merge requires a string parameter(the blob)");
     return 1;
   }
 
@@ -77,10 +81,11 @@ my_bool merge_histogram_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
   //initid->ptr is a char * used to communicate allocated memory
   //
 
-  histo_storage *store= new histo_storage;
-  store->hist_ptr = NULL;
+  storage<Aggregate> *store= new storage<Aggregate>();
+  store->aggregate_ptr = NULL;
   store->buffer = (char *)malloc(sizeof(char)*1024);
   store->max_buffer_size = 1024;
+
   initid->ptr = (char *) store;
   return 0; //no error occured
 
@@ -89,23 +94,25 @@ my_bool merge_histogram_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
   //return 1;
 }
 
-
-void merge_histogram_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+template<class Aggregate>
+void merge_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
   merge_histogram_clear(initid, is_null, error);
   merge_histogram_add(initid, args, is_null, error);
 }
 
-void merge_histogram_clear(UDF_INIT *initid, char *is_null, char *error) {
-  histo_storage *store= (histo_storage *)initid->ptr;
+template<class Aggregate>
+void merge_clear(UDF_INIT *initid, char *is_null, char *error) {
+  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
 
-  if(store->hist_ptr != NULL) {
-    delete store->hist_ptr;
+  if(store->aggregate_ptr != NULL) {
+    delete store->aggregate_ptr;
   }
 
-  store->hist_ptr = new jetstream::LogHistogram(HISTOGRAM_SIZE);
+  store->aggregate_ptr = create_new<Aggregate>();
 }
 
-void merge_histogram_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+template<class Aggregate>
+void merge_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
   //each argument can be one column of a row here we just want one column
 
   //database stores protobuf
@@ -115,28 +122,30 @@ void merge_histogram_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *
   //get histogram to add
   jetstream::JSSummary summary;
   summary.ParseFromArray(serProtoBuf, serSz);
-  const jetstream::JSHistogram& add_hist = summary.histo();
 
-  //add in histogream
-  histo_storage *store= (histo_storage *)initid->ptr;
-  (store->hist_ptr)->merge_in(add_hist);
+  Aggregate update_agg(summary);
+  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  Aggregate * agg_ptr = store->aggregate_ptr;
+  agg_ptr->merge_in(update_agg);
 }
 
-void merge_histogram_deinit(UDF_INIT *initid) {
-  histo_storage *store= (histo_storage *)initid->ptr;
-  if(store->hist_ptr != NULL) {
-    delete store->hist_ptr;
+template<class Aggregate>
+void merge_deinit(UDF_INIT *initid) {
+  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  if(store->aggregate_ptr != NULL) {
+    delete store->aggregate_ptr;
   }
   free(store->buffer);
   delete store;
 }
 
-char* merge_histogram(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error) {
-  histo_storage *store= (histo_storage *)initid->ptr;
-  jetstream::LogHistogram *hist_ptr = store->hist_ptr;
+template<class Aggregate>
+char* merge(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error) {
+  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  Aggregate * agg_ptr = store->aggregate_ptr;
 
   jetstream::JSSummary summary;
-  hist_ptr->serialize_to(summary);
+  agg_ptr->serialize_to(summary);
 
   size_t msg_sz = summary.ByteSize();
   if(store->max_buffer_size < msg_sz) {
@@ -154,7 +163,65 @@ char* merge_histogram(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned l
   *length = msg_sz;
   *is_null = 0;
   *error = 0;
-
-
   return result;
 }
+
+
+
+//////////////////////// Histograms /////////////////////////////////////
+
+
+template<>
+jetstream::LogHistogram *create_new<jetstream::LogHistogram>(){
+  return new jetstream::LogHistogram(HISTOGRAM_SIZE);
+}
+
+my_bool merge_histogram_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+  return merge_init<jetstream::LogHistogram>(initid, args, message);
+}
+void merge_histogram_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+  merge_reset<jetstream::LogHistogram>(initid, args, is_null, error);
+}
+void merge_histogram_clear(UDF_INIT *initid, char *is_null, char *error) {
+  merge_clear<jetstream::LogHistogram>(initid, is_null, error);
+}
+void merge_histogram_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+  merge_add<jetstream::LogHistogram>(initid, args, is_null, error);
+}
+void merge_histogram_deinit(UDF_INIT *initid) {
+  merge_deinit<jetstream::LogHistogram>(initid);
+}
+
+char* merge_histogram(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,char *is_null, char *error) {
+      return merge<jetstream::LogHistogram>(initid, args, result, length, is_null, error) ;
+}
+
+
+/////////////////////// samples ///////////////////////
+
+template<>
+jetstream::ReservoirSample *create_new<jetstream::ReservoirSample>(){
+  return new jetstream::ReservoirSample(RESERVOIR_SAMPLE_SIZE);
+}
+
+my_bool merge_reservoir_sample_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+  return merge_init<jetstream::ReservoirSample>(initid, args, message);
+}
+void merge_reservoir_sample_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+  merge_reset<jetstream::ReservoirSample>(initid, args, is_null, error);
+}
+void merge_reservoir_sample_clear(UDF_INIT *initid, char *is_null, char *error) {
+  merge_clear<jetstream::ReservoirSample>(initid, is_null, error);
+}
+void merge_reservoir_sample_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+  merge_add<jetstream::ReservoirSample>(initid, args, is_null, error);
+}
+void merge_reservoir_sample_deinit(UDF_INIT *initid) {
+  merge_deinit<jetstream::ReservoirSample>(initid);
+}
+
+char* merge_reservoir_sample(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,char *is_null, char *error) {
+      return merge<jetstream::ReservoirSample>(initid, args, result, length, is_null, error) ;
+}
+
+
