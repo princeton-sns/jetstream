@@ -12,7 +12,7 @@
 
 #include <limits>
 #include <math.h>
-
+#include <fstream>
 
 using namespace ::std;
 using namespace jetstream;
@@ -318,12 +318,16 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   const int TRIALS = 8;
   const int APPROACHES = 3;
   
+  ofstream data_out;
+  data_out.open("quant_est_comparison.out");
   
   size_t data_bytes = DATA_SIZE * sizeof(int);
 
-//  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
-  boost::random::normal_distribution<> randsrc(10000, 1000);
+  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
+//  boost::random::normal_distribution<> randsrc(10000, 1000);
 //  boost::random::exponential_distribution<> randsrc(0.002);
+//  boost::random::exponential_distribution<> randsrc(0.02);
+
   int * data = make_rand_data<>(DATA_SIZE, randsrc);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
@@ -356,14 +360,16 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     QuantileEstimation * estimators[APPROACHES];
     CMMultiSketch sketch(10, 6, 2 + i);
     ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo(80);
+    LogHistogram histo(10000);
     
     estimators[0] = &sketch;
     estimators[1] = &sample;
     estimators[2] = &histo;
     
-    if (i ==0)
-      cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb\n";
+    if (i ==0) {
+      cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb. ";
+      cout << "Histograms have " << histo.bucket_count() << " cells\n";
+    }
     
     for (int a = 0; a < APPROACHES; ++a) {
 
@@ -384,16 +390,21 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   
     //end queries, now we report results
   
+  data_out << "Quantile,True Value,Sketch Err,Sample Err,Histo Err\n"; 
   for (int q =0; q < QUANTILES_TO_CHECK; ++q) {
 
     cout << "\nQuantile " << quantiles_to_check[q] << " ("  << true_quantile[q]<< ")\n";
+    data_out << quantiles_to_check[q] << "," << true_quantile[q];
     for (int a = 0; a < APPROACHES; ++a) {
       mean_error_with[a][q] /= TRIALS;
 
       cout << labels[a] << " mean error: " << mean_error_with[a][q] << " or " <<
           (100.0 * mean_error_with[a][q] /true_quantile[q])<< "%"  << endl;
-      }
+      data_out<< "," << mean_error_with[a][q];
+    }
+    data_out << endl;
   }
+  data_out.close();
   
   for (int a = 0; a < APPROACHES; ++a) {
     cout << "Adding data to "<<labels[a] <<"  took " << time_adding_items[a]/TRIALS / 1000 <<
