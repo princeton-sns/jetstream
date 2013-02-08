@@ -208,8 +208,9 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
     exp *= 10;
   }
 #else
-  std::sort (bucket_starts.begin(), bucket_starts.end());
+  bucket_starts.reserve(bucket_target);
   make_l2_buckets(bucket_target, bucket_starts, 1 << 28);
+  std::sort (bucket_starts.begin(), bucket_starts.end());
 
 #endif
 }

@@ -255,6 +255,15 @@ TEST(QuantLogHistogram, Boundaries) {
   }*/
 }
 
+TEST(QuantLogHistogram, Buckets) {
+  LogHistogram hist(600);
+  for (int i = 0; i < 30; ++i) {
+    ASSERT_EQ(i, hist.bucket_min(i));
+    cout << hist.bucket_min(i) << " ";
+  }
+  cout << endl;
+
+}
 
 template <typename T>
 int * make_rand_data(size_t size, T& randsrc) {
@@ -312,23 +321,55 @@ double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
   return err;
 }
 
-//use --gtest_also_run_disabled_tests to run
-TEST(DISABLED_CMSketch, SketchVsSample) {
-  const unsigned int DATA_SIZE = 1024* 1024 * 8;
+
+class DataMaker {
+  public:
+    virtual int * operator()(size_t t) = 0;
+
+    virtual string name() = 0;
+};
+
+class UniformData: public DataMaker {
+  public:
+    virtual int * operator()(size_t t) {
+      boost::random::uniform_int_distribution<> randsrc(1, t /2);
+      return make_rand_data<>(t, randsrc);
+    }
+
+    virtual string name() { return "uniform"; }  
+};
+
+class ExpData: public DataMaker {
+  public:
+    virtual int * operator()(size_t t) {
+      boost::random::exponential_distribution<> randsrc(0.002);
+      return make_rand_data<>(t, randsrc);
+    }
+    virtual string name() { return "exponential"; }
+};
+
+class NormalData: public DataMaker {
+  public:
+    virtual int * operator()(size_t t) {
+      boost::random::normal_distribution<> randsrc(10000, 1000);
+      return make_rand_data<>(t, randsrc);
+    }
+    virtual string name() { return "normal"; }
+};
+
+
+void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, DataMaker& maker) {
+
   const int TRIALS = 8;
+
   const int APPROACHES = 3;
-  
-  ofstream data_out;
-  data_out.open("quant_est_comparison.out");
   
   size_t data_bytes = DATA_SIZE * sizeof(int);
 
-  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
 //  boost::random::normal_distribution<> randsrc(10000, 1000);
 //  boost::random::exponential_distribution<> randsrc(0.002);
 //  boost::random::exponential_distribution<> randsrc(0.02);
 
-  int * data = make_rand_data<>(DATA_SIZE, randsrc);
 
   cout << " checking which of sampling versus sketching is better: " << endl;
   
@@ -339,12 +380,6 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   int64_t true_quantile[QUANTILES_TO_CHECK];
 
   memset(mean_error_with, 0, sizeof(mean_error_with));
-  SampleEstimation full_population;
-  full_population.add_data(data, DATA_SIZE);
-  for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
-     true_quantile[q]= full_population.quantile(quantiles_to_check[q]);
-  }
-  
   usec_t time_adding_items[APPROACHES];
   memset(time_adding_items, 0, sizeof(time_adding_items));
   usec_t time_querying[APPROACHES];
@@ -357,10 +392,19 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
 
   for (int i =0; i < TRIALS; ++i) {
     cout << "Trial " << i << endl;
+
+    int * data = maker(DATA_SIZE);
+    SampleEstimation full_population;
+    full_population.add_data(data, DATA_SIZE);
+    for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
+       true_quantile[q]= full_population.quantile(quantiles_to_check[q]);
+    }
+    
+    
     QuantileEstimation * estimators[APPROACHES];
-    CMMultiSketch sketch(10, 6, 2 + i);
+    CMMultiSketch sketch(sketch_w, 6, 2 + i);
     ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo(10000);
+    LogHistogram histo( sketch.size()/ sizeof(int) );
     
     estimators[0] = &sketch;
     estimators[1] = &sample;
@@ -369,6 +413,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     if (i ==0) {
       cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb. ";
       cout << "Histograms have " << histo.bucket_count() << " cells\n";
+      data_out << "DATA: " << maker.name() << " sketch/sample size " << (sketch.size()/1024) << endl;
     }
     
     for (int a = 0; a < APPROACHES; ++a) {
@@ -386,6 +431,8 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
       time_querying[a] += (get_usec() - query_start);
     }
 //      cout << "  error was " << d << " or " << 100.0 * d /true_quantile[q] << "%\n";
+    delete[] data;
+
   }
   
     //end queries, now we report results
@@ -404,12 +451,44 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
     }
     data_out << endl;
   }
-  data_out.close();
   
   for (int a = 0; a < APPROACHES; ++a) {
     cout << "Adding data to "<<labels[a] <<"  took " << time_adding_items[a]/TRIALS / 1000 <<
     "ms per " <<labels[a] << "; each query took " << time_querying[a]/TRIALS/QUANTILES_TO_CHECK << "us .\n";
   }
-  delete[] data;
-  
 }
+
+
+//use --gtest_also_run_disabled_tests to run
+TEST(DISABLED_CMSketch, SketchVsSample) {
+  const unsigned int DATA_SIZE = 1024* 1024 * 8;
+  const int SKETCH_W = 10;
+  ofstream data_out;
+  data_out.open("quant_est_comparison.out");
+  UniformData u;
+  compareOnce(data_out, DATA_SIZE, SKETCH_W, u);
+  data_out.close();
+
+}
+
+TEST(DISABLED_CMSketch, MultiComp) {
+
+  const unsigned int DATA_SIZE = 1024* 1024 * 8;
+  ofstream data_out;
+  data_out.open("quant_est_comparison.out");
+  
+  DataMaker * distribs[3];
+  distribs[0] = new UniformData;
+  distribs[1] = new ExpData;
+  distribs[2] = new NormalData;
+  
+  for (int d = 0; d < 1; ++d) {
+    for (int sketchw = 6; sketchw < 11; sketchw += 2) {
+      compareOnce(data_out, DATA_SIZE, sketchw, *(distribs[d]));
+    }
+  }
+  
+  data_out.close();
+}
+
+
