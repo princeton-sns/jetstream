@@ -35,6 +35,7 @@ class QuantileEstimation {
   
     virtual void serialize_to(JSSummary&) const = 0;
   
+//    virtual void clear();
 
 //    virtual size_t elems_represented() = 0;
     virtual ~QuantileEstimation() {}
@@ -102,8 +103,7 @@ class ReservoirSample: public SampleEstimation {
   
     virtual void add_item(int v, count_val_t c);
     virtual void add_data(int * data, size_t size_to_take);
-    bool merge_in(const ReservoirSample& s);
-  
+    bool merge_in(const ReservoirSample& s);  
 };
 
 // could have a base histogram class here if need be

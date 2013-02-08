@@ -5,6 +5,7 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/discrete_distribution.hpp>
 
+//#define ADHOC_BUCKETS
 
 using namespace ::std;
 using namespace boost::random;
@@ -148,17 +149,20 @@ LogHistogram::LogHistogram(size_t bt):
   buckets.assign(bucket_starts.size(), 0);
 }
 
-void buckets(unsigned int n, std::vector<unsigned int> &sequence, unsigned int max=UINT_MAX) {
+void make_l2_buckets(unsigned int n, std::vector<int> &sequence, unsigned int max=UINT_MAX) {
   // return 1, 2, ..., 2^31, 3, 6, ..., 3 * 2^30, wrapping around before max
 
   max = min(max, UINT_MAX);  //is this necessary? -asr
+
+  sequence.push_back(0);
+  n--;
 
   int base = 1;
   int exp = 0;
   while (n-- > 0) {
     sequence.push_back(base * (1 << exp++)); 
 
-    if (sequence.back() > (max >> 1)) {
+    if ( unsigned(sequence.back()) > (max >> 1)) {
       // the next element is always twice the previous element (until wrapping
       // around), so we wrap around now to avoid overflow. 
 
@@ -171,6 +175,8 @@ void buckets(unsigned int n, std::vector<unsigned int> &sequence, unsigned int m
 
 void
 LogHistogram::set_bucket_starts(size_t bucket_target) {
+
+#ifdef UGLY_BUCKETS
   const size_t MAX_LAYERS = 10;
   
   size_t incr_per_layer[MAX_LAYERS];
@@ -203,7 +209,11 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
     }
     exp *= 10;
   }
-//  cout << endl;
+#else
+  std::sort (bucket_starts.begin(), bucket_starts.end());
+  make_l2_buckets(bucket_target, bucket_starts, 1 << 28);
+
+#endif
 }
 
 
