@@ -18,7 +18,7 @@ using namespace ::std;
 using namespace jetstream;
 
 
-TEST(CMSketch, AddAndQuery) {
+TEST(QuantCMSketch, AddAndQuery) {
 
   CMSketch c(4, 8, 2);
   int seq[] = {  2, 7, 4, 8, 12, 100};
@@ -35,7 +35,7 @@ TEST(CMSketch, AddAndQuery) {
 }
 
 
-TEST(CMSketch, Quantile) {
+TEST(QuantCMSketch, Quantile) {
   CMMultiSketch c(5, 10, 3);
 
 //  int seq[100];
@@ -101,7 +101,7 @@ TEST(CMSketch, Quantile) {
   }
 }
 
-TEST(CMSketch, MultiInit) {
+TEST(QuantCMSketch, MultiInit) {
 
   cout << "initializing 100 sketches, each 10kb"<< endl;
   for(int i = 0; i < 100; ++i) {
@@ -109,7 +109,7 @@ TEST(CMSketch, MultiInit) {
   }
 }
 
-TEST(CMSketch, Merge) {
+TEST(QuantCMSketch, Merge) {
   const int ITEMS = 20;
   CMSketch s1(6, 8, 3);
   CMMultiSketch s1_multi(6, 8, 3);
@@ -140,7 +140,7 @@ TEST(CMSketch, Merge) {
 //  ASSERT_FALSE( s3_m.can_accept(s1_multi));
 }
 
-TEST(CMSketch, SerDe) {
+TEST(QuantCMSketch, SerDe) {
   CMMultiSketch summary(6, 8, 4);
   const int ITEMS = 20;
   for(int i = 0; i < ITEMS; ++i) {
@@ -161,7 +161,7 @@ TEST(CMSketch, SerDe) {
 }
 
 
-TEST(ReservoirSample, Merge) {
+TEST(QuantReservoirSample, Merge) {
 
   for (int a_elems = 1; a_elems < 4; ++a_elems) {
     for (int b_elems = 1; b_elems < 4; ++b_elems) {
@@ -189,7 +189,7 @@ TEST(ReservoirSample, Merge) {
   }
 }
 
-TEST(ReservoirSample, SerDe) {
+TEST(QuantReservoirSample, SerDe) {
 
   ReservoirSample summary(30);
   const int ITEMS = 20;
@@ -207,7 +207,7 @@ TEST(ReservoirSample, SerDe) {
   ASSERT_EQ(summary.elements(), deserialized.elements());
 }
 
-TEST(LogHistogram, SerDe) {
+TEST(QuantLogHistogram, SerDe) {
 
   LogHistogram summary(30);
   const int ITEMS = 20;
@@ -226,7 +226,7 @@ TEST(LogHistogram, SerDe) {
   ASSERT_EQ(summary, deserialized);
 }
 
-TEST(LogHistogram, Boundaries) {
+TEST(QuantLogHistogram, Boundaries) {
   const int BUCKETS = 30;
   LogHistogram hist(BUCKETS);
   cout << "asked for " << BUCKETS << " and got " << hist.bucket_count() << endl;
@@ -265,7 +265,7 @@ int * make_rand_data(size_t size, T& randsrc) {
   return data;
 }
 
-TEST(LogHistogram, Quantile) {
+TEST(QuantLogHistogram, Quantile) {
 
   const int DATA_SIZE = 1000;
 //  int * data = make_rand_data<>(DATA_SIZE, boost::random::uniform_int_distribution<>(1, 1000));
