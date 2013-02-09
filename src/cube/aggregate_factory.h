@@ -8,6 +8,9 @@
 #include "mysql/aggregate_version.h"
 #include "mysql/aggregate_quantile.h"
 
+#include "cm_sketch.h"
+#include "quantile_est.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <glog/logging.h>
@@ -33,8 +36,14 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
     else if(_schema.type() == "string") {
       obj = boost::make_shared<MysqlAggregateString>();
     }
-    else if(_schema.type() == "quantile") {
-      obj = boost::make_shared<MysqlAggregateQuantile>();
+    else if(_schema.type() == "quantile_histogram") {
+      obj = boost::make_shared<MysqlAggregateQuantile<jetstream::LogHistogram> >();
+    }
+    else if(_schema.type() == "quantile_sample") {
+      obj = boost::make_shared<MysqlAggregateQuantile<jetstream::ReservoirSample> >();
+    }
+    else if(_schema.type() == "quantile_sketch") {
+      obj = boost::make_shared<MysqlAggregateQuantile<jetstream::CMMultiSketch> >();
     }
     else if(_schema.type() == "min_i") {
       obj = boost::make_shared<MysqlAggregateMin<int> >();
