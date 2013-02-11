@@ -21,17 +21,17 @@ string MysqlAggregateQuantile<jetstream::CMMultiSketch>::get_select_clause_for_r
 
 template<>
 string MysqlAggregateQuantile<jetstream::LogHistogram>::get_update_on_insert_sql() const {
-  string sql = "`"+get_base_column_name()+"` = merge_pair_histogram(VALUES(`"+get_base_column_name()+"`), `"+get_base_column_name()+"`)";
+  string sql = "`"+get_base_column_name()+"` = merge_pair_histogram(`"+get_base_column_name()+"`, VALUES(`"+get_base_column_name()+"`))";
   return sql;
 }
 template<>
 string MysqlAggregateQuantile<jetstream::ReservoirSample>::get_update_on_insert_sql() const {
-  string sql = "`"+get_base_column_name()+"` = merge_pair_reservoir_sample(VALUES(`"+get_base_column_name()+"`), `"+get_base_column_name()+"`)";
+  string sql = "`"+get_base_column_name()+"` = merge_pair_reservoir_sample(`"+get_base_column_name()+"`, VALUES(`"+get_base_column_name()+"`))";
   return sql;
 }
 template<>
 string MysqlAggregateQuantile<jetstream::CMMultiSketch>::get_update_on_insert_sql() const {
-  string sql = "`"+get_base_column_name()+"` = merge_pair_sketch(VALUES(`"+get_base_column_name()+"`), `"+get_base_column_name()+"`)";
+  string sql = "`"+get_base_column_name()+"` = merge_pair_sketch(`"+get_base_column_name()+"`, VALUES(`"+get_base_column_name()+"`))";
   return sql;
 }
 
