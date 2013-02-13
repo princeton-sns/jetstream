@@ -296,11 +296,21 @@ LogHistogram::serialize_to(JSSummary& q) const {
 
 bool
 LogHistogram::merge_in(const LogHistogram & rhs) {
-  assert ( rhs.bucket_count() == bucket_count());
-  for(unsigned int b =0; b <  bucket_count(); ++b) {
-    buckets[b] += rhs.buckets[b];
-  }
+  assert(rhs.bucket_count() >= bucket_count());
+    //can't refine histogram in merge
+  if ( rhs.bucket_count() == bucket_count())
+    for(unsigned int b =0; b <  bucket_count(); ++b) {
+      buckets[b] += rhs.buckets[b];
+    }
+  else {
+    size_t dest_bucket=0;
+    for(size_t src_bucket=0; src_bucket < rhs.bucket_count(); ++src_bucket) {
+      buckets[dest_bucket] += rhs.buckets[src_bucket];
+      if(rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
+        dest_bucket += 1;
+    }
   
+  }
   return true;
 }
 

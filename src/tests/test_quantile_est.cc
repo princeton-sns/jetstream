@@ -8,7 +8,7 @@
 #include <boost/random/normal_distribution.hpp>
 #include <boost/timer/timer.hpp>
 #include <boost/random/exponential_distribution.hpp>
-
+#include <glog/logging.h>
 
 #include <limits>
 #include <math.h>
@@ -262,8 +262,27 @@ TEST(QuantLogHistogram, Buckets) {
     cout << hist.bucket_min(i) << " ";
   }
   cout << endl;
-
 }
+
+TEST(QuantLogHistogram, Merge) {
+  const unsigned ITEMS = 20;
+  LogHistogram src_hist(600);
+  
+  for(unsigned i = 0; i < ITEMS; ++i)
+    src_hist.add_item(i*i, i + 2);
+
+  LogHistogram * dests[2];
+  dests[0] = new LogHistogram(100);
+  dests[1] = new LogHistogram(600);
+  
+  for (int d = 0; d < 2; ++d) {
+    dests[d]->merge_in(src_hist);
+    for (unsigned i = 0; i < ITEMS; ++i) {
+      ASSERT_LE(i+2, dests[d]->count_in_b( dests[d]->bucket_with(i * i) ));
+    }
+  }
+}
+
 
 template <typename T>
 int * make_rand_data(size_t size, T& randsrc) {
@@ -370,9 +389,6 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
 //  boost::random::exponential_distribution<> randsrc(0.002);
 //  boost::random::exponential_distribution<> randsrc(0.02);
 
-
-  cout << " checking which of sampling versus sketching is better: " << endl;
-  
   double quantiles_to_check[] = {0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95};
   int QUANTILES_TO_CHECK = sizeof(quantiles_to_check) /sizeof(double);
     
@@ -391,7 +407,7 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
   labels.push_back("histogram");
 
   for (int i =0; i < TRIALS; ++i) {
-    cout << "Trial " << i << endl;
+    LOG(INFO) << "Trial " << i << endl;
 
     int * data = maker(DATA_SIZE);
     SampleEstimation full_population;
@@ -473,7 +489,7 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
 
 TEST(DISABLED_CMSketch, MultiComp) {
 
-  const unsigned int DATA_SIZE = 1024* 1024 * 8;
+  const unsigned int DATA_SIZE = 1024* 1024 * 8; //ints, not bytes
   ofstream data_out;
   data_out.open("quant_est_comparison.out");
   
@@ -482,8 +498,8 @@ TEST(DISABLED_CMSketch, MultiComp) {
   distribs[1] = new ExpData;
   distribs[2] = new NormalData;
   
-  for (int d = 0; d < 1; ++d) {
-    for (int sketchw = 6; sketchw < 11; sketchw += 2) {
+  for (int d = 0; d < 3; ++d) {
+    for (int sketchw = 6; sketchw < 11; sketchw += 1) {
       compareOnce(data_out, DATA_SIZE, sketchw, *(distribs[d]));
     }
   }
