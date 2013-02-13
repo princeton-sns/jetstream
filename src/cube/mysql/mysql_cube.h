@@ -40,14 +40,19 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
 
    virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
-  
-   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, 
-       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store, 
+   virtual void save_tuple(jetstream::Tuple const &t, vector<unsigned int> levels, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
+
+   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store,
+       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
+       std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list);
+
+   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, std::vector<std::vector<unsigned int> > levels_store,
+       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
        std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list);
 /*
-    virtual size_t 
+    virtual size_t
       insert_tuple(jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
-    virtual size_t 
+    virtual size_t
       update_batched_tuple(size_t pos, jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
 */
     // virtual bool insert_full_aggregate(jetstream::Tuple t);
@@ -56,13 +61,13 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple const &t) const ;
     virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const;
 
-    virtual CubeIterator 
-      slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true, 
+    virtual CubeIterator
+      slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true,
         list<string> const &sort = list<string>(), size_t limit = 0) const;
-    virtual CubeIterator 
-      rollup_slice_query(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, 
+    virtual CubeIterator
+      rollup_slice_query(std::vector<unsigned int> const &levels, jetstream::Tuple const &min,
         jetstream::Tuple const &max, bool final = true, list<string> const &sort = list<string>(), size_t limit = 0) const;
-    
+
     virtual CubeIterator end() const;
 
     virtual size_t num_leaf_cells() const;
@@ -119,16 +124,16 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     boost::shared_ptr<sql::ResultSet> slice_result_set;
     bool slice_final;
-  
+
 #ifdef THREADPOOL_IS_STATIC
 #define THREADPOOL_STATIC static
 #else
-#define THREADPOOL_STATIC 
+#define THREADPOOL_STATIC
 #endif
-  
+
     THREADPOOL_STATIC std::map<boost::thread::id, boost::shared_ptr<ThreadConnection> > connectionPool;
     THREADPOOL_STATIC boost::upgrade_mutex connectionLock;
-  
+
   public:
 
     static void set_db_params(string db_host="localhost",
@@ -138,7 +143,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     THREADPOOL_STATIC boost::shared_ptr<ThreadConnection> get_thread_connection();
     THREADPOOL_STATIC boost::shared_ptr<sql::Connection> get_connection();
     THREADPOOL_STATIC void execute_sql(string const &sql);
-    THREADPOOL_STATIC boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql);  
+    THREADPOOL_STATIC boost::shared_ptr<sql::ResultSet> execute_query_sql(string const &sql);
     THREADPOOL_STATIC void on_thread_exit(boost::thread::id tid, shared_ptr<ThreadConnection> tc);
 
     static boost::shared_ptr<std::map<std::string, int> > list_sql_cubes();

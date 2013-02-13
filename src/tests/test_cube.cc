@@ -1235,10 +1235,10 @@ TEST_F(CubeTest, MysqlTestHistogram) {
 
   jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
   agg->set_name("responses");
-  agg->set_type("quantile");
+  agg->set_type("quantile_histogram");
   agg->add_tuple_indexes(1);
 
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "quantiles", true);
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "quantiles_histo", true);
 
   cube->destroy();
   cube->create();
@@ -1264,6 +1264,124 @@ TEST_F(CubeTest, MysqlTestHistogram) {
   }
 
   cube->wait_for_commits();
+}
+
+TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
+  //test aggregate function
+
+  jetstream::CubeSchema schema;
+  jetstream::CubeSchema_Dimension * dim = schema.add_dimensions();
+  dim->set_name("time");
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
+  dim->add_tuple_indexes(0);
+
+  jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
+  agg->set_name("responses");
+  agg->set_type("quantile_sample");
+  agg->add_tuple_indexes(1);
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "quantiles_sample", true);
+
+  cube->destroy();
+  cube->create();
+
+  time_t time_entered = time(NULL);
+  jetstream::Element *e;
+
+  for (int j = 0; j< 2; ++j ) {
+    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+    e=t->add_e();
+    e->set_t_val(time_entered+j);
+    ReservoirSample agg(30);
+    const int ITEMS = 20;
+
+    for(int i = 0; i < ITEMS; ++i) {
+      agg.add_item(i+(10*j), 1);
+    }
+
+    e = t->add_e();
+    JSSummary * summary = e->mutable_summary();
+
+    agg.serialize_to(*summary);
+    cube->process(t);
+  }
+
+  cube->wait_for_commits();
+
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+
+  vector<unsigned int> levels;
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  CubeIterator it = cube->rollup_slice_query(levels, empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+
+  boost::shared_ptr<Tuple> ptrTup = *it;
+  const JSSummary &sum_res = ptrTup->e(1).summary();
+
+  ReservoirSample res(sum_res);
+  ASSERT_EQ(13, (int) res.mean());
+
+}
+
+TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
+  //test aggregate function
+
+  jetstream::CubeSchema schema;
+  jetstream::CubeSchema_Dimension * dim = schema.add_dimensions();
+  dim->set_name("time");
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
+  dim->add_tuple_indexes(0);
+
+  jetstream::CubeSchema_Aggregate * agg = schema.add_aggregates();
+  agg->set_name("responses");
+  agg->set_type("quantile_sample");
+  agg->add_tuple_indexes(1);
+
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(schema, "quantiles_sample", true);
+
+  cube->destroy();
+  cube->create();
+
+  time_t time_entered = time(NULL);
+  jetstream::Element *e;
+
+  for (int j = 0; j< 2; ++j ) {
+    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
+    e=t->add_e();
+    e->set_t_val(time_entered);
+    ReservoirSample agg(30);
+    const int ITEMS = 20;
+
+    for(int i = 0; i < ITEMS; ++i) {
+      agg.add_item(i+(10*j), 1);
+    }
+
+    e = t->add_e();
+    JSSummary * summary = e->mutable_summary();
+
+    agg.serialize_to(*summary);
+    cube->process(t);
+
+    cube->wait_for_commits();
+  }
+
+  cube->wait_for_commits();
+
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+
+  CubeIterator it = cube->slice_query(empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+
+  boost::shared_ptr<Tuple> ptrTup = *it;
+  const JSSummary &sum_res = ptrTup->e(1).summary();
+
+  ReservoirSample res(sum_res);
+  ASSERT_EQ(13, (int) res.mean());
+
 }
 
 
