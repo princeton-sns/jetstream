@@ -222,7 +222,7 @@ message DataplaneMessage {
   enum DataplaneType { ERROR = 2;
   DATA = 3; ACK = 11;
   CHAIN_CONNECT = 4; CHAIN_READY = 5; NO_MORE_DATA = 6;
-  TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9; END_OF_WINDOW = 10;
+  TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9; END_OF_WINDOW = 10; ROLLUP_LEVELS = 12;
   TPUT_START = 20; TPUT_ROUND_2 = 25; TPUT_ROUND_3 = 26;
   }
   required DataplaneType type  = 1;
@@ -234,8 +234,8 @@ message DataplaneMessage {
   optional double congestion_level = 8; // ratio between queue capacity and data sent. > 1 means uncongested.
   optional double filter_level = 9; //the level of filtering to impose. Same units as above.
   optional int32 window_length_ms = 10; //the time-length for the window that just ended
-
   optional int32 bytes_processed =11;  // an ack
+  repeated int32 rollup_levels = 12; 
 
   optional Tuple tput_r1_start = 20;
   optional Tuple tput_r1_end = 21;

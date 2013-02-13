@@ -19,6 +19,7 @@ On SNS: Make sure permissions are
 2) create DB via
    /opt/local/lib/mysql5/bin/mysql_install_db  --user=mysql
 3)   /opt/local/share/mysql5/mysql/mysql.server start
+	may need to sudo?
 
 4) /opt/local/lib/mysql5/bin/mysqladmin -u root password ''
 
