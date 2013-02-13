@@ -46,9 +46,9 @@ def parse_data(infile):
     else:
       err = {}
       q,trueval, err['Sketch'], err['Sample'], err['Histogram'] = [float(x) for x in ln.split(",")]
-      if q == float("0.95"):
+      if q == float("0.5"):
         for m in METHODS:
-          rel_err = err[m]/trueval    
+          rel_err = err[m]/trueval  + 1e-6 #so log scale plot looks ok  
           if m in ret[dist]:
             ret[dist][m].append( (sz, rel_err) )
           else:
@@ -62,9 +62,9 @@ def parse_data(infile):
 symbols = ['ro-', 'bo-', 'go-']
 
 def plot_error(all_data):
-  print "plotting..."
   for distrib_name, data in all_data.items():
     fig = plt.figure(figsize=(9,5))
+    print "plotting %s..." % distrib_name
     ax = fig.add_subplot(111)
     ax.set_yscale('log')
     ax.set_title('Accuracy for ' + distrib_name)
