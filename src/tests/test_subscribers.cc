@@ -333,7 +333,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
 
     TaskMeta* recv =  add_operator_to_alter(topo, operator_id_t(compID, 2), "FixedRateQueue");
-    add_cfg_to_task(recv, "ms_wait", "250"); //4 dequeues per second
+    add_cfg_to_task(recv, "ms_wait", "300"); //just under 4 dequeues per second
     add_operator_to_alter(topo, operator_id_t(compID, 3), "DummyReceiver");
 
     add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
