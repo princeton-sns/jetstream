@@ -25,6 +25,7 @@
 #include "jetstream_types.pb.h"
 #include "quantile_est.h"
 #include "cm_sketch.h"
+#include <iostream>
 
 //set max lengths to 64KB for now, can also be 16mb
 #define MAX_LENGTH_PAIR  64*1024
@@ -127,6 +128,7 @@ void merge_clear(UDF_INIT *initid, char *is_null, char *error) {
 
   if(store->aggregate_ptr != NULL) {
     delete store->aggregate_ptr;
+    store->aggregate_ptr = NULL;
   }
 }
 
@@ -163,6 +165,7 @@ void merge_deinit(UDF_INIT *initid) {
 
   if(store->aggregate_ptr != NULL) {
     delete store->aggregate_ptr;
+    store->aggregate_ptr = NULL;
   }
 
   free(store->buffer);
@@ -324,6 +327,8 @@ extern "C" {
     merge_deinit<jetstream::ReservoirSample>(initid);
   }
   DLLEXP char* merge_reservoir_sample(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,char *is_null, char *error) {
+    //this is the way to log
+    //std::cerr << "in merge reservoir sample v 1"<<std::endl;
     return merge<jetstream::ReservoirSample>(initid, args, result, length, is_null, error) ;
   }
 
