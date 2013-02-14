@@ -27,16 +27,14 @@ def main():
   print "total of %d lines" % lines
   
   for hr,(response_times,sizes) in hour_to_data.items():
-    print "For hour %s" % hr
+    print "For hour %s" % time.ctime(hr)
     print_hist(response_times, "distribution of response times in us")
     print_hist(sizes, "distribution of file sizes")
 
 
 def to_hour(timestamp):
   timestamp = (int(float(timestamp))  / 3600) * 3600
-  s = time.ctime(timestamp)
-  print s
-  return s
+  return timestamp
   
 def  update_hist(response_times, t):
   p = 1
