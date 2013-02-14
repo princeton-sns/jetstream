@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
+#include <boost/random/discrete_distribution.hpp>
+
 #include <boost/random/normal_distribution.hpp>
 #include <boost/timer/timer.hpp>
 #include <boost/random/exponential_distribution.hpp>
@@ -376,6 +378,70 @@ class NormalData: public DataMaker {
     virtual string name() { return "normal"; }
 };
 
+class ZipfData: public DataMaker {
+  double param;
+  size_t max_v;
+  public:
+    ZipfData(double p, size_t m):param(p), max_v(m) {}
+  
+    virtual int * operator()(const size_t t) {
+      boost::mt19937 gen;
+      double * weights = new double[max_v];
+      int * data = new int[t];
+      
+      double total_weight = 0;
+//      cout << "zipf weights: ";
+      
+      for (unsigned i = 0; i < max_v; ++i) {
+        weights[i] = pow(i+1, -param);
+        total_weight += weights[i];
+ //       cout << " " << weights[i];
+      }
+//      cout << "\ntotal is " << total_weight<< endl;
+      
+      //build probabilities
+      ;//index into data
+      unsigned w_idx = 0; //index into weights
+      unsigned to_add =  weights[0] * t / total_weight;
+      unsigned effective_t = t;
+      for (unsigned d_idx = 0; d_idx < t; ++d_idx) {
+
+        data[d_idx] = w_idx + 1; //data is never zero
+        --to_add;
+        while(to_add == 0) {
+          w_idx ++;
+          if(w_idx >= max_v) {
+            w_idx = 0; // TODO the wraparound here is super ugly
+            effective_t = t - d_idx;
+          }
+          to_add= weights[w_idx] * effective_t / total_weight;
+          
+          double probabilities[2];
+          probabilities[1] = weights[w_idx] * effective_t / total_weight - double(to_add);
+          probabilities[0] = 1.0 - probabilities[1];
+          boost::random::discrete_distribution<> maybe_more(probabilities);
+          
+          to_add += maybe_more(gen);            
+        }
+      }
+      delete [] weights;
+      return data;
+    }
+    virtual string name() { return "normal"; }
+};
+
+
+TEST(DISABLED_Datagen, ZipfDist) {
+  ZipfData d(1.3, 10000);
+  const int SIZE = 50;
+  int * data = d(SIZE);
+  cout << "zipf data:";
+  for (int i = 0; i < SIZE; ++i)
+    cout << " " << data[i];
+  cout << endl;
+  delete[] data;
+
+}
 
 void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, DataMaker& maker) {
 
@@ -481,10 +547,9 @@ TEST(DISABLED_CMSketch, SketchVsSample) {
   const int SKETCH_W = 10;
   ofstream data_out;
   data_out.open("quant_est_comparison.out");
-  UniformData u;
+  ZipfData u(1.2, 100* 1000);
   compareOnce(data_out, DATA_SIZE, SKETCH_W, u);
   data_out.close();
-
 }
 
 TEST(DISABLED_CMSketch, MultiComp) {
@@ -493,12 +558,16 @@ TEST(DISABLED_CMSketch, MultiComp) {
   ofstream data_out;
   data_out.open("quant_est_comparison.out");
   
-  DataMaker * distribs[3];
+  const int DISTRIBS = 4;
+  DataMaker * distribs[DISTRIBS];
+//  distribs[0] = new ZipfData(1.2, 100 * 1000);
+  
   distribs[0] = new UniformData;
   distribs[1] = new ExpData;
   distribs[2] = new NormalData;
+  distribs[3] = new ZipfData(1.2, 100 * 1000);
   
-  for (int d = 0; d < 3; ++d) {
+  for (int d = 0; d < DISTRIBS; ++d) {
     for (int sketchw = 6; sketchw < 11; sketchw += 1) {
       compareOnce(data_out, DATA_SIZE, sketchw, *(distribs[d]));
     }
