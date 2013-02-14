@@ -35,12 +35,13 @@ message Element {
   optional JSSummary summary = 6;
 }
 
-
+/* //this is redundant and wrong. Leaving it here only so that we can see
+//what it was during the code fix-up.  -asr
 message Dimension {
   required string name = 1;
   required Element.ElementType type = 2;
   optional Element default_val = 3;
-}
+}*/
 
 
 /**

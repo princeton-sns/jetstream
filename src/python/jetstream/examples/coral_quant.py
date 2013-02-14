@@ -41,7 +41,7 @@ def main():
 
   root_node = find_root_node(options, all_nodes)
 
-  g = jsapi.QueryGraph()
+  g = get_graph(all_nodes, root_node)
 
   req = g.get_deploy_pb()
   if options.DRY_RUN:
@@ -64,6 +64,22 @@ def find_root_node(options, all_nodes):
   else:
     root_node = all_nodes[0]  #TODO randomize
   return root_node
+
+
+def get_graph(all_nodes, root_node):
+  g= jsapi.QueryGraph()
+  
+  for node in all_nodes:
+    local_cube = g.add_cube("local_results-" + node.address)
+    local_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+    local_cube.add_dim("response_code", Element.INT32, 1)
+    local_cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, 2)
+    local_cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, 3)
+    local_cube.set_overwrite(True)  #fresh results
+
+  
+  
+  return g
 
 if __name__ == '__main__':
     main()
