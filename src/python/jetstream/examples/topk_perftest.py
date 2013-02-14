@@ -42,7 +42,7 @@ def main():
 
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
-  parser.add_option("-g", "--no-generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
+  parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
 
 
   (options, args) = parser.parse_args()
