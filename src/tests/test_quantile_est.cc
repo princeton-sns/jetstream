@@ -361,21 +361,28 @@ class UniformData: public DataMaker {
 };
 
 class ExpData: public DataMaker {
+  double param;
   public:
+     ExpData(double p = 0.002): param(p) {}
+  
     virtual int * operator()(size_t t) {
-      boost::random::exponential_distribution<> randsrc(0.002);
+      boost::random::exponential_distribution<> randsrc(param);
       return make_rand_data<>(t, randsrc);
     }
-    virtual string name() { return "exponential"; }
+    virtual string name() { return "exponential-" + boost::lexical_cast<string>(param); }
 };
 
 class NormalData: public DataMaker {
+  int mean, stddev;
+  
   public:
+    NormalData(): mean(10000), stddev(1000) {}
     virtual int * operator()(size_t t) {
-      boost::random::normal_distribution<> randsrc(10000, 1000);
+      boost::random::normal_distribution<> randsrc(mean, stddev);
       return make_rand_data<>(t, randsrc);
     }
-    virtual string name() { return "normal"; }
+    virtual string name() { return "normal-" + boost::lexical_cast<string>(mean)
+     + "-" + boost::lexical_cast<string>(stddev); }
 };
 
 class ZipfData: public DataMaker {
@@ -427,7 +434,7 @@ class ZipfData: public DataMaker {
       delete [] weights;
       return data;
     }
-    virtual string name() { return "normal"; }
+    virtual string name() { return "zipf-" + boost::lexical_cast<string>(param); }
 };
 
 

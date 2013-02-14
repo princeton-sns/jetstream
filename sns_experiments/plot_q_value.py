@@ -24,7 +24,8 @@ def main():
   data = parse_data(infile)
   plot_error(data)
   
-  
+
+target_quant = "0.95"  
   
 METHODS = ["Sketch","Sample","Histogram"]
 def parse_data(infile):
@@ -46,7 +47,7 @@ def parse_data(infile):
     else:
       err = {}
       q,trueval, err['Sketch'], err['Sample'], err['Histogram'] = [float(x) for x in ln.split(",")]
-      if q == float("0.5"):
+      if q == float(target_quant):
         for m in METHODS:
           rel_err = err[m]/trueval  + 1e-6 #so log scale plot looks ok  
           if m in ret[dist]:
@@ -67,7 +68,7 @@ def plot_error(all_data):
     print "plotting %s..." % distrib_name
     ax = fig.add_subplot(111)
     ax.set_yscale('log')
-    ax.set_title('Accuracy for ' + distrib_name)
+    ax.set_title('Accuracy for ' + distrib_name +  " at " + target_quant)
 
 
     y_vals_for = {}
@@ -77,7 +78,7 @@ def plot_error(all_data):
       y_vals_for[summary_name] = [y for x,y in datalist]
       maxy = max(maxy, max(y_vals_for[summary_name]))
 
-    plt.axis([0, max(x_vals), -.01, maxy])
+    plt.axis([0, max(x_vals), -.01, 2 * maxy])
     plt.ylabel("Relative Error") 
     plt.xlabel("Summary size kb")   
 
