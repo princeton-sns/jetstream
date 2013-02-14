@@ -23,15 +23,20 @@ def main():
 
 
 def  update_hist(response_times, t):
-  t = (t / 10) * 10
+  p = 1
+  while 2 * p < t:
+    p *= 2
+  t = p
   response_times[t] += 1
   return
 
 
-def print_hist(response_times, label):
-  print label
-  for (k,v) in sorted(response_times.items()):
-    print "%d %d" % (k, v)
+def print_hist(hist, label):
+  print "%s. %d distinct values" % (label, len(hist))
+  if len(hist) < 15:
+    for (k,v) in sorted(hist.items()):
+      print "%d-%d %d" % (k, k * 2, v)
+      
   return
 
 if __name__ == '__main__':
