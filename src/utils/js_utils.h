@@ -101,6 +101,10 @@ inline void extend_tuple_time(jetstream::Tuple& t, time_t time) {
   t.add_e()->set_t_val((int)time);
 }
 
+class QuantileEstimation;
+void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q);
+//declared here, but defined in quantile_est.cc
+
 }
 
 #endif /* _JS_UTILS_H_ */

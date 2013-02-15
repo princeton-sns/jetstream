@@ -15,7 +15,6 @@ namespace jetstream {
 int
 SampleEstimation::quantile(double q) {
   assert (q < 1 && q >= 0);
-  
   if (!is_sorted) {
     is_sorted = true;
     std::sort (sample_of_data.begin(), sample_of_data.end());
@@ -334,5 +333,16 @@ std::ostream& operator<<(std::ostream& out, const LogHistogram& hist) {
   }
   return out;
 }
+
+
+
+
+void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q) {
+  JSSummary * summ = t.add_e()->mutable_summary();
+  q.serialize_to(*summ);
+}
+
+
+
 
 }
