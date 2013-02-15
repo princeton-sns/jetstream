@@ -132,6 +132,12 @@ Querier::set_rollup_level(int fieldID, unsigned r_level) {
 }
 
 
+void
+Querier::set_rollup_levels(DataplaneMessage& m) {
+  for( unsigned i = 0; i < rollup_levels.size(); ++i)
+    m.add_rollup_levels(rollup_levels[i]);
+}
+
 operator_err_t
 OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
   return querier.configure(config, id());
@@ -267,6 +273,7 @@ TimeBasedSubscriber::operator()() {
 
   DataplaneMessage end_msg;
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+  send_rollup_levels();
 
   while (running)  {
 
@@ -474,6 +481,16 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
   }
 }
 
+void
+TimeBasedSubscriber::send_rollup_levels() {
+  DataplaneMessage msg;
+  msg.set_type(DataplaneMessage::ROLLUP_LEVELS);
+  querier.set_rollup_levels(msg);
+  send_meta_downstream(msg);
+}
+
+
+
 double time_rollup_levels[DTC_LEVEL_COUNT];
 
 void
@@ -484,13 +501,16 @@ VariableCoarseningSubscriber::respond_to_congestion() {
   // interval_ms = secs_per_level[cur_level] * 1000;
   int prev_window = windowSizeMs;
   windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
-  if (prev_window == windowSizeMs)
+  if (prev_window == windowSizeMs) {
+    assert(change_in_window == 0);
     VLOG(1) << "Subscriber " << id() << " staying at period " << windowSizeMs;
-  else
+  } else {
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
         << " from " << prev_window;
+    querier.set_rollup_level(ts_field, cur_level);
+    send_rollup_levels();
+  }
   js_usleep( 1000 * change_in_window);
-  querier.set_rollup_level(ts_field, cur_level);
 }
 
 operator_err_t

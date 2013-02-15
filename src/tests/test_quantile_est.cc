@@ -3,12 +3,8 @@
 #include "js_utils.h"
 
 #include <gtest/gtest.h>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int.hpp>
-#include <boost/random/normal_distribution.hpp>
-#include <boost/timer/timer.hpp>
-#include <boost/random/exponential_distribution.hpp>
 
+#include <glog/logging.h>
 
 #include <limits>
 #include <math.h>
@@ -18,7 +14,7 @@ using namespace ::std;
 using namespace jetstream;
 
 
-TEST(CMSketch, AddAndQuery) {
+TEST(QuantCMSketch, AddAndQuery) {
 
   CMSketch c(4, 8, 2);
   int seq[] = {  2, 7, 4, 8, 12, 100};
@@ -35,7 +31,7 @@ TEST(CMSketch, AddAndQuery) {
 }
 
 
-TEST(CMSketch, Quantile) {
+TEST(QuantCMSketch, Quantile) {
   CMMultiSketch c(5, 10, 3);
 
 //  int seq[100];
@@ -101,7 +97,7 @@ TEST(CMSketch, Quantile) {
   }
 }
 
-TEST(CMSketch, MultiInit) {
+TEST(QuantCMSketch, MultiInit) {
 
   cout << "initializing 100 sketches, each 10kb"<< endl;
   for(int i = 0; i < 100; ++i) {
@@ -109,7 +105,7 @@ TEST(CMSketch, MultiInit) {
   }
 }
 
-TEST(CMSketch, Merge) {
+TEST(QuantCMSketch, Merge) {
   const int ITEMS = 20;
   CMSketch s1(6, 8, 3);
   CMMultiSketch s1_multi(6, 8, 3);
@@ -140,7 +136,7 @@ TEST(CMSketch, Merge) {
 //  ASSERT_FALSE( s3_m.can_accept(s1_multi));
 }
 
-TEST(CMSketch, SerDe) {
+TEST(QuantCMSketch, SerDe) {
   CMMultiSketch summary(6, 8, 4);
   const int ITEMS = 20;
   for(int i = 0; i < ITEMS; ++i) {
@@ -161,7 +157,7 @@ TEST(CMSketch, SerDe) {
 }
 
 
-TEST(ReservoirSample, Merge) {
+TEST(QuantReservoirSample, Merge) {
 
   for (int a_elems = 1; a_elems < 4; ++a_elems) {
     for (int b_elems = 1; b_elems < 4; ++b_elems) {
@@ -189,7 +185,7 @@ TEST(ReservoirSample, Merge) {
   }
 }
 
-TEST(ReservoirSample, SerDe) {
+TEST(QuantReservoirSample, SerDe) {
 
   ReservoirSample summary(30);
   const int ITEMS = 20;
@@ -207,7 +203,7 @@ TEST(ReservoirSample, SerDe) {
   ASSERT_EQ(summary.elements(), deserialized.elements());
 }
 
-TEST(LogHistogram, SerDe) {
+TEST(QuantLogHistogram, SerDe) {
 
   LogHistogram summary(30);
   const int ITEMS = 20;
@@ -226,7 +222,7 @@ TEST(LogHistogram, SerDe) {
   ASSERT_EQ(summary, deserialized);
 }
 
-TEST(LogHistogram, Boundaries) {
+TEST(QuantLogHistogram, Boundaries) {
   const int BUCKETS = 30;
   LogHistogram hist(BUCKETS);
   cout << "asked for " << BUCKETS << " and got " << hist.bucket_count() << endl;
@@ -255,20 +251,37 @@ TEST(LogHistogram, Boundaries) {
   }*/
 }
 
-
-template <typename T>
-int * make_rand_data(size_t size, T& randsrc) {
-  boost::mt19937 gen;
-  int* data = new int[size];
-  for (unsigned int i=0; i < size; ++ i)
-    data[i] = (int) randsrc(gen);
-  return data;
+TEST(QuantLogHistogram, Buckets) {
+  LogHistogram hist(600);
+  for (int i = 0; i < 30; ++i) {
+    ASSERT_EQ(i, hist.bucket_min(i));
+    cout << hist.bucket_min(i) << " ";
+  }
+  cout << endl;
 }
 
-TEST(LogHistogram, Quantile) {
+TEST(QuantLogHistogram, Merge) {
+  const unsigned ITEMS = 20;
+  LogHistogram src_hist(600);
+  
+  for(unsigned i = 0; i < ITEMS; ++i)
+    src_hist.add_item(i*i, i + 2);
+
+  LogHistogram * dests[2];
+  dests[0] = new LogHistogram(100);
+  dests[1] = new LogHistogram(600);
+  
+  for (int d = 0; d < 2; ++d) {
+    dests[d]->merge_in(src_hist);
+    for (unsigned i = 0; i < ITEMS; ++i) {
+      ASSERT_LE(i+2, dests[d]->count_in_b( dests[d]->bucket_with(i * i) ));
+    }
+  }
+}
+
+TEST(QuantLogHistogram, Quantile) {
 
   const int DATA_SIZE = 1000;
-//  int * data = make_rand_data<>(DATA_SIZE, boost::random::uniform_int_distribution<>(1, 1000));
   int * data = new int[DATA_SIZE];
   for (int i = 0; i < DATA_SIZE; ++i)
     data[i] = i;
@@ -305,111 +318,3 @@ TEST(LogHistogram, Quantile) {
   delete data;
 }
 
-
-double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
-  double err = abs( est - true_quantile[q]);
-  mean_error[q] +=  err ;
-  return err;
-}
-
-//use --gtest_also_run_disabled_tests to run
-TEST(DISABLED_CMSketch, SketchVsSample) {
-  const unsigned int DATA_SIZE = 1024* 1024 * 8;
-  const int TRIALS = 8;
-  const int APPROACHES = 3;
-  
-  ofstream data_out;
-  data_out.open("quant_est_comparison.out");
-  
-  size_t data_bytes = DATA_SIZE * sizeof(int);
-
-  boost::random::uniform_int_distribution<> randsrc(1, DATA_SIZE /2);
-//  boost::random::normal_distribution<> randsrc(10000, 1000);
-//  boost::random::exponential_distribution<> randsrc(0.002);
-//  boost::random::exponential_distribution<> randsrc(0.02);
-
-  int * data = make_rand_data<>(DATA_SIZE, randsrc);
-
-  cout << " checking which of sampling versus sketching is better: " << endl;
-  
-  double quantiles_to_check[] = {0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95};
-  int QUANTILES_TO_CHECK = sizeof(quantiles_to_check) /sizeof(double);
-    
-  double mean_error_with[APPROACHES][QUANTILES_TO_CHECK];
-  int64_t true_quantile[QUANTILES_TO_CHECK];
-
-  memset(mean_error_with, 0, sizeof(mean_error_with));
-  SampleEstimation full_population;
-  full_population.add_data(data, DATA_SIZE);
-  for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
-     true_quantile[q]= full_population.quantile(quantiles_to_check[q]);
-  }
-  
-  usec_t time_adding_items[APPROACHES];
-  memset(time_adding_items, 0, sizeof(time_adding_items));
-  usec_t time_querying[APPROACHES];
-  memset(time_querying, 0, sizeof(time_querying));
-
-  vector<string> labels;
-  labels.push_back("sketch");
-  labels.push_back("sample");
-  labels.push_back("histogram");
-
-  for (int i =0; i < TRIALS; ++i) {
-    cout << "Trial " << i << endl;
-    QuantileEstimation * estimators[APPROACHES];
-    CMMultiSketch sketch(10, 6, 2 + i);
-    ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo(10000);
-    
-    estimators[0] = &sketch;
-    estimators[1] = &sample;
-    estimators[2] = &histo;
-    
-    if (i ==0) {
-      cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb. ";
-      cout << "Histograms have " << histo.bucket_count() << " cells\n";
-    }
-    
-    for (int a = 0; a < APPROACHES; ++a) {
-
-      usec_t now = get_usec();
-      estimators[a]->add_data(data, DATA_SIZE);
-      time_adding_items[a] += (get_usec() - now);
-
-      usec_t query_start = get_usec();
-      for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
-        double quantile_pt = quantiles_to_check[q];
-//      cout << " checking quantile " << quantile_pt<< " ("<<q<<"/"<< 5<<")\n";
-        update_err(q, mean_error_with[a], true_quantile, estimators[a]->quantile(quantile_pt));
-      }
-      time_querying[a] += (get_usec() - query_start);
-    }
-//      cout << "  error was " << d << " or " << 100.0 * d /true_quantile[q] << "%\n";
-  }
-  
-    //end queries, now we report results
-  
-  data_out << "Quantile,True Value,Sketch Err,Sample Err,Histo Err\n"; 
-  for (int q =0; q < QUANTILES_TO_CHECK; ++q) {
-
-    cout << "\nQuantile " << quantiles_to_check[q] << " ("  << true_quantile[q]<< ")\n";
-    data_out << quantiles_to_check[q] << "," << true_quantile[q];
-    for (int a = 0; a < APPROACHES; ++a) {
-      mean_error_with[a][q] /= TRIALS;
-
-      cout << labels[a] << " mean error: " << mean_error_with[a][q] << " or " <<
-          (100.0 * mean_error_with[a][q] /true_quantile[q])<< "%"  << endl;
-      data_out<< "," << mean_error_with[a][q];
-    }
-    data_out << endl;
-  }
-  data_out.close();
-  
-  for (int a = 0; a < APPROACHES; ++a) {
-    cout << "Adding data to "<<labels[a] <<"  took " << time_adding_items[a]/TRIALS / 1000 <<
-    "ms per " <<labels[a] << "; each query took " << time_querying[a]/TRIALS/QUANTILES_TO_CHECK << "us .\n";
-  }
-  delete[] data;
-  
-}

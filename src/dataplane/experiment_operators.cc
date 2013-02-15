@@ -276,6 +276,7 @@ FixedRateQueue::stop() {
 void
 FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
   boost::lock_guard<boost::mutex> lock (mutex);
+  LOG_IF(FATAL, !t) << "didn't expect a null tuple here";
   DataplaneMessage msg;
   Tuple * t2 = msg.add_data();
   t2->CopyFrom(*t);
@@ -287,9 +288,8 @@ void
 FixedRateQueue::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
 //  boost::shared_ptr<DataplaneMessage> msg2(new DataplaneMessage);
 //  msg2->CopyFrom(msg);
+  boost::lock_guard<boost::mutex> lock (mutex);
   q.push(msg);
-  
-
 }
 
 

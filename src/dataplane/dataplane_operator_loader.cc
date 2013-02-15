@@ -6,6 +6,7 @@
 #include "rand_source.h"
 #include "variable_sampling.h"
 #include "topk_tput.h"
+#include "summary_operators.h"
 
 #include <iostream>
 #include <dlfcn.h>
@@ -75,6 +76,10 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator);
   REGISTER_OP(CSVParse);
+
+  //operators on quantiles
+  REGISTER_OP(QuantileOperator);
+  
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);

@@ -19,7 +19,7 @@ class OpType (object):
   T_ROUND_OPERATOR = "TRoundingOperator"
   VARIABLE_SAMPLING = "VariableSamplingOperator"
   CONGEST_CONTROL = "CongestionController"
-
+  QUANTILE = "QuantileOperator"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -149,6 +149,20 @@ def validate_CSVParse(in_schema, cfg):
   except ValueError as e:
     raise SchemaError("Needed field indices. " + str(e))
 
+SUMMARY_TYPES = ["Histogram", "Sketch", "Sample"]
+def validate_Quantile(in_schema, cfg):
+  fld = cfg["field"]
+  if len(in_schema) <= fld:
+    raise SchemaError("not enough fields in quantile input")
+  if in_schema[fld][0] not in SUMMARY_TYPES:
+    err = "Can only take quantile of a summary; instead got " + in_schema[fld][0]
+    raise SchemaError(err) 
+  newS = []
+  newS.extend(in_schema)
+  newS[fld] = ('I', cfg["q"]+'-quantile of '+in_schema[fld][1])
+
+  return newS  
+  
   
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -178,4 +192,4 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
 
 SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
-
+SCHEMAS[OpType.QUANTILE] = validate_Quantile

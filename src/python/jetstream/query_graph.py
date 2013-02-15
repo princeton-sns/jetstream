@@ -3,6 +3,7 @@ import types
 from itertools import izip, tee
 
 from jetstream_types_pb2 import *
+Dimension = CubeSchema.Dimension
 from operator_schemas import SCHEMAS, OpType,SchemaError
 
 # from python itertools recipes
@@ -316,6 +317,9 @@ class Cube(Destination):
     MIN_I = "min_i"
     MIN_D = "min_d"
     MIN_T = "min_t"
+    HISTO = "quantile_histogram"
+    SKETCH = "quantile_sketch"
+    SAMPLE = "quantile_sample"
     
 
   def __init__(self, graph, name, desc, id):
@@ -377,10 +381,11 @@ class Cube(Destination):
       return self.name
 
     # maps from a dimension-type to a typecode. Note that dimensions can't be blobs
-  typecode_for_dname = {Element.STRING: 'S', Element.INT32: 'I', 
-      Element.DOUBLE: 'D', Element.TIME: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
+  typecode_for_dname = {Dimension.STRING: 'S', Dimension.INT32: 'I', 
+      Dimension.DOUBLE: 'D', Dimension.TIME: 'T', Dimension.TIME_CONTAINMENT: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
 
-  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T',  'blob': 'b'}
+  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T',  'blob': 'b', 'quantile_histogram':'Histogram', 'quantile_sketch':'Sketch',
+  'quantile_sample':'Sample'}
 
   def in_schema_map(self):
     """ Returns a map from offset-in-input-tuple to field-type,name pair"""
@@ -590,3 +595,8 @@ def VariableSampling(g):
   
 def SamplingController(g):
   return g.add_operator(OpType.CONGEST_CONTROL, {})
+
+
+def Quantile(graph, q, field):
+   cfg = {"q":str(q), "field":field}
+   return graph.add_operator(OpType.QUANTILE, cfg)  

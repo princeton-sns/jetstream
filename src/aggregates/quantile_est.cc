@@ -15,7 +15,6 @@ namespace jetstream {
 int
 SampleEstimation::quantile(double q) {
   assert (q < 1 && q >= 0);
-  
   if (!is_sorted) {
     is_sorted = true;
     std::sort (sample_of_data.begin(), sample_of_data.end());
@@ -208,8 +207,9 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
     exp *= 10;
   }
 #else
-  std::sort (bucket_starts.begin(), bucket_starts.end());
+  bucket_starts.reserve(bucket_target);
   make_l2_buckets(bucket_target, bucket_starts, 1 << 28);
+  std::sort (bucket_starts.begin(), bucket_starts.end());
 
 #endif
 }
@@ -295,11 +295,21 @@ LogHistogram::serialize_to(JSSummary& q) const {
 
 bool
 LogHistogram::merge_in(const LogHistogram & rhs) {
-  assert ( rhs.bucket_count() == bucket_count());
-  for(unsigned int b =0; b <  bucket_count(); ++b) {
-    buckets[b] += rhs.buckets[b];
-  }
+  assert(rhs.bucket_count() >= bucket_count());
+    //can't refine histogram in merge
+  if ( rhs.bucket_count() == bucket_count())
+    for(unsigned int b =0; b <  bucket_count(); ++b) {
+      buckets[b] += rhs.buckets[b];
+    }
+  else {
+    size_t dest_bucket=0;
+    for(size_t src_bucket=0; src_bucket < rhs.bucket_count(); ++src_bucket) {
+      buckets[dest_bucket] += rhs.buckets[src_bucket];
+      if(rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
+        dest_bucket += 1;
+    }
   
+  }
   return true;
 }
 
@@ -323,5 +333,16 @@ std::ostream& operator<<(std::ostream& out, const LogHistogram& hist) {
   }
   return out;
 }
+
+
+
+
+void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q) {
+  JSSummary * summ = t.add_e()->mutable_summary();
+  q.serialize_to(*summ);
+}
+
+
+
 
 }

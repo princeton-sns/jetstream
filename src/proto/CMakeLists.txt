@@ -44,7 +44,9 @@ add_definitions (${CMAKE_CXX_FLAGS} " -w ")
 
 
 add_library (${LIBRARY_NAME} ${PROTO_SRCS})
+add_library (${LIBRARY_NAME}_s STATIC ${PROTO_SRCS})
 target_link_libraries (${LIBRARY_NAME} ${PROTOBUF_LIBRARY})
+target_link_libraries (${LIBRARY_NAME}_s ${PROTOBUF_LIBRARY})
 
 
 SET (CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})

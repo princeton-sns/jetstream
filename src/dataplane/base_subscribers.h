@@ -67,7 +67,8 @@ class Querier {
   
     void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;}
     void set_rollup_level(int fieldID, unsigned r_level);
-
+    void set_rollup_levels(DataplaneMessage& m);
+  
  protected:
     volatile bool rollup_is_dirty; //should have real rollup manager eventually.
     operator_id_t id;
@@ -129,6 +130,8 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     boost::shared_ptr<CongestionPolicy> congest_policy;
 
     virtual void respond_to_congestion();
+  
+    void send_rollup_levels();
 
   public:
     TimeBasedSubscriber(): backfill_tuples(0), next_window_start_time(0) {};

@@ -111,8 +111,6 @@ std::string fmt(const jetstream::Tuple& t) {
 }
 
 
-
-
 TaskMeta* 
 add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name) {
   TaskMeta* task = topo.add_tostart();
