@@ -51,8 +51,32 @@ operator_err_t QuantileOperator::configure(std::map<std::string,std::string> &co
 }
 
 
+void
+ToSummary::process(boost::shared_ptr<Tuple> t) {
+
+  int i = t->e(field).i_val();
+
+  LogHistogram l(s_size);
+  l.add_item(i, 1);
+  JSSummary * s = t->mutable_e(field)->mutable_summary();
+  l.serialize_to(*s);
+  t->mutable_e(field)->clear_i_val();
+  emit(t);
+}
+
+operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
+  if( !(istringstream(config["field"]) >> field))
+    return operator_err_t("must specify a field; got " + config["field"]);
+  if( !(istringstream(config["size"]) >> s_size))
+    return operator_err_t("must specify a summary size; got " + config["size"]);
+
+  return NO_ERR;
+}
+
+
 
 const string QuantileOperator::my_type_name("Quantile");
+const string ToSummary::my_type_name("to-summary");
 
 
 }

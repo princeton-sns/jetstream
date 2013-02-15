@@ -42,6 +42,30 @@ TEST(Operator, QuantileOperator) {
   ASSERT_EQ(2, result->e(0).i_val());
   ASSERT_EQ(4, result->e(1).i_val());
 //  cout << "quantile was " << result->e(1).i_val();
-
-  cout << "done; " << receive->tuples.size() << " tuples received"<<endl;
 }
+
+
+TEST(Operator, ToSummary) {
+  ToSummary op;
+  shared_ptr<DummyReceiver> receive(new DummyReceiver);
+  operator_config_t cfg;
+  cfg["size"] = "50";
+  cfg["field"] = "0";
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(receive);
+  
+  
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 2);
+
+  op.process(t);
+  ASSERT_EQ((size_t)1, receive->tuples.size());
+  boost::shared_ptr<Tuple> result = receive->tuples[0];
+
+  LogHistogram hist(result->e(0).summary());
+  ASSERT_EQ( size_t(1), hist.count_in_b(hist.bucket_with(2)) );
+  ASSERT_EQ( size_t(1), hist.pop_seen() );
+
+}
+

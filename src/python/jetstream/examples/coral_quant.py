@@ -11,6 +11,8 @@ from jetstream_types_pb2 import *
 from remote_controller import *
 import query_graph as jsapi
 
+from coral_parse import coral_fnames,coral_fidxs, coral_types
+
 def main():
 
   parser = OptionParser()
@@ -21,10 +23,16 @@ def main():
                   help="shows PB without running", default=False)
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
+  parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
+
   parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
 
 
   (options, args) = parser.parse_args()
+
+  if not options.fname:
+    print "you must specify the input file name [with -f]"
+    sys.exit(1)
 
   if options.DRY_RUN:
     id = NodeID()
@@ -41,7 +49,7 @@ def main():
 
   root_node = find_root_node(options, all_nodes)
 
-  g = get_graph(all_nodes, root_node)
+  g = get_graph(all_nodes, root_node, options.fname)
 
   req = g.get_deploy_pb()
   if options.DRY_RUN:
@@ -66,34 +74,41 @@ def find_root_node(options, all_nodes):
   return root_node
 
 
-def define_cube(cube):
-  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
-  cube.add_dim("response_code", Element.INT32, 1)
-  cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, 2)
-  cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, 3)
+def define_cube(cube, ids = [0,1,2,3]):
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
+  cube.add_dim("response_code", Element.INT32, ids[1])
+  cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, ids[2])
+  cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, ids[3])
 
-def get_graph(all_nodes, root_node):
+def get_graph(all_nodes, root_node, file_to_parse):
   g= jsapi.QueryGraph()
 
   central_cube = g.add_cube("global_results")
   define_cube(central_cube)
   pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
   q_op = jsapi.Quantile(g, 0.95, 3)
+  q_op2 = jsapi.Quantile(g, 0.95,2)
   echo = jsapi.Echo(g)
   
   
-  g.connect(central_cube, pull_q)
-  g.connect(pull_q, q_op)
-  g.connect(q_op, echo)
+  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
 
-
+  parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
+      coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
+      
   for node in all_nodes:
     local_cube = g.add_cube("local_results-" + node.address)
-    define_cube(local_cube)
+    define_cube(local_cube, parsed_field_offsets)
 
+    f = jsapi.FileRead(g, file_to_parse, skip_empty=True)
+    csvp = jsapi.CSVParse(g, coral_types)
+    round = jsapi.TRoundOperator(g, fld=1, round_to=1)
+    g.chain( [f, csvp, round, local_cube] )
+    
     pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
-    g.connect(local_cube, pull_from)
-    g.connect(pull_from, central_cube)
+    g.chain([local_cube, pull_from, central_cube])
+
+    
   
   return g
 
