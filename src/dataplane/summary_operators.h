@@ -27,6 +27,22 @@ GENERIC_CLNAME
 };  
 
 
+class ToSummary: public DataPlaneOperator {
+ public:
+  ToSummary() {}
+
+
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+ private:
+  unsigned field;
+  unsigned s_size;
+
+GENERIC_CLNAME
+};  
+
+
 
 }
 

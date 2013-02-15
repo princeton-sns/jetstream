@@ -48,7 +48,7 @@ class SampleEstimation: public QuantileEstimation {
     std::vector<int> sample_of_data;
     bool is_sorted;
 
-    virtual size_t pop_seen() const {
+    virtual uint64_t pop_seen() const {
       return sample_of_data.size();
     }
 
@@ -87,7 +87,7 @@ class ReservoirSample: public SampleEstimation {
     inline void add_one(int v);
     boost::mt19937 gen;
 
-    virtual size_t pop_seen() const {
+    virtual uint64_t pop_seen() const {
       return total_seen;
     }
   
@@ -115,7 +115,7 @@ class LogHistogram : public QuantileEstimation {
   protected:
     std::vector<count_val_t> buckets;
     std::vector<int> bucket_starts;
-    count_val_t total_vals;
+    uint64_t total_vals;
     size_t bucket_target;
   
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
@@ -137,6 +137,11 @@ class LogHistogram : public QuantileEstimation {
     virtual size_t size() const {
       return buckets.size() * sizeof(count_val_t);
     }
+  
+    virtual uint64_t pop_seen() const {
+      return total_vals;
+    }
+  
 
     std::pair<int,int> quantile_range(double q) const {
       return bucket_bounds(quantile_bucket(q));
@@ -149,8 +154,9 @@ class LogHistogram : public QuantileEstimation {
   
     bool operator==(const LogHistogram & h) const;
 
-    std::pair<int,int> bucket_bounds(size_t b) const ;
-    size_t bucket_with(int item) const ;
+    std::pair<int,int> bucket_bounds(size_t b) const;
+  
+    size_t bucket_with(int item) const;
 
     int bucket_min(size_t bucket_id) const {
       return bucket_starts[bucket_id];

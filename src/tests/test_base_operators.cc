@@ -412,7 +412,7 @@ TEST(Operator, TRoundingOperator) {
     op2.set_dest(rec2);
 
     const double dExample_Micro_Epoch = 1231151151.510341;
-    const time_t correct = numeric_cast<time_t>((dExample_Micro_Epoch / 5) * 5) + 17;
+    const time_t correct = (numeric_cast<time_t>(dExample_Micro_Epoch) / 5) * 5 + 17;
 
     shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
     extend_tuple(*t, "California");

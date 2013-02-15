@@ -501,7 +501,7 @@ TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
   if (in_type == D) {
     double old_val = t->e(fld_offset).d_val();
     t->mutable_e(fld_offset)->clear_d_val();
-    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>(old_val / round_to) * round_to + add_offset);
   }
 
   emit(t);

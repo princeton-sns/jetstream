@@ -79,6 +79,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
 
   //operators on quantiles
   REGISTER_OP(QuantileOperator);
+  REGISTER_OP(ToSummary);
   
 
       // Experimental purposes 
