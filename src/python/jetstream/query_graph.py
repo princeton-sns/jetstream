@@ -600,3 +600,8 @@ def SamplingController(g):
 def Quantile(graph, q, field):
    cfg = {"q":str(q), "field":field}
    return graph.add_operator(OpType.QUANTILE, cfg)  
+
+
+def ToSummary(graph, size, field):
+   cfg = {"size":str(size), "field":field}
+   return graph.add_operator(OpType.TO_SUMMARY, cfg)  

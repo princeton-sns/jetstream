@@ -103,7 +103,9 @@ def get_graph(all_nodes, root_node, file_to_parse):
     f = jsapi.FileRead(g, file_to_parse, skip_empty=True)
     csvp = jsapi.CSVParse(g, coral_types)
     round = jsapi.TRoundOperator(g, fld=1, round_to=1)
-    g.chain( [f, csvp, round, local_cube] )
+    to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
+    to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
+    g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
     
     pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
     g.chain([local_cube, pull_from, central_cube])
