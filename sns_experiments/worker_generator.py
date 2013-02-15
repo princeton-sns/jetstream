@@ -38,8 +38,8 @@ servers=[
 ## controller
 "node11.princeton.vicci.org",
 ]
-for server in servers:
-  print server + " public_ip=" +socket.gethostbyname(server)
+for index, server in enumerate(servers):
+  print server + " public_ip=" +socket.gethostbyname(server)+" server_index="+str(index)
 print "---------------"
 for server in servers:
   print server,
