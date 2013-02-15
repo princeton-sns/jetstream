@@ -40,7 +40,7 @@ boost::shared_ptr<jetstream::Tuple> MysqlCubeIteratorImpl::dereference() const {
     return tup;
   }
 
-  return cube->make_tuple_from_result_set(res, final, rollup);
+  return cube->make_tuple_from_result_set(res, 1, final, rollup);
 }
 
 boost::shared_ptr<MysqlCubeIteratorImpl> MysqlCubeIteratorImpl::end() {

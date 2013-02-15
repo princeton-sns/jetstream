@@ -22,7 +22,7 @@ void TupleBatch::insert_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> 
 
 }
 
-void 
+void
 TupleBatch::update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, bool batch)
 {
   size_t pos = lookup[tpi->key];
@@ -35,7 +35,7 @@ TupleBatch::update_batched_tuple(boost::shared_ptr<jetstream::TupleProcessingInf
     remove_tuple(pos);
     save_tuple(tpi);
   }
-   
+
 }
 
 void TupleBatch::save_tuple(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi)
@@ -67,25 +67,33 @@ void TupleBatch::flush()
   holes.clear();
 
   std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
+  std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
   std::vector<bool> need_new_value_store;
   std::vector<bool> need_old_value_store;
 
   for(std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin(); iTpi != tpi_store.end(); ++iTpi) {
     tuple_store.push_back((*iTpi)->t);
+    levels_store.push_back((*iTpi)->levels);
     need_new_value_store.push_back((*iTpi)->need_new_value);
     need_old_value_store.push_back((*iTpi)->need_old_value);
   }
-    
-  std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list;
-  std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list;
-  
-  cube->save_tuple_batch(tuple_store, need_new_value_store, need_old_value_store, new_tuple_list, old_tuple_list);
 
-  std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples; 
-  std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > old_tuples; 
+  boost::shared_ptr<jetstream::Tuple> empty_ptr;
+  std::vector<boost::shared_ptr<jetstream::Tuple> > new_tuple_store(tuple_store.size(), empty_ptr);
+  std::vector<boost::shared_ptr<jetstream::Tuple> > old_tuple_store(tuple_store.size(), empty_ptr);
+
+  cube->save_tuple_batch(tuple_store, levels_store, need_new_value_store, need_old_value_store, new_tuple_store, old_tuple_store);
+
+  for(unsigned int i=0; i<tpi_store.size(); ++i)
+  {
+    cube->save_callback(*(tpi_store[i]), new_tuple_store[i], old_tuple_store[i]);
+  }
+  /*
+  std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples;
+  std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > old_tuples;
 
   //TODO: can we remove the get_dimension_key calls
-  
+
 
   std::ostringstream tmpostr;
   for(std::list<boost::shared_ptr<jetstream::Tuple> >::iterator it = new_tuple_list.begin();
@@ -109,7 +117,7 @@ void TupleBatch::flush()
 
   for(std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin(); iTpi != tpi_store.end(); ++iTpi) {
    cube->save_callback(*(*iTpi), new_tuples[(*iTpi)->key], old_tuples[(*iTpi)->key]);
-  }
+  }*/
   tpi_store.clear();
   lookup.clear();
 }
@@ -128,14 +136,14 @@ void TupleBatch::batch_add(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi
   {
     tpi_store.push_back(tpi);
     pos = tpi_store.size()-1;
-    lookup[tpi->key] = pos; 
-  }  
+    lookup[tpi->key] = pos;
+  }
 }
 
 void TupleBatch::batch_set(boost::shared_ptr<jetstream::TupleProcessingInfo> tpi, size_t pos)
 {
   tpi_store[pos] = tpi;
-  lookup[tpi->key] = pos; 
+  lookup[tpi->key] = pos;
 }
 
 boost::shared_ptr<jetstream::TupleProcessingInfo> TupleBatch::get_stored_tuple(size_t pos)
