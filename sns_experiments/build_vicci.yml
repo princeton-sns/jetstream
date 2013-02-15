@@ -1,14 +1,14 @@
 ---
 # Instructions:
-# 1) install ansible 
-# 2) install ssh forward-agent so that you can pass your key along for git 
-# 3) add hosts you are working with to ansible_hosts file under [setup] section 
+# 1) install ansible
+# 2) install ssh forward-agent so that you can pass your key along for git
+# 3) add hosts you are working with to ansible_hosts file under [setup] section
 # 4) run the following:
 # ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci build_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
 #
 #
 #
-# This file checks out and build jetstrem on a host. 
+# This file checks out and build jetstrem on a host.
 
 
 ### download and build js###
@@ -33,15 +33,15 @@
   - name: make sure jetstream build dir exists
     file: dest=${js_checkout}/build state=directory
   - name: cmake js
-    command: cmake -DUSE_CLANG=OFF 
-              -DBOOST_ROOT=${js_deps}/boost_1_52_0/ -DBoost_NO_SYSTEM_PATHS=True 
-              -DPROTOBUF_LIBRARY=${js_deps}/protobufs/lib/libprotobuf.so 
-              -DPROTOBUF_INCLUDE_DIR=${js_deps}/protobufs/include/ 
-              -DProtobuf_NO_SYSTEM_PATHS=True 
+    command: cmake -DUSE_CLANG=OFF
+              -DBOOST_ROOT=${js_deps}/boost_1_52_0/ -DBoost_NO_SYSTEM_PATHS=True
+              -DPROTOBUF_LIBRARY=${js_deps}/protobufs/lib/libprotobuf.so
+              -DPROTOBUF_INCLUDE_DIR=${js_deps}/protobufs/include/
+              -DProtobuf_NO_SYSTEM_PATHS=True
               -DPROTOBUF_PROTOC_EXECUTABLE=${js_deps}/protobufs/bin/protoc ../
               chdir=${js_checkout}/build
   - name: make js
-#the -j 24 seems to give very poor performance on vicci
+#the -j 24 seems to give very poor performance on vicci actually even -j 4 seems to give errors
     command: make --quiet
             chdir=${js_checkout}/build
   - name: cp tests data
