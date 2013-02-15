@@ -25,6 +25,11 @@ class DataCubeImpl : public DataCube {
 
     DataCubeImpl(jetstream::CubeSchema _schema, std::string n, const NodeConfig &conf): DataCube(_schema, n, conf) {
       build(_schema);
+      std::vector<unsigned int> leaf_levels;
+      for (unsigned i = 0; i < dimensions.size(); ++i) {
+        leaf_levels.push_back(dimensions[i]->leaf_level());
+      }
+      set_current_levels(leaf_levels);
     }
 
     virtual void build(jetstream::CubeSchema _schema)  {
@@ -98,7 +103,7 @@ class DataCubeImpl : public DataCube {
     std::map<string, size_t> dimensionMap;
     std::map<string, size_t> aggregateMap;
 
-  
+
     int find_in(const std::map<string,size_t>& m, std::string name) const {
       std::map<string,size_t>::const_iterator found = m.find(name);
       if(found != m.end()) {
@@ -107,22 +112,39 @@ class DataCubeImpl : public DataCube {
       else return -1;
     }
 
-    virtual DimensionKey get_dimension_key(const Tuple &t) const {
+    virtual DimensionKey get_dimension_key(const Tuple &t,  boost::shared_ptr<std::vector<unsigned int> > levels) const {
       std::ostringstream ostr;
 
       for(size_t i=0; i<dimensions.size(); ++i) {
         dimensions[i]->get_key(t, ostr);
         ostr << "|";
       }
+      for(std::vector<unsigned int>::iterator it = levels->begin(); it != levels->end(); ++it)
+      {
+        ostr << *it << "||";
+      }
 
       return ostr.str();
     }
-    
-    virtual void get_dimension_key(const Tuple &t, std::ostringstream &ostr) const {
+
+    virtual void get_dimension_key(const Tuple &t,  boost::shared_ptr<std::vector<unsigned int> > levels, std::ostringstream &ostr) const {
       for(size_t i=0; i<dimensions.size(); ++i) {
         dimensions[i]->get_key(t, ostr);
         ostr << "|";
       }
+      for(std::vector<unsigned int>::iterator it = levels->begin(); it != levels->end(); ++it)
+      {
+        ostr << *it << "||";
+      }
+
+    }
+
+    virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const {
+      boost::shared_ptr<std::vector<unsigned int> > leaves(new std::vector<unsigned int>());
+      for(size_t i=0; i<dimensions.size(); ++i) {
+        leaves->push_back(dimensions[i]->leaf_level());
+      }
+      return leaves;
     }
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {

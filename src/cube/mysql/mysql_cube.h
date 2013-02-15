@@ -42,13 +42,15 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
    virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
    virtual void save_tuple(jetstream::Tuple const &t, vector<unsigned int> levels, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple);
 
-   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store,
-       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
-       std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list);
+  virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
+       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
+       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
 
-   virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store, std::vector<std::vector<unsigned int> > levels_store,
-       std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
-       std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list, std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list);
+  virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
+       const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
+       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
+       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
+
 /*
     virtual size_t
       insert_tuple(jetstream::Tuple const &t, bool batch, bool need_new_value, bool need_old_value);
@@ -104,14 +106,14 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
 
     string get_insert_prepared_sql(size_t batch);
-    string get_select_cell_prepared_sql(size_t num_cells);
+    string get_select_cell_prepared_sql(size_t num_cells, size_t echo);
 
     boost::shared_ptr<sql::PreparedStatement> get_insert_prepared_statement(size_t batch);
-    boost::shared_ptr<sql::PreparedStatement> get_select_cell_prepared_statement(size_t batch, std::string unique_key="");
+    boost::shared_ptr<sql::PreparedStatement> get_select_cell_prepared_statement(size_t batch, size_t echo, std::string unique_key="");
     boost::shared_ptr<sql::PreparedStatement> get_lock_prepared_statement(string table_name);
     boost::shared_ptr<sql::PreparedStatement> get_unlock_prepared_statement();
     boost::shared_ptr<sql::PreparedStatement> create_prepared_statement(std::string sql);
-    boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, bool final, bool rollup=false) const;
+    boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, int column_index, bool final, bool rollup=false) const;
 
   private:
     static void init_connection();

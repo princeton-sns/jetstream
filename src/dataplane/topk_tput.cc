@@ -35,13 +35,13 @@ MultiRoundSender::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> cons
 void
 MultiRoundSender::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) {
-	; 
+	;
 }
 
 //called on backfill
 void
 MultiRoundSender::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) {
   ;
 }
@@ -66,7 +66,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
   if ( msg.type() == DataplaneMessage::TPUT_START) {
     //sources send their top k.  TODO what about ties?
     sort_order.push_back(msg.tput_sort_key());
-    
+
     VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, msg.tput_k());
     while ( it != cube->end()) {
@@ -85,7 +85,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       it++;
     }
     boost::shared_ptr<Tuple> t = *it;
-    
+
     if (take_greatest) {
       while ( it != cube->end() && get_rank_val(t, total_col) >= msg.tput_r2_threshold()) {
         emit(t);
@@ -97,13 +97,13 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
         emit(t);
         it++;
         t = *it;
-      }    
+      }
     }
 
     end_of_round(2);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
-  
+
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
       const Tuple& q = msg.tput_r3_query(i);
@@ -121,7 +121,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     end_of_round(3);
   } else {
     DataPlaneOperator::meta_from_downstream(msg);
-  }  
+  }
 
 }
 
@@ -132,11 +132,11 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     num_results = boost::lexical_cast<int32_t>(config["num_results"]);
   } else
     return operator_err_t("must specify num_results for multi-round top-k");
-  
-  
+
+
   if (config.find("sort_column") != config.end()) {
     sort_column = config["sort_column"];
-  } else  
+  } else
     return operator_err_t("must specify sort_column for multi-round top-k");
 
   phase = NOT_STARTED;
@@ -152,7 +152,7 @@ MultiRoundCoordinator::start() {
   }
   string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
   total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
-  
+
   phase = ROUND_1;
   responses_this_phase = 0;
   DataplaneMessage start_proto;
@@ -161,13 +161,13 @@ MultiRoundCoordinator::start() {
   start_proto.set_tput_sort_key(sort_column);
   LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << "). "
       << predecessors.size() << " predecessors";
-  
+
   //todo should set tput_r1_start and tput_r2_start
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];
     pred->meta_from_downstream(start_proto);
   }
-  
+
 }
 
 
@@ -176,10 +176,10 @@ void
 MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t pred) {
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
-    
-    DimensionKey k = destcube->get_dimension_key(*t);
+
+    DimensionKey k = destcube->get_dimension_key(*t, destcube->get_leaf_levels());
     double v = get_rank_val(t, total_col);
-    
+
     std::map<DimensionKey,CandidateItem>::const_iterator found = candidates.find(k);
     if(found != candidates.end()) {
       CandidateItem& c = candidates[k];
@@ -189,14 +189,14 @@ MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t p
       candidates[k] = CandidateItem(v, 1,  *t);
     }
 
-    
+
   } else if (phase == ROUND_3) {//just let responses through
 //    LOG(INFO) << "passing through " << fmt(*t) << " in TPUT phase 3";
     emit(t);
   }
 //  else
 //    LOG(WARNING) << "ignoring input"
-  
+
 }
 
 
@@ -221,7 +221,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
           //done!
           phase = NOT_STARTED;
         }
-        
+
       }
     }
   }
@@ -238,7 +238,7 @@ MultiRoundCoordinator::calculate_tao() {
     vals.push_back(iter->second.val);
   }
   sort (vals.begin(), vals.end());
-  
+
   if (vals.size() < num_results)
     tao = vals[ vals.size() -1];
   else
@@ -257,7 +257,7 @@ MultiRoundCoordinator::start_phase_2() {
 //	[Needs no per-source state at controller]
 
   tao_1 = calculate_tao();
- 
+
   double t1 = tao_1 / predecessors.size();
   VLOG(1) << "tao at start of phase two is " << tao_1 << ". Threshold is " << t1
     << ". " << candidates.size()<< " candidates";
@@ -271,7 +271,7 @@ MultiRoundCoordinator::start_phase_2() {
     shared_ptr<TupleSender> pred = predecessors[i];
     pred->meta_from_downstream(start_phase);
   }
-  
+
 }
 
 void

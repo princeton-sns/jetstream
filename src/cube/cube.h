@@ -34,9 +34,10 @@ namespace jetstream {
 
 class TupleProcessingInfo {
   public:
-    TupleProcessingInfo(boost::shared_ptr<Tuple> t, DimensionKey key): t(t), key(key), need_new_value(false), need_old_value(false) {};
+    TupleProcessingInfo(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels): t(t), key(key), levels(levels),  need_new_value(false), need_old_value(false) {};
     boost::shared_ptr<Tuple> t;
     DimensionKey key;
+    boost::shared_ptr<std::vector<unsigned int> > levels;
     std::list<operator_id_t> insert;
     std::list<operator_id_t> update;
     bool need_new_value;
@@ -51,7 +52,7 @@ class ProcessCallable {
 
     void run();
 
-    void assign(boost::shared_ptr<Tuple> t, DimensionKey key);
+    void assign(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
     boost::shared_ptr<cube::TupleBatch> batch_flush();
     bool batcher_ready();
 
@@ -62,7 +63,7 @@ class ProcessCallable {
     jetstream::DataCube * cube;
 
     // This runs in the internal thread
-    void process(boost::shared_ptr<Tuple> t, DimensionKey key);
+    void process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     mutable boost::mutex batcherLock; // protects tupleBatcher
@@ -80,7 +81,7 @@ class DataCube : public TupleReceiver {
     //main external functions
     virtual void create() = 0;
     virtual void destroy() = 0;
-    
+
     /**
      * @brief insert the tuple for processing. Note that it is not safe to alter the tuple after calling process
      * (until do_process returns).
@@ -122,7 +123,7 @@ class DataCube : public TupleReceiver {
     virtual std::string id_as_str() ;
     virtual const std::string& typename_as_str() ;
     virtual void no_more_tuples() {};
-    
+
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
 
     virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
@@ -147,27 +148,39 @@ class DataCube : public TupleReceiver {
     void remove_subscriber(operator_id_t id);
 
     //only used by tuple batch
-    virtual DimensionKey get_dimension_key(Tuple const &t) const = 0;
-    virtual void get_dimension_key(const Tuple &t, std::ostringstream &ostr) const = 0;
+    virtual DimensionKey get_dimension_key(Tuple const &t, boost::shared_ptr<std::vector<unsigned int> > levels) const = 0;
+    virtual void get_dimension_key(const Tuple &t, boost::shared_ptr<std::vector<unsigned int> > levels,  std::ostringstream &ostr) const = 0;
+    virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const = 0;
 
     void save_callback(jetstream::TupleProcessingInfo &tpi,
                        boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple);
 
-    virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
+  virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
                             boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple)=0;
+
+
+  virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
+       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
+       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) = 0 ;
+
+  virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
+       const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
+       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
+       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) =0;
+
+/*
 
     virtual void save_tuple_batch(std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store,
                                   std::vector<bool> need_new_value_store, std::vector<bool> need_old_value_store,
                                   std::list<boost::shared_ptr<jetstream::Tuple> > &new_tuple_list,
-                                  std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;
+                                  std::list<boost::shared_ptr<jetstream::Tuple> > &old_tuple_list)=0;*/
 
 
     virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return processCongestMon;}
-  
-    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {}
-    
-    
-    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
+
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
+    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
 
     virtual bool is_unrolled(std::vector<unsigned int> levels) const = 0;
 
@@ -180,6 +193,8 @@ class DataCube : public TupleReceiver {
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
+    void set_current_levels(const std::vector<unsigned int> &levels);
+
     uint64_t version;
 
   private:
@@ -189,13 +204,14 @@ class DataCube : public TupleReceiver {
     virtual void check_flush();
     void post_flush();
     Executor flushExec;
-  
-  protected: 
+
+  protected:
     size_t current_processor;
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 
     std::vector<boost::shared_ptr<ProcessCallable> > processors;
+    boost::shared_ptr<std::vector<unsigned int> > current_levels;
 };
 
 }

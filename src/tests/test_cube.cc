@@ -215,14 +215,16 @@ TEST_F(CubeTest, SaveTupleBatchTest) {
   all_false.push_back(false);
   all_false.push_back(false);
 
-  std::list<boost::shared_ptr<jetstream::Tuple> > new_tuple_list;
-  std::list<boost::shared_ptr<jetstream::Tuple> > old_tuple_list;
+  boost::shared_ptr<jetstream::Tuple> empty_ptr;
+  std::vector<boost::shared_ptr<jetstream::Tuple> > new_tuple_store(tuple_store.size(), empty_ptr);
+  std::vector<boost::shared_ptr<jetstream::Tuple> > old_tuple_store(tuple_store.size(), empty_ptr);
 
-  cube->save_tuple_batch(tuple_store, all_true, all_false, new_tuple_list, old_tuple_list);
-  ASSERT_EQ(2U, new_tuple_list.size());
-  ASSERT_EQ(0U, old_tuple_list.size());
-  check_tuple((new_tuple_list.front()), time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  check_tuple((new_tuple_list.back()), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->save_tuple_batch(tuple_store, all_true, all_false, new_tuple_store, old_tuple_store);
+
+  ASSERT_EQ(2U, new_tuple_store.size());
+  ASSERT_EQ(2U, old_tuple_store.size());
+  check_tuple((new_tuple_store[0]), time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  check_tuple((new_tuple_store[1]), time_entered, "http:\\\\www.example.com", 201, 50, 1);
   delete cube;
 }
 
