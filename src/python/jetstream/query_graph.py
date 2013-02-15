@@ -595,3 +595,8 @@ def VariableSampling(g):
   
 def SamplingController(g):
   return g.add_operator(OpType.CONGEST_CONTROL, {})
+
+
+def Quantile(graph, q, field):
+   cfg = {"q":str(q), "field":field}
+   return graph.add_operator(OpType.QUANTILE, cfg)  

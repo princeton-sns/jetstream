@@ -66,18 +66,34 @@ def find_root_node(options, all_nodes):
   return root_node
 
 
+def define_cube(cube):
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+  cube.add_dim("response_code", Element.INT32, 1)
+  cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, 2)
+  cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, 3)
+
 def get_graph(all_nodes, root_node):
   g= jsapi.QueryGraph()
+
+  central_cube = g.add_cube("global_results")
+  define_cube(central_cube)
+  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+  q_op = jsapi.Quantile(g, 0.95, 3)
+  echo = jsapi.Echo(g)
   
+  
+  g.connect(central_cube, pull_q)
+  g.connect(pull_q, q_op)
+  g.connect(q_op, echo)
+
+
   for node in all_nodes:
     local_cube = g.add_cube("local_results-" + node.address)
-    local_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
-    local_cube.add_dim("response_code", Element.INT32, 1)
-    local_cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, 2)
-    local_cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, 3)
-    local_cube.set_overwrite(True)  #fresh results
+    define_cube(local_cube)
 
-  
+    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+    g.connect(local_cube, pull_from)
+    g.connect(pull_from, central_cube)
   
   return g
 
