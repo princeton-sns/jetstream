@@ -236,7 +236,15 @@ void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   LOG(INFO) << "Adding subscriber "<< sub->id() << " to " << id_as_str();
 }
 
-
+void DataCube::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
+    std::vector<unsigned int> levels;
+    for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
+      levels.push_back(msg.rollup_levels(i));
+    }
+    set_current_levels(levels);
+  }
+}
 
 void DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   return remove_subscriber(sub->id());
@@ -257,7 +265,7 @@ Tuple DataCube::empty_tuple() {
   return t;
 }
 
-void DataCube::set_current_levels(std::vector<unsigned int> levels) {
+void DataCube::set_current_levels(const std::vector<unsigned int> &levels) {
    current_levels = make_shared<std::vector<unsigned int> >(levels);
 }
 

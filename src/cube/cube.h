@@ -178,8 +178,7 @@ class DataCube : public TupleReceiver {
 
     virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() { return processCongestMon;}
 
-    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {}
-
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
     virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
 
@@ -194,7 +193,7 @@ class DataCube : public TupleReceiver {
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
-    void set_current_levels(std::vector<unsigned int> levels);
+    void set_current_levels(const std::vector<unsigned int> &levels);
 
     uint64_t version;
 
