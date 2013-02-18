@@ -123,7 +123,8 @@ class LogHistogram : public QuantileEstimation {
     virtual void set_bucket_starts(size_t b_count);
 
     void fillIn(const JSHistogram&);
-
+    LogHistogram(const LogHistogram&); //no public copy constructor
+    LogHistogram& operator=(const LogHistogram&);
   
   public:
     LogHistogram(size_t buckets);

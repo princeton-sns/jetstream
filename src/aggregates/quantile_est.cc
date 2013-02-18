@@ -209,6 +209,7 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
 #else
   bucket_starts.reserve(bucket_target);
   make_l2_buckets(bucket_target, bucket_starts, 1 << 28);
+  assert(bucket_starts.size() == bucket_target);
   std::sort (bucket_starts.begin(), bucket_starts.end());
 
 #endif
@@ -278,6 +279,14 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
   set_bucket_starts( bucket_target);
   buckets.assign(bucket_starts.size(), 0);
 
+  if (serialized.bucket_vals_size() > bucket_starts.size()) {
+    cout << "FATAL: serialized histogram had " << serialized.bucket_vals_size()
+       << " buckets but size was " << bucket_starts.size() << endl;
+//        << serialized.Utf8DebugString()<< "." << endl;
+  }
+  assert(serialized.bucket_vals_size() <= bucket_starts.size());
+
+
   for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
     buckets[i] = serialized.bucket_vals(i);
     total_vals += buckets[i];
@@ -287,7 +296,9 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
 void
 LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
+  assert(bucket_target == bucket_count());
   serialized_hist->set_num_buckets(bucket_target);
+  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }
@@ -303,11 +314,12 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
     }
   else {
     size_t dest_bucket=0;
-    for(size_t src_bucket=0; src_bucket < rhs.bucket_count(); ++src_bucket) {
+    for(size_t src_bucket=0; src_bucket < rhs.bucket_count()-1; ++src_bucket) {
       buckets[dest_bucket] += rhs.buckets[src_bucket];
-      if(rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
+      if(dest_bucket < bucket_count()-1 && rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
         dest_bucket += 1;
     }
+    buckets[bucket_count()-1] += rhs.bucket_starts[bucket_count()-1];
   
   }
   return true;

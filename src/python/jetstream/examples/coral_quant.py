@@ -79,10 +79,11 @@ def define_cube(cube, ids = [0,1,2,3]):
   cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, ids[2])
   cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, ids[3])
 
+
 def get_graph(all_nodes, root_node, file_to_parse):
   g= jsapi.QueryGraph()
 
-  central_cube = g.add_cube("global_results")
+  central_cube = g.add_cube("global_coral")
   central_cube.instantiate_on(root_node)
 
   define_cube(central_cube)
@@ -98,7 +99,7 @@ def get_graph(all_nodes, root_node, file_to_parse):
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
       
   for node, i in zip(all_nodes, range(0, len(all_nodes))):
-    local_cube = g.add_cube("local_results_%d" %i)
+    local_cube = g.add_cube("local_coral_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
