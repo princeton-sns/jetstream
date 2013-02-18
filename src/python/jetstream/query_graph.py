@@ -340,11 +340,20 @@ class Cube(Destination):
   def add_agg(self, a_name, a_type, offset):
     self.desc['aggs'].append(  (a_name, a_type, offset) )
 
-  def get_dimensions(self):
+  def get_input_dimensions(self):
+    """Returns a map from INPUT key to dimension.
+    This is NOT the same as the OUTPUT dimensions"""
     r = {}
     for dim_name, dim_type, offset in self.desc['dims']:
       r[offset] = (dim_name, dim_type)
     return r
+    
+  def get_output_dimensions(self):
+    r = []
+    for dim_name, dim_type, offset in self.desc['dims']:
+      r.append( (dim_name, dim_type) )
+    return r
+    
     
   def set_overwrite(self, overwrite):
     assert(type(overwrite) == types.BooleanType)
@@ -529,25 +538,28 @@ class TimeSubscriber(Operator):
     pred_cube = list(self.preds)[0]
     # Need to convert the user-specified selection keys into positional form
     # for the DB
-    dims_by_id = pred_cube.get_dimensions()
+    dims = pred_cube.get_output_dimensions()
     tuple = Tuple()
-    max_dim = max(dims_by_id.keys())
- #   print dims_by_id
-    for id in range(0, max_dim+1):
-      el = tuple.e.add()
-      if id not in dims_by_id:
-        continue
-        
-      dim_name,dim_type = dims_by_id[id]
+    
+#    max_dim = max(dims_by_id.keys())
+#   print dims_by_id
+#   for id in range(0, max_dim+1):
+#      el = tuple.e.add()
+#      if id not in dims_by_id:
+#        continue
+    filter = {}
+    filter.update(self.filter)
+    for dim_name,dim_type in dims:
+      el = tuple.e.add()    
       if dim_name in self.filter:
-        val = self.filter[dim_name]
-        del self.filter[dim_name]
+        val = filter[dim_name]
+        del filter[dim_name]
         if dim_type == Element.STRING:
           el.s_val = val
         else:
           raise ValueError("Panic; trying to filter on dimension without type")
     
-    if len(self.filter) > 0:
+    if len(filter) > 0:
       unmatched_fields = ",".join(self.filter.keys())
       raise ValueError("Panic: filter field unknown in cube. Unmatched "
                        "fields: {}".format(unmatched_fields))

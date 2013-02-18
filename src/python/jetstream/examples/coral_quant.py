@@ -40,12 +40,11 @@ def main():
     id.portno = 12345
     all_nodes = [id]
   else:    
+    serv_addr, serv_port = normalize_controller_addr(options.controller)
     server = RemoteController()
     server.connect(serv_addr, serv_port)
     all_nodes = server.all_nodes()
 
-
-  serv_addr, serv_port = normalize_controller_addr(options.controller)
 
   root_node = find_root_node(options, all_nodes)
 
@@ -84,6 +83,8 @@ def get_graph(all_nodes, root_node, file_to_parse):
   g= jsapi.QueryGraph()
 
   central_cube = g.add_cube("global_results")
+  central_cube.instantiate_on(root_node)
+
   define_cube(central_cube)
   pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
   q_op = jsapi.Quantile(g, 0.95, 3)
@@ -96,9 +97,10 @@ def get_graph(all_nodes, root_node, file_to_parse):
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
       
-  for node in all_nodes:
-    local_cube = g.add_cube("local_results-" + node.address)
+  for node, i in zip(all_nodes, range(0, len(all_nodes))):
+    local_cube = g.add_cube("local_results_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
+    print "cube output dimensions:", local_cube.get_output_dimensions()
 
     f = jsapi.FileRead(g, file_to_parse, skip_empty=True)
     csvp = jsapi.CSVParse(g, coral_types)
@@ -108,6 +110,11 @@ def get_graph(all_nodes, root_node, file_to_parse):
     g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
     
     pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+    f.instantiate_on(node)
+    pull_from.instantiate_on(node)
+    local_cube.instantiate_on(node)
+
+    
     g.chain([local_cube, pull_from, central_cube])
 
     

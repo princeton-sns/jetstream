@@ -266,7 +266,8 @@ TimeBasedSubscriber::operator()() {
   int cube_dims = cube->get_schema().dimensions_size();
 
   if (slice_fields != cube_dims) {
-    LOG(FATAL) << id() << " trying to query " << cube_dims << "dimensions with a tuple of length " << slice_fields;
+    LOG(FATAL) << id() << " trying to query " << cube_dims << " dimensions with tuple "
+       << fmt(querier.min) << " of length " << slice_fields;
   }
 
   LOG(INFO) << id() << " is attached to " << cube->id_as_str();
