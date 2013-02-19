@@ -48,3 +48,9 @@
     command: cp -r src/tests build/src/
             chdir=${js_checkout}
             creates=${js_checkout}/build/src/tests
+  - name: copy mysql udf dylib
+    command: cp ${js_checkout}/build/src/mysql_udfs/merge/libjsmysqludfs_merge.so /usr/lib64/mysql/plugin/
+  - name: restart mysqld
+    service: name=mysqld state=restarted
+  - name: run mysql sql udf install script
+    shell: mysql test_cube < ${js_checkout}/src/mysql_udfs/merge/installdb_linux.sql

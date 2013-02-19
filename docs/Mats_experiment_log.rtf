@@ -183,7 +183,7 @@ setup_vicci.yml\
 build_vicci.yml\
 config_vicci.yml [make sure controller add is correctly configured]\
 copy_data_vicci.yml\
-install_mysql_udfs.yml\
+install_mysql_udfs.yml --integrated into build_vicci.yml\
 \
 controller node11.princeton:\
 cd /jestream/js\
@@ -193,7 +193,7 @@ workers[use worker_generator to get list, take out controller]\
 csshX <list> -l princeton_jetstream\
 ./build/jsnoded -C config/vicci.conf --start\
 \
-on experiment runner (node11.princeton)\
+on experiment runner (node11.princeton)  -- the union cube is on nod10.princeton\
 cd /jetstream/js\
 bin/pyrunner.sh src/python/jetstream/examples/topk_perftest.py -n --controller 128.112.171.40:3456 -u 128.112.171.38 -l ~/latency.log.1000 -r 1000 -o ~/perftest.log.1000\
 ------------------------------------------------------------------------------------------------------------------------------------------\
