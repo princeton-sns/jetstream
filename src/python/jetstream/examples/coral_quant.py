@@ -10,6 +10,7 @@ import time
 from jetstream_types_pb2 import *
 from remote_controller import *
 import query_graph as jsapi
+from query_planner import QueryPlanner
 
 from coral_parse import coral_fnames,coral_fidxs, coral_types
 
@@ -52,6 +53,9 @@ def main():
 
   req = g.get_deploy_pb()
   if options.DRY_RUN:
+    planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346) } )
+    planner.take_raw_topo(req.alter)
+    planner.get_assignments(1)
     print req
   else:
    server.deploy_pb(req)

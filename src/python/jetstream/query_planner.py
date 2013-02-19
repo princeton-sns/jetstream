@@ -140,7 +140,7 @@ class QueryPlanner (object):
         workerID = (gNode.site.address, gNode.site.portno)
         # But if the worker doesn't exist, revert to the default worker
         if workerID not in self.workerLocs.keys():
-          logger.warning("Node was pinned to a worker, but that worker does not exist")
+          logger.warning("Node was pinned to nonexistent worker %s" % str(workerID))
           workerID = defaultWorkerID
       elif (gNode in gSources) or (gNode == gSink):
         # Node is an unpinned source/sink; pin it to a default worker
