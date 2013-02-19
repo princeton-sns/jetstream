@@ -4,6 +4,7 @@
 
 import logging
 from sets import Set
+from operator_schemas import SchemaError
 
 from jetstream_types_pb2 import *
 
@@ -168,12 +169,14 @@ class JSGraph (object):
       lcaPairs.setdefault(v, []).append(u)
     # Clear any prior node state
     self.reset_nodes()
-    # Repeatedly compute LCAs pairs until one remains, starting at the root (aka sink)
-    # of the tree
+    # Repeatedly compute LCAs pairs until the sinks remains
     self.compute_lcas(self.sink, lcaPairs, lcas, True)
-    assert(len(lcas) == 1)
-    return lcas.pop().object
-
+#    assert(len(lcas) == 1)
+    if len(lcas) > 0:
+# Graphs need NOT be tree-shaped
+      return lcas.pop().object
+    else:
+      raise SchemaError("graph lacks a root")
 
   def compute_lcas (self, u, lcaPairs, lcas, recurse):
     uf_make_set(u)
