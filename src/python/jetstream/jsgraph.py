@@ -102,6 +102,7 @@ class JSGraph (object):
       self.radjList[dest].append(src)
 
     # Determine the source nodes and sink node
+    #TODO:SOSP: PICK THE DEEPEST SINK NODE OR GENERALIZE TO MULTIPLE SINKS
     for node in self.nodes.values():
       if node not in self.radjList:
         self.sources[node.id] = node
@@ -137,7 +138,7 @@ class JSGraph (object):
 
 
   #TODO: Use colors to mark visited vertices and avoid redundant exploration
-  #TODO: Returns the descendants of a node in topological order, optionally stopping when an
+  #TODO:SOSP: Return the descendants of a node in topological order, optionally stopping when an
   # end node is reached.
   def get_descendants (self, startObj, endObj=None):
     start = self.nodes[get_oid(startObj)]
@@ -171,14 +172,14 @@ class JSGraph (object):
       lcaPairs.setdefault(v, []).append(u)
     # Clear any prior node state
     self.reset_nodes()
-    # Repeatedly compute LCAs pairs until the sinks remains
+    # Repeatedly compute LCAs pairs until one remains, starting at a candidate root (sink)
     self.compute_lcas(self.sink, lcaPairs, lcas, True)
 #    assert(len(lcas) == 1)
     if len(lcas) > 0:
 # Graphs need NOT be tree-shaped
       return lcas.pop().object
     else:
-      raise SchemaError("graph lacks a root")
+      raise SchemaError("graph lacks a union point for all sources")
 
   def compute_lcas (self, u, lcaPairs, lcas, recurse):
     uf_make_set(u)

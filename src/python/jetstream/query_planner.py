@@ -155,6 +155,7 @@ class QueryPlanner (object):
       taskToWorker[get_oid(gNode)] = workerID
     
     # Find the first global union node, aka the LCA of all sources.
+    #TODO:SOSP: USE THE SINK'S LOCATION AS THE DEFAULT FOR THE UNION NODE.
     union = jsGraph.get_sources_lca()
     # All nodes from union to sink should be at one site
     unionID = get_oid(union)
