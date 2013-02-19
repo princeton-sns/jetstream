@@ -250,13 +250,13 @@ message DataplaneMessage {
 
 
 message JSSample {
-  repeated int32 items = 1;
+  repeated int32 items = 1  [packed=true];
   required int32 total_items = 2;
   required uint32 max_items = 3;
 }
 
 message JSHistogram {
-  repeated int32 bucket_vals = 1;
+  repeated int32 bucket_vals = 1  [packed=true];
   required uint32 num_buckets = 2;  //works around a bug in histogram code where num
       //buckets isn't always what was requested by programmer due to rounding
 }

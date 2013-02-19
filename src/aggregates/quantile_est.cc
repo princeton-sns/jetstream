@@ -264,16 +264,15 @@ LogHistogram::bucket_with(int v) const {
 
 void
 LogHistogram::add_item(int v, count_val_t c) {
-  total_vals += c;
-
   int b = bucket_with(v);
-  //post-condition:  v is in bucket b
   buckets[b] += c;
+  total_vals += c;
 }
 
 void
 LogHistogram::fillIn(const JSHistogram& serialized) {
-  total_vals = 0;
+  assert(total_vals == 0); // only called during construction
+
   bucket_target = serialized.num_buckets();
 
   set_bucket_starts( bucket_target);
@@ -290,6 +289,10 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
     buckets[i] = serialized.bucket_vals(i);
     total_vals += buckets[i];
   }
+  if (total_vals > 100) {
+    cout << "unexpectedly large input" <<endl;
+  }
+//  cout << "after de-serialization, total-count was " << total_vals << endl;
 }
 
 void
@@ -297,8 +300,10 @@ LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
   assert(bucket_target == bucket_count());
   serialized_hist->set_num_buckets(bucket_target);
-//  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
+//  cout << "serializing histogram with " << bucket_target << " buckets and "
+//       << total_vals << " vals" << endl;
   serialized_hist->clear_bucket_vals();
+  
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }
@@ -306,6 +311,9 @@ LogHistogram::serialize_to(JSSummary& q) const {
 
 bool
 LogHistogram::merge_in(const LogHistogram & rhs) {
+  assert(rhs.pop_seen() == std::accumulate(rhs.buckets.begin(),rhs.buckets.end(),0));
+  assert ( pop_seen() == std::accumulate(buckets.begin(),buckets.end(),0) );
+  
   assert(rhs.bucket_count() >= bucket_count());
     //can't refine histogram in merge
   if ( rhs.bucket_count() == bucket_count())
@@ -319,9 +327,12 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
       if(dest_bucket < bucket_count()-1 && rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
         dest_bucket += 1;
     }
-    buckets[bucket_count()-1] += rhs.bucket_starts[bucket_count()-1];
-
+    buckets[bucket_count()-1] += rhs.bucket_starts[rhs.bucket_count()-1];
   }
+//  cout << " lhs values is " << total_vals << " rhs is " << rhs.total_vals << endl;
+  total_vals += rhs.total_vals;
+  size_t tally = std::accumulate(buckets.begin(),buckets.end(),0);
+  assert(tally == pop_seen());
   return true;
 }
 
@@ -340,13 +351,12 @@ LogHistogram::operator==(const LogHistogram & rhs) const {
 std::ostream& operator<<(std::ostream& out, const LogHistogram& hist) {
   for(unsigned int b =0; b < hist.bucket_count(); ++b) {
     std::pair<int, int> bucket_bounds = hist.bucket_bounds(b);
-    out << "in "<< bucket_bounds.first << ", " << bucket_bounds.second <<"] "
-      << hist.count_in_b(b) << endl;
+    if (hist.count_in_b(b) > 0)
+      out << "in "<< bucket_bounds.first << ", " << bucket_bounds.second <<"] "
+        << hist.count_in_b(b) << endl;
   }
   return out;
 }
-
-
 
 
 void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q) {

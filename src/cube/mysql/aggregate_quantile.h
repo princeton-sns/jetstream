@@ -4,7 +4,9 @@
 #include "aggregate.h"
 #include "cm_sketch.h"
 #include "quantile_est.h"
+#include "js_utils.h"
 #include <glog/logging.h>
+
 
 namespace jetstream {
 namespace cube {
@@ -100,6 +102,7 @@ MysqlAggregateQuantile<Aggregate>::set_value_for_insert_tuple ( shared_ptr<sql::
   }
   const JSSummary & sum = t.e(tuple_indexes[0]).summary();
   pstmt->setString(field_index, sum.SerializeAsString());
+//  cout << "putting tuple  " << jetstream::fmt(t) << " into DB" << endl;
   field_index += 1;
 }
 
@@ -110,6 +113,8 @@ void MysqlAggregateQuantile<Aggregate>::populate_tuple_final(boost::shared_ptr<j
   jetstream::Element * elem = t->add_e();
   jetstream::JSSummary *sum =  elem->mutable_summary();
   sum->ParseFromString(s);
+//  cout << "pulled tuple  " << jetstream::fmt(*t) << " from DB" << endl;
+
 }
 
 template<class Aggregate>

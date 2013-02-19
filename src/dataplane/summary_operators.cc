@@ -65,6 +65,9 @@ void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
       LOG(FATAL) << " got a summary with no specific summary in it";
     }
     size_t result = est->pop_seen();
+//    LOG(INFO) << " incoming histo had " << result << " total values:";
+ //   LOG(INFO) <<  *((LogHistogram*)(est));
+
     t->add_e()->set_i_val(result);
     delete est;
     emit(t);

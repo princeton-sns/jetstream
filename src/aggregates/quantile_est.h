@@ -131,12 +131,12 @@ class LogHistogram : public QuantileEstimation {
   
   public:
     LogHistogram(size_t buckets);
-    LogHistogram(const JSHistogram& s) { fillIn(s); }
-    LogHistogram(const JSSummary& s) { fillIn(s.histo()); }
+    LogHistogram(const JSHistogram& s): total_vals(0) { fillIn(s); }
+    LogHistogram(const JSSummary& s): total_vals(0) { fillIn(s.histo()); }
   
     virtual int quantile(double q);
-    virtual void add_item(int v, count_val_t c);
 
+    virtual void add_item(int v, count_val_t c);
 
     virtual size_t size() const {
       return buckets.size() * sizeof(count_val_t);
@@ -144,6 +144,10 @@ class LogHistogram : public QuantileEstimation {
   
     virtual uint64_t pop_seen() const {
       return total_vals;
+/*      uint64_t total = 0;
+      for (size_t i = 0; i < buckets.size(); ++i)
+        total+=buckets[i];
+      return total;*/
     }
   
 
