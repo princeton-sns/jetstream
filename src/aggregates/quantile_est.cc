@@ -298,7 +298,8 @@ LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
   assert(bucket_target == bucket_count());
   serialized_hist->set_num_buckets(bucket_target);
-  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
+//  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
+  serialized_hist->clear_bucket_vals();
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }
