@@ -67,6 +67,10 @@ class DataCubeImpl : public DataCube {
       return dimensionMap.count(name) > 0;
     }
 
+    size_t num_dimensions() {
+      return dimensions.size();
+    }
+
     boost::shared_ptr<CubeAggregate> get_aggregate(string name) const {
       int pos = find_in(aggregateMap, name);
       if(pos > -1) {
@@ -75,8 +79,13 @@ class DataCubeImpl : public DataCube {
       LOG(FATAL) << "No aggregate named "<<name<< "; schema is " << schema.Utf8DebugString() << " pos ";
     }
 
+
     bool has_aggregate(string name) const {
       return aggregateMap.count(name) > 0;
+    }
+
+    size_t num_aggregates() {
+      return aggregates.size();
     }
 
     virtual std::vector<size_t> dimension_offset(std::string n) {

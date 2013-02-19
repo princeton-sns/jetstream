@@ -75,7 +75,7 @@ ReservoirSample::add_one(int v) {
     if (i_to_replace < max_size)
       sample_of_data[i_to_replace] = v;
   }
-  total_seen += 1;  
+  total_seen += 1;
 }
 
 void
@@ -100,10 +100,10 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
   Four cases:  this reservoir not full and rhs not full. No sampling has happened yet.
   Can just add each element in rhs to this.
     Ditto for this reservoir full and rhs not full.
-    
+
     If this reservoir is full, can handle rhs-full and not-full using weighted choice below.
-    
-    Last case:  This reservoir not-full but RHS is full. 
+
+    Last case:  This reservoir not-full but RHS is full.
 */
 
   if (rhs.elements() < rhs.max_size) { //RHS is unweighted
@@ -112,7 +112,7 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
     }
     return true;
   } else {
-  
+
     size_t rhs_seen = rhs.total_seen;
     while (total_seen < max_size) {
       uniform_int_distribution<size_t> start_pos_distrib(0, rhs.elements() -1 );
@@ -135,7 +135,7 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
       if (which == 1) {
         sample_of_data[i] = rhs.sample_of_data[rhs_idx];
         rhs_idx = (rhs_idx + 1) % rhs.elements();
-      }  
+      }
     }
     return true;
   }
@@ -157,11 +157,11 @@ void make_l2_buckets(unsigned int n, std::vector<int> &sequence, unsigned int ma
   int base = 1;
   int exp = 0;
   while (n-- > 0) {
-    sequence.push_back(base * (1 << exp++)); 
+    sequence.push_back(base * (1 << exp++));
 
     if ( unsigned(sequence.back()) > (max >> 1)) {
       // the next element is always twice the previous element (until wrapping
-      // around), so we wrap around now to avoid overflow. 
+      // around), so we wrap around now to avoid overflow.
 
       //std::cout << "ending subsequence: " << base << " * 2^" << exp - 1 << std::endl;
       base += 2; // bases are consecutive odd numbers
@@ -175,7 +175,7 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
 
 #ifdef UGLY_BUCKETS
   const size_t MAX_LAYERS = 10;
-  
+
   size_t incr_per_layer[MAX_LAYERS];
 
   size_t layers = 3;
@@ -185,20 +185,20 @@ LogHistogram::set_bucket_starts(size_t bucket_target) {
 
   for(size_t i =0; i < layers; ++i)
     incr_per_layer[i] = 2;
-  
+
   if(bucket_target < 5 * layers)
     bucket_target = 5 * layers;
   size_t precise_layers = std::min(bucket_target/5 -layers, layers);
   for (size_t b = 0; b < precise_layers; ++b)
     incr_per_layer[b] = 1;
-  
-  
+
+
   int exp = 1;
 //  cout << "buckets: 0 ";
   bucket_starts.push_back(0);
   if (incr_per_layer[0] == 1)
     bucket_starts.push_back(1);
-    
+
   for(size_t layer = 0; layer < layers; ++layer) {
     for (int i = 2; i <= 10; i+=incr_per_layer[layer]) {
       bucket_starts.push_back(i * exp);
@@ -232,12 +232,12 @@ LogHistogram::bucket_bounds(size_t i) const {
 
 size_t
 LogHistogram::quantile_bucket(double q) const {
-  
+
   count_val_t cum_sum = 0, target_sum = (count_val_t) (q * total_vals);
-  
+
   for (unsigned int i = 0; i < buckets.size(); ++i) {
 
-    cum_sum += buckets[i];  
+    cum_sum += buckets[i];
     if (cum_sum > target_sum) {
       return i;
     }
@@ -265,7 +265,7 @@ LogHistogram::bucket_with(int v) const {
 void
 LogHistogram::add_item(int v, count_val_t c) {
   total_vals += c;
-  
+
   int b = bucket_with(v);
   //post-condition:  v is in bucket b
   buckets[b] += c;
@@ -286,7 +286,6 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
   }
   assert((uint) serialized.bucket_vals_size() <= bucket_starts.size());
 
-
   for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
     buckets[i] = serialized.bucket_vals(i);
     total_vals += buckets[i];
@@ -298,7 +297,8 @@ LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
   assert(bucket_target == bucket_count());
   serialized_hist->set_num_buckets(bucket_target);
-  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
+//  cout << "serializing histogram with " << bucket_target << " buckets" << endl;
+  serialized_hist->clear_bucket_vals();
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }
@@ -320,7 +320,7 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
         dest_bucket += 1;
     }
     buckets[bucket_count()-1] += rhs.bucket_starts[bucket_count()-1];
-  
+
   }
   return true;
 }

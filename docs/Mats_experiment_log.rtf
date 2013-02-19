@@ -177,10 +177,13 @@ Big data has undergone one revolution with the availability of Hadoop for centra
 \
 We expect both of these problems to be more common in the wide area than within a datacenter,\
 -------------------------------------------------------------------------------------------------------------------------------------------\
+ex. ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream --module-path=modules/\
 bootstrap_vicci.yml\
 setup_vicci.yml\
 build_vicci.yml\
 config_vicci.yml [make sure controller add is correctly configured]\
+copy_data_vicci.yml\
+install_mysql_udfs.yml\
 \
 controller node11.princeton:\
 cd /jestream/js\

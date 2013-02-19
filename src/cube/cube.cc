@@ -238,11 +238,20 @@ void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
 
 void DataCube::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
   if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
-    std::vector<unsigned int> levels;
-    for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
-      levels.push_back(msg.rollup_levels(i));
+    if(msg.rollup_levels_size() == 0)
+    {
+      set_current_levels(get_leaf_levels());
     }
-    set_current_levels(levels);
+    else
+    {
+      LOG_IF(FATAL, (unsigned int) msg.rollup_levels_size() != num_dimensions()) << "got a rollup levels msg with the wrong number of dimensions: "
+        << msg.rollup_levels_size()<< " should be " <<num_dimensions();
+      std::vector<unsigned int> levels;
+      for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
+        levels.push_back(msg.rollup_levels(i));
+      }
+      set_current_levels(levels);
+    }
   }
 }
 
@@ -267,6 +276,10 @@ Tuple DataCube::empty_tuple() {
 
 void DataCube::set_current_levels(const std::vector<unsigned int> &levels) {
    current_levels = make_shared<std::vector<unsigned int> >(levels);
+}
+
+void DataCube::set_current_levels(boost::shared_ptr<std::vector<unsigned int> > levels) {
+   current_levels = levels;
 }
 
 const jetstream::CubeSchema& DataCube::get_schema() {
