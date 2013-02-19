@@ -74,6 +74,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 const std::string jetstream::DataCube::my_tyepename("data cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
+//  LOG(INFO) << "processing" << fmt(*t);
    static boost::thread_specific_ptr<std::ostringstream> tmpostr;
    static boost::thread_specific_ptr<boost::hash<std::string> > hash_fn;
 

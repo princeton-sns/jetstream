@@ -51,6 +51,38 @@ operator_err_t QuantileOperator::configure(std::map<std::string,std::string> &co
 }
 
 
+void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
+  if (t->e(field).has_summary()) {
+    const JSSummary& s= t->e(field).summary();
+    QuantileEstimation * est;
+    if (s.has_histo()) {
+      est = new LogHistogram(s.histo());
+    } else if (s.has_sample()) {
+      est = new ReservoirSample(s.sample());
+    } else if (s.has_sketch()) {
+      est = new CMMultiSketch(s.sketch());
+    } else {
+      LOG(FATAL) << " got a summary with no specific summary in it";
+    }
+    size_t result = est->pop_seen();
+//    LOG(INFO) << " incoming histo had " << result << " total values:";
+ //   LOG(INFO) <<  *((LogHistogram*)(est));
+
+    t->add_e()->set_i_val(result);
+    delete est;
+    emit(t);
+  } else
+    LOG(FATAL) << "no summary in field " << field << " of "<< fmt(*t);
+}
+
+operator_err_t
+SummaryToCount::configure(std::map<std::string,std::string> &config) {
+  if( !(istringstream(config["field"]) >> field))
+    return operator_err_t("must specify a field; got " + config["field"]);
+  return NO_ERR;
+}
+
+
 void
 ToSummary::process(boost::shared_ptr<Tuple> t) {
 
@@ -77,6 +109,6 @@ operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
 
 const string QuantileOperator::my_type_name("Quantile");
 const string ToSummary::my_type_name("to-summary");
-
+const string SummaryToCount::my_type_name("to-count");
 
 }

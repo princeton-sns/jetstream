@@ -82,12 +82,14 @@ def find_root_node(options, all_nodes):
   return root_node
 
 
-def define_cube(cube, ids = [0,1,2,3]):
+def define_cube(cube, ids = [0,1,2,3,4]):
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
   cube.add_dim("response_code", Element.INT32, ids[1])
   cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, ids[2])
   cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, ids[3])
-#  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[4])
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[4])
+
+  cube.set_overwrite(True)
 
 
 def parse_ts(start_ts):
@@ -106,18 +108,20 @@ def get_graph(all_nodes, root_node, options):
   central_cube = g.add_cube("global_coral")
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
-  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+  
+  pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
   pull_q.set_cfg("ts_field", 0)
   pull_q.set_cfg("start_ts", start_ts)
-  pull_q.set_cfg("rollup_levels", "8,1")
+#  pull_q.set_cfg("rollup_levels", "8,1")
   pull_q.set_cfg("simulation_rate", options.warp_factor)
-  pull_q.set_cfg("window_offset", 5000) #but trailing by a few
+  pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
+  count_op = jsapi.SummaryToCount(g, 2)
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
   echo = jsapi.Echo(g)
   
-  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
+  g.chain([central_cube, pull_q, count_op, q_op, q_op2, echo] )
   
   
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
@@ -128,7 +132,7 @@ def get_graph(all_nodes, root_node, options):
   g.chain([central_cube, latency_measure_op, echo_op])
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
-      coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
+      coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
       
   for node, i in zip(all_nodes, range(0, len(all_nodes))):
     local_cube = g.add_cube("local_coral_%d" %i)
@@ -143,12 +147,12 @@ def get_graph(all_nodes, root_node, options):
     g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
     
     f.instantiate_on(node)
-    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
-    pull_from.instantiate_on(node)
-    pull_from.set_cfg("simulation_rate", options.warp_factor)
-    pull_from.set_cfg("ts_field", 0)
-    pull_from.set_cfg("start_ts", start_ts)
-    pull_from.set_cfg("window_offset", 2000) #but trailing by a few
+    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
+    pull_from_local.instantiate_on(node)
+    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+    pull_from_local.set_cfg("ts_field", 0)
+    pull_from_local.set_cfg("start_ts", start_ts)
+    pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)
 
@@ -156,8 +160,9 @@ def get_graph(all_nodes, root_node, options):
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
    
-    g.chain([local_cube, pull_from,timestamp_op, count_extend_op, central_cube])
-#  g.chain([local_cube, pull_q, q_op, q_op2, echo] )
+   
+    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, central_cube])
+#  g.chain([local_cube, pull_from_local, count_op, q_op, q_op2, echo] )
 
     
   
