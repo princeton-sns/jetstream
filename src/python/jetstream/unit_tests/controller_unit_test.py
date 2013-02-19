@@ -118,8 +118,8 @@ class TestQueryPlanner(unittest.TestCase):
     
   def test_1node_plan(self):
 
-    dummy_node = ("host",123)
-    planner = QueryPlanner( {dummy_node:dummy_node} )
+    dummyNode = ("host",123)
+    planner = QueryPlanner( {dummyNode:dummyNode} )
 
     qGraph = jsapi.QueryGraph()
     reader = jsapi.FileRead(qGraph, "file name")
@@ -131,14 +131,14 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
-    self.assertTrue(dummy_node in plan)
+    self.assertTrue(dummyNode in plan)
     self.assertEquals(len(plan), 1)
-    self.assertEquals(len(plan[dummy_node].operators), 1)
+    self.assertEquals(len(plan[dummyNode].operators), 1)
 
   def test_2node_plan(self):
 
-    dummy_node = ("host",123)
-    planner = QueryPlanner( {dummy_node:dummy_node} )
+    dummyNode = ("host",123)
+    planner = QueryPlanner( {dummyNode:dummyNode} )
 
     qGraph = jsapi.QueryGraph()
     reader = jsapi.FileRead(qGraph, "file name")
@@ -157,13 +157,13 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
-    self.assertTrue(dummy_node in plan)
+    self.assertTrue(dummyNode in plan)
     self.assertEquals(len(plan), 1)
-    self.assertEquals(len(plan[dummy_node].operators), 1)
-    self.assertEquals(len(plan[dummy_node].cubes), 1)
+    self.assertEquals(len(plan[dummyNode].operators), 1)
+    self.assertEquals(len(plan[dummyNode].cubes), 1)
         
-    pb_to_node = plan[dummy_node].get_pb()
-    self.assertEquals(len(pb_to_node.alter.edges), 1)
+    pbToNode = plan[dummyNode].get_pb()
+    self.assertEquals(len(pbToNode.alter.edges), 1)
 
   def test_external_edge_plan(self):
     qGraph = jsapi.QueryGraph()
@@ -179,23 +179,23 @@ class TestQueryPlanner(unittest.TestCase):
     e.dest_addr.address = "myhost"
     e.dest_addr.portno = MY_PORTNO
 
-    dummy_node = ("host",123)
-    planner = QueryPlanner( {dummy_node:dummy_node} )
+    dummyNode = ("host",123)
+    planner = QueryPlanner( {dummyNode:dummyNode} )
     err = planner.take_raw_topo(req.alter).lower()
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
-    self.assertTrue(dummy_node in plan)
+    self.assertTrue(dummyNode in plan)
     self.assertEquals(len(plan), 1)
-    self.assertEquals(len(plan[dummy_node].operators), 1)
+    self.assertEquals(len(plan[dummyNode].operators), 1)
         
-    pb_to_node = plan[dummy_node].get_pb()
-    self.assertEquals(len(pb_to_node.alter.edges), 1)
-    self.assertEquals(pb_to_node.alter.edges[0].dest_addr.portno, MY_PORTNO)
+    pbToNode = plan[dummyNode].get_pb()
+    self.assertEquals(len(pbToNode.alter.edges), 1)
+    self.assertEquals(pbToNode.alter.edges[0].dest_addr.portno, MY_PORTNO)
 
   def test_with_subscriber(self):
-    dummy_node = ("host",123)
-    planner = QueryPlanner( {dummy_node:dummy_node} )
+    dummyNode = ("host",123)
+    planner = QueryPlanner( {dummyNode:dummyNode} )
 
     qGraph = jsapi.QueryGraph()
     cube = qGraph.add_cube("local_results")
@@ -211,40 +211,40 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
-    self.assertTrue(dummy_node in plan)
+    self.assertTrue(dummyNode in plan)
     self.assertEquals(len(plan), 1)
-    #print plan[dummy_node].get_pb()
+    #print plan[dummyNode].get_pb()
 
 
   def test_with_partial_placement(self):
-    dummy_node1 = ("host",123)
-    dummy_node2 = ("host2",234)
+    dummyNode1 = ("host",123)
+    dummyNode2 = ("host2",234)
 
-    planner = QueryPlanner( {dummy_node1:dummy_node1, dummy_node2:dummy_node2} )
+    planner = QueryPlanner( {dummyNode1:dummyNode1, dummyNode2:dummyNode2} )
     g = jsapi.QueryGraph()
 
-    eval_op = jsapi.RandEval(g)
+    evalOp = jsapi.RandEval(g)
 
-    for node,k in zip([dummy_node1, dummy_node2], range(0,2)):
+    for node,k in zip([dummyNode1, dummyNode2], range(0,2)):
       src = jsapi.RandSource(g, 1, 2)
       src.set_cfg("rate", 1000)
   
-      local_cube = g.add_cube("local_results_%d" %k)
-      local_cube.add_dim("state", Element.STRING, 0)
-      local_cube.add_dim("time", Element.TIME, 1)
-      local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+      localCube = g.add_cube("local_results_%d" %k)
+      localCube.add_dim("state", Element.STRING, 0)
+      localCube.add_dim("time", Element.TIME, 1)
+      localCube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
   
-      pull_op = jsapi.TimeSubscriber(g, {}, 1000)
-      pull_op.set_cfg("ts_field", 1)
-      pull_op.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
+      pullOp = jsapi.TimeSubscriber(g, {}, 1000)
+      pullOp.set_cfg("ts_field", 1)
+      pullOp.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
       
-      extend_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
-      round_op = jsapi.TRoundOperator(g, fld=1, round_to=5)
-      g.connect(src, local_cube)  
-      g.connect(local_cube, pull_op)
-      g.connect(pull_op, extend_op)
-      g.connect(extend_op, round_op)
-      g.connect(round_op, eval_op)
+      extendOp = jsapi.ExtendOperator(g, "s", ["node"+str(k)])
+      roundOp = jsapi.TRoundOperator(g, fld=1, round_to=5)
+      g.connect(src, localCube)  
+      g.connect(localCube, pullOp)
+      g.connect(pullOp, extendOp)
+      g.connect(extendOp, roundOp)
+      g.connect(roundOp, evalOp)
 
       nID = NodeID()
       nID.address, nID.portno = node
@@ -256,7 +256,7 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
-    pb1 = plan[dummy_node1].get_pb().alter
+    pb1 = plan[dummyNode1].get_pb().alter
     
     subscribers = [x for x in pb1.toStart if "Subscriber" in x.op_typename]
     self.assertEquals(len(subscribers),  len(pb1.toCreate))
@@ -265,7 +265,99 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertLessEqual(len(pb1.toStart), 4)
     
 
-        
+  def test_line_graph_with_subscriber(self):
+    dummyNode1 = ("host", 123)
+    dummyNode2 = ("host2", 234)
+    dummyNode3 = ("host3", 345)
+
+    planner = QueryPlanner( {dummyNode1:dummyNode1, dummyNode2:dummyNode2, dummyNode3:dummyNode3} )
+    g = jsapi.QueryGraph()
+
+    src = jsapi.RandSource(g, 1, 2)
+    src.set_cfg("rate", 1000)
+  
+    localCube = g.add_cube("local_results")
+    localCube.add_dim("state", Element.STRING, 0)
+    localCube.add_dim("time", Element.TIME, 1)
+    localCube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+
+    pullOp = jsapi.TimeSubscriber(g, {}, 1000)
+    pullOp.set_cfg("ts_field", 1)
+    pullOp.set_cfg("window_offset", 1000) #pull every three seconds, trailing by one
+
+    remoteCube = g.add_cube("remote_results")
+    remoteCube.add_dim("state", Element.STRING, 0)
+    remoteCube.add_dim("time", Element.TIME, 1)
+    remoteCube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+
+    extendOp = jsapi.ExtendOperator(g, "s", ["node1"])
+    roundOp = jsapi.TRoundOperator(g, fld=1, round_to=5)
+
+    # The line graph topology is: src -> cube -> subscriber -> operator(s) -> cube. 
+    g.connect(src, localCube)
+    g.connect(localCube, pullOp)
+    g.connect(pullOp, extendOp)
+    g.connect(extendOp, roundOp)
+    g.connect(roundOp, remoteCube)
+
+    node1ID = NodeID()
+    node1ID.address, node1ID.portno = dummyNode1
+    node2ID = NodeID()
+    node2ID.address, node2ID.portno = dummyNode2
+    node3ID = NodeID()
+    node3ID.address, node3ID.portno = dummyNode3
+
+    g.validate_schemas()
+
+    # Pin nothing: everything should be placed on one node
+    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    self.assertEquals(len(err), 0)  
+    plan = planner.get_assignments(1)
+    self.assertEquals(len(plan), 1)
+
+    # Pin source (src): everything should be placed on the source node
+    src.instantiate_on(node2ID)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    self.assertEquals(len(err), 0)  
+    plan = planner.get_assignments(1)
+    self.assertEquals(len(plan), 1)
+    self.assertTrue(dummyNode2 in plan)
+    
+    # Pin source (src) and sink (remoteCube): everything except sink should be on source node
+    src.instantiate_on(node2ID)
+    remoteCube.instantiate_on(node1ID)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    self.assertEquals(len(err), 0)
+    plan = planner.get_assignments(1)
+    self.assertEquals(len(plan), 2)
+    node1Plan = plan[dummyNode1]
+    node2Plan = plan[dummyNode2]
+    self.assertEquals(len(node1Plan.cubes), 1)
+    self.assertEquals(node1Plan.cubes[0].name, remoteCube.name)
+    self.assertEquals(len(node1Plan.operators), 0)
+    self.assertEquals(len(node2Plan.cubes), 1)
+    self.assertEquals(node2Plan.cubes[0].name, localCube.name)
+    self.assertEquals(len(node2Plan.operators), 4)
+
+    # Pin source (src), source cube (localCube), and sink (remoteCube): regardless of where
+    # source and sink are placed, source cube up to (but excluding) sink should be on same node
+    src.instantiate_on(node2ID)
+    localCube.instantiate_on(node3ID)
+    remoteCube.instantiate_on(node1ID)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    self.assertEquals(len(err), 0)
+    plan = planner.get_assignments(1)
+    self.assertEquals(len(plan), 3)
+    node3Plan = plan[dummyNode3]
+    self.assertEquals(len(node3Plan.cubes), 1)
+    self.assertEquals(node3Plan.cubes[0].name, localCube.name)
+    self.assertEquals(len(node3Plan.operators), 3)
+    # In particular, the cube subscriber should be on the same node as the cube!
+    pb3 = node3Plan.get_pb().alter
+    subscribers = [x for x in pb3.toStart if "Subscriber" in x.op_typename]
+    self.assertEquals(len(subscribers), 1)
+
+
 
 if __name__ == '__main__':
   unittest.main()
