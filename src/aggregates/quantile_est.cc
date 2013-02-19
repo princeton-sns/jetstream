@@ -279,13 +279,12 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
   set_bucket_starts( bucket_target);
   buckets.assign(bucket_starts.size(), 0);
 
-  if ((unsigned int)serialized.bucket_vals_size() > bucket_starts.size()) {
+  if ((uint) serialized.bucket_vals_size() > bucket_starts.size()) {
     cout << "FATAL: serialized histogram had " << serialized.bucket_vals_size()
        << " buckets but size was " << bucket_starts.size() << endl;
 //        << serialized.Utf8DebugString()<< "." << endl;
   }
-  assert((unsigned int)serialized.bucket_vals_size() <= bucket_starts.size());
-
+  assert((uint) serialized.bucket_vals_size() <= bucket_starts.size());
 
   for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
     buckets[i] = serialized.bucket_vals(i);
