@@ -137,6 +137,8 @@ class JSGraph (object):
 
 
   #TODO: Use colors to mark visited vertices and avoid redundant exploration
+  #TODO: Returns the descendants of a node in topological order, optionally stopping when an
+  # end node is reached.
   def get_descendants (self, startObj, endObj=None):
     start = self.nodes[get_oid(startObj)]
     end = None

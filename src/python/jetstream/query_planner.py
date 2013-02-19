@@ -167,6 +167,10 @@ class QueryPlanner (object):
       if gID not in taskToWorker:
         taskToWorker[gID] = workerID
         assignments[workerID].add_node(gNode)
+      else:
+        # Enforce stickiness: if a descendant is pinned to a different worker, use the new worker
+        # from here on. This works because get_descendants returns nodes in topological order.
+        workerID = taskToWorker[gID]
         
     # All nodes from source to union should be at one site, for each source
     for gSource in gSources:
@@ -179,6 +183,10 @@ class QueryPlanner (object):
         if gID not in taskToWorker:
           taskToWorker[gID] = workerID
           assignments[workerID].add_node(gNode)
+        else:
+          # Enforce stickiness: if a descendant is pinned to a different worker, use the new worker
+          # from here on. This works because get_descendants returns nodes in topological order.
+          workerID = taskToWorker[gID]
 
     # Assign each edge to the worker where the source was placed, since the source will
     # initiate the connection to the destination
@@ -198,5 +206,7 @@ class QueryPlanner (object):
         assert(edge.HasField("dest_addr"))
     
       assignments[srcWorkerID].add_edge(edge)
+
+    #TODO: WE SHOULD VALIDATE THE ASSIGNMENT HERE
 
     return assignments
