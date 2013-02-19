@@ -22,7 +22,7 @@ jetstream::jetstream_init () {
 
 void
 jetstream::refresh_time () {
-#ifdef __MACH__ 
+#ifdef __MACH__
   clock_serv_t cclock;
   mach_timespec_t mts;
   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
@@ -86,14 +86,14 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
     time_t t = (time_t)el.t_val();
     struct tm parsed_time;
     gmtime_r(&t, &parsed_time);
-    
+
     char tmbuf[80];
     strftime(tmbuf, sizeof(tmbuf), "%d-%m-%y %H:%M:%S", &parsed_time);
     buf << tmbuf;
   } else if (el.has_summary() && el.summary().has_histo()) {
     const JSHistogram & h = el.summary().histo();
     unsigned tally = 0;
-    for (size_t i = 0; i < h.bucket_vals_size(); ++i)
+    for (size_t i = 0; i < (size_t) h.bucket_vals_size(); ++i)
       tally += h.bucket_vals(i);
     buf << "histogram(" << h.bucket_vals_size()<<")-" << tally << " elems";
   } else if (el.has_blob()) {
@@ -117,7 +117,7 @@ std::string fmt(const jetstream::Tuple& t) {
 }
 
 
-TaskMeta* 
+TaskMeta*
 add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name) {
   TaskMeta* task = topo.add_tostart();
   TaskID* id = task->mutable_id();
@@ -145,7 +145,7 @@ void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& 
   agg->add_tuple_indexes(idx);
 }
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) {
   LOG_IF(FATAL, src_id.computation_id !=  dest_id.computation_id) << "can't add edge from "
     << src_id << " to " << dest_id;
@@ -153,7 +153,7 @@ add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id) 
 }
 
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, int computation, int src_id, int dest_id) {
   Edge * edge = topo.add_edges();
 
@@ -164,7 +164,7 @@ add_edge_to_alter(AlterTopo& topo, int computation, int src_id, int dest_id) {
 }
 
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id) {
   Edge * edge = topo.add_edges();
   edge->set_computation(dest_id.computation_id);
@@ -173,7 +173,7 @@ add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id) {
   return edge;
 }
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, std::string dest_id) {
   Edge * edge = topo.add_edges();
   edge->set_computation(src_id.computation_id);
