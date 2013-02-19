@@ -303,7 +303,7 @@ LogHistogram::serialize_to(JSSummary& q) const {
 //  cout << "serializing histogram with " << bucket_target << " buckets and "
 //       << total_vals << " vals" << endl;
   serialized_hist->clear_bucket_vals();
-  
+
   for(unsigned int b =0; b <  bucket_count(); ++b) {
     serialized_hist->add_bucket_vals(buckets[b]);
   }
@@ -311,9 +311,9 @@ LogHistogram::serialize_to(JSSummary& q) const {
 
 bool
 LogHistogram::merge_in(const LogHistogram & rhs) {
-  assert(rhs.pop_seen() == std::accumulate(rhs.buckets.begin(),rhs.buckets.end(),0));
-  assert ( pop_seen() == std::accumulate(buckets.begin(),buckets.end(),0) );
-  
+  assert(rhs.pop_seen() == (unsigned int) std::accumulate(rhs.buckets.begin(),rhs.buckets.end(),0));
+  assert ( pop_seen() == (unsigned int) std::accumulate(buckets.begin(),buckets.end(),0) );
+
   assert(rhs.bucket_count() >= bucket_count());
     //can't refine histogram in merge
   if ( rhs.bucket_count() == bucket_count())
@@ -331,7 +331,7 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
   }
 //  cout << " lhs values is " << total_vals << " rhs is " << rhs.total_vals << endl;
   total_vals += rhs.total_vals;
-  size_t tally = std::accumulate(buckets.begin(),buckets.end(),0);
+  size_t tally = (size_t) std::accumulate(buckets.begin(),buckets.end(),0);
   assert(tally == pop_seen());
   return true;
 }
