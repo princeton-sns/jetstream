@@ -27,7 +27,12 @@ def main():
   parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
 
   parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
-
+  parser.add_option("-l", "--latency_log_file", dest="latencylog", 
+  default="latencies.out", help="file to log latency into")
+  parser.add_option("--start-time", dest="start_ts", 
+  default="0", help="unix timestamp to start simulation at")
+  parser.add_option("--timewarp", dest="warp_factor", 
+  default="1", help="simulation speedup")
 
   (options, args) = parser.parse_args()
 
@@ -49,7 +54,7 @@ def main():
 
   root_node = find_root_node(options, all_nodes)
 
-  g = get_graph(all_nodes, root_node, options.fname)
+  g = get_graph(all_nodes, root_node,  options)
 
   req = g.get_deploy_pb()
   if options.DRY_RUN:
@@ -82,26 +87,45 @@ def define_cube(cube, ids = [0,1,2,3]):
   cube.add_dim("response_code", Element.INT32, ids[1])
   cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, ids[2])
   cube.add_agg("latencies", jsapi.Cube.AggType.HISTO, ids[3])
+#  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[4])
 
 
-def get_graph(all_nodes, root_node, file_to_parse):
+def parse_ts(start_ts):
+  if start_ts.isdigit():
+    return int(start_ts)
+  else:
+    #todo could allow more formats here
+    assert False
+
+def get_graph(all_nodes, root_node, options):
   g= jsapi.QueryGraph()
 
-#  central_cube = g.add_cube("global_coral")
-#  central_cube.instantiate_on(root_node)
 
-#  define_cube(central_cube)
+  start_ts = parse_ts(options.start_ts)
+
+  central_cube = g.add_cube("global_coral")
+  central_cube.instantiate_on(root_node)
+  define_cube(central_cube)
   pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
   pull_q.set_cfg("ts_field", 0)
-  pull_q.set_cfg("start_ts", 0)
-  pull_q.set_cfg("window_offset", 3000) #but trailing by a few
+  pull_q.set_cfg("start_ts", start_ts)
+  pull_q.set_cfg("rollup_levels", "8,1")
+  pull_q.set_cfg("simulation_rate", options.warp_factor)
+  pull_q.set_cfg("window_offset", 5000) #but trailing by a few
   
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
   echo = jsapi.Echo(g)
   
+  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
   
-#  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
+  
+  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
+      #use field 
+  echo_op = jsapi.Echo(g);
+  echo_op.set_cfg("file_out", options.latencylog)
+  echo_op.instantiate_on(root_node)
+  g.chain([central_cube, latency_measure_op, echo_op])
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
@@ -111,7 +135,7 @@ def get_graph(all_nodes, root_node, file_to_parse):
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
-    f = jsapi.FileRead(g, file_to_parse, skip_empty=True)
+    f = jsapi.FileRead(g, options.fname, skip_empty=True)
     csvp = jsapi.CSVParse(g, coral_types)
     round = jsapi.TRoundOperator(g, fld=1, round_to=1)
     to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
@@ -119,16 +143,21 @@ def get_graph(all_nodes, root_node, file_to_parse):
     g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
     
     f.instantiate_on(node)
-#    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
-#    pull_from.instantiate_on(node)
-#  pull_from.set_cfg("ts_field", 0)
-#  pull_from.set_cfg("start_ts", 0)
-#  pull_from.set_cfg("window_offset", 3000) #but trailing by a few
+    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+    pull_from.instantiate_on(node)
+    pull_from.set_cfg("simulation_rate", options.warp_factor)
+    pull_from.set_cfg("ts_field", 0)
+    pull_from.set_cfg("start_ts", start_ts)
+    pull_from.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)
+
+    timestamp_op= jsapi.TimestampOperator(g, "ms") 
+    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
+    count_extend_op.instantiate_on(node)
    
-#    g.chain([local_cube, pull_from, central_cube])
-  g.chain([local_cube, pull_q, q_op, q_op2, echo] )
+    g.chain([local_cube, pull_from,timestamp_op, count_extend_op, central_cube])
+#  g.chain([local_cube, pull_q, q_op, q_op2, echo] )
 
     
   

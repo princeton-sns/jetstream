@@ -250,12 +250,14 @@ TimeBasedSubscriber::respond_to_congestion() {
 void
 TimeBasedSubscriber::operator()() {
 
-  boost::shared_ptr<TimeTeller> tt(new TimeTeller());
-
+  TimeTeller * ts;
   if (simulation) {
     // FIXME I hope this is right
-    tt.reset(new TimeSimulator(start_ts, simulation_rate));
-  }
+    ts = new TimeSimulator(start_ts, simulation_rate);
+  } else
+    ts = new TimeTeller();
+  boost::shared_ptr<TimeTeller> tt(ts);
+  
 
   time_t newMax = tt->now() - (windowOffsetMs + 999) / 1000; // can be cautious here since it's just first window
 

@@ -29,7 +29,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
 
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
   pull_op.set_cfg("ts_field", 1)
-  pull_op.set_cfg("window_offset", OFFSET) #but trailing by four
+  pull_op.set_cfg("window_offset", OFFSET) #but trailing by a few
   
   eval_op = jsapi.RandEval(g)
   if perflog:
