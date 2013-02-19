@@ -92,6 +92,10 @@ def get_graph(all_nodes, root_node, file_to_parse):
 
 #  define_cube(central_cube)
   pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+  pull_q.set_cfg("ts_field", 0)
+  pull_q.set_cfg("start_ts", 0)
+  pull_q.set_cfg("window_offset", 3000) #but trailing by a few
+  
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
   echo = jsapi.Echo(g)
@@ -117,6 +121,10 @@ def get_graph(all_nodes, root_node, file_to_parse):
     f.instantiate_on(node)
 #    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
 #    pull_from.instantiate_on(node)
+#  pull_from.set_cfg("ts_field", 0)
+#  pull_from.set_cfg("start_ts", 0)
+#  pull_from.set_cfg("window_offset", 3000) #but trailing by a few
+
     local_cube.instantiate_on(node)
    
 #    g.chain([local_cube, pull_from, central_cube])
