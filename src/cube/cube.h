@@ -129,6 +129,10 @@ class DataCube : public TupleReceiver {
     virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
     virtual std::vector<size_t> aggregate_offset(std::string) = 0;
 
+    virtual size_t num_dimensions() = 0;
+    virtual size_t num_aggregates() = 0;
+
+
     /**
     * It's possible to mark a cube as locked. The intended use of this is to allow
     * graceful deletion. The deleter marks the cube as frozen. As updates to the cube fail,
@@ -194,6 +198,7 @@ class DataCube : public TupleReceiver {
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
     void set_current_levels(const std::vector<unsigned int> &levels);
+    void set_current_levels(boost::shared_ptr<std::vector<unsigned int> > levels);
 
     uint64_t version;
 
