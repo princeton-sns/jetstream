@@ -1248,7 +1248,7 @@ TEST_F(CubeTest, MysqlTestHistogram) {
   time_t time_entered = time(NULL);
   jetstream::Element *e;
 
-  for (int j = 0; j< 2; ++j ) {
+  for (int j = 0; j< 3; ++j ) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     e=t->add_e();
     e->set_t_val(time_entered+j);
@@ -1256,7 +1256,8 @@ TEST_F(CubeTest, MysqlTestHistogram) {
     const int ITEMS = 20;
 
     for(int i = 0; i < ITEMS; ++i) {
-      histo.add_item(i*i+j, 1);
+      histo.add_item(i+(10*j), 2);
+      //histo.add_item(i*i+j, 1);
     }
 
     e = t->add_e();
@@ -1266,6 +1267,23 @@ TEST_F(CubeTest, MysqlTestHistogram) {
   }
 
   cube->wait_for_commits();
+
+  jetstream::Tuple empty;
+  e=empty.add_e(); //time
+
+  vector<unsigned int> levels;
+  levels.push_back(0);
+
+  cube->do_rollup(levels, empty, empty);
+  CubeIterator it = cube->rollup_slice_query(levels, empty, empty);
+  ASSERT_EQ(1U, it.numCells());
+
+  boost::shared_ptr<Tuple> ptrTup = *it;
+  const JSSummary &sum_res = ptrTup->e(1).summary();
+
+  LogHistogram res(sum_res);
+  ASSERT_EQ(120U, res.pop_seen());
+
 }
 
 TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
