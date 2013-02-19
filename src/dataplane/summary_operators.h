@@ -27,6 +27,20 @@ GENERIC_CLNAME
 };  
 
 
+class SummaryToCount: public DataPlaneOperator {
+ public:
+  SummaryToCount() {}
+
+
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+ private:
+  unsigned field;
+
+GENERIC_CLNAME
+};  
+
 class ToSummary: public DataPlaneOperator {
  public:
   ToSummary() {}

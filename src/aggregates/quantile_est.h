@@ -33,6 +33,9 @@ class QuantileEstimation {
         add_item( data[i], 1);
     }
   
+    virtual uint64_t pop_seen() const = 0;
+
+  
     virtual void serialize_to(JSSummary&) const = 0;
   
 //    virtual void clear();
@@ -47,10 +50,6 @@ class SampleEstimation: public QuantileEstimation {
   protected:
     std::vector<int> sample_of_data;
     bool is_sorted;
-
-    virtual uint64_t pop_seen() const {
-      return sample_of_data.size();
-    }
 
   public:
   
@@ -76,6 +75,10 @@ class SampleEstimation: public QuantileEstimation {
     }
   
     double mean() const;
+  
+    virtual uint64_t pop_seen() const {
+      return sample_of_data.size();
+    }
 
     virtual void serialize_to(JSSummary&) const;  
 };

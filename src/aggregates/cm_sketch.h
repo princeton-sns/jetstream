@@ -138,6 +138,9 @@ class CMMultiSketch: public QuantileEstimation {
   
   virtual void serialize_to(JSSummary&) const;
   
+  virtual uint64_t pop_seen() const {
+    return panes[0].total_count;
+  }
   
  private:
   void operator= (const CMMultiSketch &) 

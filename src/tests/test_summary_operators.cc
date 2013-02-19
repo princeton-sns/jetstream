@@ -13,17 +13,23 @@ using namespace boost;
 using namespace std;
 
 
-TEST(Operator, QuantileOperator) {
+TEST(Operator, QuantileAndCountOperators) {
 
-  QuantileOperator op;
+  SummaryToCount op;
+  shared_ptr<QuantileOperator> q_op(new QuantileOperator);
   shared_ptr<DummyReceiver> receive(new DummyReceiver);
+  
   operator_config_t cfg;
   cfg["q"] = "0.6";
   cfg["field"] = "1";
 
-  operator_err_t err = op.configure(cfg);
+  operator_err_t err = q_op->configure(cfg);
   ASSERT_EQ(NO_ERR, err);
-  op.set_dest(receive);
+  err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+
+  op.set_dest(q_op);
+  q_op->set_dest(receive);
 
   LogHistogram lh(500);
   lh.add_item(2, 1);
@@ -39,9 +45,9 @@ TEST(Operator, QuantileOperator) {
   
   ASSERT_EQ((size_t)1, receive->tuples.size());
   boost::shared_ptr<Tuple> result = receive->tuples[0];
-  ASSERT_EQ(2, result->e(0).i_val());
-  ASSERT_EQ(4, result->e(1).i_val());
-//  cout << "quantile was " << result->e(1).i_val();
+  ASSERT_EQ(2, result->e(0).i_val());  //first element preserved
+  ASSERT_EQ(4, result->e(1).i_val()); //median is 4
+  ASSERT_EQ(3, result->e(2).i_val()); //three values
 }
 
 
