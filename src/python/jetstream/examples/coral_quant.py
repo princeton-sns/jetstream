@@ -87,14 +87,14 @@ def define_cube(cube, ids = [0,1,2,3]):
 def get_graph(all_nodes, root_node, file_to_parse):
   g= jsapi.QueryGraph()
 
-  central_cube = g.add_cube("global_coral")
-  central_cube.instantiate_on(root_node)
+#  central_cube = g.add_cube("global_coral")
+#  central_cube.instantiate_on(root_node)
 
-  define_cube(central_cube)
-#  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
-#  q_op = jsapi.Quantile(g, 0.95, 3)
-#  q_op2 = jsapi.Quantile(g, 0.95,2)
-#  echo = jsapi.Echo(g)
+#  define_cube(central_cube)
+  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+  q_op = jsapi.Quantile(g, 0.95, 3)
+  q_op2 = jsapi.Quantile(g, 0.95,2)
+  echo = jsapi.Echo(g)
   
   
 #  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
@@ -120,6 +120,7 @@ def get_graph(all_nodes, root_node, file_to_parse):
     local_cube.instantiate_on(node)
    
 #    g.chain([local_cube, pull_from, central_cube])
+  g.chain([local_cube, pull_q, q_op, q_op2, echo] )
 
     
   
