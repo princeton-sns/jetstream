@@ -265,13 +265,18 @@ class Controller (ControllerAPI, JSServer):
     workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
     err = planner.take_raw_topo(altertopo)
+    try:
+      assignments = planner.get_assignments(compID)
+    except SchemaError as e:
+      err = str(e)
+      
     if len(err) > 0:
       logger.warning("Invalid topology: %s",err)
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
-
-    assignments = planner.get_assignments(compID)
+  
+      
     with self.stateLock:  
       # Finalize the worker assignments
       # Should this be AFTER we hear back from workers?

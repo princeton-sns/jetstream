@@ -87,13 +87,13 @@ def get_graph(all_nodes, root_node, file_to_parse):
   central_cube.instantiate_on(root_node)
 
   define_cube(central_cube)
-  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
-  q_op = jsapi.Quantile(g, 0.95, 3)
-  q_op2 = jsapi.Quantile(g, 0.95,2)
-  echo = jsapi.Echo(g)
+#  pull_q = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+#  q_op = jsapi.Quantile(g, 0.95, 3)
+#  q_op2 = jsapi.Quantile(g, 0.95,2)
+#  echo = jsapi.Echo(g)
   
   
-  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
+#  g.chain([central_cube, pull_q, q_op, q_op2, echo] )
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
@@ -110,13 +110,12 @@ def get_graph(all_nodes, root_node, file_to_parse):
     to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
     g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
     
-    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
     f.instantiate_on(node)
-    pull_from.instantiate_on(node)
+#    pull_from = jsapi.TimeSubscriber(g, {}, 2000) #every two seconds
+#    pull_from.instantiate_on(node)
     local_cube.instantiate_on(node)
-
-    
-    g.chain([local_cube, pull_from, central_cube])
+   
+#    g.chain([local_cube, pull_from, central_cube])
 
     
   
