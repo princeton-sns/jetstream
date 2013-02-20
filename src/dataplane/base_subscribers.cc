@@ -299,7 +299,7 @@ TimeBasedSubscriber::operator()() {
     int backfill_window = backfill_tuples - backfill_old_window;
     int regular_window = regular_tuples - regular_old_window;
     if(backfill_window > 0) {
-      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window;
+      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window <<". Next window start time = "<< next_window_start_time;
     }
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;
