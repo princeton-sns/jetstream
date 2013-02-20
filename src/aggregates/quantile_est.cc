@@ -333,7 +333,11 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
 //  cout << " lhs values is " << total_vals << " rhs is " << rhs.total_vals << endl;
   total_vals += rhs.total_vals;
   size_t tally = (size_t) std::accumulate(buckets.begin(),buckets.end(),0);
-  assert(tally == pop_seen());
+  if (tally != pop_seen()) {
+    cout << "tally is " << tally<< " but pop_seen is " << pop_seen() << endl;
+    cout << rhs << "\n---------\n" << *this <<endl;
+    assert(tally == pop_seen());
+  }
   return true;
 }
 
