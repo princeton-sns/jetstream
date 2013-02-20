@@ -289,9 +289,9 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
     buckets[i] = serialized.bucket_vals(i);
     total_vals += buckets[i];
   }
-  if (total_vals > 100) {
-    cout << "unexpectedly large input" <<endl;
-  }
+//  if (total_vals > 100) {
+//    cout << "unexpectedly large input" <<endl;
+//  }
 //  cout << "after de-serialization, total-count was " << total_vals << endl;
 }
 
