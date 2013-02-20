@@ -139,6 +139,8 @@ CSVParse::configure(map<string,string> &config) {
 
     keep_fields[fld_to_keep] = true;
   }
+  
+  discard_off_size = ((config["discard_off_size"].size() > 0) && config["discard_off_size"] != "false");
 
   return NO_ERR;
 }
@@ -160,15 +162,17 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
 
   int i = 0;
   BOOST_FOREACH(string csv_field, csv_parser) {
-    if (i >= n_fields)
-      LOG(FATAL) << "Parsed more fields than types specified." << endl;
-
-    if (keep_fields[i])
-      parse_with_types(t2->add_e(), csv_field, types[i]);
+    if (i >= n_fields) {
+      if (!discard_off_size)
+        LOG(FATAL) << "Parsed more fields than types specified." << endl;
+    } else {
+      if (keep_fields[i])
+        parse_with_types(t2->add_e(), csv_field, types[i]);
+    }
     i++;
   }
-
-  emit(t2);
+  if (!discard_off_size || (i == n_fields))
+    emit(t2);
   // assume we don't need to pass through any other elements...
   // TODO unassume
 }

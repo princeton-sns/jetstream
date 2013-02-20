@@ -128,6 +128,30 @@ TEST(Operator, CSVParseOperator) {
 
     ASSERT_EQ(3, res->e(1).i_val());
   }
+  
+  
+  {  //check for proper behavior on short tuples
+    shared_ptr<DummyReceiver> rec2(new DummyReceiver);
+    shared_ptr<CSVParse> csvp2(new CSVParse);
+    csvp2->set_dest(rec2);
+
+    config["fields_to_keep"] = "1 2";
+    config["types"] = "SSI";
+    config["discard_off_size"] = "true";
+    ASSERT_EQ(NO_ERR, csvp2->configure(config));
+
+    boost::shared_ptr<Tuple> t(new Tuple);
+    t->add_e()->set_s_val("foo");   //too short
+    t->set_version(0);
+    csvp2->process(t);
+    
+    t->add_e()->set_s_val("bar");
+    t->add_e()->set_i_val(2); //too long
+    t->add_e()->set_i_val(3);
+    csvp2->process(t);
+
+    ASSERT_EQ((size_t)0, rec2->tuples.size());
+  }
 }
 
 

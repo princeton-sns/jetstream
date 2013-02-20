@@ -55,6 +55,7 @@ class CSVParse: public DataPlaneOperator {
       // specified by a string of 0s and 1s separated by spaces
       std::vector<bool> keep_fields;
       int n_fields;
+      bool discard_off_size;
       //int fieldID; // the field containing the CSV values, default 0
 
    GENERIC_CLNAME
