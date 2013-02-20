@@ -288,6 +288,7 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
 
   for(int i = 0; i < serialized.bucket_vals_size(); ++i) {
     buckets[i] = serialized.bucket_vals(i);
+    assert ( serialized.bucket_vals(i) >= 0);
     total_vals += buckets[i];
   }
 //  if (total_vals > 100) {
@@ -324,6 +325,7 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
   else {
     size_t dest_bucket=0;
     for(size_t src_bucket=0; src_bucket < rhs.bucket_count()-1; ++src_bucket) {
+      assert ( rhs.buckets[src_bucket] <  1<<30);
       buckets[dest_bucket] += rhs.buckets[src_bucket];
       if(dest_bucket < bucket_count()-1 && rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
         dest_bucket += 1;

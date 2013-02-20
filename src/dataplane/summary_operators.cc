@@ -91,6 +91,7 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
   int i = t->e(field).i_val();
 
   LogHistogram l(s_size);
+  assert(i >= 0);
   l.add_item(i, 1);
   JSSummary * s = t->mutable_e(field)->mutable_summary();
   l.serialize_to(*s);
