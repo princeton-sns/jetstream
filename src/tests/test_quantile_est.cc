@@ -279,6 +279,19 @@ TEST(QuantLogHistogram, Merge) {
   }
 }
 
+TEST(QuantLogHistogram, MergeSmall) {
+
+  for (int s_size = 2; s_size < 6; ++s_size) {
+    for (int d_size = 2; d_size <= s_size; ++d_size) {
+      LogHistogram src_hist(s_size);
+      LogHistogram dest_hist(d_size);
+      
+      src_hist.add_item(2, 1);
+      dest_hist.merge_in(src_hist);
+    }
+  }
+}
+
 TEST(QuantLogHistogram, Quantile) {
 
   const int DATA_SIZE = 1000;

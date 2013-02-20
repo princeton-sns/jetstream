@@ -173,6 +173,7 @@ void make_l2_buckets(unsigned int n, std::vector<int> &sequence, unsigned int ma
 void
 LogHistogram::set_bucket_starts(size_t bucket_target) {
 
+  assert (bucket_target > 1);
 #ifdef UGLY_BUCKETS
   const size_t MAX_LAYERS = 10;
 
@@ -327,7 +328,7 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
       if(dest_bucket < bucket_count()-1 && rhs.bucket_starts[src_bucket+1] >= bucket_starts[dest_bucket+1])
         dest_bucket += 1;
     }
-    buckets[bucket_count()-1] += rhs.bucket_starts[rhs.bucket_count()-1];
+    buckets[bucket_count()-1] += rhs.buckets[rhs.bucket_count()-1];
   }
 //  cout << " lhs values is " << total_vals << " rhs is " << rhs.total_vals << endl;
   total_vals += rhs.total_vals;
