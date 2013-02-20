@@ -165,6 +165,10 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
       backfill_tuples ++;
       return SEND_UPDATE;
     }
+    else
+    {
+      regular_tuples++;
+    }
   }
   return NO_SEND;
 }
@@ -257,7 +261,7 @@ TimeBasedSubscriber::operator()() {
   } else
     ts = new TimeTeller();
   boost::shared_ptr<TimeTeller> tt(ts);
-  
+
 
   time_t newMax = tt->now() - (windowOffsetMs + 999) / 1000; // can be cautious here since it's just first window
 
@@ -278,6 +282,8 @@ TimeBasedSubscriber::operator()() {
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
   send_rollup_levels();
 
+  int backfill_old_window = backfill_tuples;
+  int regular_old_window = regular_tuples;
   while (running)  {
 
     cube::CubeIterator it = querier.do_query();
@@ -289,6 +295,15 @@ TimeBasedSubscriber::operator()() {
     }
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
+
+    int backfill_window = backfill_tuples - backfill_old_window;
+    int regular_window = regular_tuples - regular_old_window;
+    if(backfill_window > 0) {
+      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window;
+    }
+    backfill_old_window = backfill_tuples;
+    regular_old_window = regular_tuples;
+
     VLOG(1) << id() << " read " << elems << " tuples from cube";
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
@@ -299,6 +314,7 @@ TimeBasedSubscriber::operator()() {
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
     }
+
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
     if (!get_dest()) {
       LOG(WARNING) << "Subscriber " << id() << " exiting because no successor.";
@@ -307,7 +323,7 @@ TimeBasedSubscriber::operator()() {
   }
   no_more_tuples();
   LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
-      << ". Total backfill tuple count " << backfill_tuples;
+      << ". Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
 }
 
 

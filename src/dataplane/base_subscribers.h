@@ -64,11 +64,11 @@ class Querier {
     jetstream::Tuple min;
     jetstream::Tuple max;
     void set_cube(DataCube *c) {cube = c;}
-  
+
     void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;}
     void set_rollup_level(int fieldID, unsigned r_level);
     void set_rollup_levels(DataplaneMessage& m);
-  
+
  protected:
     volatile bool rollup_is_dirty; //should have real rollup manager eventually.
     operator_id_t id;
@@ -83,7 +83,7 @@ class Querier {
 class ThreadedSubscriber: public jetstream::cube::Subscriber {
   public:
     ThreadedSubscriber():running(false) {}
-  
+
     virtual void start();
     virtual void operator()() = 0;  // A thread that will loop while reading the file
     virtual void stop() {
@@ -94,9 +94,9 @@ class ThreadedSubscriber: public jetstream::cube::Subscriber {
         loopThread->join();
       }
       VLOG(1) << id() <<  " joined with loop thread";
-    }  
-  
-  
+    }
+
+
   protected:
     volatile bool running;
     boost::shared_ptr<boost::thread> loopThread;
@@ -109,20 +109,21 @@ Takes as configuration a set of dimensions, including a distinguished time dimen
 also takes a time interval and start time. Each interval, it queries for all
 tuples matching those dimensions, with time since the last start point.
 
-This subscriber does no backfill. 
+This subscriber does no backfill.
 */
 class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
   private:
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
-  
+
     time_t start_ts;
 
   protected:
     int ts_field; //which field is the timestamp?
 //    int32_t maxTsSeen;
-  
+
 //    boost::mutex mutex; //protects next_window_start_time
     int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
+    int32_t regular_tuples;
         //estimate will tend to be high: some of this data still arrived "in time"
     int windowSizeMs;  //query interval
     int32_t windowOffsetMs; //how far back from 'now' the window is defined as ending; ms
@@ -130,11 +131,11 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     boost::shared_ptr<CongestionPolicy> congest_policy;
 
     virtual void respond_to_congestion();
-  
+
     void send_rollup_levels();
 
   public:
-    TimeBasedSubscriber(): backfill_tuples(0), next_window_start_time(0) {};
+    TimeBasedSubscriber(): backfill_tuples(0), regular_tuples(0), next_window_start_time(0) {};
 
     virtual ~TimeBasedSubscriber() {};
 
@@ -144,9 +145,9 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
 
     virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
-  
+
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
     void operator()();  // A thread that will loop while reading the file
@@ -172,7 +173,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
 };
 
 /**
-   Switches to rollups in the presence of congestion. 
+   Switches to rollups in the presence of congestion.
    For now, only does time rollups.
 */
 class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
@@ -184,7 +185,7 @@ class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
   protected:
     int cur_level;
 //    int dim_to_coarsen;
-  
+
 
 };
 
@@ -198,9 +199,9 @@ class OneShotSubscriber : public jetstream::ThreadedSubscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) {}
 
     virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) {}
-  
+
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
     virtual void operator()();  // A thread that will loop while reading the file
@@ -213,7 +214,7 @@ class OneShotSubscriber : public jetstream::ThreadedSubscriber {
 *  A subscriber for measuring latency. Input must include a double, corresponding
 * to the current time in miliseconds since the epoch, and a string, corresponding to a hostname.
 * These are time_tuple_index and hostname_tuple_index, respectively.
-* 
+*
 */
 class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
   public:
@@ -254,7 +255,7 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     void make_stats(msec_t tuple_time_ms,  std::map<int, unsigned int> &bucket_map_rt,
      std::map<int, unsigned int> &bucket_map_skew, msec_t& max_seen_tuple_ms);
-    
+
     void print_stats(std::map<std::string, std::map<int, unsigned int> > & stats, const char * label);
 };
 
