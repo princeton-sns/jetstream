@@ -118,7 +118,8 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     time_t start_ts;
 
   protected:
-    int ts_field; //which field is the timestamp?
+    int ts_field; //which field is the timestamp? in the cube
+    int ts_input_tuple_index; //which field is the timestamp on the input tuple.
 //    int32_t maxTsSeen;
 
 //    boost::mutex mutex; //protects next_window_start_time

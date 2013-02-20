@@ -159,8 +159,8 @@ OneShotSubscriber::operator()() {
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
 
-  if (ts_field >= 0) {
-    time_t tuple_time = update->e(ts_field).t_val();
+  if (ts_input_tuple_index >= 0) {
+    time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     if (tuple_time < next_window_start_time) {
       backfill_tuples ++;
       last_backfill_time = tuple_time;
@@ -271,6 +271,11 @@ TimeBasedSubscriber::operator()() {
 
   int slice_fields = querier.min.e_size();
   int cube_dims = cube->get_schema().dimensions_size();
+
+  if(ts_field >= 0)
+    ts_input_tuple_index = cube->get_schema().dimensions(ts_field).tuple_indexes(0);
+  else
+    ts_input_tuple_index = ts_field;
 
   if (slice_fields != cube_dims) {
     LOG(FATAL) << id() << " trying to query " << cube_dims << " dimensions with tuple "
