@@ -163,6 +163,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
     time_t tuple_time = update->e(ts_field).t_val();
     if (tuple_time < next_window_start_time) {
       backfill_tuples ++;
+      last_backfill_time = tuple_time;
       return SEND_UPDATE;
     }
     else
@@ -299,7 +300,8 @@ TimeBasedSubscriber::operator()() {
     int backfill_window = backfill_tuples - backfill_old_window;
     int regular_window = regular_tuples - regular_old_window;
     if(backfill_window > 0) {
-      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window <<". Next window start time = "<< next_window_start_time;
+      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window
+        <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time;
     }
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;

@@ -123,6 +123,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
 
 //    boost::mutex mutex; //protects next_window_start_time
     int32_t backfill_tuples;  // a counter; this will be a little sloppy because of data that arrives while a query is running.
+    time_t last_backfill_time;
     int32_t regular_tuples;
         //estimate will tend to be high: some of this data still arrived "in time"
     int windowSizeMs;  //query interval
