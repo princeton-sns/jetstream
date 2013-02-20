@@ -85,7 +85,7 @@ SummaryToCount::configure(std::map<std::string,std::string> &config) {
 
 void
 ToSummary::process(boost::shared_ptr<Tuple> t) {
-  if ((t->e_size() < field) || !t->e(field).has_i_val())
+  if ((t->e_size() <= field) || !t->e(field).has_i_val())
     return;
   
   int i = t->e(field).i_val();
