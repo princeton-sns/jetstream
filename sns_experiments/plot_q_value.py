@@ -60,11 +60,14 @@ def parse_data(infile):
   f.close()
   return ret
 
-symbols = ['ro-', 'bo-', 'go-']
+symbols = ['ro-', 'b.-', 'g+-']
 
 def plot_error(all_data):
   for distrib_name, data in all_data.items():
-    fig = plt.figure(figsize=(9,5))
+    fig = plt.figure(figsize=(6,4))
+    fig.subplots_adjust(bottom=0.2)
+
+    
     print "plotting %s..." % distrib_name
     ax = fig.add_subplot(111)
     ax.set_yscale('log')
@@ -79,8 +82,8 @@ def plot_error(all_data):
       maxy = max(maxy, max(y_vals_for[summary_name]))
 
     plt.axis([0, max(x_vals), -.01, 2 * maxy])
-    plt.ylabel("Relative Error") 
-    plt.xlabel("Summary size kb")   
+    plt.ylabel("Relative Error", fontsize=18) 
+    plt.xlabel("Summary size kb", fontsize=18)   
 
     for (summary_name,y_vals),symb in zip(y_vals_for.items(), symbols):
       print summary_name,y_vals
