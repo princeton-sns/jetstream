@@ -89,14 +89,14 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
     return;
   
   int i = t->e(field).i_val();
-
-  LogHistogram l(s_size);
-  assert(i >= 0);
-  l.add_item(i, 1);
-  JSSummary * s = t->mutable_e(field)->mutable_summary();
-  l.serialize_to(*s);
-  t->mutable_e(field)->clear_i_val();
-  emit(t);
+  if ( i >= 0) {
+    LogHistogram l(s_size);
+    l.add_item(i, 1);
+    JSSummary * s = t->mutable_e(field)->mutable_summary();
+    l.serialize_to(*s);
+    t->mutable_e(field)->clear_i_val();
+    emit(t);
+  }
 }
 
 operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
