@@ -148,14 +148,14 @@ CSVParse::configure(map<string,string> &config) {
 void
 CSVParse::process(boost::shared_ptr<Tuple> t) {
   // FIXME assume we want to parse 0th element
-  const Element* e = &t->e(0);
+  const Element& e = t->e(0);
 
-  if (!e->has_s_val()) {
+  if (!e.has_s_val()) {
     LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
     return;
   }
 
-  boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e->s_val());
+  boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e.s_val());
 
   shared_ptr<Tuple> t2(new Tuple);
   t2->set_version(t->version());
@@ -164,7 +164,8 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
   BOOST_FOREACH(string csv_field, csv_parser) {
     if (i >= n_fields) {
       if (!discard_off_size)
-        LOG(FATAL) << "Parsed more fields than types specified." << endl;
+        LOG(FATAL) << "Parsed more fields than types specified. Entry was "
+          << e.s_val()<< endl;
     } else {
       if (keep_fields[i])
         parse_with_types(t2->add_e(), csv_field, types[i]);
@@ -493,8 +494,6 @@ TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
     time_t old_val = t->e(fld_offset).t_val();
     t->mutable_e(fld_offset)->set_t_val((old_val / round_to) * round_to + add_offset);
   }
-
-  // FIXME is it okay to add fixed offset _outside_ of the numeric cast?
 
   if (in_type == I) {
     int old_val = t->e(fld_offset).i_val();
