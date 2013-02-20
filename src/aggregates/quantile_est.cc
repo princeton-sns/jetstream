@@ -265,6 +265,7 @@ LogHistogram::bucket_with(int v) const {
 
 void
 LogHistogram::add_item(int v, count_val_t c) {
+  assert(c < 1<<30);
   int b = bucket_with(v);
   buckets[b] += c;
   total_vals += c;
@@ -313,6 +314,7 @@ LogHistogram::serialize_to(JSSummary& q) const {
 
 bool
 LogHistogram::merge_in(const LogHistogram & rhs) {
+  assert( this != &rhs);
   assert(rhs.pop_seen() == (unsigned int) std::accumulate(rhs.buckets.begin(),rhs.buckets.end(),0));
   assert ( pop_seen() == (unsigned int) std::accumulate(buckets.begin(),buckets.end(),0) );
 
@@ -337,7 +339,7 @@ LogHistogram::merge_in(const LogHistogram & rhs) {
   size_t tally = (size_t) std::accumulate(buckets.begin(),buckets.end(),0);
   if (tally != pop_seen()) {
     cout << "tally is " << tally<< " but pop_seen is " << pop_seen() << endl;
-    cout << rhs << "\n---------\n" << *this <<endl;
+    cout << "RHS:" << rhs << "\n---------\nDest: " << *this <<endl;
     assert(tally == pop_seen());
   }
   return true;
