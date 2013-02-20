@@ -27,15 +27,18 @@ TEST(Operator, ReadOperator) {
   map<string,string> config;
   config["file"] =  "src/tests/data/base_operators_data.txt";
   config["skip_empty"] = "false";
+  config["exit_at_end"] = "true";
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
   reader.set_dest(rec);
   reader.configure(config);
   reader.start();
   // Wait for reader to process entire file (alternatively, call stop() after a
   // while)
-  while (reader.isRunning()) {
+  int waits = 0;
+  while (reader.isRunning() && waits++ < 20) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
+  ASSERT_GT (20, waits);
 
   ASSERT_GT(rec->tuples.size(), (size_t)4);
   ASSERT_EQ((size_t) TEST_DATA_N_LINES + 1, rec->tuples.size()); // file read adds blank line at end of file
