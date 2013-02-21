@@ -22,6 +22,7 @@ int          js_usleep(useconds_t usecs);
 
 std::string fmt(const jetstream::Tuple& t);
 
+void set_thread_name(std::string name);
 
 
 struct operator_id_t {
@@ -29,7 +30,7 @@ struct operator_id_t {
   int32_t task_id;        // which operator in the computation
 
   bool operator< (const operator_id_t& rhs) const {
-    return computation_id < rhs.computation_id 
+    return computation_id < rhs.computation_id
       || task_id < rhs.task_id;
   }
 
@@ -37,17 +38,17 @@ struct operator_id_t {
     return computation_id == rhs.computation_id
       && task_id == rhs.task_id;
   }
-  
+
   bool operator!= (const operator_id_t& rhs) const {
     return !( *this == rhs);
   }
-  
+
   std::string to_string () {
     std::ostringstream buf;
     buf << "(" << computation_id << "," << task_id << ")";
     return buf.str();
   }
-    
+
   operator_id_t (int32_t comp, int32_t t) : computation_id (comp), task_id (t) {}
   operator_id_t () : computation_id (0), task_id (0) {}
 };
@@ -58,20 +59,20 @@ inline std::ostream& operator<<(std::ostream& out, operator_id_t id) {
 }
 
 
-TaskMeta* 
+TaskMeta*
 add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name);
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, operator_id_t dest_id);
 
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, int group, int s, int d);
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, std::string src_id, operator_id_t dest_id);
 
-Edge * 
+Edge *
 add_edge_to_alter(AlterTopo& topo, operator_id_t src_id, std::string dest_id);
 
 

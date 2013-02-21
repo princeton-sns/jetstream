@@ -15,7 +15,7 @@ ThreadedSource::start() {
   if (send_now) {
 
     int is_running = 1;
-    
+
     if( !congest_policy ) {
       congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
     }
@@ -39,7 +39,7 @@ ThreadedSource::start() {
 void
 ThreadedSource::process(boost::shared_ptr<Tuple> t) {
   LOG(FATAL) << "Should not send data to a fixed rate source";
-} 
+}
 
 
 void
@@ -58,11 +58,13 @@ void
 ThreadedSource::operator()() {
 //  const int MAX_WAIT_TICKS = 10;
   int is_running = 1;
-  
+
+  jetstream::set_thread_name("js-process"+boost::lexical_cast<string>(id()));
+
   if( !congest_policy ) {
     congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
   }
-  
+
   do {
       is_running += congest_policy->get_step(id(), congestSteps, 2, is_running);
       if (is_running == 0) {
@@ -73,7 +75,7 @@ ThreadedSource::operator()() {
       else if (emit_1())
         break;
   } while (running); //running will be false if we're running synchronously
-  
+
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
   if (exit_at_end && running)
     no_more_tuples();
@@ -85,7 +87,7 @@ ThreadedSource::end_of_window(msec_t duration) {
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
   end_msg.set_window_length_ms(duration);
   send_meta_downstream(end_msg);
-  
+
 }
 
 }

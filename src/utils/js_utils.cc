@@ -116,6 +116,15 @@ std::string fmt(const jetstream::Tuple& t) {
   return buf.str();
 }
 
+void set_thread_name(std::string name) {
+#ifdef __MACH__
+#include <pthread.h>
+pthread_setname_np(name.c_str());
+#else
+#include <sys/prctl.h>
+prctl(PR_SET_NAME,name.c_str(),0,0,0)
+#endif
+}
 
 TaskMeta*
 add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string& name) {

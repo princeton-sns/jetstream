@@ -18,8 +18,9 @@ using boost::make_shared;
 
 class Executor {
   public:
+    std::string name;
 
-    Executor(size_t n): service(new io_service(n)), work(*service) {
+    Executor(size_t n, std::string name = "Executor"): name(name), service(new io_service(n)), work(*service) {
       start_threads(n);
     }
 
@@ -33,8 +34,13 @@ class Executor {
 
     void start_threads(size_t n) {
       for (size_t i = 0; i < n; i++) {
-        pool.create_thread(bind(&io_service::run, service));
+        pool.create_thread(bind(&Executor::run, this));
       }
+    }
+
+    void run() {
+      jetstream::set_thread_name(name);
+      service->run();
     }
 
     template<typename F> void submit(F task) {
@@ -46,11 +52,11 @@ class Executor {
        shared_ptr<boost::asio::strand> pStrand(new boost::asio::strand(*service));
        return pStrand;
     }
-    
+
     shared_ptr<io_service> get_io_service() {
       return service;
     }
-  
+
   protected:
     thread_group pool;
     shared_ptr<io_service> service;
