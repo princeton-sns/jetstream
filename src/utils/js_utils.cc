@@ -122,7 +122,7 @@ void set_thread_name(std::string name) {
 pthread_setname_np(name.c_str());
 #else
 #include <sys/prctl.h>
-prctl(PR_SET_NAME,name.c_str(),0,0,0)
+prctl(PR_SET_NAME,name.c_str(),0,0,0);
 #endif
 }
 
