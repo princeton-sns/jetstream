@@ -26,7 +26,7 @@ ProcessCallable::~ProcessCallable() {
 }
 
 void ProcessCallable::run() {
-  jetstream::set_thread_name("js-cube-process-"+name);
+  jetstream::set_thread_name("js-cube-proc-"+name);
   service->run();
 }
 
