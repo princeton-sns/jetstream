@@ -59,7 +59,7 @@ ThreadedSource::operator()() {
 //  const int MAX_WAIT_TICKS = 10;
   int is_running = 1;
 
-  jetstream::set_thread_name("js-process"+boost::lexical_cast<string>(id()));
+  jetstream::set_thread_name("js-op-"+boost::lexical_cast<string>(id()));
 
   if( !congest_policy ) {
     congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy

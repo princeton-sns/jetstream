@@ -47,7 +47,7 @@ class TupleProcessingInfo {
 class ProcessCallable {
 
   public:
-    ProcessCallable(DataCube * cube);
+    ProcessCallable(DataCube * cube, std::string name);
     ~ProcessCallable();
 
     void run();
@@ -57,6 +57,7 @@ class ProcessCallable {
     bool batcher_ready();
 
   private:
+    std::string name;
     boost::thread internal_thread;
     shared_ptr<io_service> service;
     io_service::work work;

@@ -13,7 +13,7 @@ using namespace boost;
 
 unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
 
-ProcessCallable::ProcessCallable(DataCube * cube): service(new io_service(1)), work(*service), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
+ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name), service(new io_service(1)), work(*service), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
 
   // this should always be the last line in the constructor
   internal_thread = boost::thread(&ProcessCallable::run, this);
@@ -26,7 +26,7 @@ ProcessCallable::~ProcessCallable() {
 }
 
 void ProcessCallable::run() {
-  jetstream::set_thread_name("js-cube-process");
+  jetstream::set_thread_name("js-cube-process-"+name);
   service->run();
 }
 
@@ -66,7 +66,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
   processCongestMon->set_next_monitor(flushCongestMon);
 
   for(size_t i=0; i<conf.cube_processor_threads;i++) {
-    boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this));
+    boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this, boost::lexical_cast<string>(i)));
     processors.push_back(proc);
   }
 
