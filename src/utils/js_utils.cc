@@ -6,6 +6,8 @@
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
+#else
+#include <sys/prctl.h>
 #endif
 
 
@@ -121,7 +123,6 @@ void set_thread_name(std::string name) {
 #include <pthread.h>
 pthread_setname_np(name.c_str());
 #else
-#include <sys/prctl.h>
 prctl(PR_SET_NAME,name.c_str(),0,0,0);
 #endif
 }
