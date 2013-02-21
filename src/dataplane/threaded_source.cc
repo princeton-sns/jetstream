@@ -79,6 +79,7 @@ ThreadedSource::operator()() {
   LOG(INFO) << typename_as_str() << " " << id() << " done with " << emitted_count() << " tuples";
   if (exit_at_end && running)
     no_more_tuples();
+  running = false; //no need to join with thread; it's exiting
 }
 
 void

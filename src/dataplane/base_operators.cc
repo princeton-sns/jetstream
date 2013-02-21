@@ -44,61 +44,37 @@ FileRead::configure(map<string,string> &config) {
 }
 
 void
-FileRead::start() {
-  running = true;
-  // Pass a reference to this object, otherwise boost makes its own copy (with its 
-  // own member variables). Must ensure (*this) doesn't die before the thread exits!
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
-}
-
-
-void
-FileRead::stop() {
-  running = false;
-  LOG(INFO) << "stopping file read operator";
-  
-  assert (loopThread->get_id()!=boost::this_thread::get_id());
-  loopThread->join();
-}
-
-
-void
 FileRead::process(boost::shared_ptr<Tuple> t) {
   LOG(WARNING) << "Should not send data to a FileRead";
 }
 
-
 bool
-FileRead::isRunning() {
-  return running;
-}
-
-
-void
-FileRead::operator()() {
-  ifstream in_file (f_name.c_str());
-  if (in_file.fail()) {
-    LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
-    running = false;
-    return;
+FileRead::emit_1() {
+  
+  if (!in_file.is_open()) {
+    in_file.open (f_name.c_str());
+    if (in_file.fail()) {
+      LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
+      return true; //stop
+    }
+  }
+  // ios::good checks for failures in addition to eof
+  if (!in_file.good()) {
+    cout << "hit eof, stopping" << endl;
+    return true;
   }
   string line;
-  // ios::good checks for failures in addition to eof
-  int lineno = 0;
-  while (running && in_file.good()) {
-    getline(in_file, line);
-    if (skip_empty && line.length() == 0) {
-        continue;
-    }
-    lineno ++ ;
-    shared_ptr<Tuple> t( new Tuple);
-    Element * e = t->add_e();
-    e->set_s_val(line);
-    t->set_version(lineno);
-    emit(t);
+
+  getline(in_file, line);
+  if (skip_empty && line.length() == 0) {
+      return false;
   }
-  running = false;
-  no_more_tuples();
+  shared_ptr<Tuple> t( new Tuple);
+  Element * e = t->add_e();
+  e->set_s_val(line);
+  t->set_version(lineno++);
+  emit(t);
+  return false;
 }
 
 std::string

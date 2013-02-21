@@ -7,6 +7,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <boost/regex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
@@ -20,16 +21,13 @@ namespace jetstream {
  * 'file'. Emits tuples with one element, a string corresponding to a line from the
  * file. The carriage return at the end of line is NOT included.
  */
-class FileRead: public DataPlaneOperator {
+class FileRead: public ThreadedSource {
  public:
   //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
   //for source operators?
-  FileRead() : running(false) {}
+  FileRead():lineno(0) {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual void start();
-  virtual void stop();
-  void operator()();  // A thread that will loop while reading the file
-  bool isRunning();
+  virtual bool emit_1();  // A thread that will loop while reading the file
   virtual void process(boost::shared_ptr<Tuple> t);  
 
   virtual std::string long_description();
@@ -37,8 +35,8 @@ class FileRead: public DataPlaneOperator {
  protected:
   std::string f_name; //name of file to read
   bool skip_empty; // option: skip empty lines
-  boost::shared_ptr<boost::thread> loopThread;
-  volatile bool running;
+  std::ifstream in_file;
+  unsigned lineno;
 
 GENERIC_CLNAME
 };

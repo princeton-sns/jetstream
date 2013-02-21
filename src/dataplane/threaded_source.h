@@ -22,6 +22,10 @@ class ThreadedSource: public DataPlaneOperator {
   
   void end_of_window(msec_t duration);
   
+  bool isRunning() {
+    return running;
+  }
+  
  protected:
   ThreadedSource(): running(false),send_now(false),exit_at_end(true) {}
   
