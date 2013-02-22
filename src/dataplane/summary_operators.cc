@@ -61,6 +61,10 @@ void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
       est = new ReservoirSample(s.sample());
     } else if (s.has_sketch()) {
       est = new CMMultiSketch(s.sketch());
+    } else if (s.items_size() > 0) {
+      t->add_e()->set_i_val(s.items_size());
+      emit(t);
+      return;
     } else {
       LOG(FATAL) << " got a summary with no specific summary in it";
     }
