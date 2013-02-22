@@ -70,8 +70,9 @@ class JSGraph (object):
     self.nodes = {}
     # Map of node ID -> JSNode for sources (nodes with no incoming edge)
     self.sources = {}
-    # Sink node (there should only be one)
-    self.sink = None
+    # Map of node ID -> JSNode for sinks (nodes with no outgoing edge), usually there
+    # is only one sink.
+    self.sinks = {}
     # Map of node -> [outgoing neighbor]
     self.adjList = {}
     # Map of node -> [incoming neighbor]
@@ -101,19 +102,19 @@ class JSGraph (object):
       self.adjList[src].append(dest)
       self.radjList[dest].append(src)
 
-    # Determine the source nodes and sink node
-    #TODO:SOSP: PICK THE DEEPEST SINK NODE OR GENERALIZE TO MULTIPLE SINKS
+    # Determine the source nodes and sink nodes
     for node in self.nodes.values():
       if node not in self.radjList:
         self.sources[node.id] = node
       if node not in self.adjList:
-        # There should only be one sink
-        if self.sink != None:
-          logger.warn("Multiple sinks found in computation graph")
-        self.sink = node
-    # There should be at least one source
-    if len(self.sources) == 0:
-      logger.warn("One or more cycles found in computation graph (was this intended?)")
+        self.sinks[node.id] = node
+    # There should be at least one source and sink
+    if (len(self.sources) == 0) or (len(self.sinks) == 0):
+      logger.error("Computation graph has no sources or sinks (just cycles)")
+      raise SchemaError("Computation graph has no sources or sinks (just cycles)")
+    if len(self.sinks) > 1:
+      logger.warn("Multiple sinks found in computation graph")
+
 
     # To properly validate a computation graph, use the validate_* methods below
         
@@ -127,8 +128,8 @@ class JSGraph (object):
     return [node.object for node in self.sources.values()]
 
 
-  def get_sink (self):
-    return self.sink.object
+  def get_sinks (self):
+    return [node.object for node in self.sinks.values()]
 
     
   def reset_nodes (self):
@@ -173,7 +174,7 @@ class JSGraph (object):
     # Clear any prior node state
     self.reset_nodes()
     # Repeatedly compute LCAs pairs until one remains, starting at a candidate root (sink)
-    self.compute_lcas(self.sink, lcaPairs, lcas, True)
+    self.compute_lcas(self.sinks.values()[0], lcaPairs, lcas, True)
 #    assert(len(lcas) == 1)
     if len(lcas) > 0:
 # Graphs need NOT be tree-shaped

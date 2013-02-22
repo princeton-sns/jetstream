@@ -54,7 +54,8 @@ class TestJSGraph (unittest.TestCase):
     jsnSink = JSNode(self.cubes[0].name, self.cubes[0])
     jsnUnion = JSNode(self.operators[-1].id.task, self.operators[-1])
     # Test the sink cube
-    self.assertEquals(graph.sink, jsnSink)
+    self.assertEquals(len(graph.sinks), 1)
+    self.assertEquals(graph.sinks.values()[0], jsnSink)
     self.assertTrue(jsnSink in graph.radjList)
     self.assertEquals(len(graph.radjList[jsnSink]), 1)
     self.assertEquals(graph.radjList[jsnSink][0], jsnUnion)

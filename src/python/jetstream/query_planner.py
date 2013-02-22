@@ -124,7 +124,7 @@ class QueryPlanner (object):
     assignments = {}   # maps worker ID [host,port pair] -> WorkerAssignment
     taskToWorker = {}  # task ID [int or string] -> worker ID
     gSources = jsGraph.get_sources()
-    gSink = jsGraph.get_sink()
+    gSinks = jsGraph.get_sinks()
     # Pick a default worker for nodes whose placement is unconstrained by our algorithm
     defaultWorkerID = self.workerLocs.keys()[0]
 
@@ -142,7 +142,7 @@ class QueryPlanner (object):
         if workerID not in self.workerLocs.keys():
           logger.warning("Node was pinned to nonexistent worker %s" % str(workerID))
           workerID = defaultWorkerID
-      elif (gNode in gSources) or (gNode == gSink):
+      elif (gNode in gSources) or (gNode in gSinks):
         # Node is an unpinned source/sink; pin it to a default worker
         workerID = defaultWorkerID
       else:
