@@ -81,6 +81,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(QuantileOperator);
   REGISTER_OP(ToSummary);
   REGISTER_OP(SummaryToCount);
+  REGISTER_OP(DegradeSummary);
 
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);
@@ -104,6 +105,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(VariableSamplingOperator);
   REGISTER_OP(CongestionController);
   
+  // Multi-round topk
   REGISTER_OP(MultiRoundSender);
   REGISTER_OP(MultiRoundCoordinator);
   

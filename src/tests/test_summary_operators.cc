@@ -67,12 +67,49 @@ TEST(Operator, ToSummary) {
 
   op.process(t);
   ASSERT_EQ((size_t)1, receive->tuples.size());
+
   boost::shared_ptr<Tuple> result = receive->tuples[0];
-
-  ASSERT_EQ(2, result->e(0).summary().items(0));
-  //LogHistogram hist(result->e(0).summary());
-  //ASSERT_EQ( size_t(1), hist.count_in_b(hist.bucket_with(2)) );
-  //ASSERT_EQ( size_t(1), hist.pop_seen() );
-
+  ASSERT_EQ(2, result->e(0).summary().items(0)); //only two items in the summary
 }
 
+
+TEST(Operator, DegradeSummary) {
+
+  DegradeSummary degrade_op;
+  shared_ptr<DummyReceiver> receive(new DummyReceiver);
+
+  operator_config_t cfg;
+//  cfg["q"] = "0.6";
+  cfg["field"] = "1";
+  degrade_op.configure(cfg);
+  degrade_op.set_dest(receive);
+
+  boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+  boost::shared_ptr<QueueCongestionMonitor> mockCongest(new QueueCongestionMonitor(256, "dummy"));
+  mockCongest->set_downstream_congestion(0.5);
+  policy->set_congest_monitor(mockCongest);
+
+  degrade_op.set_congestion_policy(policy);
+  degrade_op.start();
+
+
+  LogHistogram lh(500);
+  lh.add_item(2, 1);
+  lh.add_item(4, 1);
+  lh.add_item(6, 1);
+
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 2);
+  extend_tuple(*t, lh);
+
+  degrade_op.process(t);
+  
+  ASSERT_EQ((size_t)1, receive->tuples.size());
+  boost::shared_ptr<Tuple> result = receive->tuples[0];
+  ASSERT_TRUE(  result->e(1).summary().has_histo());
+  int h_size = result->e(1).summary().histo().bucket_vals_size();
+  ASSERT_EQ( 250 , h_size);
+  
+//  cout << fmt(*result) << endl;
+
+}

@@ -124,9 +124,64 @@ operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
 }
 
 
+void
+DegradeSummary::start() {
+  if (!congest_policy)
+    congest_policy = boost::shared_ptr<CongestionPolicy>(new CongestionPolicy); //null policy
+}
+
+void
+DegradeSummary::process(boost::shared_ptr<Tuple> t) {
+
+  cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+
+  if (t->e(field).has_summary()) {
+    const JSSummary& s= t->e(field).summary();
+    QuantileEstimation * est;
+    if (s.has_histo()) {
+      LogHistogram old_h(s.histo());
+      LogHistogram* newH = new LogHistogram( unsigned(old_h.bucket_count() * steps[cur_step]));
+//      cout << "step " << cur_step << ". old size: " << old_h.bucket_count() << ", new size: " << newH->bucket_count() << endl;
+      newH->merge_in(old_h);
+      est = newH;
+    } else {
+      LOG(FATAL) << " got a summary I don't know how to degrade";
+    }
+
+    t->mutable_e(field)->clear_summary();
+    est->serialize_to(  *(t->mutable_e(field)->mutable_summary()) );
+    delete est;
+    emit(t);
+  } else
+    LOG(FATAL) << "no summary in field " << field << " of "<< fmt(*t);
+}
+
+operator_err_t
+DegradeSummary::configure(std::map<std::string,std::string> &config) {
+  if( !(istringstream(config["field"]) >> field))
+    return operator_err_t("must specify a field; got " + config["field"]);
+  
+  unsigned step_count = 10;
+  double min_ratio = 0.1;
+  
+  double step =  (1.0 - min_ratio) / (step_count -1);
+  double ratio = min_ratio;
+  for (int i = 0; i < step_count-1; ++i) {
+    steps.push_back(ratio);
+    ratio += step;
+  }
+  steps.push_back(1.0);
+  cur_step = step_count -1;
+//  cout << "steps:" << steps[0] << "," << steps[1] << "..." << steps[8]<< "," << steps[9] << endl;
+  return NO_ERR;
+}
+
+
 
 const string QuantileOperator::my_type_name("Quantile");
 const string ToSummary::my_type_name("to-summary");
 const string SummaryToCount::my_type_name("to-count");
+const string DegradeSummary::my_type_name("Degrade summary");
+
 
 }
