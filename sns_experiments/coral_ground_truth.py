@@ -37,10 +37,10 @@ def main():
   print "total of %d lines" % lines
   
   for t,(response_times,sizes) in sorted(time_to_data.items()):
-    print "For time %s" % time.ctime(t)
+    print "For time %s:" % time.ctime(t)
     print_exact(response_times, "distribution of response times in us")
     print_exact(sizes, "distribution of file sizes")
-
+    print ""
 
 def to_timebucket(timestamp, time_bucket_size):
   timestamp = (int(float(timestamp))  / time_bucket_size) * time_bucket_size
