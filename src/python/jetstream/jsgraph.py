@@ -162,25 +162,34 @@ class JSGraph (object):
     """Returns the least-common ancestor (or descendant, more accurately) of the source
     nodes in the graph. Assumes the graph is (reducible to) a tree."""
 
-    # Start with all sources and repeatedly compute the LCA of pairs until one LCA
-    # remains. Since LCA(x,x) = x, use a Set to track the LCAs.
-    lcas = Set(self.sources.values())
-    lcaPairs = {}
-    while len(lcas) >= 2:
-      (u, v) = (lcas.pop(), lcas.pop())
-      # setdefault() returns the value if key exists and initializes otherwise
-      lcaPairs.setdefault(u, []).append(v)
-      lcaPairs.setdefault(v, []).append(u)
-    # Clear any prior node state
-    self.reset_nodes()
-    # Repeatedly compute LCAs pairs until one remains, starting at a candidate root (sink)
-    self.compute_lcas(self.sinks.values()[0], lcaPairs, lcas, True)
-#    assert(len(lcas) == 1)
+    # Designate some sink as the root. We may have to try multiple sinks as roots
+    # before finding an LCA of all sources.
+    for root in self.sinks.values():
+      # Start with all sources and repeatedly compute the LCA of pairs until one LCA
+      # remains. Since LCA(x,x) = x, use a Set to track the LCAs.
+      lcas = Set(self.sources.values())
+      lcaPairs = {}
+      while len(lcas) >= 2:
+        (u, v) = (lcas.pop(), lcas.pop())
+        # setdefault() returns the value if key exists and initializes otherwise
+        lcaPairs.setdefault(u, []).append(v)
+        lcaPairs.setdefault(v, []).append(u)
+      # Clear any prior node state
+      self.reset_nodes()
+      self.compute_lcas(root, lcaPairs, lcas, True)
+      # If all LCA pairs were successfully computed, we are done
+      if len(lcaPairs) == 0:
+        assert(len(lcas) == 1)
+        break
+      else:
+        logger.warn("Tried sink " + str(root.id) + " as root, could not find sources LCA")
+        lcas.clear()
+
     if len(lcas) > 0:
-# Graphs need NOT be tree-shaped
       return lcas.pop().object
     else:
-      raise SchemaError("graph lacks a union point for all sources")
+      raise SchemaError("Graph lacks a union point for all sources")
+    
 
   def compute_lcas (self, u, lcaPairs, lcas, recurse):
     uf_make_set(u)
@@ -198,15 +207,27 @@ class JSGraph (object):
         v = lcaPairs[u][i]
         # LCA(u,v) is uf_find(v).ancestor immediately after u is colored black, provided
         # v is already black; otherwise it is uf_find(u).ancestor immediately after v is
-        # colored black.
+        # colored black
         if v.color == JSNode.Color.BLACK:
           lcas.add(uf_find(v).ancestor)
+          # Remove the pair (from both u and v's lists) so we know its LCA was found
+          del lcaPairs[u][i]
+          i -= 1
+          # Generally not efficient, but in our case the LCA pair lists should be short
+          # (surely at the onset, where its over disjoint pairs of sources)
+          lcaPairs[v].remove(u)
+          if len(lcaPairs[v]) == 0:
+            del lcaPairs[v]
           # Find the LCA of LCAs, if asked to do so
           if recurse and (len(lcas) >= 2):
             (w, x) = (lcas.pop(), lcas.pop())
             lcaPairs.setdefault(w, []).append(x)
             lcaPairs.setdefault(x, []).append(w)
         i += 1
+      # Again, this cleanup helps us determine if all LCAs were found
+      if len(lcaPairs[u]) == 0:
+        del lcaPairs[u]
+      
 
 
 ##### Union-find implementation #####

@@ -82,6 +82,24 @@ class TestJSGraph (unittest.TestCase):
     self.assertEquals(lca, self.operators[-1])
 
 
+  def test_lca_multiple_sinks(self):
+    # Add a decoy sink cube hanging off of each source; the hope is that one of them
+    # will be tried as the root before the correct root (cube "sink_cube").
+    for i in range(self.numSources):
+      decoySink = CubeMeta()
+      decoySink.name = "decoy_cube_" + str(i)
+      self.cubes.append(decoySink)
+      edge = Edge()
+      edge.src = self.operators[i].id.task
+      edge.dest_cube = decoySink.name
+      self.edges.append(edge)
+    
+    graph = JSGraph(self.operators, self.cubes, self.edges)
+    lca = graph.get_sources_lca()
+    # The LCA of the sources should be the union operator
+    self.assertEquals(lca, self.operators[-1])
+
+    
   def test_lca_harder (self):
     # Make the graph more complicated and find the LCA of the sources
     j = self.operators[-1].id.task + 1
