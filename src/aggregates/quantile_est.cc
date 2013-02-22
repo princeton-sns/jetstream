@@ -1,4 +1,5 @@
 #include "quantile_est.h"
+#include "cm_sketch.h"
 #include "stdlib.h"
 #include <algorithm>
 #include <iostream>
@@ -373,6 +374,59 @@ void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q) {
   q.serialize_to(*summ);
 }
 
+
+
+
+
+template<>
+bool contains_aggregate<jetstream::LogHistogram>(const jetstream::JSSummary  & summary) {
+  if(summary.has_histo())
+  {
+    assert(summary.items_size() == 0);
+    return true;
+  }
+  return false;
+}
+
+template<>
+bool contains_aggregate<jetstream::ReservoirSample>(const jetstream::JSSummary  & summary){
+  if(summary.has_sample())
+  {
+    assert(summary.items_size() == 0);
+    return true;
+  }
+  return false;
+}
+
+template<>
+bool contains_aggregate<jetstream::CMMultiSketch>(const jetstream::JSSummary  & summary){
+  if(summary.has_sketch())
+  {
+    assert(summary.items_size() == 0);
+    return true;
+  }
+  return false;
+}
+
+template<>
+bool should_make_into_aggregate<jetstream::LogHistogram>(const jetstream::JSSummary  & lhs, const jetstream::JSSummary  & rhs) {
+  assert(!contains_aggregate<jetstream::LogHistogram>(lhs)); //LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(lhs)) << "lhs should not be an aggregate";
+  assert(!contains_aggregate<jetstream::LogHistogram>(rhs));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(rhs)) << "rhs should not be an aggregate";
+
+  return (lhs.items_size() + rhs.items_size() > 300);
+}
+
+template<>
+void make_aggregate<jetstream::LogHistogram>(jetstream::JSSummary  & summary) {
+    assert(!contains_aggregate<jetstream::LogHistogram>(summary));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(summary)) << "should not be an aggregate";
+    LogHistogram l(300);
+    for(int i=0; i<summary.items_size(); ++i)
+    {
+      l.add_item(i, 1);
+    }
+    l.serialize_to(summary);
+    summary.clear_items();
+}
 
 
 

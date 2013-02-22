@@ -44,7 +44,7 @@ operator_err_t QuantileOperator::configure(std::map<std::string,std::string> &co
 
   if( !(istringstream(config["q"]) >> q) || (q <= 0) || (q >= 1))
     return operator_err_t("q must be between 0 and 1; got " + config["q"]);
-  
+
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
   return NO_ERR;
@@ -87,14 +87,17 @@ void
 ToSummary::process(boost::shared_ptr<Tuple> t) {
   if ( (  unsigned(t->e_size()) <= field) || !t->e(field).has_i_val())
     return;
-  
+
   int i = t->e(field).i_val();
   if ( i >= 0) {
-    LogHistogram l(s_size);
+    JSSummary * s = t->mutable_e(field)->mutable_summary();
+    s->add_items(i);
+    t->mutable_e(field)->clear_i_val();
+    /*LogHistogram l(s_size);
     l.add_item(i, 1);
     JSSummary * s = t->mutable_e(field)->mutable_summary();
     l.serialize_to(*s);
-    t->mutable_e(field)->clear_i_val();
+    t->mutable_e(field)->clear_i_val();*/
     emit(t);
   }
 }
@@ -102,8 +105,8 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
 operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  if( !(istringstream(config["size"]) >> s_size))
-    return operator_err_t("must specify a summary size; got " + config["size"]);
+  //if( !(istringstream(config["size"]) >> s_size))
+  //return operator_err_t("must specify a summary size; got " + config["size"]);
 
   return NO_ERR;
 }

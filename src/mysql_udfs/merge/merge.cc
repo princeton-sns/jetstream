@@ -57,9 +57,8 @@
 //}
 /*#endif*/
 
-template<class Aggregate>
 struct storage {
-  Aggregate *aggregate_ptr;
+  jetstream::JSSummary *summary_ptr;
   char * buffer;
   size_t max_buffer_size;
 };
@@ -72,11 +71,7 @@ void get_summary_from_param(UDF_ARGS *args, int param_index, jetstream::JSSummar
   summary.ParseFromArray(serProtoBuf, serSz);
 }
 
-template<class Aggregate>
-size_t fill_buffer(const Aggregate &agg, storage<Aggregate> *store) {
-  jetstream::JSSummary summary;
-  agg.serialize_to(summary);
-
+size_t fill_buffer(const jetstream::JSSummary &summary, storage *store) {
   size_t msg_sz = summary.ByteSize();
 
   if(store->max_buffer_size < msg_sz) {
@@ -113,8 +108,8 @@ my_bool merge_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
   //initid->ptr is a char * used to communicate allocated memory
   //
 
-  storage<Aggregate> *store= new storage<Aggregate>();
-  store->aggregate_ptr = NULL;
+  storage *store= new storage();
+  store->summary_ptr = NULL;
   store->buffer = (char *)malloc(sizeof(char)*1024);
   store->max_buffer_size = 1024;
 
@@ -124,11 +119,11 @@ my_bool merge_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
 
 template<class Aggregate>
 void merge_clear(UDF_INIT *initid, char *is_null, char *error) {
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  storage *store= (storage *)initid->ptr;
 
-  if(store->aggregate_ptr != NULL) {
-    delete store->aggregate_ptr;
-    store->aggregate_ptr = NULL;
+  if(store->summary_ptr != NULL) {
+    delete store->summary_ptr;
+    store->summary_ptr = NULL;
   }
 }
 
@@ -140,16 +135,15 @@ void merge_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
   jetstream::JSSummary summary;
   get_summary_from_param(args, 0, summary);
 
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  storage *store= (storage *)initid->ptr;
 
-  if(NULL == store->aggregate_ptr) {
-    store->aggregate_ptr = new Aggregate(summary);
+  if(NULL == store->summary_ptr) {
+    store->summary_ptr = new jetstream::JSSummary(summary);
     return;
   }
   else {
-    Aggregate update_agg(summary);
-    Aggregate * agg_ptr = store->aggregate_ptr;
-    agg_ptr->merge_in(update_agg);
+   jetstream::JSSummary *into = store->summary_ptr;
+   jetstream::merge_summary<Aggregate>(*into, summary);
   }
 }
 
@@ -161,11 +155,11 @@ void merge_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 
 template<class Aggregate>
 void merge_deinit(UDF_INIT *initid) {
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  storage *store= (storage *)initid->ptr;
 
-  if(store->aggregate_ptr != NULL) {
-    delete store->aggregate_ptr;
-    store->aggregate_ptr = NULL;
+  if(store->summary_ptr != NULL) {
+    delete store->summary_ptr;
+    store->summary_ptr = NULL;
   }
 
   free(store->buffer);
@@ -174,16 +168,16 @@ void merge_deinit(UDF_INIT *initid) {
 
 template<class Aggregate>
 char* merge(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error) {
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
-  Aggregate * agg_ptr = store->aggregate_ptr;
+  storage *store= (storage *)initid->ptr;
+  jetstream::JSSummary * sum_ptr = store->summary_ptr;
 
-  if (NULL == agg_ptr) {
+  if (NULL == sum_ptr) {
     *length = 0;
     *is_null = 1;
     return NULL;
   }
 
-  size_t msg_sz = fill_buffer<Aggregate>(*agg_ptr, store);
+  size_t msg_sz = fill_buffer(*sum_ptr, store);
 
   if(0 == msg_sz) {
     *error = 1;
@@ -216,8 +210,8 @@ my_bool merge_pair_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
   //initid->ptr is a char * used to communicate allocated memory
   //
 
-  storage<Aggregate> *store= new storage<Aggregate>();
-  store->aggregate_ptr = NULL;
+  storage *store= new storage();
+  store->summary_ptr = NULL;
   store->buffer = (char *)malloc(sizeof(char)*1024);
   store->max_buffer_size = 1024;
 
@@ -227,12 +221,9 @@ my_bool merge_pair_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
 
 template<class Aggregate>
 void merge_pair_deinit(UDF_INIT *initid) {
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
+  storage *store= (storage *)initid->ptr;
 
-  if(store->aggregate_ptr != NULL) {
-    assert(0);
-    //delete store->aggregate_ptr;
-  }
+  assert(store->summary_ptr == NULL); //LOG_IF(FATAL, store->summary_ptr != NULL) << "summary ptr should be null";
 
   free(store->buffer);
   delete store;
@@ -241,20 +232,17 @@ void merge_pair_deinit(UDF_INIT *initid) {
 
 template<class Aggregate>
 char* merge_pair(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error) {
-  storage<Aggregate> *store= (storage<Aggregate> *)initid->ptr;
-
-  jetstream::JSSummary sum_rhs;
-  get_summary_from_param(args, 0, sum_rhs);
+  storage *store= (storage *)initid->ptr;
 
   jetstream::JSSummary sum_lhs;
-  get_summary_from_param(args, 1, sum_lhs);
+  get_summary_from_param(args, 0, sum_lhs);
 
-  Aggregate agg_rhs(sum_rhs);
-  Aggregate agg_lhs(sum_lhs);
+  jetstream::JSSummary sum_rhs;
+  get_summary_from_param(args, 1, sum_rhs);
 
-  agg_rhs.merge_in(agg_lhs);
+  jetstream::merge_summary<Aggregate>(sum_lhs, sum_rhs);
 
-  size_t msg_sz = fill_buffer<Aggregate>(agg_rhs, store);
+  size_t msg_sz = fill_buffer(sum_lhs, store);
 
   if(0 == msg_sz) {
     *error = 1;

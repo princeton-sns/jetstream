@@ -59,12 +59,7 @@ void MysqlAggregateQuantile<AggregateClass>::merge_full_tuple_into(jetstream::Tu
   jetstream::JSSummary  *sum_into = into.mutable_e(tuple_indexes[0])->mutable_summary();
   const jetstream::JSSummary  & sum_update = update.e(tuple_indexes[0]).summary();
 
-
-  AggregateClass agg_into(*sum_into);
-  AggregateClass agg_update(sum_update);
-
-  agg_into.merge_in(agg_update);
-  agg_into.serialize_to(*sum_into);
+  merge_summary<AggregateClass>(*sum_into, sum_update);
 }
 
 template <class Aggregate>
