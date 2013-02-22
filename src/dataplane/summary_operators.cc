@@ -166,7 +166,7 @@ DegradeSummary::configure(std::map<std::string,std::string> &config) {
   
   double step =  (1.0 - min_ratio) / (step_count -1);
   double ratio = min_ratio;
-  for (int i = 0; i < step_count-1; ++i) {
+  for (uint i = 0; i < step_count-1; ++i) {
     steps.push_back(ratio);
     ratio += step;
   }
