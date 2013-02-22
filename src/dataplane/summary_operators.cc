@@ -26,7 +26,15 @@ QuantileOperator::process(boost::shared_ptr<Tuple> t) {
       est = new ReservoirSample(s.sample());
     } else if (s.has_sketch()) {
       est = new CMMultiSketch(s.sketch());
-    } else {
+    } else if (s.items_size() > 0) {
+      JSSummary *ms= t->mutable_e(field)->mutable_summary();
+      std::sort(ms->mutable_items()->begin(), ms->mutable_items()->end());
+      int q_result = s.items(s.items_size()*q);
+      t->mutable_e(field)->set_i_val(q_result);
+      t->mutable_e(field)->clear_summary();
+      return;
+    }
+    else {
       LOG(FATAL) << " got a summary with no specific summary in it";
     }
     int q_result = est->quantile(q);
