@@ -180,7 +180,7 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) {
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
-    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
   }
 
 }
@@ -190,7 +190,11 @@ void
 TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) {
-  ;
+  if (ts_input_tuple_index >= 0) {
+    time_t tuple_time = update->e(ts_input_tuple_index).t_val();
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db update next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+  }
+
 }
 
 operator_err_t
