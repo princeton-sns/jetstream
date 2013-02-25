@@ -66,27 +66,38 @@ void TupleBatch::flush()
 
   holes.clear();
 
-  std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
-  std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
-  std::vector<bool> need_new_value_store;
-  std::vector<bool> need_old_value_store;
+  //TODO: logic for max elems really belongs in mysql, easier to do here for now. need to do this because
+  //of placeholder limit on mysql prepared statements
+  //limit found here: http://stackoverflow.com/questions/4922345/how-many-bind-variables-can-i-use-in-a-sql-query-in-mysql-5
+  std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin();
+  unsigned int max_elems_per_batch = 65536/50;
 
-  for(std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin(); iTpi != tpi_store.end(); ++iTpi) {
-    tuple_store.push_back((*iTpi)->t);
-    levels_store.push_back((*iTpi)->levels);
-    need_new_value_store.push_back((*iTpi)->need_new_value);
-    need_old_value_store.push_back((*iTpi)->need_old_value);
-  }
+  while(iTpi != tpi_store.end()){
+    unsigned int num_elems = 0;
+    std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
+    std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
+    std::vector<bool> need_new_value_store;
+    std::vector<bool> need_old_value_store;
 
-  boost::shared_ptr<jetstream::Tuple> empty_ptr;
-  std::vector<boost::shared_ptr<jetstream::Tuple> > new_tuple_store(tuple_store.size(), empty_ptr);
-  std::vector<boost::shared_ptr<jetstream::Tuple> > old_tuple_store(tuple_store.size(), empty_ptr);
+    while(iTpi != tpi_store.end() && num_elems < max_elems_per_batch ) {
+      tuple_store.push_back((*iTpi)->t);
+      levels_store.push_back((*iTpi)->levels);
+      need_new_value_store.push_back((*iTpi)->need_new_value);
+      need_old_value_store.push_back((*iTpi)->need_old_value);
+      ++iTpi;
+      ++num_elems;
+    }
 
-  cube->save_tuple_batch(tuple_store, levels_store, need_new_value_store, need_old_value_store, new_tuple_store, old_tuple_store);
+    boost::shared_ptr<jetstream::Tuple> empty_ptr;
+    std::vector<boost::shared_ptr<jetstream::Tuple> > new_tuple_store(tuple_store.size(), empty_ptr);
+    std::vector<boost::shared_ptr<jetstream::Tuple> > old_tuple_store(tuple_store.size(), empty_ptr);
 
-  for(unsigned int i=0; i<tpi_store.size(); ++i)
-  {
-    cube->save_callback(*(tpi_store[i]), new_tuple_store[i], old_tuple_store[i]);
+    cube->save_tuple_batch(tuple_store, levels_store, need_new_value_store, need_old_value_store, new_tuple_store, old_tuple_store);
+
+    for(unsigned int i=0; i<tpi_store.size(); ++i)
+    {
+      cube->save_callback(*(tpi_store[i]), new_tuple_store[i], old_tuple_store[i]);
+    }
   }
   /*
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples;
