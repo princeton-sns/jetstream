@@ -186,16 +186,29 @@ TEST(QuantReservoirSample, Merge) {
 }
 
 TEST(QuantReservoirSample, Mean) {
-
-  ReservoirSample agg(30);
   const int ITEMS = 20;
+  {
+    ReservoirSample agg(30);
 
-  for (int j =0; j < 2; ++j)
+    for (int j =0; j < 2; ++j)
+      for(int i = 0; i < ITEMS; ++i) {
+        agg.add_item(i+(10*j), 1);
+      }
+    ASSERT_GT(16.0, agg.mean());
+    ASSERT_LT(13.0, agg.mean());
+  }
+  
+  {
+    ReservoirSample a1(30), a2(30);
+  
     for(int i = 0; i < ITEMS; ++i) {
-      agg.add_item(i+(10*j), 1);
+      a1.add_item(i, 1);
+      a2.add_item(i + 10, 1);
     }
-  ASSERT_GT(16.0, agg.mean());
-  ASSERT_LT(13.0, agg.mean());
+    a1.merge_in(a2);
+    ASSERT_GT(16.0, a1.mean());
+    ASSERT_LT(13.0, a1.mean());
+  }
 }
 
 TEST(QuantReservoirSample, SerDe) {
