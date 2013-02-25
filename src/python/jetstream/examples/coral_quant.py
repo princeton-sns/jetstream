@@ -33,6 +33,10 @@ def main():
   default="0", help="unix timestamp to start simulation at")
   parser.add_option("--timewarp", dest="warp_factor",
   default="1", help="simulation speedup")
+  parser.add_option("--analyze_only", dest="analyze_only",
+  action="store_true", default=False)
+  parser.add_option("--load_only", dest="load_only",
+  action="store_true", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -108,6 +112,12 @@ def parse_ts(start_ts):
 def get_graph(all_nodes, root_node, options):
   g= jsapi.QueryGraph()
 
+  ANALYZE = not options.load_only
+  LOADING = not options.analyze_only
+
+  if not LOADING and not ANALYZE:
+    print "can't do both load and analysis"
+    sys.exit(0)
 
   start_ts = parse_ts(options.start_ts)
 
@@ -146,13 +156,14 @@ def get_graph(all_nodes, root_node, options):
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
-    f = jsapi.FileRead(g, options.fname, skip_empty=True)
-    csvp = jsapi.CSVParse(g, coral_types)
-    csvp.set_cfg("discard_off_size", "true")
-    round = jsapi.TRoundOperator(g, fld=1, round_to=1)
-    to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
-    to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
-    g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
+    if LOADING:
+      f = jsapi.FileRead(g, options.fname, skip_empty=True)
+      csvp = jsapi.CSVParse(g, coral_types)
+      csvp.set_cfg("discard_off_size", "true")
+      round = jsapi.TRoundOperator(g, fld=1, round_to=1)
+      to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
+      to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
+      g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
 
     f.instantiate_on(node)
     pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
