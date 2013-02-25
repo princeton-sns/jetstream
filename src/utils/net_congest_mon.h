@@ -21,7 +21,7 @@ class NetCongestionMonitor : public CongestionMonitor {
   
     virtual void report_delete(void * item, uint32_t weight) {}
   
-    virtual void end_of_window(int window_ms) {}
+    virtual void end_of_window(int window_ms, msec_t start_time) {}
 
     void set_downstream_congestion(double d) {
       boost::unique_lock<boost::mutex> lock(internals);
@@ -29,7 +29,8 @@ class NetCongestionMonitor : public CongestionMonitor {
     }
   
     void set_max_rate(double d) {max_per_sec = d;}
-
+  
+    virtual msec_t get_window_start() { return 0; }
 };
 
 }

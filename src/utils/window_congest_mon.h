@@ -31,7 +31,9 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
       }
     }
   
-    virtual void end_of_window(int window_ms);
+    virtual void end_of_window(int window_ms, msec_t start_time);
+  
+    virtual msec_t get_window_start() { return window_start_time; }
 };
 
 }

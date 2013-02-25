@@ -10,7 +10,7 @@
 #include "base_operators.h"
 #include "simple_net.h"
 #include "experiment_operators.h"
-
+#include "dataplane_comm.h"
 
 using namespace std;
 using namespace boost;
@@ -377,12 +377,13 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   data_conn.send_msg(data_msg);
   
   cout <<"sent mock data; data length = " << data_msg.ByteSize() << endl;
-  
+
+#ifdef ACK_EACH_PACKET
   resp = data_conn.get_data_msg();
   cout << "got data response" << endl;
   ASSERT_EQ(DataplaneMessage::ACK, resp->type());
   ASSERT_EQ(data_msg.ByteSize(), resp->bytes_processed());
-
+#endif
   
   DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
 

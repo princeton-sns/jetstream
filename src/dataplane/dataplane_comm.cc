@@ -6,6 +6,7 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
 
+
 void
 IncomingConnectionState::no_more_tuples() {
   if (!dest)
@@ -35,7 +36,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   case DataplaneMessage::DATA:
     {
       if (mon->is_congested()) {
-        VLOG(1) << "reporting upstream congestion at " << dest->id_as_str();
+        VLOG(1) << "reporting downstream congestion at " << dest->id_as_str();
         report_congestion_upstream(1);
         register_congestion_recheck();
       }
@@ -47,12 +48,13 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 
         dest->process(data, remote_op);
       }
+#ifdef ACK_EACH_PACKET
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
       resp.set_bytes_processed(msg.ByteSize());
       boost::system::error_code err;
-      
       conn->send_msg(resp, err);
+#endif
       break;
     }
   case DataplaneMessage::NO_MORE_DATA:
@@ -70,7 +72,21 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
       conn->send_msg(msg, err); // just echo back what we got
     }
     break;
-  
+
+  case DataplaneMessage::END_OF_WINDOW:
+    {
+      dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
+#ifdef ACK_WINDOW_END
+      DataplaneMessage resp;
+      resp.set_type(DataplaneMessage::ACK);
+      resp.set_window_length_ms(msg.window_length_ms());
+      resp.set_timestamp(msg.timestamp());
+      
+      boost::system::error_code err;
+      conn->send_msg(resp, err); // just echo back what we got
+#endif
+      break;
+    }
   
   default:
 //      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from "
@@ -352,7 +368,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
     case DataplaneMessage::ACK:
     {
+#ifdef ACK_EACH_PACKET
       remote_processing->report_delete(0, msg.bytes_processed());
+#endif
+#ifdef ACK_WINDOW_END
+      remote_processing->end_of_window(msg.window_length_ms(), msg.timestamp());
+      //TODO should track time more carefully here to avoid confusion on overlapped windows
+#endif
       break;
     }
   
@@ -381,7 +403,9 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src)
     msg.set_type(DataplaneMessage::DATA);
     
     bool buffer_was_empty = (this_buf_size == 0);
-    this_buf_size += t->ByteSize();
+    size_t sz = t->ByteSize();
+    reporter.sending_a_tuple(sz);
+    this_buf_size += sz;
     msg.add_data()->MergeFrom(*t);
     
     if (this_buf_size < SIZE_TO_SEND) {
@@ -452,21 +476,32 @@ RemoteDestAdaptor::no_more_tuples () {
 
 
 void
-RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const operator_id_t pred) {
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
 		 << ". Aborting meta message send. Should queue/retry instead?";
     return;
   }
 
-  if( msg.type() == DataplaneMessage::NO_MORE_DATA)
+  boost::system::error_code err;
+  if( msg_in.type() == DataplaneMessage::NO_MORE_DATA) {
     no_more_tuples();
-  else {
-    boost::system::error_code err;
-    
+    return;
+  }
+#ifdef ACK_WINDOW_END
+  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW) {
+    DataplaneMessage msg_out;
+    msg_out.CopyFrom(msg_in);
+    msg_out.set_timestamp(  remote_processing->get_window_start()  );
     //we are on caller's thread so this is thread-safe.
     force_send(); 
-    conn->send_msg(msg, err);
+    conn->send_msg(msg_out, err);
+  }
+#endif
+  else {
+    //we are on caller's thread so this is thread-safe.
+    force_send(); 
+    conn->send_msg(msg_in, err);
   }
 }
 
@@ -524,6 +559,19 @@ DataplaneConnManager::deferred_cleanup_in(tcp::endpoint e) {
   liveConns.erase(e);
 }
 
+
+
+void
+BWReporter::sending_a_tuple(size_t b) {
+  tuples ++;
+  bytes += b;
+  msec_t now = get_msec();
+  if ( now > next_report) {
+    LOG(INFO)<< "BWReporter: " << bytes << " bytes and " << tuples << " tuples";
+    bytes = tuples = 0;
+    next_report = now + REPORT_INTERVAL;
+  }
+}
 
 
 const std::string RemoteDestAdaptor::generic_name("Remote connection");

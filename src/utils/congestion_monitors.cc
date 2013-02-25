@@ -50,12 +50,11 @@ QueueCongestionMonitor::capacity_ratio() {
 
 
 void
-WindowCongestionMonitor::end_of_window(int window_ms) {
-  if (window_start_time != 0) {
-    last_ratio = window_ms / double(get_msec() - window_start_time);
+WindowCongestionMonitor::end_of_window(int window_ms, msec_t true_start_time) {
+  if (true_start_time != 0) {
+    last_ratio = window_ms / double(get_msec() - true_start_time);
     window_start_time = 0;
-    std::cout << "End of window!  New congestion level at " << name() << " is " <<
-       last_ratio << std::endl;
+    LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio ;
   }
 }
 
