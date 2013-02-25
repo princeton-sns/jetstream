@@ -32,6 +32,7 @@ QuantileOperator::process(boost::shared_ptr<Tuple> t) {
       int q_result = s.items(s.items_size()*q);
       t->mutable_e(field)->set_i_val(q_result);
       t->mutable_e(field)->clear_summary();
+      emit(t);
       return;
     }
     else {
@@ -160,10 +161,10 @@ operator_err_t
 DegradeSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  
+
   unsigned step_count = 10;
   double min_ratio = 0.1;
-  
+
   double step =  (1.0 - min_ratio) / (step_count -1);
   double ratio = min_ratio;
   for (uint i = 0; i < step_count-1; ++i) {

@@ -190,21 +190,13 @@ class LogHistogram : public QuantileEstimation {
 std::ostream& operator<<(std::ostream& out, const LogHistogram&);
 
 template<typename AggregateClass>
-bool contains_aggregate(const jetstream::JSSummary  & summary) {
-  assert(0);
-  return false;
-}
+bool contains_aggregate(const jetstream::JSSummary  & summary);
 
 template<typename AggregateClass>
-void make_aggregate(jetstream::JSSummary  & summary) {
-  assert(0);
-}
+void make_aggregate(jetstream::JSSummary  & summary);
 
 template<typename AggregateClass>
-bool should_make_into_aggregate(const jetstream::JSSummary  & lhs, const jetstream::JSSummary  & rhs) {
-  assert(0);
-  return false;
-}
+bool should_make_into_aggregate(const jetstream::JSSummary  & lhs, const jetstream::JSSummary  & rhs);
 
 
 template<typename AggregateClass>

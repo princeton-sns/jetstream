@@ -417,6 +417,25 @@ bool should_make_into_aggregate<jetstream::LogHistogram>(const jetstream::JSSumm
 }
 
 template<>
+bool should_make_into_aggregate<jetstream::ReservoirSample>(const jetstream::JSSummary  & lhs, const jetstream::JSSummary  & rhs) {
+  assert(!contains_aggregate<jetstream::ReservoirSample>(lhs)); //LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(lhs)) << "lhs should not be an aggregate";
+  assert(!contains_aggregate<jetstream::ReservoirSample>(rhs));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(rhs)) << "rhs should not be an aggregate";
+
+  assert(0);//not implemented
+  return true;
+}
+
+template<>
+bool should_make_into_aggregate<jetstream::CMMultiSketch>(const jetstream::JSSummary  & lhs, const jetstream::JSSummary  & rhs) {
+  assert(!contains_aggregate<jetstream::CMMultiSketch>(lhs)); //LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(lhs)) << "lhs should not be an aggregate";
+  assert(!contains_aggregate<jetstream::CMMultiSketch>(rhs));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(rhs)) << "rhs should not be an aggregate";
+
+  assert(0);//not implemented
+  return true;
+}
+
+
+template<>
 void make_aggregate<jetstream::LogHistogram>(jetstream::JSSummary  & summary) {
     assert(!contains_aggregate<jetstream::LogHistogram>(summary));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(summary)) << "should not be an aggregate";
     LogHistogram l(300);
@@ -426,6 +445,20 @@ void make_aggregate<jetstream::LogHistogram>(jetstream::JSSummary  & summary) {
     }
     l.serialize_to(summary);
     summary.clear_items();
+}
+
+template<>
+void make_aggregate<jetstream::ReservoirSample>(jetstream::JSSummary  & summary) {
+    assert(!contains_aggregate<jetstream::ReservoirSample>(summary));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(summary)) << "should not be an aggregate";
+
+    assert(0); //not implemnted
+}
+
+template<>
+void make_aggregate<jetstream::CMMultiSketch>(jetstream::JSSummary  & summary) {
+    assert(!contains_aggregate<jetstream::CMMultiSketch>(summary));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(summary)) << "should not be an aggregate";
+
+    assert(0); //not implemnted
 }
 
 
