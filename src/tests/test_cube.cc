@@ -1375,6 +1375,7 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
   time_t time_entered = time(NULL);
   jetstream::Element *e;
 
+  int true_sum = 0;
   for (int j = 0; j< 2; ++j ) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     e=t->add_e();
@@ -1383,7 +1384,8 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
     const int ITEMS = 20;
 
     for(int i = 0; i < ITEMS; ++i) {
-      agg.add_item(i+(10*j), 1);
+      agg.add_item(i+ ITEMS*j, 1);
+      true_sum += ( i + ITEMS*j);
     }
 
     e = t->add_e();
@@ -1407,6 +1409,8 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
   const JSSummary &sum_res = ptrTup->e(1).summary();
 
   ReservoirSample res(sum_res);
+  ASSERT_EQ(40, res.pop_seen());
+  cout << "true mean is " << (true_sum / 40.0) << endl;
   ASSERT_EQ(13, (int) res.mean());
 
 }

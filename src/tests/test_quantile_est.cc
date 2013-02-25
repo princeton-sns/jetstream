@@ -203,11 +203,11 @@ TEST(QuantReservoirSample, Mean) {
   
     for(int i = 0; i < ITEMS; ++i) {
       a1.add_item(i, 1);
-      a2.add_item(i + 10, 1);
+      a2.add_item(i + 20, 1);
     }
     a1.merge_in(a2);
-    ASSERT_GT(16.0, a1.mean());
-    ASSERT_LT(13.0, a1.mean());
+    ASSERT_GT(21.0, a1.mean());
+    ASSERT_LT(18.0, a1.mean());
   }
 }
 
@@ -227,6 +227,8 @@ TEST(QuantReservoirSample, SerDe) {
 
   ASSERT_EQ(summary.mean(), deserialized.mean());
   ASSERT_EQ(summary.elements(), deserialized.elements());
+  ASSERT_EQ(summary.pop_seen(), deserialized.pop_seen());
+
 }
 
 TEST(QuantLogHistogram, SerDe) {
