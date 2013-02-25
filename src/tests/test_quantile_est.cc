@@ -185,6 +185,19 @@ TEST(QuantReservoirSample, Merge) {
   }
 }
 
+TEST(QuantReservoirSample, Mean) {
+
+  ReservoirSample agg(30);
+  const int ITEMS = 20;
+
+  for (int j =0; j < 2; ++j)
+    for(int i = 0; i < ITEMS; ++i) {
+      agg.add_item(i+(10*j), 1);
+    }
+  ASSERT_GT(16.0, agg.mean());
+  ASSERT_LT(13.0, agg.mean());
+}
+
 TEST(QuantReservoirSample, SerDe) {
 
   ReservoirSample summary(30);

@@ -1308,6 +1308,7 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
   time_t time_entered = time(NULL);
   jetstream::Element *e;
 
+  int nominal_sum = 0;
   for (int j = 0; j< 2; ++j ) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     e=t->add_e();
@@ -1317,6 +1318,7 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
 
     for(int i = 0; i < ITEMS; ++i) {
       agg.add_item(i+(10*j), 1);
+      nominal_sum +=  (i + 10*j);
     }
 
     e = t->add_e();
@@ -1342,6 +1344,7 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
   const JSSummary &sum_res = ptrTup->e(1).summary();
 
   ReservoirSample res(sum_res);
+  cout << "nominal sum is " << nominal_sum << "; e-count should be 40" <<endl;
   ASSERT_EQ(13, (int) res.mean());
 
 }

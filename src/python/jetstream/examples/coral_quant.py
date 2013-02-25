@@ -22,7 +22,6 @@ def main():
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true",
                   help="shows PB without running", default=False)
-  parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
   parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
 
@@ -164,6 +163,8 @@ def get_graph(all_nodes, root_node, options):
       to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
       to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
       g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
+    else:
+       local_cube.set_overwrite(False)
 
     f.instantiate_on(node)
     pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds

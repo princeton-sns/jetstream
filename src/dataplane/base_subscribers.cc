@@ -225,20 +225,23 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
     return operator_err_t("window_offset must be a number");
   }
+  
+
+  simulation = false;
+  simulation_rate = -1;
   if (config.find("simulation_rate") != config.end()) {
-    LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
-
-    simulation = true;
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
+  
+    if (simulation_rate > 1) {
+      LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
 
-    VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
-    VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
-    VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
-  } else {
-    simulation = false;
-    simulation_rate = -1;
-  }
+      simulation = true;
 
+      VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
+      VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+      VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
+    }
+  } 
   return NO_ERR;
 }
 
