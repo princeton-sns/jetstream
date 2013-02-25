@@ -24,12 +24,12 @@ NodeWebInterface::start ()
     LOG(ERROR) << "Web server already initialized" << endl;
   }
   else {
-    string port_as_str(boost::lexical_cast<string> (portno));
+    string port_as_str(bind_addr + ":" + boost::lexical_cast<string> (portno));
     const char *mg_config[] = {"listening_ports", port_as_str.c_str(), NULL};
     mongoose_ctxt = mg_start(process_req, this, mg_config);
     //FIXME: iscube_iter safe for cfg to go out of scope here?
     if (mongoose_ctxt != 0)
-      LOG(INFO) << "Web server is on port " << mg_get_option(mongoose_ctxt, "listening_ports");
+      LOG(INFO) << "Web server on port " << mg_get_option(mongoose_ctxt, "listening_ports") << " of ";
     else
       LOG(WARNING) << "couldn't start web interface on " << port_as_str;
   }
