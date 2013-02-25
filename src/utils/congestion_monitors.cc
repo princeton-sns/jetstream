@@ -7,7 +7,7 @@ using namespace boost::interprocess::ipcdetail;
 
 namespace jetstream {
 
-const int N_TO_LOG = 211;
+const int N_TO_LOG = 21;
 
 double
 QueueCongestionMonitor::capacity_ratio() {
