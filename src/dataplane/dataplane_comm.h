@@ -16,11 +16,25 @@
 #include "window_congest_mon.h"
 
 
+#undef ACK_EACH_PACKET
+#define ACK_WINDOW_END 1
+
 namespace  jetstream {
   
 
 class DataplaneConnManager;
 
+class BWReporter {
+  unsigned tuples;
+  unsigned bytes;
+  msec_t next_report;
+  msec_t REPORT_INTERVAL;
+  public:
+    BWReporter(): tuples(0), bytes(0),next_report(0),REPORT_INTERVAL(2000)
+    {}
+    void sending_a_tuple(size_t b);
+    
+};
 
 
 class RemoteDestAdaptor : public TupleReceiver {
@@ -46,6 +60,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   Edge dest_as_edge;
   DataplaneMessage msg;
   boost::asio::deadline_timer timer;
+  BWReporter reporter;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
