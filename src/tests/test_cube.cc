@@ -1346,7 +1346,7 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
   const JSSummary &sum_res = ptrTup->e(1).summary();
 
   ReservoirSample res(sum_res);
-  ASSERT_EQ(40, res.pop_seen());
+  ASSERT_EQ(40U, res.pop_seen());
   cout << "nominal sum is " << nominal_sum << "." <<endl;
   cout << "sample mean was " << res.mean()<<", should be " << (nominal_sum / 40.0) << endl;
   ASSERT_EQ(13, (int) res.mean());
@@ -1409,7 +1409,7 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
   const JSSummary &sum_res = ptrTup->e(1).summary();
 
   ReservoirSample res(sum_res);
-  ASSERT_EQ(40, res.pop_seen());
+  ASSERT_EQ(40U, res.pop_seen());
   cout << "true mean is " << (true_sum / 40.0) << endl;
   ASSERT_EQ(13, (int) res.mean());
 
