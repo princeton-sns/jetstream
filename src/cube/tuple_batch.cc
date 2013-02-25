@@ -74,6 +74,7 @@ void TupleBatch::flush()
 
   while(iTpi != tpi_store.end()){
     unsigned int num_elems = 0;
+    std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iStartBatch = iTpi;
     std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
     std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
     std::vector<bool> need_new_value_store;
@@ -94,9 +95,11 @@ void TupleBatch::flush()
 
     cube->save_tuple_batch(tuple_store, levels_store, need_new_value_store, need_old_value_store, new_tuple_store, old_tuple_store);
 
-    for(unsigned int i=0; i<tpi_store.size(); ++i)
+    int i = 0;
+    for(;iStartBatch != iTpi; ++iStartBatch)
     {
-      cube->save_callback(*(tpi_store[i]), new_tuple_store[i], old_tuple_store[i]);
+      cube->save_callback(*(*iStartBatch), new_tuple_store[i], old_tuple_store[i]);
+      i++;
     }
   }
   /*
