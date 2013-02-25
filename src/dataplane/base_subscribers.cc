@@ -311,7 +311,7 @@ TimeBasedSubscriber::operator()() {
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;
 
-    VLOG(1) << id() << " read " << elems << " tuples from cube";
+    VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
 
