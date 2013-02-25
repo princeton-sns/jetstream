@@ -127,7 +127,7 @@ def get_graph(all_nodes, root_node, options):
   pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
   pull_q.set_cfg("ts_field", 0)
   pull_q.set_cfg("start_ts", start_ts)
-#  pull_q.set_cfg("rollup_levels", "8,1")
+  pull_q.set_cfg("rollup_levels", "8,1")
   pull_q.set_cfg("simulation_rate", options.warp_factor)
   pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
 
