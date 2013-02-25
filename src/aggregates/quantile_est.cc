@@ -73,10 +73,10 @@ void
 ReservoirSample::fillIn(const JSSample& s) {
   sample_of_data.reserve(s.items_size());
   max_size = s.max_items();
-  
+
 //  assert(s.items_size() <= max_size);
-  
-  if (s.items_size() <= max_size) {
+
+  if ((unsigned int) s.items_size() <= max_size) {
     for (int i = 0; i < s.items_size(); ++i) {
       sample_of_data.push_back(s.items(i));
     }
@@ -85,7 +85,7 @@ ReservoirSample::fillIn(const JSSample& s) {
     for (int i = 0; i < s.items_size(); ++i)
       add_one(s.items(i));
   }
-  total_seen = s.total_items();  
+  total_seen = s.total_items();
 }
 
 

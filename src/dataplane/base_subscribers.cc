@@ -225,13 +225,13 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
     return operator_err_t("window_offset must be a number");
   }
-  
+
 
   simulation = false;
   simulation_rate = -1;
   if (config.find("simulation_rate") != config.end()) {
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
-  
+
     if (simulation_rate > 1) {
       LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
       windowOffsetMs *= simulation_rate;
@@ -241,7 +241,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
       VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
       VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
     }
-  } 
+  }
   return NO_ERR;
 }
 
@@ -297,6 +297,11 @@ TimeBasedSubscriber::operator()() {
   while (running)  {
 
     cube::CubeIterator it = querier.do_query();
+
+    if(it == cube->end()) {
+      LOG(INFO) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time ;
+    }
+
     size_t elems = 0;
     while ( it != cube->end()) {
       emit(*it);
@@ -324,6 +329,7 @@ TimeBasedSubscriber::operator()() {
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
+      LOG(INFO) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
     }
 
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
