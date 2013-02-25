@@ -567,7 +567,7 @@ BWReporter::sending_a_tuple(size_t b) {
   bytes += b;
   msec_t now = get_msec();
   if ( now > next_report) {
-    LOG(INFO)<< "BWReporter: " << bytes << " bytes and " << tuples << " tuples";
+    LOG(INFO)<< "BWReporter@" << now << " " << bytes << " bytes; " << tuples << " tuples";
     bytes = tuples = 0;
     next_report = now + REPORT_INTERVAL;
   }

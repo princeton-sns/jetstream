@@ -90,9 +90,6 @@ class ReservoirSample: public SampleEstimation {
     inline void add_one(int v);
     boost::mt19937 gen;
 
-    virtual uint64_t pop_seen() const {
-      return total_seen;
-    }
 
     void fillIn(const JSSample&);
 
@@ -107,6 +104,10 @@ class ReservoirSample: public SampleEstimation {
     virtual void add_item(int v, count_val_t c);
     virtual void add_data(int * data, size_t size_to_take);
     bool merge_in(const ReservoirSample& s);
+  
+    virtual uint64_t pop_seen() const {
+      return total_seen;
+    }
 };
 
 // could have a base histogram class here if need be

@@ -36,7 +36,7 @@ SampleEstimation::mean() const {
   int64_t total = 0;
   for (size_t i=0; i < sample_of_data.size(); ++i)
     total+= sample_of_data[i];
-  return (double) total /  sample_of_data.size();
+  return double(total) /  sample_of_data.size();
 }
 
 void
@@ -114,6 +114,8 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
     return true;
   } else {
 
+
+      //draw randomly from RHS until we're full
     size_t rhs_seen = rhs.total_seen;
     while (total_seen < max_size) {
       uniform_int_distribution<size_t> start_pos_distrib(0, rhs.elements() -1 );
@@ -138,6 +140,7 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
         rhs_idx = (rhs_idx + 1) % rhs.elements();
       }
     }
+    total_seen += rhs_seen;
     return true;
   }
 }
