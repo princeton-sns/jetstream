@@ -54,17 +54,6 @@ ReservoirSample::serialize_to(JSSummary& q) const {
   q.mutable_sample()->set_max_items(max_size);
 }
 
-void
-ReservoirSample::fillIn(const JSSample& s) {
-  total_seen = s.total_items();
-  sample_of_data.reserve(s.items_size());
-  max_size = s.max_items();
-  for (int i = 0; i < s.items_size(); ++i) {
-    sample_of_data.push_back(s.items(i));
-  }
-}
-
-
 
 inline void
 ReservoirSample::add_one(int v) {
@@ -78,6 +67,28 @@ ReservoirSample::add_one(int v) {
   }
   total_seen += 1;
 }
+
+
+void
+ReservoirSample::fillIn(const JSSample& s) {
+  sample_of_data.reserve(s.items_size());
+  max_size = s.max_items();
+  
+//  assert(s.items_size() <= max_size);
+  
+  if (s.items_size() <= max_size) {
+    for (int i = 0; i < s.items_size(); ++i) {
+      sample_of_data.push_back(s.items(i));
+    }
+  }
+  else {
+    for (int i = 0; i < s.items_size(); ++i)
+      add_one(s.items(i));
+  }
+  total_seen = s.total_items();  
+}
+
+
 
 void
 ReservoirSample::add_item(int v, count_val_t c) {
