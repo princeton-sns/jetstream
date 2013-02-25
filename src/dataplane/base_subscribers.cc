@@ -299,7 +299,7 @@ TimeBasedSubscriber::operator()() {
     cube::CubeIterator it = querier.do_query();
 
     if(it == cube->end()) {
-      LOG(INFO) << "Nothing found in time subscriber query. Next window start time = "<< next_window_start_time ;
+      LOG(INFO) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time ;
     }
 
     size_t elems = 0;
@@ -329,6 +329,7 @@ TimeBasedSubscriber::operator()() {
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
+      LOG(INFO) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
     }
 
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
