@@ -161,7 +161,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
 
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
-    LOG_EVERY_N(INFO, 1001) << "TimeBasedSubscriber next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if (tuple_time < next_window_start_time) {
       backfill_tuples ++;
       last_backfill_time = tuple_time;

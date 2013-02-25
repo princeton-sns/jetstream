@@ -136,6 +136,7 @@ def get_graph(all_nodes, root_node, options):
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
   echo = jsapi.Echo(g)
+  echo.instantiate_on(root_node)
 
   g.chain([central_cube, pull_q, count_op, q_op, q_op2, echo] )
 
