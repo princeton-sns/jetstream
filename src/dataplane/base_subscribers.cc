@@ -234,7 +234,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   
     if (simulation_rate > 1) {
       LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
-
+      windowOffsetMs *= simulation_rate;
       simulation = true;
 
       VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
@@ -309,7 +309,7 @@ TimeBasedSubscriber::operator()() {
     int backfill_window = backfill_tuples - backfill_old_window;
     int regular_window = regular_tuples - regular_old_window;
     if(backfill_window > 0) {
-      LOG(INFO)<< "Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window
+      LOG(INFO)<< id() << ": Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window
         <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time;
     }
     backfill_old_window = backfill_tuples;

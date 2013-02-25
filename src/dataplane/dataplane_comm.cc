@@ -77,6 +77,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
+      VLOG(2) << " got an end-of-window marker, acking it";
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
       resp.set_window_length_ms(msg.window_length_ms());
@@ -307,9 +308,14 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   std::ostringstream mon_name;
   mon_name << "connection to " << c->get_remote_endpoint();
 
+#ifdef ACK_EACH_PACKET
   remote_processing = boost::shared_ptr<QueueCongestionMonitor>(
     new QueueCongestionMonitor(mgr.maxQueueSize(), mon_name.str()));
-
+#endif
+#ifdef ACK_WINDOW_END
+  remote_processing = boost::shared_ptr<WindowCongestionMonitor>(
+    new WindowCongestionMonitor(mon_name.str()));
+#endif
 //  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
   if(dest_as_edge.has_max_kb_per_sec())
      remote_processing->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
@@ -367,7 +373,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     }
 
     case DataplaneMessage::ACK:
-    {
+    {    
 #ifdef ACK_EACH_PACKET
       remote_processing->report_delete(0, msg.bytes_processed());
 #endif
