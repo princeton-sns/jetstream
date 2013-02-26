@@ -65,20 +65,23 @@ Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id)
   max.CopyFrom(min);
 
   num_results = 0;
+
   if (config.find("num_results") != config.end())
     num_results = boost::lexical_cast<int32_t>(config["num_results"]);
 
   if (config.find("sort_order") != config.end()) {
     std::stringstream ss(config["sort_order"]);
     std::string item;
+
     while(std::getline(ss, item, ',')) {
-        sort_order.push_back(item);
+      sort_order.push_back(item);
     }
   }
 
   if (config.find("rollup_levels") != config.end()) {
     std::stringstream ss(config["rollup_levels"]);
     std::string item;
+
     while(std::getline(ss, item, ',')) {
       unsigned int level = lexical_cast<unsigned int>(item);
       rollup_levels.push_back(level);
@@ -93,22 +96,25 @@ std::string fmt_list(const T& l) {
   ostringstream out;
   typename T::const_iterator i;
   out << "(";
-	for( i = l.begin(); i != l.end(); ++i)
-		out << *i << " ";
+
+  for( i = l.begin(); i != l.end(); ++i)
+    out << *i << " ";
+
   out << ")";
-	return out.str();
+  return out.str();
 }
 
 cube::CubeIterator Querier::do_query() {
 
   if (rollup_levels.size() > 0) {
     VLOG(1) << id << " doing rollup query. Range is " << fmt(min) << " to " << fmt(max) <<
-     " and rollup levels are " << fmt_list(rollup_levels);
+            " and rollup levels are " << fmt_list(rollup_levels);
 
     cube->do_rollup(rollup_levels, min, max);
     VLOG(1) << "rollup done; now doing query";
     return cube->rollup_slice_query(rollup_levels, min, max);
-  } else {
+  }
+  else {
     VLOG(1) << id << " doing query; range is " << fmt(min) << " to " << fmt(max);
 
     return cube->slice_query(min, max, true, sort_order, num_results);
@@ -125,6 +131,7 @@ Querier::set_rollup_level(int fieldID, unsigned r_level) {
   assert ((unsigned int) fieldID < rollup_levels.size());
 
   rollup_levels[fieldID] = r_level;
+
   if (cube->is_unrolled(rollup_levels)) {
     rollup_levels.clear();
   }
@@ -148,10 +155,12 @@ void
 OneShotSubscriber::operator()() {
 
   cube::CubeIterator it = querier.do_query();
+
   while ( it != cube->end()) {
     emit(*it);
     it++;
   }
+
   no_more_tuples();
   node->stop_operator(id());
 }
@@ -162,9 +171,11 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+
     if(latency_ts_field >= 0) {
       msec_t orig_time=  update->e(latency_ts_field).d_val();
       msec_t now = get_msec();
+
       if((now+10) - orig_time > 1000) //+10 because time can be unpredictable within a msec---causing wraparound
         LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
     }
@@ -174,11 +185,11 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
       last_backfill_time = tuple_time;
       return SEND_UPDATE;
     }
-    else
-    {
+    else {
       regular_tuples++;
     }
   }
+
   return SEND;
 }
 
@@ -188,9 +199,11 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+
     if (tuple_time < next_window_start_time) {
       LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
-        <<" Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+                <<" Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+
       if(latency_ts_field >= 0) {
         msec_t orig_time=  update->e(latency_ts_field).d_val();
         LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time) <<" Orig time "<<orig_time;
@@ -216,6 +229,7 @@ TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upda
 operator_err_t
 TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   operator_err_t r = querier.configure(config, id());
+
   if (r != NO_ERR)
     return r;
 
@@ -231,30 +245,36 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
+
     if (querier.min.e_size() <= ts_field) {
       ostringstream of;
       of << "can't use field " << ts_field << " as time; input only has "
          << querier.min.e_size() << " fields";
       return of.str();
     }
+
     querier.min.mutable_e(ts_field)->set_t_val(start_ts);
 
-  } else
+  }
+  else
     ts_field = -1;
 
   if (config.find("latency_ts_field") != config.end()) {
     latency_ts_field = boost::lexical_cast<int32_t>(config["latency_ts_field"]);
-   /* if (querier.min.e_size() <= latency_ts_field) {
-      ostringstream of;
-      of << "can't use field " << latency_ts_field << " as time; input only has "
-         << querier.min.e_size() << " fields";
-      return of.str();
-    }*/
-  } else
+    /* if (querier.min.e_size() <= latency_ts_field) {
+       ostringstream of;
+       of << "can't use field " << latency_ts_field << " as time; input only has "
+          << querier.min.e_size() << " fields";
+       return of.str();
+     }*/
+  }
+  else
     latency_ts_field = -1;
+
 //    return operator_err_t("Must specify start_ts field");
 
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
+
   if ((config["window_offset"].length() > 0) &&
       !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
 
@@ -264,6 +284,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   simulation = false;
   simulation_rate = -1;
+
   if (config.find("simulation_rate") != config.end()) {
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
 
@@ -277,6 +298,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
       VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
     }
   }
+
   return NO_ERR;
 }
 
@@ -285,6 +307,7 @@ double shouldRunArr[] = {0, 1};
 void
 TimeBasedSubscriber::respond_to_congestion() {
   int should_run = 1;
+
   while(running && should_run == 0) {
     should_run += congest_policy->get_step(id(), shouldRunArr, 2, should_run);
     js_usleep(1000 * 50);  //10 ms
@@ -295,11 +318,14 @@ void
 TimeBasedSubscriber::operator()() {
 
   TimeTeller * ts;
+
   if (simulation) {
     // FIXME I hope this is right
     ts = new TimeSimulator(start_ts, simulation_rate);
-  } else
+  }
+  else
     ts = new TimeTeller();
+
   boost::shared_ptr<TimeTeller> tt(ts);
 
 
@@ -318,7 +344,7 @@ TimeBasedSubscriber::operator()() {
 
   if (slice_fields != cube_dims) {
     LOG(FATAL) << id() << " trying to query " << cube_dims << " dimensions with tuple "
-       << fmt(querier.min) << " of length " << slice_fields;
+               << fmt(querier.min) << " of length " << slice_fields;
   }
 
   LOG(INFO) << id() << " is attached to " << cube->id_as_str();
@@ -329,16 +355,18 @@ TimeBasedSubscriber::operator()() {
 
   int backfill_old_window = backfill_tuples;
   int regular_old_window = regular_tuples;
+
   while (running)  {
 
     cube::CubeIterator it = querier.do_query();
 
     if(it == cube->end()) {
       LOG(INFO) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time
-        <<" Cube monitor capacity ratio: " << cube->congestion_monitor()->capacity_ratio();
+                <<" Cube monitor capacity ratio: " << cube->congestion_monitor()->capacity_ratio();
     }
 
     size_t elems = 0;
+
     while ( it != cube->end()) {
       emit(*it);
       it++;
@@ -350,10 +378,12 @@ TimeBasedSubscriber::operator()() {
 
     int backfill_window = backfill_tuples - backfill_old_window;
     int regular_window = regular_tuples - regular_old_window;
+
     if(backfill_window > 0) {
       LOG(INFO)<< id() << ": Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window
-        <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time;
+               <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time;
     }
+
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;
 
@@ -366,7 +396,7 @@ TimeBasedSubscriber::operator()() {
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
-      LOG(INFO) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
+      VLOG(1) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
     }
 
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
@@ -375,9 +405,10 @@ TimeBasedSubscriber::operator()() {
       running = false;
     }
   }
+
   no_more_tuples();
   LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
-      << ". Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
+            << ". Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
 }
 
 
@@ -408,18 +439,19 @@ LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
   }
 
   interval_ms = 1000;
+
   if (config.find("interval_ms") != config.end())
     interval_ms = boost::lexical_cast<unsigned int>(config["interval_ms"]);
 
   cumulative = false;
+
   if (config.find("cumulative") != config.end())
     cumulative = boost::lexical_cast<bool>(config["cumulative"]);
 
   return NO_ERR;
 }
 
-jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update)
-{
+jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
   map<int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
@@ -436,7 +468,7 @@ jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(bo
 }
 
 void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value) {
+    boost::shared_ptr<jetstream::Tuple> const &new_value) {
 
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
@@ -448,9 +480,8 @@ void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> c
 }
 
 void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value,
-                                 boost::shared_ptr<jetstream::Tuple> const &old_value)
-{
+    boost::shared_ptr<jetstream::Tuple> const &new_value,
+    boost::shared_ptr<jetstream::Tuple> const &old_value) {
   LOG(FATAL) << "This subscriber should never get backfill data";
 }
 
@@ -458,19 +489,22 @@ int LatencyMeasureSubscriber::get_bucket(int latency) {
 
   if (abs(latency) < 10)
     return (latency / 2) * 2;
+
   if(abs(latency) < 100) {
     return (latency/10)*10;
   }
+
   if(abs(latency) <1000) {
     return (latency/100)*100;
   }
+
   return (latency/1000)*1000;
 }
 
 void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
-                                           map<int, unsigned int> &bucket_map_rt,
-                                           map<int, unsigned int> &bucket_map_skew,
-                                          msec_t& max_seen_tuple_ms) {
+    map<int, unsigned int> &bucket_map_rt,
+    map<int, unsigned int> &bucket_map_skew,
+    msec_t& max_seen_tuple_ms) {
   msec_t current_time_ms = get_usec()/1000;
   int latency_rt_ms = current_time_ms-tuple_time_ms; //note that this is SIGNED. Positive means source lags subscriber.
 
@@ -498,8 +532,8 @@ LatencyMeasureSubscriber::operator()() {
     {
       lock_guard<boost::mutex> critical_section (lock);
 
-  //    std::stringstream line;
-  //    line<<"Stats before entry into cube. Wrt real-time" << endl;
+      //    std::stringstream line;
+      //    line<<"Stats before entry into cube. Wrt real-time" << endl;
       string s = string("before cube insert ");
       s += now_str;
       print_stats(stats_before_rt, s.c_str());
@@ -507,8 +541,7 @@ LatencyMeasureSubscriber::operator()() {
       s += now_str;
       print_stats(stats_after_rt, s.c_str());
 
-      if(!cumulative)
-      {
+      if(!cumulative) {
         stats_before_rt.clear();
         stats_after_rt.clear();
         stats_before_skew.clear();
@@ -517,6 +550,7 @@ LatencyMeasureSubscriber::operator()() {
     } //release lock
     js_usleep(interval_ms*1000);
   }
+
   no_more_tuples();
 }
 
@@ -524,10 +558,12 @@ void
 LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsigned int> > & stats,
                                        const char * label) {
   std::map<std::string, std::map<int, unsigned int> >::iterator stats_it;
+
   for(stats_it = stats.begin(); stats_it != stats.end(); ++stats_it) {
     //unsigned int total=0;
 
     std::map<int, unsigned int>::iterator latency_it;
+
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
       boost::shared_ptr<jetstream::Tuple> t(new Tuple);
       extend_tuple(*t, stats_it->first);  //the hostname
@@ -537,6 +573,7 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
 //      total += (*latency_it).second;
       emit(t);
     }
+
     /*
     line << "Total count: " << total <<endl;
     unsigned int med_total = 0;
@@ -574,15 +611,18 @@ VariableCoarseningSubscriber::respond_to_congestion() {
   // interval_ms = secs_per_level[cur_level] * 1000;
   int prev_window = windowSizeMs;
   windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
+
   if (prev_window == windowSizeMs) {
     assert(change_in_window == 0);
     VLOG(1) << "Subscriber " << id() << " staying at period " << windowSizeMs;
-  } else {
+  }
+  else {
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
-        << " from " << prev_window;
+              << " from " << prev_window;
     querier.set_rollup_level(ts_field, cur_level);
     send_rollup_levels();
   }
+
   js_usleep( 1000 * change_in_window);
 }
 
@@ -590,13 +630,16 @@ operator_err_t
 VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &config) {
   cur_level = DTC_LEVEL_COUNT -1;
   operator_err_t base_err = TimeBasedSubscriber::configure(config);
+
   if (base_err != NO_ERR)
     return base_err;
+
   if (ts_field < 0)
     return "time field is mandatory for variable coarsening for now";
 
   for (unsigned int i = 0; i < DTC_LEVEL_COUNT; ++i)
     time_rollup_levels[i] = 1.0 / DTC_SECS_PER_LEVEL[i];
+
   return NO_ERR;
 }
 
