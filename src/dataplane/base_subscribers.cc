@@ -237,12 +237,12 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   if (config.find("latency_ts_field") != config.end()) {
     latency_ts_field = boost::lexical_cast<int32_t>(config["latency_ts_field"]);
-    if (querier.min.e_size() <= latency_ts_field) {
+   /* if (querier.min.e_size() <= latency_ts_field) {
       ostringstream of;
       of << "can't use field " << latency_ts_field << " as time; input only has "
          << querier.min.e_size() << " fields";
       return of.str();
-    }
+    }*/
   } else
     latency_ts_field = -1;
 //    return operator_err_t("Must specify start_ts field");
