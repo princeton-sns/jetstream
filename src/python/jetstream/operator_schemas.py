@@ -22,7 +22,7 @@ class OpType (object):
   QUANTILE = "QuantileOperator"
   TO_SUMMARY = "ToSummary"
   SUMMARY_TO_COUNT = "SummaryToCount"
-
+  URLToDomain = "URLToDomain"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -48,7 +48,7 @@ def validate_FileRead(in_schema, cfg):
 
 def validate_grep(in_schema, cfg):
   fld = cfg['id']
-  if fld > len(in_schema) or in_schema[fld][0] != 'S':
+  if fld >= len(in_schema) or in_schema[fld][0] != 'S':
     raise SchemaError("Can't grep on field %d of %s" % (fld, str(in_schema)))
   return in_schema
 
@@ -193,7 +193,13 @@ def validate_ToSummary(in_schema, cfg):
   newS.extend(in_schema)
   newS[fld] = ('Histogram', 'summary of '+in_schema[fld][1])
   return newS  
-  
+
+
+def validate_URLToDomain(in_schema, cfg):
+  fld = cfg['field']
+  if fld >= len(in_schema) or in_schema[fld][0] != 'S':
+    raise SchemaError("Can't parse field %d of %s" % (fld, str(in_schema)))
+  return in_schema    
   
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -221,6 +227,8 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 #  SCHEMAS[NO_OP] = lambda x: x
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
+SCHEMAS[OpType.URLToDomain] = validate_URLToDomain
+
 
 SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
 SCHEMAS[OpType.QUANTILE] = validate_Quantile

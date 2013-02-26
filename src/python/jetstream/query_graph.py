@@ -621,3 +621,7 @@ def ToSummary(graph, size, field):
 def SummaryToCount(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.SUMMARY_TO_COUNT, cfg)
+
+def URLToDomain(graph, field):
+   cfg = {"field":field}
+   return graph.add_operator(OpType.URLToDomain, cfg)
