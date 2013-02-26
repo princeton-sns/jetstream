@@ -16,8 +16,8 @@ CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
 }
 
 
-shared_ptr<DataCube> 
-CubeManager::get_cube (const std::string &name) 
+shared_ptr<DataCube>
+CubeManager::get_cube (const std::string &name)
 {
   lock_guard<boost::mutex> lock (mapMutex);
   if (cubeMap.count(name) > 0)
@@ -27,14 +27,14 @@ CubeManager::get_cube (const std::string &name)
     return c;
   }
 }
-  
-shared_ptr<DataCube> 
+
+shared_ptr<DataCube>
 CubeManager::create_cube ( const std::string &name,
                            const CubeSchema &schema,
                            bool overwrite_if_present) {
 
   static const boost::regex NAME_PAT("[a-zA-Z0-9_]+$");
-  lock_guard<boost::mutex> lock (mapMutex);  
+  lock_guard<boost::mutex> lock (mapMutex);
 
   shared_ptr<DataCube> c;
   if (!regex_match(name, NAME_PAT)) {
@@ -55,16 +55,16 @@ CubeManager::create_cube ( const std::string &name,
 
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
-  
-  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present));
+
+  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
 //  set_batch(10)
   c->create();
   cubeMap[name] = c;
   return c;
 }
 
-void 
-CubeManager::destroy_cube (const std::string &name) 
+void
+CubeManager::destroy_cube (const std::string &name)
 {
   lock_guard<boost::mutex> lock (mapMutex);
   cubeMap[name]->mark_as_deleted();
@@ -85,7 +85,7 @@ CubeManager::list_cubes() {
 
   size_t numCubes = cubeMap.size();
   boost::shared_ptr<vector<string> > cubeList(new vector<string>(numCubes));
-  
+
   map<string, shared_ptr<DataCube> >::iterator it;
   for (it=cubeMap.begin() ; it != cubeMap.end(); it++ ) {
     cubeList->push_back(it->first);
