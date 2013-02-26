@@ -116,6 +116,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, int column_index, bool final, bool rollup=false) const;
 
   private:
+    unsigned int round_down_to_power_of_two(size_t number, size_t max_power);
     static void init_connection();
     static string db_host;
     static string db_user;
