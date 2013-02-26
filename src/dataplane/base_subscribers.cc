@@ -162,6 +162,12 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    if(latency_ts_field >= 0) {
+      msec_t orig_time=  update->e(latency_ts_field).d_val();
+      if(get_msec() - orig_time > 1000)
+      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(get_msec() - orig_time);
+    }
+
     if (tuple_time < next_window_start_time) {
       backfill_tuples ++;
       last_backfill_time = tuple_time;
