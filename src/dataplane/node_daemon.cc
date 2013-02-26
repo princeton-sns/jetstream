@@ -31,7 +31,7 @@ parse_config (program_options::variables_map *inputopts,
     ("restart", "restart program")
     ("stop", "stop program")
     ;
-  
+
   // Options from both cmd line and config file
   options_description conf_opts("Configuration file and command line options");
   conf_opts.add_options()
@@ -39,21 +39,21 @@ parse_config (program_options::variables_map *inputopts,
      "hostname:port of controller (can supply multiple entries)")
     ("dataplane_ep,d", value<string>(),
      "hostname:port of dataplane worker (use 0.0.0.0 for generic worker)")
-    ("webinterface_port,w", value<port_t>(), 
+    ("webinterface_port,w", value<port_t>(),
      "my web interface port number")
-    ("heartbeat_time,t", value<msec_t>(), 
+    ("heartbeat_time,t", value<msec_t>(),
      "liveness monitoring timer (in milliseconds)")
     ("thread_pool_size,p", value<u_int16_t>(),
      "thread pool size")
-    ("cube_processor_threads", value<size_t>(),
+    ("cube_processor_threads,c", value<u_int16_t>(),
      "Number of threads the cubes use")
     ;
-  
-  
+
+
   // Build set of all allowable options
   options_description opts("Allowed options");
   opts.add(cmd_opts).add(conf_opts);
-  
+
   variables_map &input_opts = *inputopts;
 
   try {
@@ -64,27 +64,27 @@ parse_config (program_options::variables_map *inputopts,
     cout << opts << endl;
     return 1;
   };
-  
+
   if (input_opts.count("help")) {
     cout << opts << endl;
     return 1;
   }
-  
+
   if (input_opts.count("version")) {
     cout << argv[0] << ": vers " << JETSTREAM_VERSION << endl;
     return 1;
   }
-  
+
   // Must have at least one command
-  if (!input_opts.count("restart") 
+  if (!input_opts.count("restart")
       && !input_opts.count("start")
       && !input_opts.count("stop")) {
-    cout << argv[0] << ": option (start|stop|restart) missing" 
+    cout << argv[0] << ": option (start|stop|restart) missing"
 	 << endl;
     cout << opts << endl;
     return 1;
   }
-  
+
 
   if (input_opts.count ("config"))
     config.config_file = input_opts["config"].as<string>();
@@ -117,7 +117,7 @@ parse_config (program_options::variables_map *inputopts,
 
 
   if (input_opts.count("cube_processor_threads"))
-    config.cube_processor_threads = input_opts["cube_processor_threads"].as<size_t>();
+    config.cube_processor_threads = input_opts["cube_processor_threads"].as<u_int16_t>();
 
 
   //if (input_opts.count("dataplane_port"))
@@ -141,7 +141,7 @@ parse_config (program_options::variables_map *inputopts,
       cout << opts << endl;
       return 1;
     }
-    
+
     config.dataplane_ep = make_pair(a[0], lexical_cast<port_t> (a[1]));
   }
 
@@ -159,7 +159,7 @@ parse_config (program_options::variables_map *inputopts,
       const string &addr = addrs[i];
       vector<string> a;
       split(a, addr, is_any_of(":"));
-    
+
       if (a.size() != 2) {
 	cerr << argv[0] << ": incorrect format for controller address:"
 	     << addr << endl;
@@ -174,7 +174,7 @@ parse_config (program_options::variables_map *inputopts,
 	cout << opts << endl;
 	return 1;
       }
-      
+
       pair<string, port_t> p (a[0], lexical_cast<port_t> (a[1]));
       config.controllers.push_back (p);
     }
@@ -194,7 +194,7 @@ jsnode_start (NodeConfig &config, char **argv)
   // Create logger first thing
   google::LogToStderr();
   google::InitGoogleLogging(argv[0]);
-  
+
 
   boost::system::error_code error;
   Node n (config, error);
@@ -206,7 +206,7 @@ jsnode_start (NodeConfig &config, char **argv)
 
   n.start();
   n.join(); //wait for node to exit
-  
+
   // Optional:  Delete all global objects allocated by libprotobuf.
   google::protobuf::ShutdownProtobufLibrary();
   LOG(INFO) << "Exiting cleanly" << endl;
@@ -241,10 +241,10 @@ main (int argc, char **argv)
   else if (input_opts.count("start"))
     jsnode_start(config, argv);
   else {
-    cout << argv[0] 
+    cout << argv[0]
 	 << "Missing appropriate start command" << endl;
     exit(1);
   }
-    
+
   exit(0);
 }
