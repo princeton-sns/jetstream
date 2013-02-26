@@ -116,7 +116,7 @@ CSVParse::configure(map<string,string> &config) {
     keep_fields[fld_to_keep] = true;
   }
 
-  discard_off_size = ((config["discard_off_size"].size() > 0) && config["discard_off_size"] != "false");
+  discard_off_size = ((config["discard_off_size"].size() == 0) || config["discard_off_size"] != "false");
 
   return NO_ERR;
 }
@@ -139,9 +139,8 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
   int i = 0;
   BOOST_FOREACH(string csv_field, csv_parser) {
     if (i >= n_fields) {
-      if (!discard_off_size)
-        LOG(FATAL) << "Parsed more fields than types specified. Entry was "
-          << e.s_val()<< endl;
+      LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
+        << e.s_val()<< endl;
     } else {
       if (keep_fields[i])
         parse_with_types(t2->add_e(), csv_field, types[i]);
@@ -571,7 +570,7 @@ UnixOperator::emit_1() {
   if( readLen > 0) {
     vector <string> lines;
 
-    split( lines, buf, is_any_of( "\n" ) );
+    boost::split( lines, buf, is_any_of( "\n" ) );
 
     for (unsigned int i=0; i < lines.size(); ++i) {
       if (lines[i].length() == 0)
@@ -617,6 +616,30 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
   emit(t);
 }
 
+
+
+void
+URLToDomain::process (boost::shared_ptr<Tuple> t) {
+  string url = t->e(field_id).s_val();
+  
+  vector <string> chunks;
+
+  boost::split( chunks, url,is_any_of("/"));
+  if (chunks.size() >= 3) {
+    t->mutable_e(field_id)->set_s_val(chunks[2]);
+  } //else pass through unchanged
+  emit(t);
+}
+
+operator_err_t
+URLToDomain::configure (std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+  return NO_ERR;
+}
+
+
 const string FileRead::my_type_name("FileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
 const string StringGrep::my_type_name("StringGrep operator");
@@ -629,6 +652,6 @@ const string SampleOperator::my_type_name("Sample operator");
 const string HashSampleOperator::my_type_name("Hash-sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
 const string UnixOperator::my_type_name("Unix command");
-
+const string URLToDomain::my_type_name("URL to Domain");
 
 }

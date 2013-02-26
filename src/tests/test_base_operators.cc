@@ -489,3 +489,25 @@ TEST(Operator, DISABLED_UnixOperator) {
 
   ASSERT_EQ(EXPECTED, rec->tuples.size());
 }
+
+
+TEST(Operator, URLToDomain) {
+  URLToDomain op;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  op.set_dest(rec);
+  
+  operator_config_t cfg;
+  cfg["field"] = "0";
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+
+  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+  extend_tuple(*t, "http://foo.com/blah");
+  //  cout << "sending first tuple"<< endl;
+  op.process(t);
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+  string dom = (rec->tuples)[0]->e(0).s_val();
+  ASSERT_EQ(dom, "foo.com");
+  
+
+}
