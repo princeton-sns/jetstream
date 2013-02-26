@@ -16,6 +16,7 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
   protected:
     volatile double last_ratio;
     volatile msec_t window_start_time;
+    unsigned bytes_in_window;
   
   public:
   
