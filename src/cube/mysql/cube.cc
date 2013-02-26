@@ -583,18 +583,18 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   if(count_old > 0) {
 
     size_t store_index = 0;
-    size_t count_tally = 0;
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
       size_t count_iter = round_down_to_power_of_two(count_left, 16);
       count_left -= count_iter;
-      count_tally += count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
       field_index = 1;
 
-      for(; store_index<count_tally; ++store_index) {
+      size_t added  = 0;
+
+      while (added < count_iter) {
         if(need_old_value_store[store_index]) {
           old_value_stmt->setInt(field_index++, store_index);
 
@@ -602,7 +602,11 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
             dimensions[i]->set_value_for_insert_tuple(old_value_stmt, *(tuple_store[store_index]), field_index);
             old_value_stmt->setInt(field_index++, (*(levels_store[store_index]))[i]);
           }
+
+          added++;
         }
+
+        store_index++;
       }
 
       old_value_stmts.push_back(old_value_stmt);
@@ -624,7 +628,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
     field_index = 1;
 
-    for(;insert_store_index < count_insert_tally; ++insert_store_index) {
+    for(; insert_store_index < count_insert_tally; ++insert_store_index) {
       LOG_IF(FATAL, levels_store.size() <= insert_store_index) << "levels_store only has " << levels_store.size()
           << " entries; index is " << insert_store_index;
       LOG_IF(FATAL, !levels_store[insert_store_index])<<"levels_store["<<insert_store_index<<"] undefined";
@@ -654,28 +658,31 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
     size_t store_index = 0;
     size_t count_left = count_new;
-    size_t count_tally = 0;
 
-    while(count_left > 0)
-    {
+    while(count_left > 0) {
       size_t count_iter = round_down_to_power_of_two(count_left, 16);
       count_left -= count_iter;
-      count_tally += count_iter;
-
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
       field_index = 1;
 
-      for(; store_index < count_tally; ++store_index) {
-      if(need_new_value_store[store_index]) {
-        new_value_stmt->setInt(field_index++, store_index);
+      size_t added = 0;
 
-        for(size_t i=0; i<dimensions.size(); i++) {
-          dimensions[i]->set_value_for_insert_tuple(new_value_stmt, *(tuple_store[store_index]), field_index);
-          new_value_stmt->setInt(field_index++, (*(levels_store[store_index]))[i]);
+      while (added < count_iter) {
+        if(need_new_value_store[store_index]) {
+          new_value_stmt->setInt(field_index++, store_index);
+
+          for(size_t i=0; i<dimensions.size(); i++) {
+            dimensions[i]->set_value_for_insert_tuple(new_value_stmt, *(tuple_store[store_index]), field_index);
+            new_value_stmt->setInt(field_index++, (*(levels_store[store_index]))[i]);
+          }
+
+          added++;
         }
+
+        store_index++;
       }
-    }
+
       new_value_stmts.push_back(new_value_stmt);
     }
   }
@@ -690,7 +697,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   std::vector<boost::shared_ptr<sql::ResultSet> > old_value_results;
 
   for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_old_value_stmt = old_value_stmts.begin();
-      i_old_value_stmt != old_value_stmts.end(); ++i_old_value_stmt){
+      i_old_value_stmt != old_value_stmts.end(); ++i_old_value_stmt) {
     boost::shared_ptr<sql::ResultSet> pOldVal((*i_old_value_stmt)->executeQuery());
     old_value_results.push_back(pOldVal);
   }
@@ -698,17 +705,19 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   msec_t post_old_val = get_msec();
 
   for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_insert_stmt = insert_stmts.begin();
-      i_insert_stmt != insert_stmts.end(); ++i_insert_stmt){
+      i_insert_stmt != insert_stmts.end(); ++i_insert_stmt) {
     (*i_insert_stmt)->execute();
   }
+
   VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
   version ++;  //next insert will have higher version numbers
 
   msec_t post_insert = get_msec();
 
   std::vector<boost::shared_ptr<sql::ResultSet> > new_value_results;
+
   for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_new_value_stmt = new_value_stmts.begin();
-      i_new_value_stmt != new_value_stmts.end(); ++i_new_value_stmt){
+      i_new_value_stmt != new_value_stmts.end(); ++i_new_value_stmt) {
     boost::shared_ptr<sql::ResultSet> pNewVal((*i_new_value_stmt)->executeQuery());
     new_value_results.push_back(pNewVal);
   }
@@ -722,21 +731,21 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   /********* Populate tuples ******/
 
   for (std::vector<boost::shared_ptr<sql::ResultSet> >::iterator i_old_value_results= old_value_results.begin();
-      i_old_value_results != old_value_results.end(); ++i_old_value_results) {
-      while ((*i_old_value_results)->next()) {
-        int index = (*i_old_value_results)->getInt(1);
-        boost::shared_ptr<jetstream::Tuple> old_tuple = make_tuple_from_result_set((*i_old_value_results), 2, false);
-        old_tuple_store[index] = old_tuple;
-      }
+       i_old_value_results != old_value_results.end(); ++i_old_value_results) {
+    while ((*i_old_value_results)->next()) {
+      int index = (*i_old_value_results)->getInt(1);
+      boost::shared_ptr<jetstream::Tuple> old_tuple = make_tuple_from_result_set((*i_old_value_results), 2, false);
+      old_tuple_store[index] = old_tuple;
+    }
   }
 
   for (std::vector<boost::shared_ptr<sql::ResultSet> >::iterator i_new_value_results= new_value_results.begin();
-      i_new_value_results != new_value_results.end(); ++i_new_value_results) {
-      while ((*i_new_value_results)->next()) {
-        int index = (*i_new_value_results)->getInt(1);
-        boost::shared_ptr<jetstream::Tuple> new_tuple = make_tuple_from_result_set((*i_new_value_results), 2, false);
-        new_tuple_store[index] = new_tuple;
-      }
+       i_new_value_results != new_value_results.end(); ++i_new_value_results) {
+    while ((*i_new_value_results)->next()) {
+      int index = (*i_new_value_results)->getInt(1);
+      boost::shared_ptr<jetstream::Tuple> new_tuple = make_tuple_from_result_set((*i_new_value_results), 2, false);
+      new_tuple_store[index] = new_tuple;
+    }
   }
 
   msec_t post_populate = get_msec();
