@@ -609,7 +609,6 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
   if(type == MS) {
     usec_t time = get_usec();
     e->set_d_val((double)(time/1000));
-    LOG(INFO)<< "Setting time on element " << t->e_size() - 1 << " time " << (time/1000);
   }
   if(type == US) {
     usec_t time = get_usec();

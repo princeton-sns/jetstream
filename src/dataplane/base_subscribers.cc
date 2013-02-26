@@ -164,8 +164,9 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if(latency_ts_field >= 0) {
       msec_t orig_time=  update->e(latency_ts_field).d_val();
-      if(get_msec() - orig_time > 1000)
-      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(get_msec() - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< get_msec();
+      msec_t now = get_msec();
+      if((now+10) - orig_time > 1000) //+10 because time can be unpredictable within a msec---causing wraparound
+      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
     }
 
     if (tuple_time < next_window_start_time) {
