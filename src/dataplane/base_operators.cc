@@ -92,32 +92,32 @@ CSVParse::configure(map<string,string> &config) {
 
   n_fields = types.length();
 
+  discard_off_size = ((config["discard_off_size"].size() == 0) || config["discard_off_size"] != "false");
+  LOG(INFO) << "CSV Parse. discard_off_size is " << discard_off_size;
+
   if (string("all") == keep) {
     for (int i = 0; i < n_fields; i++)
       keep_fields.push_back(true);
-    return NO_ERR;
-  }
+  } else {
+    // skip all fields unless told to keep them
+    for (int i = 0; i < n_fields; i++)
+      keep_fields.push_back(false);
 
-  // skip all fields unless told to keep them
-  for (int i = 0; i < n_fields; i++)
-    keep_fields.push_back(false);
+    // mark "true" at each specified position
+    istringstream sscanf(keep);
+    BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
+      if (!sscanf)
+        return operator_err_t("Invalid \"fields to keep\" string.");
 
-  // mark "true" at each specified position
-  istringstream sscanf(keep);
-  BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
-    if (!sscanf)
-      return operator_err_t("Invalid \"fields to keep\" string.");
+      if (fld_to_keep >= n_fields) {
+        string err_fmt("%d types given; %d is too high for field index.");
+        return operator_err_t((format(err_fmt) % n_fields % fld_to_keep).str());
+      }
 
-    if (fld_to_keep >= n_fields) {
-      string err_fmt("%d types given; %d is too high for field index.");
-      return operator_err_t((format(err_fmt) % n_fields % fld_to_keep).str());
+      keep_fields[fld_to_keep] = true;
     }
-
-    keep_fields[fld_to_keep] = true;
   }
-
-  discard_off_size = ((config["discard_off_size"].size() == 0) || config["discard_off_size"] != "false");
-  LOG(INFO) << "CSV Parse. discard_off_size is " << discard_off_size;
+  
   return NO_ERR;
 }
 
