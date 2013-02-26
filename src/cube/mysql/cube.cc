@@ -528,7 +528,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
        const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
        std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store)
 {
-
+  msec_t start = get_msec();
   assert(new_tuple_store.size() == tuple_store.size());
   assert(old_tuple_store.size() == tuple_store.size());
   boost::shared_ptr<sql::PreparedStatement> lock_stmt;
@@ -560,7 +560,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     }
   }
 
+  msec_t post_prepare_old = get_msec();
   insert_stmt = get_insert_prepared_statement(tuple_store.size());
+  msec_t post_insert_statement = get_msec();
 
   field_index = 1;
 
@@ -582,6 +584,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
       aggregates[i]->set_value_for_insert_tuple(insert_stmt, *(tuple_store[ti]), field_index);
     }
   }
+  msec_t post_prepare_insert = get_msec();
 
   size_t count_new = std::count(need_new_value_store.begin(), need_new_value_store.end(), true);
   if(count_new > 0) {
@@ -599,6 +602,8 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   }
 
   /******** Execute statements *******/
+  msec_t post_prepare = get_msec();
+
   if(!assumeOnlyWriter) {
     lock_stmt->execute();
   }
@@ -607,15 +612,19 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   if(count_old > 0) {
     old_value_results.reset(old_value_stmt->executeQuery());
   }
+  msec_t post_old_val = get_msec();
 
   insert_stmt->execute();
   VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
   version ++;  //next insert will have higher version numbers
 
+  msec_t post_insert = get_msec();
+
   boost::shared_ptr<sql::ResultSet> new_value_results;
   if(count_new > 0) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
+  msec_t post_new_val = get_msec();
 
   if(!assumeOnlyWriter) {
     unlock_stmt->execute();
@@ -642,6 +651,18 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
       new_tuple_store[index] = new_tuple;
     }
   }
+  msec_t post_populate = get_msec();
+
+  LOG_IF(INFO, post_populate - start > 500)<< "Flush stats: total " << post_populate-start
+    << " preparing old "<< post_prepare_old - start
+    << " insert statement only  "<< post_insert_statement - post_prepare_old  << " (" << tuple_store.size() << ")"
+    << " populating insert  "<< post_prepare_insert - post_insert_statement
+    << " preparing new  "<< post_prepare - post_prepare_insert
+    << " preparing total: "<< post_prepare - start
+    << " exec old val: "<< post_old_val-post_prepare
+    << " exec insert: " << post_insert - post_old_val
+    << " exec new val: " << post_new_val - post_insert
+    << " populating: " << post_populate - post_new_val;
 
 /*
   old_tuple_list.clear();
