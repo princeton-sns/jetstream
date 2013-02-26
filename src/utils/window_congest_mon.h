@@ -22,9 +22,7 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
   
     WindowCongestionMonitor(const std::string& name): NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0) {}
   
-    virtual double capacity_ratio() {
-      return last_ratio;
-    }
+    virtual double capacity_ratio();
   
     virtual void report_insert(void * item, uint32_t weight);
   

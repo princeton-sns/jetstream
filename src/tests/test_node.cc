@@ -548,7 +548,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   shared_ptr<MockCongestion> congest_op = boost::dynamic_pointer_cast<MockCongestion>(
             nodes[0]->get_operator( congest_op_id ));
   
-  congest_op->congestion = 0;
+  congest_op->congestion = 0; //fully congested.
   
   
   // Sources
@@ -572,12 +572,12 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   size_t tries = 0;
   while (dest->tuples.size() < k && tries++ < 5)
     js_usleep(100 * 1000);
+  src_op->end_of_window(500);
 
   js_usleep(100 * 1000); //time for signal to propagate
 
 
-  //TODO arrange for more sends
-  
+  // arrange for more sends
   src_op->reset();
   src_op->start();
 

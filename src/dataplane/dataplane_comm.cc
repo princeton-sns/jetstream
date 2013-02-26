@@ -37,7 +37,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       if (mon->is_congested()) {
         VLOG(1) << "reporting downstream congestion at " << dest->id_as_str();
-        report_congestion_upstream(1);
+        report_congestion_upstream(mon->capacity_ratio());
         register_congestion_recheck();
       }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
