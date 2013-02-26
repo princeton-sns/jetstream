@@ -54,7 +54,7 @@ def plot_bw(time_to_bw):
   time_data = []
   bw = []
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
-    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
+#    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
     time_data.append( datetime.datetime.fromtimestamp(tm))
     bw.append(bytes)
 

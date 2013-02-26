@@ -15,7 +15,7 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
 
   protected:
     volatile double last_ratio;
-    msec_t window_start_time;
+    volatile msec_t window_start_time;
   
   public:
   
@@ -25,15 +25,13 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
       return last_ratio;
     }
   
-    virtual void report_insert(void * item, uint32_t weight) {
-      if (window_start_time == 0) {
-        window_start_time = get_msec();
-      }
-    }
+    virtual void report_insert(void * item, uint32_t weight);
   
     virtual void end_of_window(int window_ms, msec_t start_time);
   
     virtual msec_t get_window_start() { return window_start_time; }
+  
+    virtual void new_window_start() { window_start_time = 0; }
 };
 
 }

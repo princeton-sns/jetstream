@@ -173,6 +173,8 @@ def get_graph(all_nodes, root_node, options):
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
+    pull_from_local.set_cfg("rollup_levels", "8,1")
+    pull_from_local.set_cfg("window_size", "5000")
 
     local_cube.instantiate_on(node)
 

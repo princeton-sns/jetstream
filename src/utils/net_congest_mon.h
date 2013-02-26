@@ -31,6 +31,8 @@ class NetCongestionMonitor : public CongestionMonitor {
     void set_max_rate(double d) {max_per_sec = d;}
   
     virtual msec_t get_window_start() { return 0; }
+  
+    virtual void new_window_start() { }
 };
 
 }

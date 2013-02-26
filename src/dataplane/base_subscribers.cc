@@ -308,6 +308,7 @@ TimeBasedSubscriber::operator()() {
       it++;
       elems ++;
     }
+    
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
 
