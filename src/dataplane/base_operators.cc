@@ -117,7 +117,7 @@ CSVParse::configure(map<string,string> &config) {
   }
 
   discard_off_size = ((config["discard_off_size"].size() == 0) || config["discard_off_size"] != "false");
-
+  LOG(INFO) << "CSV Parse. discard_off_size is " << discard_off_size;
   return NO_ERR;
 }
 
