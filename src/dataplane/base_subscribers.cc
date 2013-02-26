@@ -161,7 +161,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
 
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
-    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if (tuple_time < next_window_start_time) {
       backfill_tuples ++;
       last_backfill_time = tuple_time;
@@ -178,7 +178,11 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
 void
 TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value) {
-	;
+  if (ts_input_tuple_index >= 0) {
+    time_t tuple_time = update->e(ts_input_tuple_index).t_val();
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+  }
+
 }
 
 //called on backfill
@@ -186,7 +190,11 @@ void
 TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) {
-  ;
+  if (ts_input_tuple_index >= 0) {
+    time_t tuple_time = update->e(ts_input_tuple_index).t_val();
+    LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db update next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+  }
+
 }
 
 operator_err_t
@@ -299,7 +307,8 @@ TimeBasedSubscriber::operator()() {
     cube::CubeIterator it = querier.do_query();
 
     if(it == cube->end()) {
-      LOG(INFO) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time ;
+      LOG(INFO) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time
+        <<" Cube monitor capacity ratio: " << cube->congestion_monitor()->capacity_ratio();
     }
 
     size_t elems = 0;
