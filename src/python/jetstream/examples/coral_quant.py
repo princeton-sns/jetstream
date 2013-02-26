@@ -13,29 +13,11 @@ import query_graph as jsapi
 from query_planner import QueryPlanner
 
 from coral_parse import coral_fnames,coral_fidxs, coral_types
+from coral_util import *   #find_root_node, standard_option_parser,
 
 def main():
 
-  parser = OptionParser()
-
-  parser.add_option("-a", "--controller", dest="controller",
-                  help="controller address", default="localhost:3456")
-  parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true",
-                  help="shows PB without running", default=False)
-  parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
-  parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
-
-  parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
-  parser.add_option("-l", "--latency_log_file", dest="latencylog",
-  default="latencies.out", help="file to log latency into")
-  parser.add_option("--start-time", dest="start_ts",
-  default="0", help="unix timestamp to start simulation at")
-  parser.add_option("--timewarp", dest="warp_factor",
-  default="1", help="simulation speedup")
-  parser.add_option("--analyze_only", dest="analyze_only",
-  action="store_true", default=False)
-  parser.add_option("--load_only", dest="load_only",
-  action="store_true", default=False)
+  parser = standard_option_parser()
 
   (options, args) = parser.parse_args()
 
@@ -43,52 +25,13 @@ def main():
     print "you must specify the input file name [with -f]"
     sys.exit(1)
 
-  if options.DRY_RUN:
-    id = NodeID()
-    id.address ="somehost"
-    id.portno = 12345
-    all_nodes = [id]
-  else:
-    serv_addr, serv_port = normalize_controller_addr(options.controller)
-    server = RemoteController()
-    server.connect(serv_addr, serv_port)
-    all_nodes = server.all_nodes()
-
-
+  all_nodes,server = get_all_nodes(options)
+  
   root_node = find_root_node(options, all_nodes)
-
-  print "Using",root_node,"as aggregator"
-
-  if not options.generate_at_union:
-    print "Removing aggregator from list of generators"
-    all_nodes.remove(root_node)
 
   g = get_graph(all_nodes, root_node,  options)
 
-  req = g.get_deploy_pb()
-  if options.DRY_RUN:
-    planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346) } )
-    planner.take_raw_topo(req.alter)
-    planner.get_assignments(1)
-    print req
-  else:
-   server.deploy_pb(req)
-
-
-def find_root_node(options, all_nodes):
-  if options.root_node:
-    found = False
-    for node in all_nodes:
-      if node.address == options.root_node:
-        root_node = node
-        found = True
-        break
-    if not found:
-      print "Node with address: ",options.root_node," not found for use as the aggregator node"
-      sys.exit()
-  else:
-    root_node = all_nodes[0]  #TODO randomize
-  return root_node
+  deploy_or_dummy(options, server, g)
 
 
 def define_cube(cube, ids = [0,1,2,3,4]):
@@ -101,13 +44,6 @@ def define_cube(cube, ids = [0,1,2,3,4]):
   cube.set_overwrite(True)
 
 
-def parse_ts(start_ts):
-  if start_ts.isdigit():
-    return int(start_ts)
-  else:
-    #todo could allow more formats here
-    assert False
-
 def get_graph(all_nodes, root_node, options):
   g= jsapi.QueryGraph()
 
@@ -115,12 +51,12 @@ def get_graph(all_nodes, root_node, options):
   LOADING = not options.analyze_only
 
   if not LOADING and not ANALYZE:
-    print "can't do both load and analysis"
+    print "can't do neither load nor analysis"
     sys.exit(0)
 
   start_ts = parse_ts(options.start_ts)
 
-  central_cube = g.add_cube("global_coral")
+  central_cube = g.add_cube("global_coral_quant")
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
 
@@ -152,7 +88,7 @@ def get_graph(all_nodes, root_node, options):
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
 
   for node, i in zip(all_nodes, range(0, len(all_nodes))):
-    local_cube = g.add_cube("local_coral_%d" %i)
+    local_cube = g.add_cube("local_coral_quant_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
@@ -164,11 +100,11 @@ def get_graph(all_nodes, root_node, options):
       to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
       to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
       g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
+      f.instantiate_on(node)
     else:
        local_cube.set_overwrite(False)
 
-    f.instantiate_on(node)
-    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
+    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every second
     pull_from_local.instantiate_on(node)
     pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)
@@ -180,8 +116,8 @@ def get_graph(all_nodes, root_node, options):
     local_cube.instantiate_on(node)
 
     timestamp_op= jsapi.TimestampOperator(g, "ms")
-    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
-    count_extend_op.instantiate_on(node)
+    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])  #why is this here? -asr?
+    count_extend_op.instantiate_on(node)      # TODO should get a real hostname here
 
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
@@ -189,8 +125,6 @@ def get_graph(all_nodes, root_node, options):
 
     g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
 #  g.chain([local_cube, pull_from_local, count_op, q_op, q_op2, echo] )
-
-
 
   return g
 
