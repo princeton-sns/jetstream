@@ -158,7 +158,7 @@ OneShotSubscriber::operator()() {
 
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-
+  //update->add_e()->set_i_val(get_msec());
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
@@ -172,7 +172,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
       regular_tuples++;
     }
   }
-  return NO_SEND;
+  return SEND;
 }
 
 void
@@ -181,6 +181,15 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    if (tuple_time < next_window_start_time) {
+      LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
+        <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+      if(latency_ts_field >= 0) {
+        msec_t orig_time=  update->e(latency_ts_field).d_val();
+        LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time) << " debug: " << latency_ts_field << " " << update->e_size();
+      }
+    }
+
   }
 
 }
@@ -225,6 +234,17 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   } else
     ts_field = -1;
+
+  if (config.find("latency_ts_field") != config.end()) {
+    latency_ts_field = boost::lexical_cast<int32_t>(config["latency_ts_field"]);
+    if (querier.min.e_size() <= latency_ts_field) {
+      ostringstream of;
+      of << "can't use field " << latency_ts_field << " as time; input only has "
+         << querier.min.e_size() << " fields";
+      return of.str();
+    }
+  } else
+    latency_ts_field = -1;
 //    return operator_err_t("Must specify start_ts field");
 
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
@@ -317,7 +337,7 @@ TimeBasedSubscriber::operator()() {
       it++;
       elems ++;
     }
-    
+
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
 

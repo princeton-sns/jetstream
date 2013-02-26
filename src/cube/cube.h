@@ -189,6 +189,8 @@ class DataCube : public TupleReceiver {
 
     virtual bool is_unrolled(std::vector<unsigned int> levels) const = 0;
 
+    boost::shared_ptr<ChainedQueueMonitor> process_congestion_monitor() { return processCongestMon;}
+
   protected:
     jetstream::CubeSchema schema;
     std::string name;

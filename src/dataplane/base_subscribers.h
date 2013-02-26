@@ -120,6 +120,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
   protected:
     int ts_field; //which field is the timestamp? in the cube
     int ts_input_tuple_index; //which field is the timestamp on the input tuple.
+    int latency_ts_field; //field which has a timestamp to compare against to measure latency of propagation
 //    int32_t maxTsSeen;
 
 //    boost::mutex mutex; //protects next_window_start_time
