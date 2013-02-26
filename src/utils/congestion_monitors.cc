@@ -65,7 +65,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t true_start_tim
     double window_truetime_ms = get_msec() - true_start_time;
     double window_ratio = window_data_ms / window_truetime_ms;
     double bytes_per_sec = bytes_in_window * 1000.0 / window_truetime_ms;
-    last_ratio = std::min(window_ratio, std::min(max_per_sec / bytes_per_sec, downstream_status));
+    last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
 //    window_start_time = 0;
     LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio <<
       ". Start time was " << true_start_time << " and window size was " << window_data_ms
@@ -73,6 +73,12 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t true_start_tim
   }
 }
 
+double
+WindowCongestionMonitor::capacity_ratio() {
+  boost::unique_lock<boost::mutex> lock(internals);    
+  return fmin(downstream_status, last_ratio);
+  //downstream status can change asynchronously. So can't roll it into last_ratio
+}               
 
 void
 WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
