@@ -1,5 +1,3 @@
-
-
 #include "mysql_cube.h"
 #include "cube_iterator.h"
 #include "cube_iterator_impl.h"
@@ -8,6 +6,8 @@
 
 using namespace ::std;
 using namespace jetstream::cube;
+
+#define MYSQL_PROFILE 0
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
@@ -561,7 +561,10 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
                                  const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
                                  const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
                                  std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) {
+
+#if MYSQL_PROFILE
   msec_t start = get_msec();
+#endif
   assert(new_tuple_store.size() == tuple_store.size());
   assert(old_tuple_store.size() == tuple_store.size());
   boost::shared_ptr<sql::PreparedStatement> lock_stmt;
@@ -613,7 +616,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     }
   }
 
+#if MYSQL_PROFILE
   msec_t post_prepare_old = get_msec();
+#endif
 
   size_t count_insert_left = tuple_store.size();
   size_t insert_store_index = 0;
@@ -650,7 +655,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     insert_stmts.push_back(insert_stmt);
   }
 
+#if MYSQL_PROFILE
   msec_t post_prepare_insert = get_msec();
+#endif
 
   size_t count_new = std::count(need_new_value_store.begin(), need_new_value_store.end(), true);
 
@@ -688,7 +695,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   }
 
   /******** Execute statements *******/
+#if MYSQL_PROFILE
   msec_t post_prepare = get_msec();
+#endif
 
   if(!assumeOnlyWriter) {
     lock_stmt->execute();
@@ -702,7 +711,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     old_value_results.push_back(pOldVal);
   }
 
+#if MYSQL_PROFILE
   msec_t post_old_val = get_msec();
+#endif
 
   for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_insert_stmt = insert_stmts.begin();
       i_insert_stmt != insert_stmts.end(); ++i_insert_stmt) {
@@ -712,7 +723,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
   version ++;  //next insert will have higher version numbers
 
+#if MYSQL_PROFILE
   msec_t post_insert = get_msec();
+#endif
 
   std::vector<boost::shared_ptr<sql::ResultSet> > new_value_results;
 
@@ -722,7 +735,9 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     new_value_results.push_back(pNewVal);
   }
 
+#if MYSQL_PROFILE
   msec_t post_new_val = get_msec();
+#endif
 
   if(!assumeOnlyWriter) {
     unlock_stmt->execute();
@@ -748,6 +763,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     }
   }
 
+#if MYSQL_PROFILE
   msec_t post_populate = get_msec();
 
   LOG_IF(INFO, post_populate - start > 500)<< "Flush stats: total " << post_populate-start
@@ -759,7 +775,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
       << " exec insert: " << post_insert - post_old_val
       << " exec new val: " << post_new_val - post_insert
       << " populating: " << post_populate - post_new_val;
-
+#endif
   /*
     old_tuple_list.clear();
     if(count_old > 0) {
