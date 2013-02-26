@@ -66,6 +66,8 @@ void TupleBatch::flush()
 
   holes.clear();
 
+  msec_t start_time= get_msec();
+  int num_flushes = 0;
   //TODO: logic for max elems really belongs in mysql, easier to do here for now. need to do this because
   //of placeholder limit on mysql prepared statements
   //limit found here: http://stackoverflow.com/questions/4922345/how-many-bind-variables-can-i-use-in-a-sql-query-in-mysql-5
@@ -74,6 +76,7 @@ void TupleBatch::flush()
 
   while(iTpi != tpi_store.end()){
     unsigned int num_elems = 0;
+    num_flushes++;
     std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iStartBatch = iTpi;
     std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
     std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
@@ -102,6 +105,7 @@ void TupleBatch::flush()
       i++;
     }
   }
+  LOG(INFO) << "Finished flush in "<< get_msec()-start_time <<" of "<< tpi_store.size() <<" elements with " << num_flushes << " flushes";
   /*
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples;
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > old_tuples;
