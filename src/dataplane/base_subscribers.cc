@@ -165,7 +165,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
     if(latency_ts_field >= 0) {
       msec_t orig_time=  update->e(latency_ts_field).d_val();
       if(get_msec() - orig_time > 1000)
-      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(get_msec() - orig_time);
+      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(get_msec() - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< get_msec();
     }
 
     if (tuple_time < next_window_start_time) {

@@ -50,7 +50,7 @@ FileRead::process(boost::shared_ptr<Tuple> t) {
 
 bool
 FileRead::emit_1() {
-  
+
   if (!in_file.is_open()) {
     in_file.open (f_name.c_str());
     if (in_file.fail()) {
@@ -115,7 +115,7 @@ CSVParse::configure(map<string,string> &config) {
 
     keep_fields[fld_to_keep] = true;
   }
-  
+
   discard_off_size = ((config["discard_off_size"].size() > 0) && config["discard_off_size"] != "false");
 
   return NO_ERR;
@@ -218,14 +218,14 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   // TODO is this "to_lower" call necessary?
   boost::algorithm::to_lower(config["keep_unparsed"]);
   istringstream(config["keep_unparsed"]) >> std::boolalpha >> keep_unparsed;
-  
+
   try {
     re.assign(pattern);
   } catch( regex_error e) {
     return operator_err_t("regex " + pattern + " did not compile:" +
         e.std::exception::what());
   }
-  
+
   istringstream(config["field_to_parse"]) >> fld_to_parse;
   if (fld_to_parse < 0 || fld_to_parse > 100) {
     LOG(WARNING) << "field ID " << fld_to_parse << "looks bogus";
@@ -233,12 +233,12 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
 
   field_types = boost::to_upper_copy(config["types"]);
   static boost::regex fld_types("[SDI]+");
-  
+
   if (!regex_match(field_types, fld_types)) {
     LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
     return operator_err_t("Invalid types for regex fields; got " + field_types);
   }
-  
+
   if (pattern.length() == 0) {
     LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
     return operator_err_t("no regexp pattern specified");
@@ -290,7 +290,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     }
     t2->set_version(t->version());
   }
-  
+
   if (fld_to_parse >= t->e_size()) {
     LOG(WARNING) << "can't parse field " << fld_to_parse << "; total size is only" << t->e_size();
   }
@@ -311,7 +311,7 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
       LOG(FATAL) << "regex for " << id() << " has " << matchResults.size() <<
           "fields but we only have " << field_types.length() << "types.";
     }
-  
+
     for (size_t fld = 1; fld < matchResults.size(); ++ fld) {
       string s = matchResults.str(fld);
       char typecode = field_types[fld-1];
@@ -329,14 +329,14 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
     for (int i = fld_to_parse+1; i < t->e_size(); ++i) {
       Element * e = t2->add_e();
       e->CopyFrom(t->e(i));
-    }  
+    }
 
   emit (t2);
 }
 
 void
 ExtendOperator::process (boost::shared_ptr<Tuple> t) {
-  
+
   //TODO: should we copy t first?
   for (u_int i = 0; i < new_data.size(); ++i) {
     Element * e = t->add_e();
@@ -350,7 +350,7 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
 
   string field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
-  
+
   if (!regex_match(field_types, re)) {
     LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
     return operator_err_t("Invalid types for regex fields; got " + field_types);
@@ -361,7 +361,7 @@ ExtendOperator::configure (std::map<std::string,std::string> &config) {
   string last_key = ":";
   map<string, string>::iterator it = config.find(first_key);
   map<string, string>::iterator end = config.upper_bound(last_key);
-  
+
   u_int i;
   for (i = 0;  i < field_types.size() && it != end; ++i, ++it) {
     string s = it->second;
@@ -424,26 +424,26 @@ HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
       hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
       break;
     }
-    
+
     case 'S': {
       const string& val = e.s_val();
       hashval = jenkins_one_at_a_time_hash(val.c_str(), val.length());
       break;
     }
-    
+
     case 'T': {
       time_t val = e.t_val();
       hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
       break;
     }
-    
+
     default:
       LOG(FATAL) << "must specify hash field type; was " << hash_type;
   }
   if (hashval >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
     emit(t);
   }
-  
+
 }
 
 
@@ -561,7 +561,7 @@ UnixOperator::emit_1() {
   char buf[1000];
   buf[0] = 0;
   cout << "reading line from unix cmd..." << endl;
-  
+
 //  fgets(buf, sizeof(buf), pipe);
 //  int readLen = strlen(buf);
 
@@ -572,7 +572,7 @@ UnixOperator::emit_1() {
     vector <string> lines;
 
     split( lines, buf, is_any_of( "\n" ) );
-    
+
     for (unsigned int i=0; i < lines.size(); ++i) {
       if (lines[i].length() == 0)
         continue;
@@ -588,7 +588,7 @@ UnixOperator::emit_1() {
 
 operator_err_t
 TimestampOperator::configure (std::map<std::string,std::string> &config) {
-  if("s" == config["type"]) 
+  if("s" == config["type"])
     type = S;
   else if("ms" == config["type"])
     type = MS;
@@ -609,6 +609,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
   if(type == MS) {
     usec_t time = get_usec();
     e->set_d_val((double)(time/1000));
+    LOG(INFO)<< "Setting time on element " << t->e_size() - 1 << " time " << (time/1000);
   }
   if(type == US) {
     usec_t time = get_usec();
