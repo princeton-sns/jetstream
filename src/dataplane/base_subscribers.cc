@@ -186,7 +186,7 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
         <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
       if(latency_ts_field >= 0) {
         msec_t orig_time=  update->e(latency_ts_field).d_val();
-        LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time);
+        LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time) << " debug: " << latency_ts_field << " " << update->e_size();
       }
     }
 
