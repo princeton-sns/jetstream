@@ -65,6 +65,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 {
   processCongestMon->set_next_monitor(flushCongestMon);
 
+  LOG(INFO) << "Starting cube with "<<conf.cube_processor_threads <<" threads ";
   for(size_t i=0; i<conf.cube_processor_threads;i++) {
     boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this, boost::lexical_cast<string>(i)));
     processors.push_back(proc);

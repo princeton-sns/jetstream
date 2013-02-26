@@ -166,7 +166,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
       msec_t orig_time=  update->e(latency_ts_field).d_val();
       msec_t now = get_msec();
       if((now+10) - orig_time > 1000) //+10 because time can be unpredictable within a msec---causing wraparound
-      LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
+        LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
     }
 
     if (tuple_time < next_window_start_time) {
@@ -190,10 +190,10 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if (tuple_time < next_window_start_time) {
       LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
-        <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+        <<" Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
       if(latency_ts_field >= 0) {
         msec_t orig_time=  update->e(latency_ts_field).d_val();
-        LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time);
+        LOG(INFO)<< "Latency of Dangerous Case Tuple "<<(get_msec() - orig_time) <<" Orig time "<<orig_time;
       }
     }
 
