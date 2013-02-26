@@ -170,7 +170,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
   //update->add_e()->set_i_val(get_msec());
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
-    LOG_IF_EVERY_N(INFO, tuple_time < next_window_start_time, 11) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
+    LOG_IF_EVERY_N(INFO, tuple_time < next_window_start_time, 1001) << "(every 1001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
 
     if(latency_ts_field >= 0) {
       msec_t orig_time=  update->e(latency_ts_field).d_val();
