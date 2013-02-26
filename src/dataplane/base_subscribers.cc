@@ -158,7 +158,7 @@ OneShotSubscriber::operator()() {
 
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-
+  //update->add_e()->set_i_val(get_msec());
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
@@ -182,8 +182,10 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if (tuple_time < next_window_start_time) {
+      msec_t orig_time=  update->e(update->e_size()-1).i_val();
       LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
-        <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+        <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length()
+        << " Latency "<<(get_msec() - orig_time);
     }
 
   }

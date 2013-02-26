@@ -182,6 +182,9 @@ def get_graph(all_nodes, root_node, options):
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
 
+    timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
+    timestamp_cube_op.instantiate_on(root_node)
+
 
     g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, central_cube])
 #  g.chain([local_cube, pull_from_local, count_op, q_op, q_op2, echo] )
