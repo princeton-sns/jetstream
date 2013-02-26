@@ -182,7 +182,8 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db insert next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
     if (tuple_time < next_window_start_time) {
-      LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+      LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
+        <<"Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
     }
 
   }
