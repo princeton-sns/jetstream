@@ -10,7 +10,7 @@ class NetCongestionMonitor : public CongestionMonitor {
   protected:
     double downstream_status;
     mutable boost::mutex internals;
-    double max_per_sec;
+    double max_per_sec;  //bytes per sec
 
   
   public:

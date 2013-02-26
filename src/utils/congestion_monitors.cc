@@ -2,8 +2,10 @@
 #include "queue_congestion_mon.h"
 #include "window_congest_mon.h"
 #include <glog/logging.h>
+#include <algorithm> 
 
 using namespace boost::interprocess::ipcdetail;
+using namespace ::std;
 
 namespace jetstream {
 
@@ -57,21 +59,29 @@ QueueCongestionMonitor::capacity_ratio() {
 
 
 void
-WindowCongestionMonitor::end_of_window(int window_ms, msec_t true_start_time) {
+WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t true_start_time) {
   if (true_start_time != 0) {
-    last_ratio = window_ms / double(get_msec() - true_start_time);
+    boost::unique_lock<boost::mutex> lock(internals);  
+    double window_truetime_ms = get_msec() - true_start_time;
+    double window_ratio = window_data_ms / window_truetime_ms;
+    double bytes_per_sec = bytes_in_window * 1000.0 / window_truetime_ms;
+    last_ratio = std::min(window_ratio, std::min(max_per_sec / bytes_per_sec, downstream_status));
 //    window_start_time = 0;
     LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio <<
-      ". Start time was " << true_start_time << " and window size was " << window_ms;
+      ". Start time was " << true_start_time << " and window size was " << window_data_ms
+      <<", saw " << bytes_per_sec << " bytes/sec";
   }
 }
 
 
 void
 WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
-    if (window_start_time == 0) {
+  if (window_start_time == 0) {
 //      LOG(INFO) << "SAW A SEND";
-      window_start_time = get_msec();
-    }
+    window_start_time = get_msec();
   }
+  bytes_in_window += weight;
 }
+  
+  
+} //end namespace

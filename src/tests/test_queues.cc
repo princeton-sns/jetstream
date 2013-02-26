@@ -52,7 +52,12 @@ TEST(CongestMon, WindowLen) {
     }
     js_usleep(50 * 1000);
     mon.end_of_window(250, mon.get_window_start());
-    ASSERT_LE(4.8, mon.capacity_ratio());
-    ASSERT_GE(5.2, mon.capacity_ratio());
+    mon.new_window_start();
+    double cap_ratio = mon.capacity_ratio();
+    ASSERT_LE(4.8, cap_ratio);
+    ASSERT_GE(5.2, cap_ratio);
+    mon.end_of_window(250, mon.get_window_start());
+    ASSERT_EQ(cap_ratio, mon.capacity_ratio()); // no update on empty window
+  
 
 }
