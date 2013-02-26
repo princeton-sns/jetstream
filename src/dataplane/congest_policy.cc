@@ -35,7 +35,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
   VLOG(1) << congest->name() << " congest level was " << congest_level << endl;
   
-  unsigned delta = 0;
+  int delta = 0;
   if ( congest_level < 0.95) {
     int targ_step = curLevel;
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)
@@ -47,7 +47,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     delta = 0;
   
   if (delta != 0)
-    LOG(INFO) << "setting degradation level for " <<op << " to " << delta<< ", congestion was " << congest_level;
+    LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)<< ", congestion was " << congest_level;
   return delta;
 }
 

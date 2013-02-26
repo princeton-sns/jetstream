@@ -317,6 +317,7 @@ FixedRateQueue::process1() {
     } else {
       if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
         mon->end_of_window(msg.window_length_ms(), mon->get_window_start());
+        mon->new_window_start();
       }
       DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
     }

@@ -60,11 +60,18 @@ void
 WindowCongestionMonitor::end_of_window(int window_ms, msec_t true_start_time) {
   if (true_start_time != 0) {
     last_ratio = window_ms / double(get_msec() - true_start_time);
-    window_start_time = 0;
-    LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio ;
+//    window_start_time = 0;
+    LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio <<
+      ". Start time was " << true_start_time << " and window size was " << window_ms;
   }
 }
 
 
-
+void
+WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
+    if (window_start_time == 0) {
+//      LOG(INFO) << "SAW A SEND";
+      window_start_time = get_msec();
+    }
+  }
 }

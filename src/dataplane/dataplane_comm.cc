@@ -77,7 +77,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
-      VLOG(2) << " got an end-of-window marker, acking it";
+//      LOG(INFO) << " got an end-of-window marker, acking it; ts was " << msg.timestamp();
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
       resp.set_window_length_ms(msg.window_length_ms());
@@ -405,14 +405,17 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src)
   }
 
   {
-    unique_lock<boost::mutex> lock(mutex);
+    size_t sz = t->ByteSize();
+    reporter.sending_a_tuple(sz);
+    remote_processing->report_insert(0, sz);
+
+    unique_lock<boost::mutex> lock(mutex); //lock around buffers
     msg.set_type(DataplaneMessage::DATA);
     
     bool buffer_was_empty = (this_buf_size == 0);
-    size_t sz = t->ByteSize();
-    reporter.sending_a_tuple(sz);
     this_buf_size += sz;
     msg.add_data()->MergeFrom(*t);
+    
     
     if (this_buf_size < SIZE_TO_SEND) {
       if (buffer_was_empty) {
@@ -441,7 +444,7 @@ RemoteDestAdaptor::do_send_unlocked() {
   timer.cancel();
   
   boost::system::error_code err;
-  int sent = conn->send_msg(msg, err);
+  conn->send_msg(msg, err);
   msg.Clear();
   
   if (err != 0) {
@@ -449,8 +452,6 @@ RemoteDestAdaptor::do_send_unlocked() {
     LOG(WARNING) << "Send failed; tearing down chain; local end is " << pred->id_as_str();
     pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
-  } else {
-    remote_processing->report_insert(0, sent);
   }
   
 }
@@ -496,12 +497,16 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
   }
 #ifdef ACK_WINDOW_END
   else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW) {
-    DataplaneMessage msg_out;
-    msg_out.CopyFrom(msg_in);
-    msg_out.set_timestamp(  remote_processing->get_window_start()  );
-    //we are on caller's thread so this is thread-safe.
-    force_send(); 
-    conn->send_msg(msg_out, err);
+    if (remote_processing->get_window_start() > 0) {
+      DataplaneMessage msg_out;
+      msg_out.CopyFrom(msg_in);
+//      LOG(INFO) << "RESETTING WINDOW ON SEND";
+      msg_out.set_timestamp(  remote_processing->get_window_start()  );
+      //we are on caller's thread so this is thread-safe.
+      force_send(); 
+      conn->send_msg(msg_out, err);
+      remote_processing->new_window_start(); //reset clock
+    }
   }
 #endif
   else {
