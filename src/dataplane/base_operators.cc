@@ -130,25 +130,28 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
     LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
     return;
   }
+  try {
+    boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e.s_val());
 
-  boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e.s_val());
+    shared_ptr<Tuple> t2(new Tuple);
+    t2->set_version(t->version());
 
-  shared_ptr<Tuple> t2(new Tuple);
-  t2->set_version(t->version());
-
-  int i = 0;
-  BOOST_FOREACH(string csv_field, csv_parser) {
-    if (i >= n_fields) {
-      LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
-        << e.s_val()<< endl;
-    } else {
-      if (keep_fields[i])
-        parse_with_types(t2->add_e(), csv_field, types[i]);
+    int i = 0;
+    BOOST_FOREACH(string csv_field, csv_parser) {
+      if (i >= n_fields) {
+        LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
+          << e.s_val()<< endl;
+      } else {
+        if (keep_fields[i])
+          parse_with_types(t2->add_e(), csv_field, types[i]);
+      }
+      i++;
     }
-    i++;
+    if (!discard_off_size || (i == n_fields))
+      emit(t2);
+  } catch (boost::escaped_list_error err) {
+    LOG_FIRST_N(WARNING, 20) << err.what() << " on " << e.s_val();
   }
-  if (!discard_off_size || (i == n_fields))
-    emit(t2);
   // assume we don't need to pass through any other elements...
   // TODO unassume
 }
