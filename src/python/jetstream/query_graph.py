@@ -28,7 +28,7 @@ class QueryGraph(object):
 
   def __init__(self):
     self.nID = 1            # the NEXT ID to hand out
-    self.edges = set([])    # pairs of nIDs
+    self.edges = {}    # maps pairs of nIDs to aux info
     self.operators = {}     # maps id -> value
     self.cubes = {}         # maps id -> value
     self.externalEdges = [] # literal protobuf edges
@@ -36,13 +36,13 @@ class QueryGraph(object):
 
   def get_sources(self):
     """Returns a list of IDs corresponding to nodes without an in-edge"""
-    non_sources = set([x for (y,x) in self.edges])
+    non_sources = set([x for (y,x) in self.edges.keys()])
     return [x for x in (self.operators.keys() + self.cubes.keys()) if x not in non_sources]
 
   def forward_edge_map(self):
     """Returns a map from each node to its set of forward edges"""
     ret = {}
-    for (s,d) in self.edges:
+    for (s,d) in self.edges.keys():
       if s not in ret:
         ret[s] = [d]
       else:
@@ -69,16 +69,16 @@ class QueryGraph(object):
     else:
       oid = o.get_id()
 
-    for p in o.preds:
-      self.edges.remove ( (p.id,oid) )
+    for p in o.preds:   #remove backward edges first
+      del self.edges[ (p.id,oid) ]
     to_drop = []
-    for src,dest in self.edges:
-      if src == oid:
+    for src,dest in self.edges.keys():
+      if src == oid:   
         to_drop.append (  (src,dest) )
         d = self.operators[dest] if dest in self.operators else self.cubes[dest]
         d.remove_pred(o)
-    for e in to_drop:
-      self.edges.remove(e)
+    for e in to_drop:   #now remove forward edges
+      del self.edges[e]
 
     if oid in self.operators:
       del self.operators[oid]
@@ -103,10 +103,14 @@ class QueryGraph(object):
         pb_e = alter.edges.add()
         pb_e.CopyFrom(e)
         assert pb_e.IsInitialized()
-    for e in self.edges:
+    for e,aux in self.edges.items():
+      if 'dummy' in aux:
+        continue  #silently ignore
       pb_e = alter.edges.add()
       pb_e.computation = 0
 
+      if 'max_kb_per_sec' in aux:
+        e.max_kb_per_sec = aux['max_kb_per_sec']
 
       if e[0] in self.operators:
         pb_e.src = e[0]
@@ -123,9 +127,15 @@ class QueryGraph(object):
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
 
-  def connect(self, oper1, oper2):
+  def connect(self, oper1, oper2, bwLimit=-1):
     """ Add an edge from the the first operator to the second. """
-    self.edges.add( (oper1.get_id(), oper2.get_id()) )
+    aux = {}
+    if bwLimit > 0:
+      aux['max_kb_per_sec'] = bwLimit
+    elif bwLimit == 0:
+      aux['dummy'] = True
+    
+    self.edges[ (oper1.get_id(), oper2.get_id()) ] = aux
     oper2.add_pred(oper1)
 
   def chain(self, operators):
@@ -273,6 +283,9 @@ class Destination(object):
         copy.instantiate_on(site)
       self.instantiate_on(n[0])
 
+  def set_dummy_in(self):
+    for p in preds:
+      edges[ (p, self.id) ]['dummy'] = True
 
 class Operator(Destination):
 
