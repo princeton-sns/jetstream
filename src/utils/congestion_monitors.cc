@@ -59,7 +59,7 @@ QueueCongestionMonitor::capacity_ratio() {
 
 WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name):
   NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0),
-      last_window_end(get_msec()) {
+      last_window_end(get_msec()), bytes_in_window(0) {
 }
 
 
@@ -75,9 +75,10 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     
     double window_ratio = double(window_data_ms) / window_processtime_ms;
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
+    bytes_in_window = 0;
     last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
 //    window_start_time = 0;
-    LOG(INFO) << "End of window! Congestion level at " << name() << " is now "
+    LOG(INFO) << "End of window! Capacity ratio at " << name() << " is now "
       << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
       << window_availtime_ms  <<" and window size was " << window_data_ms
       <<", saw " << bytes_per_sec << " bytes/sec";

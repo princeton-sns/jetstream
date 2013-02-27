@@ -59,7 +59,7 @@ def get_graph(all_nodes, root_node, options):
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
 
-  pull_q = jsapi.TimeSubscriber(g, {}, 5000)
+  pull_q = jsapi.TimeSubscriber(g, {}, 5000, sort_order="-count", num_results=10)
   pull_q.set_cfg("ts_field", 0)
   pull_q.set_cfg("start_ts", start_ts)
   pull_q.set_cfg("rollup_levels", "8,0,1")
