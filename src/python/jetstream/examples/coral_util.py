@@ -33,6 +33,8 @@ def standard_option_parser():
   action="store_true", default=False)
   parser.add_option("--load_only", dest="load_only",
   action="store_true", default=False)
+  parser.add_option("--bw_cap", dest="bw_cap",
+  action="store", help="bw cap in kb/sec/link")
   return parser
 
 

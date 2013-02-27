@@ -111,6 +111,8 @@ class QueryGraph(object):
 
       if 'max_kb_per_sec' in aux:
         pb_e.max_kb_per_sec = aux['max_kb_per_sec']
+      else:
+        assert(len(aux) == 0)
 
       if e[0] in self.operators:
         pb_e.src = e[0]
@@ -288,9 +290,11 @@ class Destination(object):
       self.graph.edges[ (p, self.id) ]['dummy'] = val
 
   def set_inlink_bwcap(self, val):
+    if len(self.preds) == 0:
+      raise SchemaError("No predecessors; you need to have some first before setting bwcap")
     for p in self.preds:
       e_attrs = self.graph.edges[ (p.id, self.id) ]
-      del e_attrs['dummy']
+      e_attrs.pop('dummy',None) #clear dummy
       e_attrs['max_kb_per_sec'] = val
 
 class Operator(Destination):
