@@ -26,7 +26,7 @@ def main():
     sys.exit(1)
 
   all_nodes,server = get_all_nodes(options)
-  
+  sort(all_nodes)
   root_node = find_root_node(options, all_nodes)
 
   g = get_graph(all_nodes, root_node,  options)
