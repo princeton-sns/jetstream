@@ -583,13 +583,21 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
   size_t count_old = std::count(need_old_value_store.begin(), need_old_value_store.end(), true);
 
+  size_t num_placeholders = num_dimensions() + num_aggregates();
+  size_t  power_placeholders = 0;
+  while (num_placeholders > 1) {
+    num_placeholders = num_placeholders >> 1;
+    power_placeholders++;
+  }
+  power_placeholders++;
+
   if(count_old > 0) {
 
     size_t store_index = 0;
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 15);
+      size_t count_iter = round_down_to_power_of_two(count_left, 16 - power_placeholders);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
@@ -625,7 +633,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   size_t count_insert_tally = 0;
 
   while(count_insert_left > 0) {
-    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 15);
+    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 16 - power_placeholders);
     count_insert_left -= count_insert_iter;
     count_insert_tally += count_insert_iter;
 
@@ -667,7 +675,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_new;
 
     while(count_left > 0) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 15);
+      size_t count_iter = round_down_to_power_of_two(count_left, 16 - power_placeholders);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
