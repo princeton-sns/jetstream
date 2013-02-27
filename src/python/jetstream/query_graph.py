@@ -110,7 +110,7 @@ class QueryGraph(object):
       pb_e.computation = 0
 
       if 'max_kb_per_sec' in aux:
-        e.max_kb_per_sec = aux['max_kb_per_sec']
+        pb_e.max_kb_per_sec = aux['max_kb_per_sec']
 
       if e[0] in self.operators:
         pb_e.src = e[0]

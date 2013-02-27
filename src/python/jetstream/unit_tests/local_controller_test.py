@@ -5,6 +5,7 @@ import unittest
 
 from local_controller import LocalController
 from query_graph import QueryGraph,Operator
+import query_graph as jsapi
 from operator_schemas import OpType
 from jetstream_types_pb2 import *
 
@@ -42,7 +43,7 @@ class TestLocalController(unittest.TestCase):
     self.assertEquals(cube.location(), n)
     
     self.server.deploy(g)
-    time.sleep(5)
+    time.sleep(1)
     
     cube_data = self.server.get_cube(cube.get_name())
     self.assertTrue(len(cube_data) > 4)
@@ -76,7 +77,21 @@ class TestLocalController(unittest.TestCase):
     g.connect(op, cube)
     
     cube.instantiate_on([n, n2])
+
+
+  def test_dummy_edges(self):
+    g = QueryGraph()
+    f = jsapi.FileRead(g, "some file")
+    echo_op = jsapi.Echo(g);
+    g.connect(f, echo_op, bwLimit=0)
+    pb = g.get_deploy_pb()
+    self.assertEquals(len(pb.alter.edges), 0)
     
+
+    g.connect(f, echo_op, bwLimit=100)
+    pb = g.get_deploy_pb()
+    self.assertEquals(len(pb.alter.edges), 1)
+    self.assertEquals(pb.alter.edges[0].max_kb_per_sec, 100.0)    
     
 if __name__ == '__main__':
     unittest.main()
