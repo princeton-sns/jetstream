@@ -500,8 +500,8 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
     if (remote_processing->get_window_start() > 0) {
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
-//      LOG(INFO) << "RESETTING WINDOW ON SEND";
       msg_out.set_timestamp(  remote_processing->get_window_start()  );
+      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
       //we are on caller's thread so this is thread-safe.
       force_send(); 
       conn->send_msg(msg_out, err);

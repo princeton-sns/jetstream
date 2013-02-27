@@ -597,8 +597,13 @@ class TimeSubscriber(Operator):
 
   def out_schema(self, in_schema):
 #    print "time subscriber schema"
-    if 'ts_field' in self.cfg and in_schema[int(self.cfg['ts_field'])][0] != 'T':
-      raise SchemaError('Expected a time element')
+    if 'ts_field' in self.cfg:
+      ts_field = int(self.cfg['ts_field'])
+      if ts_field >= len(in_schema):
+        raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
+          % (ts_field, len(in_schema)))
+      if in_schema[ts_field][0] != 'T':
+        raise SchemaError('Expected a time element')
     return in_schema  #everything is just passed through
 
 

@@ -59,6 +59,18 @@ def get_graph(all_nodes, root_node, options):
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
 
+  pull_q = jsapi.TimeSubscriber(g, {}, 5000)
+  pull_q.set_cfg("ts_field", 0)
+  pull_q.set_cfg("start_ts", start_ts)
+  pull_q.set_cfg("rollup_levels", "8,0,1")
+  pull_q.set_cfg("simulation_rate", options.warp_factor)
+  pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+
+  echo = jsapi.Echo(g)
+  echo.instantiate_on(root_node)
+
+  g.chain([central_cube,pull_q, echo] )
+
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['URL_requested'], len(coral_types) ]
@@ -75,6 +87,7 @@ def get_graph(all_nodes, root_node, options):
       round = jsapi.TRoundOperator(g, fld=1, round_to=1)
       url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
       g.chain( [f, csvp, round, url_to_dom, local_cube] )
+      f.instantiate_on(node)
     else:
        local_cube.set_overwrite(False)
 
