@@ -540,7 +540,7 @@ def TRoundOperator(graph, fld, round_to, add_offset=0):
   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)
 
 
-def NoOp(graph, file):
+def NoOp(graph):
    cfg = {}
    return graph.add_operator(OpType.EXTEND, cfg)
 
@@ -597,8 +597,13 @@ class TimeSubscriber(Operator):
 
   def out_schema(self, in_schema):
 #    print "time subscriber schema"
-    if 'ts_field' in self.cfg and in_schema[int(self.cfg['ts_field'])][0] != 'T':
-      raise SchemaError('Expected a time element')
+    if 'ts_field' in self.cfg:
+      ts_field = int(self.cfg['ts_field'])
+      if ts_field >= len(in_schema):
+        raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
+          % (ts_field, len(in_schema)))
+      if in_schema[ts_field][0] != 'T':
+        raise SchemaError('Expected a time element')
     return in_schema  #everything is just passed through
 
 
@@ -648,3 +653,9 @@ def SummaryToCount(graph, field):
 def URLToDomain(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.URLToDomain, cfg)
+
+
+def VariableCoarseningSubscriber(*args, **kwargs):
+   op = TimeSubscriber(*args, **kwargs)
+   op.type = OpType.VAR_TIME_SUBSCRIBE
+   return op

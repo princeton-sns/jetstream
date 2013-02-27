@@ -3,6 +3,7 @@
 #include "base_operators.h"
 #include "experiment_operators.h"
 #include "base_subscribers.h"
+#include "latency_measure_subscriber.h"
 #include "rand_source.h"
 #include "variable_sampling.h"
 #include "topk_tput.h"

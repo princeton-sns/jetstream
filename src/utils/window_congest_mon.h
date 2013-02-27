@@ -14,13 +14,14 @@ namespace jetstream {
 class WindowCongestionMonitor: public NetCongestionMonitor {
 
   protected:
-    volatile double last_ratio;
-    volatile msec_t window_start_time;
-    unsigned bytes_in_window;
+    double last_ratio;
+    msec_t window_start_time;
+    msec_t last_window_end;
+    volatile unsigned bytes_in_window;
   
   public:
   
-    WindowCongestionMonitor(const std::string& name): NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0) {}
+    WindowCongestionMonitor(const std::string& name);
   
     virtual double capacity_ratio();
   

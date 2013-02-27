@@ -6,6 +6,7 @@
 #include "node.h"
 
 #include "base_subscribers.h"
+#include "latency_measure_subscriber.h"
 #include "base_operators.h"
 #include "experiment_operators.h"
 

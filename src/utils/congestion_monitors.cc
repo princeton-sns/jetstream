@@ -57,18 +57,30 @@ QueueCongestionMonitor::capacity_ratio() {
   return result;
 }
 
+WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name):
+  NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0),
+      last_window_end(get_msec()), bytes_in_window(0) {
+}
+
+
 
 void
-WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t true_start_time) {
-  if (true_start_time != 0) {
-    boost::unique_lock<boost::mutex> lock(internals);  
-    double window_truetime_ms = get_msec() - true_start_time;
-    double window_ratio = window_data_ms / window_truetime_ms;
-    double bytes_per_sec = bytes_in_window * 1000.0 / window_truetime_ms;
+WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_start_time) {
+  if (processing_start_time != 0) {
+    boost::unique_lock<boost::mutex> lock(internals);
+    msec_t now = get_msec();
+    msec_t window_processtime_ms = now - processing_start_time;
+    msec_t window_availtime_ms = now - last_window_end;
+    last_window_end = now;
+    
+    double window_ratio = double(window_data_ms) / window_processtime_ms;
+    double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
+    bytes_in_window = 0;
     last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
 //    window_start_time = 0;
-    LOG(INFO) << "End of window! Congestion level at " << name() << " is now " << last_ratio <<
-      ". Start time was " << true_start_time << " and window size was " << window_data_ms
+    LOG(INFO) << "End of window! Capacity ratio at " << name() << " is now "
+      << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
+      << window_availtime_ms  <<" and window size was " << window_data_ms
       <<", saw " << bytes_per_sec << " bytes/sec";
   }
 }
