@@ -33,6 +33,8 @@ def standard_option_parser():
   action="store_true", default=False)
   parser.add_option("--load_only", dest="load_only",
   action="store_true", default=False)
+  parser.add_option("--bw_cap", dest="bw_cap",
+  action="store", help="bw cap in kb/sec/link")
   return parser
 
 
@@ -49,7 +51,7 @@ def get_all_nodes(options):
     server.connect(serv_addr, serv_port)
     all_nodes = server.all_nodes()
   all_nodes.sort(key=lambda x: x.address)
-  print "node list is",all_nodes    
+#  print "node list is",all_nodes    
   return all_nodes,server
 
 def find_root_node(options, all_nodes):

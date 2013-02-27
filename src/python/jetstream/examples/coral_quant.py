@@ -122,8 +122,9 @@ def get_graph(all_nodes, root_node, options):
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
 
-
     g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
+    if options.bw_cap:
+      timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
 #  g.chain([local_cube, pull_from_local, count_op, q_op, q_op2, echo] )
 
   return g

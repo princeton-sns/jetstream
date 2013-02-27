@@ -104,13 +104,15 @@ class QueryGraph(object):
         pb_e.CopyFrom(e)
         assert pb_e.IsInitialized()
     for e,aux in self.edges.items():
-      if 'dummy' in aux:
+      if aux.get('dummy', False):
         continue  #silently ignore
       pb_e = alter.edges.add()
       pb_e.computation = 0
 
       if 'max_kb_per_sec' in aux:
-        e.max_kb_per_sec = aux['max_kb_per_sec']
+        pb_e.max_kb_per_sec = aux['max_kb_per_sec']
+      else:
+        assert(len(aux) == 0)
 
       if e[0] in self.operators:
         pb_e.src = e[0]
@@ -242,7 +244,7 @@ class QueryGraph(object):
 # the query graphs. The concrete executable implementations are elsewhere.
 class Destination(object):
   def __init__(self, graph, id):
-    self.preds = set()
+    self.preds = set()  #set of refs, not IDs
     self.graph = graph  #keep link to parent QueryGraph
     self.id = id
     self._location = None
@@ -283,9 +285,17 @@ class Destination(object):
         copy.instantiate_on(site)
       self.instantiate_on(n[0])
 
-  def set_dummy_in(self):
-    for p in preds:
-      edges[ (p, self.id) ]['dummy'] = True
+  def set_inlink_dummy(self, val=True):
+    for p in self.preds:
+      self.graph.edges[ (p, self.id) ]['dummy'] = val
+
+  def set_inlink_bwcap(self, val):
+    if len(self.preds) == 0:
+      raise SchemaError("No predecessors; you need to have some first before setting bwcap")
+    for p in self.preds:
+      e_attrs = self.graph.edges[ (p.id, self.id) ]
+      e_attrs.pop('dummy',None) #clear dummy
+      e_attrs['max_kb_per_sec'] = val
 
 class Operator(Destination):
 

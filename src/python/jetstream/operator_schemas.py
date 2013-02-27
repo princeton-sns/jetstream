@@ -32,6 +32,8 @@ class OpType (object):
   RAND_EVAL = "RandEvalOperator"
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
+  VAR_TIME_SUBSCRIBE = "VariableCoarseningSubscriber"
+
   LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
 
 
