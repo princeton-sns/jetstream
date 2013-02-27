@@ -181,7 +181,7 @@ TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> c
       msec_t now = get_msec();
 
       if((now+10) - orig_time > 1000) //+10 because time can be unpredictable within a msec---causing wraparound
-        LOG(INFO)<< "HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
+        LOG_EVERY_N(INFO,10001)<< "(every 10001) HIGH LATENCY in action_on_tuple: "<<(now - orig_time) << " index "<<latency_ts_field << " orig_time "<< orig_time << " now "<< now;
     }
 
     if (tuple_time < next_window_start_time) {
