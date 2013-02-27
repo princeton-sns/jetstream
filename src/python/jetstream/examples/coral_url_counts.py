@@ -48,6 +48,8 @@ def get_graph(all_nodes, root_node, options):
 
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
+  ECHO_RESULTS = not options.noecho
+
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -59,17 +61,18 @@ def get_graph(all_nodes, root_node, options):
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
 
-  pull_q = jsapi.TimeSubscriber(g, {}, 5000, sort_order="-count", num_results=10)
-  pull_q.set_cfg("ts_field", 0)
-  pull_q.set_cfg("start_ts", start_ts)
-  pull_q.set_cfg("rollup_levels", "8,0,1")
-  pull_q.set_cfg("simulation_rate", options.warp_factor)
-  pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
-
-  echo = jsapi.Echo(g)
-  echo.instantiate_on(root_node)
-
-  g.chain([central_cube,pull_q, echo] )
+  if ECHO_RESULTS:
+    pull_q = jsapi.TimeSubscriber(g, {}, 5000, sort_order="-count", num_results=10)
+    pull_q.set_cfg("ts_field", 0)
+    pull_q.set_cfg("start_ts", start_ts)
+    pull_q.set_cfg("rollup_levels", "8,0,1")
+    pull_q.set_cfg("simulation_rate", options.warp_factor)
+    pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+  
+    echo = jsapi.Echo(g)
+    echo.instantiate_on(root_node)
+  
+    g.chain([central_cube,pull_q, echo] )
 
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\

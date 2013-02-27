@@ -48,6 +48,7 @@ def get_graph(all_nodes, root_node, options):
 
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
+  ECHO_RESULTS = not options.noecho
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -59,21 +60,22 @@ def get_graph(all_nodes, root_node, options):
   central_cube.instantiate_on(root_node)
   define_cube(central_cube)
 
-  pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
-  pull_q.set_cfg("ts_field", 0)
-  pull_q.set_cfg("latency_ts_field", 7)
-  pull_q.set_cfg("start_ts", start_ts)
-  pull_q.set_cfg("rollup_levels", "8,1")
-  pull_q.set_cfg("simulation_rate", options.warp_factor)
-  pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
-
-  count_op = jsapi.SummaryToCount(g, 2)
-  q_op = jsapi.Quantile(g, 0.95, 3)
-  q_op2 = jsapi.Quantile(g, 0.95,2)
-  echo = jsapi.Echo(g)
-  echo.instantiate_on(root_node)
-
-  g.chain([central_cube, pull_q, count_op, q_op, q_op2, echo] )
+  if ECHO_RESULTS:
+    pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
+    pull_q.set_cfg("ts_field", 0)
+    pull_q.set_cfg("latency_ts_field", 7)
+    pull_q.set_cfg("start_ts", start_ts)
+    pull_q.set_cfg("rollup_levels", "8,1")
+    pull_q.set_cfg("simulation_rate", options.warp_factor)
+    pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+  
+    count_op = jsapi.SummaryToCount(g, 2)
+    q_op = jsapi.Quantile(g, 0.95, 3)
+    q_op2 = jsapi.Quantile(g, 0.95,2)
+    echo = jsapi.Echo(g)
+    echo.instantiate_on(root_node)
+  
+    g.chain([central_cube, pull_q, count_op, q_op, q_op2, echo] )
 
 
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
