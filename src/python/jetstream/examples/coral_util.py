@@ -48,6 +48,8 @@ def get_all_nodes(options):
     server = RemoteController()
     server.connect(serv_addr, serv_port)
     all_nodes = server.all_nodes()
+  all_nodes.sort(key=lambda x: x.address)
+  print "node list is",all_nodes    
   return all_nodes,server
 
 def find_root_node(options, all_nodes):

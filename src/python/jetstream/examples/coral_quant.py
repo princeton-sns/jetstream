@@ -26,7 +26,6 @@ def main():
     sys.exit(1)
 
   all_nodes,server = get_all_nodes(options)
-  
   root_node = find_root_node(options, all_nodes)
 
   g = get_graph(all_nodes, root_node,  options)
@@ -103,8 +102,9 @@ def get_graph(all_nodes, root_node, options):
       f.instantiate_on(node)
     else:
        local_cube.set_overwrite(False)
-
-    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000) #every second
+  
+    query_rate = 1000 if ANALYZE else 3600 * 1000
+    pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate) #every second
     pull_from_local.instantiate_on(node)
     pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)
