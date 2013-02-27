@@ -112,7 +112,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     boost::shared_ptr<sql::PreparedStatement> get_select_cell_prepared_statement(size_t batch, size_t echo, std::string unique_key="");
     boost::shared_ptr<sql::PreparedStatement> get_lock_prepared_statement(string table_name);
     boost::shared_ptr<sql::PreparedStatement> get_unlock_prepared_statement();
-    boost::shared_ptr<sql::PreparedStatement> create_prepared_statement(std::string sql);
+    boost::shared_ptr<sql::PreparedStatement> create_prepared_statement(std::string sql, size_t batch=1);
     boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, int column_index, bool final, bool rollup=false) const;
 
   private:
