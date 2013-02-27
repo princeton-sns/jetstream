@@ -540,7 +540,7 @@ def TRoundOperator(graph, fld, round_to, add_offset=0):
   return graph.add_operator(OpType.T_ROUND_OPERATOR, cfg)
 
 
-def NoOp(graph, file):
+def NoOp(graph):
    cfg = {}
    return graph.add_operator(OpType.EXTEND, cfg)
 
@@ -648,3 +648,9 @@ def SummaryToCount(graph, field):
 def URLToDomain(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.URLToDomain, cfg)
+
+
+def VariableCoarseningSubscriber(*args, **kwargs):
+   op = TimeSubscriber(*args, **kwargs)
+   op.type = OpType.VAR_TIME_SUBSCRIBE
+   return op
