@@ -35,7 +35,9 @@ def standard_option_parser():
   action="store_true", default=False)
   parser.add_option("--bw_cap", dest="bw_cap",
   action="store", help="bw cap in kb/sec/link")
-  parser.add_option("--no_echo", dest="noecho",
+  parser.add_option("--no_echo", dest="no_echo",
+  action="store_true", default=False)
+  parser.add_option("--no_backoff", dest="no_backoff",
   action="store_true", default=False)
   
   return parser

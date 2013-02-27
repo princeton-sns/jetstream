@@ -106,7 +106,11 @@ def get_graph(all_nodes, root_node, options):
        local_cube.set_overwrite(False)
   
     query_rate = 1000 if ANALYZE else 3600 * 1000
-    pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate) #every second
+    if options.no_backoff:
+      pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate)
+    else:
+      pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
+      
     pull_from_local.instantiate_on(node)
     pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)

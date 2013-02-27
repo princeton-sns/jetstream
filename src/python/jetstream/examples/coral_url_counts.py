@@ -48,7 +48,7 @@ def get_graph(all_nodes, root_node, options):
 
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
-  ECHO_RESULTS = not options.noecho
+  ECHO_RESULTS = not options.no_echo
 
 
   if not LOADING and not ANALYZE:
