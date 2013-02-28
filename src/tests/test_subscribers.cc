@@ -357,7 +357,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
   for (int i =0; i < URL_COUNT; ++i)
     urls[i] = "url" + boost::lexical_cast<string>(i);
   
-  for (int t= 0; t < 15; ++t) {
+  for (int t= 0; t < 35; ++t) {
     time_t now = time(NULL);
     for( int i =0; i < URL_COUNT; ++i) {
       boost::shared_ptr<Tuple> tuple(new Tuple);
@@ -372,7 +372,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
       cout << "tick" << endl;
   }
   cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
-  ASSERT_EQ(10000, subscriber->window_size());
+  EXPECT_EQ(10000, subscriber->window_size());
 //  for (int i = 0; i < receiver->tuples.size(); ++i)
 //    cout << fmt( (*receiver->tuples[i])) << endl;
 //    js_usleep(50 * 1000);

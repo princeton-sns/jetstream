@@ -405,8 +405,8 @@ TimeBasedSubscriber::operator()() {
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
       VLOG(1) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
     }
-
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
+
     if (!get_dest()) {
       LOG(WARNING) << "Subscriber " << id() << " exiting because no successor.";
       running = false;
@@ -446,24 +446,24 @@ TimeBasedSubscriber::send_rollup_levels() {
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
 //  int prev_level = cur_level;
-  cur_level += congest_policy->get_step(id(), rollup_data_ratios.data(), rollup_data_ratios.size(), cur_level);
-  int change_in_window = rollup_time_periods[cur_level] * 1000 - windowSizeMs;
-  // interval_ms = secs_per_level[cur_level] * 1000;
-  int prev_window = windowSizeMs;
-  windowSizeMs = rollup_time_periods[cur_level] * 1000;
+  int delta = congest_policy->get_step(id(), rollup_data_ratios.data(), rollup_data_ratios.size(), cur_level);
+  
+  if (delta != 0) {
+    cur_level += delta;
+    int change_in_window = rollup_time_periods[cur_level] * 1000 - windowSizeMs;
+    // interval_ms = secs_per_level[cur_level] * 1000;
+    int prev_window = windowSizeMs;
+    windowSizeMs = rollup_time_periods[cur_level] * 1000;
 
-  if (prev_window == windowSizeMs) {
-    assert(change_in_window == 0);
-    VLOG(1) << "Subscriber " << id() << " staying at period " << windowSizeMs;
-  }
-  else {
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
               << " from " << prev_window;
     querier.set_rollup_level(ts_field, cur_level);
     send_rollup_levels();
+    if (change_in_window > 0)
+      js_usleep( 1000 * change_in_window);
+  } else {
+    VLOG(1) << "Subscriber " << id() << " staying at period " << windowSizeMs;
   }
-
-  js_usleep( 1000 * change_in_window);
 }
 
 operator_err_t
@@ -482,20 +482,21 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
     return operator_err_t("max_window_size must be a number");
   }  
   
-  for (unsigned int i = 0; i < DTC_LEVEL_COUNT; ++i)
+  for (unsigned int i = 0; i < DTC_LEVEL_COUNT; ++i) {
     if ( DTC_SECS_PER_LEVEL[i] <= max_window_size) {
       rollup_data_ratios.push_back( 1.0 / DTC_SECS_PER_LEVEL[i]);
       rollup_time_periods.push_back(DTC_SECS_PER_LEVEL[i]);
     }
+  }
+  
   cur_level = rollup_data_ratios.size() -1;
-
 
   return NO_ERR;
 }
 
 
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
-//const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
+const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
 
 
 } //end namespace

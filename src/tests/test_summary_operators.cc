@@ -88,6 +88,8 @@ TEST(Operator, DegradeSummary) {
   boost::shared_ptr<QueueCongestionMonitor> mockCongest(new QueueCongestionMonitor(256, "dummy"));
   mockCongest->set_downstream_congestion(0.5);
   policy->set_congest_monitor(mockCongest);
+  policy->add_operator(degrade_op.id());
+//  policy->clear_last_action();
 
   degrade_op.set_congestion_policy(policy);
   degrade_op.start();
