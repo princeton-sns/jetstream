@@ -580,7 +580,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   // arrange for more sends
   src_op->reset();
   src_op->start();
-
+  cout << "attempting re-sends; should be blocked due to dummy congestion" << endl;
   tries = 0;    //no more sends
   while (tries++ < 10) {  //wait a second, make sure we're still blocking the source
     ASSERT_EQ(k, dest->tuples.size());
@@ -588,9 +588,10 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   }
   
   congest_op->congestion = 10; //congestion resolved!
+  cout << "removed dummy congestion" << endl;
 
   tries = 0;
-  while (tries++ < 5 && dest->tuples.size() < 2 * k) {
+  while (tries++ < 50 && dest->tuples.size() < 2 * k) {
     js_usleep(200 * 1000);
   }
 

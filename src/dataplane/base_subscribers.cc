@@ -462,7 +462,7 @@ VariableCoarseningSubscriber::respond_to_congestion() {
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
               << " from " << prev_window;
     if (ts_field >= 0) {
-      querier.set_rollup_level(ts_field, cur_level);
+      querier.set_rollup_level(ts_field, cur_level + (DTC_LEVEL_COUNT - rollup_data_ratios.size() ));
       send_rollup_levels();
     }
     if (change_in_window > 0)

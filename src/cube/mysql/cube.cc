@@ -926,6 +926,8 @@ jetstream::cube::MysqlCube::rollup_slice_query(std::vector<unsigned int> const &
   sql += get_where_clause(min, max, levels);
   sql += get_sort_clause(sort);
   sql += get_limit_clause(limit);
+  VLOG(1) << "in rollup_slice_query; query is " << sql;
+  
   return get_result_iterator(sql, final, true);
 }
 
@@ -1097,6 +1099,7 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
   }
 
 //  sql += " ON DUPLICATE KEY UPDATE";
+  VLOG(1) << "in rollup_slice_query; query is " << sql;
 
   execute_sql(sql);
 }

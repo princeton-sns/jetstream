@@ -43,7 +43,9 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   if (! check_since_action)
     return 0;
   
-  VLOG(1) << congest->name() << " congest level was " << congest_level << endl;
+  //VLOG(2)
+  LOG(INFO) << "policy for " << op << ". Queue " <<congest->name() <<
+        " congest level was " << congest_level << endl;
   
   int targ_step = curLevel;
 
@@ -52,8 +54,10 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
       targ_step --;
   } else {
     //jump up one step, if room
-     if ( congest_level / levels[targ_step+1] * levels[curLevel] > 1.1 && targ_step < (levelsLen -1))
-      targ_step ++;
+     if ( targ_step < (levelsLen -1) && 
+       (congest_level / levels[targ_step+1] * levels[curLevel] > 1.1 || (levels[curLevel] == 0))
+     )
+       targ_step ++;
   }
   
   int delta =  targ_step - curLevel;

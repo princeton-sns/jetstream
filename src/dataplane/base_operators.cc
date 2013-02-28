@@ -48,6 +48,7 @@ FileRead::process(boost::shared_ptr<Tuple> t) {
   LOG(WARNING) << "Should not send data to a FileRead";
 }
 
+const int LINES_PER_EMIT = 20;
 bool
 FileRead::emit_1() {
 
@@ -58,22 +59,25 @@ FileRead::emit_1() {
       return true; //stop
     }
   }
-  // ios::good checks for failures in addition to eof
-  if (!in_file.good()) {
-    cout << "hit eof, stopping" << endl;
-    return true;
-  }
-  string line;
+  
+  for (int i = 0; i < LINES_PER_EMIT; ++i) {
+    // ios::good checks for failures in addition to eof
+    if (!in_file.good()) {
+      cout << "hit eof, stopping" << endl;
+      return true;
+    }
+    string line;
 
-  getline(in_file, line);
-  if (skip_empty && line.length() == 0) {
-      return false;
+    getline(in_file, line);
+    if (skip_empty && line.length() == 0) {
+        return false;
+    }
+    shared_ptr<Tuple> t( new Tuple);
+    Element * e = t->add_e();
+    e->set_s_val(line);
+    t->set_version(lineno++);
+    emit(t);
   }
-  shared_ptr<Tuple> t( new Tuple);
-  Element * e = t->add_e();
-  e->set_s_val(line);
-  t->set_version(lineno++);
-  emit(t);
   return false;
 }
 
