@@ -105,6 +105,14 @@ class DataCubeImpl : public DataCube {
       }
       return true;
     }
+    
+    virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const {
+      boost::shared_ptr<std::vector<unsigned int> > leaves(new std::vector<unsigned int>());
+      for(size_t i=0; i<dimensions.size(); ++i) {
+        leaves->push_back(dimensions[i]->leaf_level());
+      }
+      return leaves;
+    }
 
   protected:
     std::vector<boost::shared_ptr<CubeDimension> > dimensions;
@@ -146,14 +154,6 @@ class DataCubeImpl : public DataCube {
         ostr << *it << "||";
       }
 
-    }
-
-    virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const {
-      boost::shared_ptr<std::vector<unsigned int> > leaves(new std::vector<unsigned int>());
-      for(size_t i=0; i<dimensions.size(); ++i) {
-        leaves->push_back(dimensions[i]->leaf_level());
-      }
-      return leaves;
     }
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {

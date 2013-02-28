@@ -654,7 +654,7 @@ TEST_F(CubeTest, MysqlTest) {
   e=query.add_e();
   e->set_i_val(200);
 
-  boost::shared_ptr<jetstream::Tuple> answer = cube->get_cell_value_final(query);
+  boost::shared_ptr<jetstream::Tuple> answer = cube->get_cell_value(query, *(cube->get_leaf_levels()), true);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
   ASSERT_EQ(200, answer->e(2).i_val());
@@ -662,7 +662,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(50, answer->e(4).i_val());
   ASSERT_EQ(50, answer->e(4).d_val());
 
-  answer = cube->get_cell_value_partial(query);
+  answer = cube->get_cell_value(query,*(cube->get_leaf_levels()), false);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
   ASSERT_EQ(200, answer->e(2).i_val());
@@ -677,7 +677,7 @@ TEST_F(CubeTest, MysqlTest) {
   cube->save_tuple(t, false, false, new_tuple, old_tuple);
   ASSERT_EQ(1U, cube->num_leaf_cells());
 
-  answer = cube->get_cell_value_final(query);
+  answer = cube->get_cell_value(query,*(cube->get_leaf_levels()), true);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
   ASSERT_EQ(200, answer->e(2).i_val());
@@ -685,7 +685,7 @@ TEST_F(CubeTest, MysqlTest) {
   ASSERT_EQ(75, answer->e(4).i_val());
   ASSERT_EQ(75, answer->e(4).d_val());
 
-  answer = cube->get_cell_value_partial(query);
+  answer = cube->get_cell_value(query, *(cube->get_leaf_levels()), false);
   ASSERT_EQ(time_entered, answer->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", answer->e(1).s_val().c_str());
   ASSERT_EQ(200, answer->e(2).i_val());
