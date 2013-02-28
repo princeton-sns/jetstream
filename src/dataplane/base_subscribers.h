@@ -187,6 +187,8 @@ class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
 
   protected:
     int cur_level;
+    std::vector<double> rollup_data_ratios;
+    std::vector<unsigned> rollup_time_periods;
 //    int dim_to_coarsen;
 
 

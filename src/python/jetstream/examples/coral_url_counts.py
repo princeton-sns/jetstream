@@ -100,6 +100,8 @@ def get_graph(all_nodes, root_node, options):
     pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
+    pull_from_local.set_cfg("max_window_size", 30) #send data at least every 30 seconds
+
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)

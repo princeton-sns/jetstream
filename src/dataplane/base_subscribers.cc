@@ -285,7 +285,6 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
 
   if ((config["window_offset"].length() > 0) &&
       !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
-
     return operator_err_t("window_offset must be a number");
   }
 
@@ -442,16 +441,16 @@ TimeBasedSubscriber::send_rollup_levels() {
 
 
 
-double time_rollup_levels[DTC_LEVEL_COUNT];
+//double time_rollup_levels[DTC_LEVEL_COUNT];
 
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
 //  int prev_level = cur_level;
-  cur_level += congest_policy->get_step(id(), time_rollup_levels, DTC_LEVEL_COUNT, cur_level);
-  int change_in_window = DTC_SECS_PER_LEVEL[cur_level] * 1000 - windowSizeMs;
+  cur_level += congest_policy->get_step(id(), rollup_data_ratios.data(), rollup_data_ratios.size(), cur_level);
+  int change_in_window = rollup_time_periods[cur_level] * 1000 - windowSizeMs;
   // interval_ms = secs_per_level[cur_level] * 1000;
   int prev_window = windowSizeMs;
-  windowSizeMs = DTC_SECS_PER_LEVEL[cur_level] * 1000;
+  windowSizeMs = rollup_time_periods[cur_level] * 1000;
 
   if (prev_window == windowSizeMs) {
     assert(change_in_window == 0);
@@ -469,17 +468,27 @@ VariableCoarseningSubscriber::respond_to_congestion() {
 
 operator_err_t
 VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &config) {
-  cur_level = DTC_LEVEL_COUNT -1;
   operator_err_t base_err = TimeBasedSubscriber::configure(config);
 
   if (base_err != NO_ERR)
     return base_err;
 
   if (ts_field < 0)
-    return "time field is mandatory for variable coarsening for now";
+    return operator_err_t("time field is mandatory for variable coarsening for now");
 
+  unsigned max_window_size = 60 * 5; // default to no more than once every five minutes
+  if ((config["max_window_size"].length() > 0) &&
+      !(stringstream(config["max_window_size"]) >> max_window_size)) {
+    return operator_err_t("max_window_size must be a number");
+  }  
+  
   for (unsigned int i = 0; i < DTC_LEVEL_COUNT; ++i)
-    time_rollup_levels[i] = 1.0 / DTC_SECS_PER_LEVEL[i];
+    if ( DTC_SECS_PER_LEVEL[i] <= max_window_size) {
+      rollup_data_ratios.push_back( 1.0 / DTC_SECS_PER_LEVEL[i]);
+      rollup_time_periods.push_back(DTC_SECS_PER_LEVEL[i]);
+    }
+  cur_level = rollup_data_ratios.size() -1;
+
 
   return NO_ERR;
 }
