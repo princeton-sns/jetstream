@@ -281,7 +281,6 @@ FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
   Tuple * t2 = msg.add_data();
   t2->CopyFrom(*t);
   q.push(msg);
-  mon->report_insert(t.get(), 1);
 }
 
 void
@@ -290,6 +289,10 @@ FixedRateQueue::meta_from_upstream(const DataplaneMessage & msg, const operator_
 //  msg2->CopyFrom(msg);
   boost::lock_guard<boost::mutex> lock (mutex);
   q.push(msg);
+/*  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+    window_start = mon->get_window_start();
+    mon->new_window_start();
+  }*/
 }
 
 
@@ -312,8 +315,9 @@ FixedRateQueue::process1() {
     if( msg.data_size() > 0) {
       boost::shared_ptr<Tuple> t(new Tuple);
       t->CopyFrom(msg.data(0));
-      mon->report_delete(t.get(), 1);
+      mon->report_insert(t.get(), 1);
       emit(t);
+      mon->report_delete(t.get(), 1);      
     } else {
       if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
         mon->end_of_window(msg.window_length_ms(), mon->get_window_start());

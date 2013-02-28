@@ -321,6 +321,15 @@ TimeBasedSubscriber::respond_to_congestion() {
   }
 }
 
+string ts_to_str(time_t t) {
+  struct tm parsed_time;
+  gmtime_r(&t, &parsed_time);
+
+  char tmbuf[80];
+  strftime(tmbuf, sizeof(tmbuf), "%H:%M:%S", &parsed_time);
+  return string(tmbuf);
+}
+
 void
 TimeBasedSubscriber::operator()() {
 
@@ -394,7 +403,7 @@ TimeBasedSubscriber::operator()() {
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;
 
-    VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
+    LOG(INFO) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
 
@@ -403,7 +412,8 @@ TimeBasedSubscriber::operator()() {
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
-      VLOG(1) << id() << "Updated query times to "<< next_window_start_time << "-" << newMax;
+      LOG(INFO) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
+        << "-" << ts_to_str(newMax);
     }
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
 
@@ -439,10 +449,6 @@ TimeBasedSubscriber::send_rollup_levels() {
   send_meta_downstream(msg);
 }
 
-
-
-//double time_rollup_levels[DTC_LEVEL_COUNT];
-
 void
 VariableCoarseningSubscriber::respond_to_congestion() {
 //  int prev_level = cur_level;
@@ -451,14 +457,15 @@ VariableCoarseningSubscriber::respond_to_congestion() {
   if (delta != 0) {
     cur_level += delta;
     int change_in_window = rollup_time_periods[cur_level] * 1000 - windowSizeMs;
-    // interval_ms = secs_per_level[cur_level] * 1000;
     int prev_window = windowSizeMs;
     windowSizeMs = rollup_time_periods[cur_level] * 1000;
 
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
               << " from " << prev_window;
-    querier.set_rollup_level(ts_field, cur_level);
-    send_rollup_levels();
+    if (ts_field >= 0) {
+      querier.set_rollup_level(ts_field, cur_level);
+      send_rollup_levels();
+    }
     if (change_in_window > 0)
       js_usleep( 1000 * change_in_window);
   } else {
@@ -473,8 +480,8 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
   if (base_err != NO_ERR)
     return base_err;
 
-  if (ts_field < 0)
-    return operator_err_t("time field is mandatory for variable coarsening for now");
+//  if (ts_field < 0)
+//    return operator_err_t("time field is mandatory for variable coarsening for now");
 
   unsigned max_window_size = 60 * 5; // default to no more than once every five minutes
   if ((config["max_window_size"].length() > 0) &&
