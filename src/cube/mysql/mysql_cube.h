@@ -59,9 +59,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 */
     // virtual bool insert_full_aggregate(jetstream::Tuple t);
 
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_final(jetstream::Tuple const &t) const;
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value_partial(jetstream::Tuple const &t) const ;
-    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, bool final = true) const;
+    virtual boost::shared_ptr<jetstream::Tuple> get_cell_value(jetstream::Tuple const &t, std::vector<unsigned int> const &levels, bool final = true) const;
 
     virtual CubeIterator
       slice_query(jetstream::Tuple const &min, jetstream::Tuple const &max, bool final = true,
@@ -113,6 +111,8 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     boost::shared_ptr<sql::PreparedStatement> get_lock_prepared_statement(string table_name);
     boost::shared_ptr<sql::PreparedStatement> get_unlock_prepared_statement();
     boost::shared_ptr<sql::PreparedStatement> create_prepared_statement(std::string sql, size_t batch=1);
+    boost::shared_ptr<sql::PreparedStatement> get_select_one_cell_prepared_statement();
+
     boost::shared_ptr<jetstream::Tuple> make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, int column_index, bool final, bool rollup=false) const;
 
   private:

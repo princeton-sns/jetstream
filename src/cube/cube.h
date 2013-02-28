@@ -101,7 +101,7 @@ class DataCube : public TupleReceiver {
     //query functions
     static unsigned int const LEAF_LEVEL;
     virtual boost::shared_ptr<jetstream::Tuple>
-    get_cell_value(jetstream::Tuple const &t, bool final = true) const= 0;
+    get_cell_value(jetstream::Tuple const &t, std::vector<unsigned int> const &levels, bool final = true) const= 0;
 
     virtual cube::CubeIterator
     slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max,

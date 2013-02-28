@@ -107,7 +107,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
       const Tuple& q = msg.tput_r3_query(i);
-      boost::shared_ptr<Tuple> v = cube->get_cell_value(q);
+      boost::shared_ptr<Tuple> v = cube->get_cell_value(q, *(cube->get_leaf_levels()));
       if(v) {
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *v);
         emit(v);
