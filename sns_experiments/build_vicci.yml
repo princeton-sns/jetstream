@@ -1,15 +1,5 @@
 ---
-# Instructions:
-# 1) install ansible
-# 2) install ssh forward-agent so that you can pass your key along for git
-# 3) add hosts you are working with to ansible_hosts file under [setup] section
-# 4) run the following:
-# ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci build_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
-#
-#
-#
-# This file checks out and build jetstrem on a host.
-
+#ansible-playbook  -i ansible_hosts_vicci build_vicci.yml -u princeton_jetstream --module-path=modules/ -f 20; date
 
 ### download and build js###
 - hosts: workers
@@ -23,34 +13,10 @@
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
     num_cores: 24
+    mysqld_name: mysqld
   connection: fireball
   tags: build
   tasks:
-  - name: ntp synch
-    command: ntpdate pool.ntp.org
-  - name: checkout jetstream
-    git: repo=git@bitbucket.org:mfreed/jetstream.git dest=${js_checkout}
-  - name: make sure jetstream build dir exists
-    file: dest=${js_checkout}/build state=directory
-  - name: cmake js
-    command: cmake -DUSE_CLANG=OFF
-              -DBOOST_ROOT=${js_deps}/boost_1_52_0/ -DBoost_NO_SYSTEM_PATHS=True
-              -DPROTOBUF_LIBRARY=${js_deps}/protobufs/lib/libprotobuf.so
-              -DPROTOBUF_INCLUDE_DIR=${js_deps}/protobufs/include/
-              -DProtobuf_NO_SYSTEM_PATHS=True
-              -DPROTOBUF_PROTOC_EXECUTABLE=${js_deps}/protobufs/bin/protoc ../
-              chdir=${js_checkout}/build
-  - name: make js
-#the -j 24 seems to give very poor performance on vicci actually even -j 4 seems to give errors
-    command: make --quiet
-            chdir=${js_checkout}/build
-  - name: cp tests data
-    command: cp -r src/tests build/src/
-            chdir=${js_checkout}
-            creates=${js_checkout}/build/src/tests
-  - name: copy mysql udf dylib
-    command: cp ${js_checkout}/build/src/mysql_udfs/merge/libjsmysqludfs_merge.so /usr/lib64/mysql/plugin/
-  - name: restart mysqld
-    service: name=mysqld state=restarted
-  - name: run mysql sql udf install script
-    shell: mysql test_cube < ${js_checkout}/src/mysql_udfs/merge/installdb_linux.sql
+  - include: build_include_sudo_ntp.yml
+  - include: build_include.yml
+  - include: build_include_sudo_mysql.yml
