@@ -402,7 +402,7 @@ TimeBasedSubscriber::operator()() {
     backfill_old_window = backfill_tuples;
     regular_old_window = regular_tuples;
 
-    LOG(INFO) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
+    VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
 
@@ -411,7 +411,7 @@ TimeBasedSubscriber::operator()() {
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
       newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
-      LOG(INFO) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
+      VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
         << "-" << ts_to_str(newMax);
     }
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
