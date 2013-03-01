@@ -36,8 +36,8 @@ class QueueCongestionMonitor: public NetCongestionMonitor {
     virtual ~QueueCongestionMonitor() {};
   
     virtual void report_insert(void * item, uint32_t weight) {
-      boost::interprocess::ipcdetail::atomic_add32(&queueLen, weight);
       boost::interprocess::ipcdetail::atomic_add32(&insertsInPeriod, weight);
+      boost::interprocess::ipcdetail::atomic_add32(&queueLen, weight);
     }
   
     virtual void report_delete(void * item, uint32_t weight) {
