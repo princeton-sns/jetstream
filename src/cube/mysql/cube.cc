@@ -445,11 +445,9 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool 
 }
 
 void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> levels, bool need_new_value, bool need_old_value, boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple) {
-  boost::shared_ptr<sql::PreparedStatement> lock_stmt;
   boost::shared_ptr<sql::PreparedStatement> old_value_stmt;
   boost::shared_ptr<sql::PreparedStatement> insert_stmt;
   boost::shared_ptr<sql::PreparedStatement> new_value_stmt;
-  boost::shared_ptr<sql::PreparedStatement> unlock_stmt;
 
   /**** Setup statements *****/
   int field_index;
@@ -576,13 +574,8 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 #endif
   assert(new_tuple_store.size() == tuple_store.size());
   assert(old_tuple_store.size() == tuple_store.size());
-  boost::shared_ptr<sql::PreparedStatement> lock_stmt;
-  std::vector<boost::shared_ptr<sql::PreparedStatement> > insert_stmts;
-  boost::shared_ptr<sql::PreparedStatement> unlock_stmt;
 
 #if MYSQL_UNION_SELECT
-  std::vector<boost::shared_ptr<sql::PreparedStatement> > old_value_stmts;
-  std::vector<boost::shared_ptr<sql::PreparedStatement> > new_value_stmts;
   size_t count_old = std::count(need_old_value_store.begin(), need_old_value_store.end(), true);
   size_t count_new = std::count(need_new_value_store.begin(), need_new_value_store.end(), true);
 #endif
@@ -598,7 +591,34 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   }
   power_placeholders++;
 
+
+#if MYSQL_PROFILE
+  msec_t post_prepare_old = get_msec();
+#endif
+
+ 
+#if MYSQL_PROFILE
+  msec_t post_prepare_insert = get_msec();
+#endif
+
+
+
+  /******** Execute statements *******/
+#if MYSQL_PROFILE
+  msec_t post_prepare = get_msec();
+#endif
+
+#if  MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("START TRANSACTION");
+  #else
+    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
+  #endif
+#endif
+
+
 #if MYSQL_UNION_SELECT
+  std::vector<boost::shared_ptr<sql::ResultSet> > old_value_results;
   if(count_old > 0) {
 
     size_t store_index = 0;
@@ -628,12 +648,22 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
         store_index++;
       }
 
-      old_value_stmts.push_back(old_value_stmt);
+      boost::shared_ptr<sql::ResultSet> pOldVal(old_value_stmt->executeQuery());
+      old_value_results.push_back(pOldVal);
+    }
+  }
+#else
+  for(size_t i=0; i<need_old_value_store.size(); i++) {
+    if(need_old_value_store[i])
+    {
+      boost::shared_ptr<jetstream::Tuple> res_tuple = get_cell_value(*(tuple_store[i]), *(levels_store[i]), false);
+      old_tuple_store[i] = res_tuple;
     }
   }
 #endif
+
 #if MYSQL_PROFILE
-  msec_t post_prepare_old = get_msec();
+  msec_t post_old_val = get_msec();
 #endif
 
   size_t count_insert_left = tuple_store.size();
@@ -667,16 +697,20 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
         aggregates[i]->set_value_for_insert_tuple(insert_stmt, *(tuple_store[insert_store_index]), field_index);
       }
     }
-
-    insert_stmts.push_back(insert_stmt);
+  
+    insert_stmt->execute();
   }
 
+
+  VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
+  version ++;  //next insert will have higher version numbers
+
 #if MYSQL_PROFILE
-  msec_t post_prepare_insert = get_msec();
+  msec_t post_insert = get_msec();
 #endif
 
-
 #if MYSQL_UNION_SELECT
+  std::vector<boost::shared_ptr<sql::ResultSet> > new_value_results;
   if(count_new > 0) {
 
     size_t store_index = 0;
@@ -706,65 +740,11 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
         store_index++;
       }
 
-      new_value_stmts.push_back(new_value_stmt);
+      boost::shared_ptr<sql::ResultSet> pNewVal(new_value_stmt->executeQuery());
+      new_value_results.push_back(pNewVal);
     }
   }
-#endif
 
-  /******** Execute statements *******/
-#if MYSQL_PROFILE
-  msec_t post_prepare = get_msec();
-#endif
-
-#if  MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("START TRANSACTION");
-  #else
-    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  #endif
-#endif
-
-
-#if MYSQL_UNION_SELECT
-  std::vector<boost::shared_ptr<sql::ResultSet> > old_value_results;
-  for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_old_value_stmt = old_value_stmts.begin();
-      i_old_value_stmt != old_value_stmts.end(); ++i_old_value_stmt) {
-    boost::shared_ptr<sql::ResultSet> pOldVal((*i_old_value_stmt)->executeQuery());
-    old_value_results.push_back(pOldVal);
-  }
-#else
-  for(size_t i=0; i<need_old_value_store.size(); i++) {
-    if(need_old_value_store[i])
-    {
-      boost::shared_ptr<jetstream::Tuple> res_tuple = get_cell_value(*(tuple_store[i]), *(levels_store[i]), false);
-      old_tuple_store[i] = res_tuple;
-    }
-  }
-#endif
-
-#if MYSQL_PROFILE
-  msec_t post_old_val = get_msec();
-#endif
-
-  for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_insert_stmt = insert_stmts.begin();
-      i_insert_stmt != insert_stmts.end(); ++i_insert_stmt) {
-    (*i_insert_stmt)->execute();
-  }
-
-  VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
-  version ++;  //next insert will have higher version numbers
-
-#if MYSQL_PROFILE
-  msec_t post_insert = get_msec();
-#endif
-
-#if MYSQL_UNION_SELECT
-  std::vector<boost::shared_ptr<sql::ResultSet> > new_value_results;
-  for(std::vector<boost::shared_ptr<sql::PreparedStatement> >::iterator i_new_value_stmt = new_value_stmts.begin();
-      i_new_value_stmt != new_value_stmts.end(); ++i_new_value_stmt) {
-    boost::shared_ptr<sql::ResultSet> pNewVal((*i_new_value_stmt)->executeQuery());
-    new_value_results.push_back(pNewVal);
-  }
 #else
   for(size_t i=0; i<need_new_value_store.size(); i++) {
     if(need_new_value_store[i])
