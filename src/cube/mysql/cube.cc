@@ -181,7 +181,7 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
   sql += "PRIMARY KEY (";
   sql += boost::algorithm::join(pk, ", ");
   sql += ")";
-  sql += ") CHARACTER SET utf8 ENGINE=MyISAM";
+  sql += ") CHARACTER SET utf8 ENGINE=InnoDB";
 
   VLOG(1) << "Create statement: " << sql;
   return sql;
@@ -449,11 +449,6 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
   /**** Setup statements *****/
   int field_index;
 
-  if(!assumeOnlyWriter) {
-    lock_stmt = get_lock_prepared_statement(get_table_name());
-    unlock_stmt = get_unlock_prepared_statement();
-  }
-
   if(need_old_value) {
     old_value_stmt = get_select_cell_prepared_statement(1,0, "old_value");
     field_index = 1;
@@ -493,7 +488,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
 
   /******** Execute statements *******/
   if(!assumeOnlyWriter) {
-    lock_stmt->execute();
+    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
   }
 
   boost::shared_ptr<sql::ResultSet> old_value_results;
@@ -511,7 +506,7 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
   }
 
   if(!assumeOnlyWriter) {
-    unlock_stmt->execute();
+    execute_sql("UNLOCK TABLES");
   }
 
   /********* Populate tuples ******/
@@ -581,11 +576,6 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   /**** Setup statements *****/
   int field_index;
 
-  if(!assumeOnlyWriter) {
-    lock_stmt = get_lock_prepared_statement(get_table_name());
-    unlock_stmt = get_unlock_prepared_statement();
-  }
-
 
   size_t num_placeholders = num_dimensions() + num_aggregates();
   size_t  power_placeholders = 0;
@@ -602,7 +592,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 15 - power_placeholders);
+      size_t count_iter = round_down_to_power_of_two(count_left, 14 - power_placeholders);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
@@ -638,7 +628,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   size_t count_insert_tally = 0;
 
   while(count_insert_left > 0) {
-    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 15 - power_placeholders);
+    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 14 - power_placeholders);
     count_insert_left -= count_insert_iter;
     count_insert_tally += count_insert_iter;
 
@@ -680,7 +670,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_new;
 
     while(count_left > 0) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 15 - power_placeholders);
+      size_t count_iter = round_down_to_power_of_two(count_left, 14 - power_placeholders);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
@@ -714,7 +704,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 #endif
 
   if(!assumeOnlyWriter) {
-    lock_stmt->execute();
+    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
   }
 
 
@@ -773,7 +763,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 #endif
 
   if(!assumeOnlyWriter) {
-    unlock_stmt->execute();
+    execute_sql("UNLOCK TABLES");
   }
 
   /********* Populate tuples ******/

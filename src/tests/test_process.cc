@@ -48,7 +48,7 @@ class TestTupleGenerator {
 
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+( i % 100 ), "http:\\\\www.example.com", 200, 50, 1);
+        create_tuple(*t, time_entered+( i % 10000000 ), "http:\\\\www.example.com", 200, 50, 1);
         tuples.push_back(t);
       }
       LOG(INFO) << "Generated "<< tuples.size() << " tuples.";
