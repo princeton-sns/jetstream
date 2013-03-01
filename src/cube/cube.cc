@@ -14,31 +14,42 @@ using namespace boost;
 unsigned int const jetstream::DataCube::LEAF_LEVEL =  100000;
   //std::numeric_limits<unsigned int>::max();
 
-ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name), service(new io_service(1)), work(*service), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
+ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name), service_process(new io_service(1)), 
+  service_flush(new io_service(1)), work_process(*service_process), work_flush(*service_flush),
+  cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
 
   // this should always be the last line in the constructor
-  internal_thread = boost::thread(&ProcessCallable::run, this);
+  thread_process = boost::thread(&ProcessCallable::run_process, this);
+  thread_flush = boost::thread(&ProcessCallable::run_flush, this);
 }
 
 
 ProcessCallable::~ProcessCallable() {
-  service->stop();
-  internal_thread.join();
+  service_process->stop();
+  service_flush->stop();
+  thread_process.join();
+  thread_flush.join();
 }
 
-void ProcessCallable::run() {
+void ProcessCallable::run_process() {
   jetstream::set_thread_name("js-cube-proc-"+name);
-  service->run();
+  service_process->run();
 }
+
+void ProcessCallable::run_flush() {
+  jetstream::set_thread_name("js-cube-flush-"+name);
+  service_flush->run();
+}
+
 
 void ProcessCallable::assign(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels) {
-  service->post(boost::bind(&ProcessCallable::process, this, t, key, levels));
+  service_process->post(boost::bind(&ProcessCallable::process, this, t, key, levels));
 }
 
 void ProcessCallable::process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
   VLOG(10) << "got a tuple in ProcessCallable with key " << key;
   boost::lock_guard<boost::mutex> lock(batcherLock);
-  cube->do_process(t, key, levels, tupleBatcher);
+  cube->do_process(t, key, levels, tupleBatcher, this);
   VLOG(10) << "finished a tuple in ProcessCallable with key " << key;
 }
 
@@ -54,13 +65,30 @@ bool ProcessCallable::batcher_ready() {
   return !tupleBatcher->is_empty();
 }
 
+void ProcessCallable::check_flush() {
+  service_process->post(boost::bind(&ProcessCallable::do_check_flush, this));
+}
+
+void ProcessCallable::do_check_flush() {
+  while(true) {
+    if (batcher_ready()) {
+      boost::shared_ptr<cube::TupleBatch> tb = batch_flush();
+      VLOG_EVERY_N(1, 1000) << "Flushing with size "<< tb->size() << " thread id " << boost::this_thread::get_id()
+         << " Current flushCongestMon = " << cube->flushCongestMon->queue_length()
+         << " Current processhCongestMon = " << cube->processCongestMon->queue_length();
+       tb->flush();
+       cube->flushCongestMon->report_delete(tb.get(), 1);
+    }
+    else
+      return;
+  }
+}
 
 
 
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf) :
   schema(_schema), name(_name), is_frozen(false),
   version(0),
-  flushExec(4, "js-cube-flush"), current_processor(0),
   flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
@@ -95,7 +123,8 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   processors[kh % processors.size()]->assign(t, key, current_levels);
 }
 
-void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher) {
+void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, 
+    boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc) {
   bool in_batch = false;
 
   VLOG(2) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
@@ -165,43 +194,12 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
 
   if(!tupleBatcher->is_empty() && was_empty)
   {
-    bool start_flush = (flushCongestMon->queue_length() <= 0);
-
-    //INVARIANT: flushCongestMon contains a count of non-empty, non-flushed TupleBatchers in the system
-    //add one for every TB only once when it becomes non-empty.
-    flushCongestMon->report_insert(tupleBatcher.get() , 1);
-
-    if(start_flush)
-    {
-      //queue up flush, because check_flush may not be running
-      //INVARIANT: check_flush run after some tuples in tupleBatcher (needs to be posted after insert)
-      //also flushCongestMon should be non-0 (so after increment)
-      flushExec.submit(boost::bind(&DataCube::check_flush, this));
-    }
-
+    flushCongestMon->report_insert(tupleBatcher.get(), 1);
+    proc->check_flush();
   }
-
-
+  
   processCongestMon->report_delete(t.get(), 1);
 
-
-}
-
-
-//runs in queue exec;
-void DataCube::check_flush() {
-  while(flushCongestMon->queue_length() > 0) {
-    if(processors[current_processor]->batcher_ready())
-    {
-       boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
-       VLOG_EVERY_N(1, 1000) << "Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id()
-         << " Current flushCongestMon = " << flushCongestMon->queue_length()
-         << " Current processhCongestMon = " << processCongestMon->queue_length();
-       tb->flush();
-       flushCongestMon->report_delete(tb.get(), 1);
-    }
-    current_processor = (current_processor+1) % processors.size();
-  }
 
 }
 

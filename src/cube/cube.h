@@ -50,21 +50,29 @@ class ProcessCallable {
     ProcessCallable(DataCube * cube, std::string name);
     ~ProcessCallable();
 
-    void run();
+    void run_process();
+    void run_flush();
 
     void assign(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
     boost::shared_ptr<cube::TupleBatch> batch_flush();
     bool batcher_ready();
+    void check_flush();
 
   private:
     std::string name;
-    boost::thread internal_thread;
-    shared_ptr<io_service> service;
-    io_service::work work;
+    boost::thread thread_process;
+    boost::thread thread_flush;
+    shared_ptr<io_service> service_process;
+    shared_ptr<io_service> service_flush;
+    io_service::work work_process;
+    io_service::work work_flush;
+
+
     jetstream::DataCube * cube;
 
     // This runs in the internal thread
     void process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
+    void do_check_flush();
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     mutable boost::mutex batcherLock; // protects tupleBatcher
@@ -75,6 +83,7 @@ class ProcessCallable {
 class DataCube : public TupleReceiver {
   public:
     typedef jetstream::DimensionKey DimensionKey;
+    friend class ProcessCallable;
 
     DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf);
     virtual ~DataCube() {}
@@ -185,7 +194,7 @@ class DataCube : public TupleReceiver {
 
     virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
-    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher);
+    virtual void do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc);
 
     virtual bool is_unrolled(std::vector<unsigned int> levels) const = 0;
 
@@ -209,12 +218,7 @@ class DataCube : public TupleReceiver {
     static const std::string my_tyepename;
 
 
-    virtual void check_flush();
-    void post_flush();
-    Executor flushExec;
-
   protected:
-    size_t current_processor;
     boost::shared_ptr<QueueCongestionMonitor> flushCongestMon;
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 

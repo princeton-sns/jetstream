@@ -9,13 +9,13 @@ using namespace jetstream::cube;
 
 #define MYSQL_PROFILE 0
 #define MYSQL_UNION_SELECT 0
+#define MYSQL_TRANSACTIONS 1
+#define MYSQL_INNODB 1
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
                                        bool delete_if_exists, const NodeConfig &conf ) :
-  DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name, conf),
-
-  assumeOnlyWriter(true) {
+  DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name, conf) {
 
   init_connection();
   LOG(INFO) << "creating cube " << db_name << "." << name <<
@@ -181,7 +181,12 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
   sql += "PRIMARY KEY (";
   sql += boost::algorithm::join(pk, ", ");
   sql += ")";
-  sql += ") CHARACTER SET utf8 ENGINE=InnoDB";
+  sql += ") CHARACTER SET utf8";
+#if MYSQL_INNODB
+  sql += " ENGINE=InnoDB";
+#else
+  sql += " ENGINE=MyISAM";
+#endif
 
   VLOG(1) << "Create statement: " << sql;
   return sql;
@@ -487,9 +492,14 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
 
 
   /******** Execute statements *******/
-  if(!assumeOnlyWriter) {
+#if  MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("START TRANSACTION");
+  #else
     execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  }
+  #endif
+#endif
+
 
   boost::shared_ptr<sql::ResultSet> old_value_results;
 
@@ -504,11 +514,14 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
   if(need_new_value) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
-
-  if(!assumeOnlyWriter) {
+#if  MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("COMMIT");
+  #else
     execute_sql("UNLOCK TABLES");
-  }
-
+  #endif
+#endif
+  
   /********* Populate tuples ******/
   if(need_old_value && old_value_results->first()) {
     old_tuple = make_tuple_from_result_set(old_value_results, 1, false);
@@ -703,9 +716,13 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   msec_t post_prepare = get_msec();
 #endif
 
-  if(!assumeOnlyWriter) {
+#if  MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("START TRANSACTION");
+  #else
     execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  }
+  #endif
+#endif
 
 
 #if MYSQL_UNION_SELECT
@@ -762,9 +779,14 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   msec_t post_new_val = get_msec();
 #endif
 
-  if(!assumeOnlyWriter) {
+#if MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("COMMIT");
+  #else
     execute_sql("UNLOCK TABLES");
-  }
+  #endif
+#endif
+
 
   /********* Populate tuples ******/
 

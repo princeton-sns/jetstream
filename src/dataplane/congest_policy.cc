@@ -47,7 +47,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   VLOG(2) << "policy for " << op << ". Queue " <<congest->name() <<
         " congest level was " << congest_level << endl;
   
-  int targ_step = curLevel;
+  unsigned int targ_step = curLevel;
 
   if ( congest_level < 0.95) {
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)

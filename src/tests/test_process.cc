@@ -22,7 +22,8 @@ class MysqlCubeNoDB: public MysqlCube {
     MysqlCubeNoDB (jetstream::CubeSchema const _schema,
                    string _name,
                    bool overwrite_if_present, const NodeConfig &conf): MysqlCube ( _schema, _name, overwrite_if_present, conf) {}
-
+    //TODO FIX THIS NOT WORKING
+/*
     virtual void check_flush() {
       while(flushCongestMon->queue_length() > 0) {
         if(processors[current_processor]->batcher_ready()) {
@@ -33,7 +34,7 @@ class MysqlCubeNoDB: public MysqlCube {
         }
         current_processor = (current_processor+1) % processors.size();
       }
-    }
+    }*/
 
 };
 
