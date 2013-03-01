@@ -380,6 +380,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 #endif
 #ifdef ACK_WINDOW_END
       remote_processing->end_of_window(msg.window_length_ms(), msg.timestamp());
+      reporter.sending_a_tuple(0);
       //TODO should track time more carefully here to avoid confusion on overlapped windows
 #endif
       break;
@@ -582,7 +583,7 @@ BWReporter::sending_a_tuple(size_t b) {
   msec_t now = get_msec();
   if ( now > next_report) {
     double tdiff = (now - next_report + REPORT_INTERVAL)/1000.0;
-    LOG(INFO)<< "BWReporter@ " << now << " " << bytes/tdiff << " bytes/sec; " <<
+    LOG(INFO)<< "BWReporter@ " << (now/1000) << " " << bytes/tdiff << " bytes/sec; " <<
         tuples/tdiff << " tuples/sec";
     bytes = tuples = 0;
     next_report = now + REPORT_INTERVAL;
