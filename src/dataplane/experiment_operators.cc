@@ -332,6 +332,53 @@ FixedRateQueue::process1() {
 }
 
 
+
+void
+ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
+
+  Element * e = t->mutable_e(field);
+  double old_ts = 0;
+  if (e->has_d_val()) {
+    old_ts = e->d_val();
+    e->clear_d_val();
+  } else if (e->has_t_val()) {
+    old_ts = e->t_val();
+    e->clear_t_val();
+  } else {
+    DLOG(FATAL) << "can't timestamp tuple " << fmt(*t);
+    return;
+  }
+
+  time_t new_t = old_ts * warp + delta;
+  int emitted = emitted_count();
+  
+  if(emitted == 0)
+    delta = time(NULL);
+  else
+    if ( (emitted & 0xFF) == 0 ) { // once every 256 tuples
+    if (new_t < time(0) -1)
+      LOG(INFO) << "ExperimentTimeRewrite has fallen behind";
+  }
+  e->set_t_val( new_t);
+  
+  emit(t);
+
+}
+  
+operator_err_t
+ExperimentTimeRewrite::configure(std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+
+  if ( !(istringstream(config["warp"]) >> warp)) {
+    return operator_err_t("must specify a timewarp as 'warp'.  " + config["field"] +  " instead");
+  }
+  return NO_ERR;
+
+}
+
+
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
@@ -340,6 +387,6 @@ const string SerDeOverhead::my_type_name("Dummy serializer");
 const string EchoOperator::my_type_name("Echo");
 const string MockCongestion::my_type_name("Mock Congestion");
 const string FixedRateQueue::my_type_name("Fixed rate queue");
-
+const string ExperimentTimeRewrite::my_type_name("Time rewrite");
 
 }

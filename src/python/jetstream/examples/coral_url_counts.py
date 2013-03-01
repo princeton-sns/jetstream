@@ -97,7 +97,7 @@ def get_graph(all_nodes, root_node, options):
       f = jsapi.FileRead(g, options.fname, skip_empty=True)
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
-      round = jsapi.TRoundOperator(g, fld=1, round_to=1)
+      round = jsapi.TRoundOperator(g, fld=1, round_to=10) #ASR experiment
       url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
       g.chain( [f, csvp, round, url_to_dom, local_cube] )
       f.instantiate_on(node)

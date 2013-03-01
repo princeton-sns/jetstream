@@ -44,7 +44,6 @@ def finish_plots(figure, ax, leg_artists):
   labels = ax.get_xticklabels() 
   for label in labels: 
       label.set_rotation(30)   
-  print leg_artists
   plt.legend(leg_artists, ["BW", "Degradation"]);
   
   if OUT_TO_FILE:

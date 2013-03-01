@@ -212,6 +212,25 @@ GENERIC_CLNAME
 };  
 
 
+
+class ExperimentTimeRewrite: public DataPlaneOperator {
+ public:
+
+  ExperimentTimeRewrite(): warp(0),delta(0),field(0) {}
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+ private:
+  double warp;
+  time_t delta;
+//  unsigned t_count;
+  unsigned field;
+
+
+GENERIC_CLNAME
+};  
+
+
   
 }
 
