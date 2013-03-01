@@ -49,10 +49,10 @@ class TestTupleGenerator {
 
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+( i % 10000000 ), "http:\\\\www.example.com", 200, 50, 1);
+        create_tuple(*t, time_entered+i, "http:\\\\www.example.com", i, 50, 1);
         tuples.push_back(t);
       }
-      LOG(INFO) << "Generated "<< tuples.size() << " tuples.";
+      LOG(INFO) << "Generated "<< tuples.size() << " tuples. Num= "<<num << " Time started=" << time_entered << "Time ended" << (time_entered+num);
 
     }
 
@@ -105,7 +105,7 @@ class ProcessTest : public ::testing::Test {
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
-      dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
+      dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
       dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
@@ -275,6 +275,10 @@ TEST_F(ProcessTest, DISABLED_ND1M22) {
 
 TEST_F(ProcessTest, DISABLED_ND1M12) {
   run_test(sc, false, 1000000, 1, 1);
+}
+
+TEST_F(ProcessTest, DISABLED_D1M44) {
+  run_test(sc, true, 1000000, 4, 4);
 }
 
 TEST_F(ProcessTest, DISABLED_D1M22) {

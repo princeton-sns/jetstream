@@ -103,7 +103,7 @@ void TupleBatch::flush()
     }
   }
   msec_t now = get_msec();
-  LOG_IF(INFO, (now+10)-start_time > 1000 || num_flushes > 1) << "Finished flush in "<< now-start_time <<" of "
+  LOG_IF(INFO, true) << "Finished flush in "<< now-start_time <<" of "
     << tpi_store.size() <<" elements with "
     << num_flushes << " flushes. Rate = "<<  (now-start_time >0 ? tpi_store.size()/(now-start_time):0);
   /*
