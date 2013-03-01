@@ -66,7 +66,7 @@ bool ProcessCallable::batcher_ready() {
 }
 
 void ProcessCallable::check_flush() {
-  service_process->post(boost::bind(&ProcessCallable::do_check_flush, this));
+  service_flush->post(boost::bind(&ProcessCallable::do_check_flush, this));
 }
 
 void ProcessCallable::do_check_flush() {
