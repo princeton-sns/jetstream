@@ -57,7 +57,6 @@ TEST(CongestMon, WindowLen) {
     ASSERT_LE(4.8, cap_ratio);
     ASSERT_GE(5.2, cap_ratio);
     mon.end_of_window(250, mon.get_window_start());
-    ASSERT_EQ(cap_ratio, mon.capacity_ratio()); // no update on empty window
-  
+    ASSERT_EQ(1, mon.capacity_ratio());
 
 }

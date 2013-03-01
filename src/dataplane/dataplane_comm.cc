@@ -77,7 +77,8 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
-//      LOG(INFO) << " got an end-of-window marker, acking it; ts was " << msg.timestamp();
+      LOG(INFO) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
+       << " and window size was " << msg.window_length_ms();
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
       resp.set_window_length_ms(msg.window_length_ms());
@@ -497,7 +498,7 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
   }
 #ifdef ACK_WINDOW_END
   else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW) {
-    if (remote_processing->get_window_start() > 0) {
+    if (remote_processing->get_window_start() > 0) { //no data in window
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
       msg_out.set_timestamp(  remote_processing->get_window_start()  );
@@ -506,6 +507,8 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
       force_send(); 
       conn->send_msg(msg_out, err);
       remote_processing->new_window_start(); //reset clock
+    } else {
+      remote_processing->end_of_window(msg.window_length_ms(), 0);
     }
   }
 #endif

@@ -43,6 +43,16 @@ def define_cube(cube, ids = [0,1,2,3]):
   cube.set_overwrite(True)
 
 
+def rollup_for_warp(warp_factor):
+#   if warp_factor < 10:
+#     return 8
+#   elif warp_factor < 50:
+#     return 7
+#   elif warp_factor < 100:
+#     return 6
+#   else:
+    return 5
+
 def get_graph(all_nodes, root_node, options):
   g= jsapi.QueryGraph()
 
@@ -62,10 +72,10 @@ def get_graph(all_nodes, root_node, options):
   define_cube(central_cube)
 
   if ECHO_RESULTS:
-    pull_q = jsapi.TimeSubscriber(g, {}, 5000, sort_order="-count", num_results=10)
+    pull_q = jsapi.TimeSubscriber(g, {}, 5000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
-    pull_q.set_cfg("rollup_levels", "8,0,1")
+    pull_q.set_cfg("rollup_levels", "%d,0,1" % rollup_for_warp(options.warp_factor))
     pull_q.set_cfg("simulation_rate", options.warp_factor)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
@@ -79,7 +89,7 @@ def get_graph(all_nodes, root_node, options):
       coral_fidxs['URL_requested'], len(coral_types) ]
 
   for node, i in zip(all_nodes, range(0, len(all_nodes))):
-    local_cube = g.add_cube("local_coral_quant_%d" %i)
+    local_cube = g.add_cube("local_coral_urls_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
@@ -100,6 +110,8 @@ def get_graph(all_nodes, root_node, options):
     pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
+    pull_from_local.set_cfg("max_window_size", 30) #send data at least every 30 seconds
+
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)

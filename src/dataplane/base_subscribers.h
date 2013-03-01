@@ -164,15 +164,11 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     int window_size() {return windowSizeMs;}
 
   private:
-    const static std::string my_type_name;
 
     bool simulation;
     int simulation_rate;
 
-  public:
-    virtual const std::string& typename_as_str() {
-      return my_type_name;
-    }
+GENERIC_CLNAME
 };
 
 /**
@@ -187,9 +183,11 @@ class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
 
   protected:
     int cur_level;
+    std::vector<double> rollup_data_ratios;
+    std::vector<unsigned> rollup_time_periods;
 //    int dim_to_coarsen;
 
-
+GENERIC_CLNAME
 };
 
 class OneShotSubscriber : public jetstream::ThreadedSubscriber {

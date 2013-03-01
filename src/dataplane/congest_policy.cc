@@ -16,38 +16,56 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
 //    LOG(WARNING) << "no congestion monitor ahead of " << op;
     return 0;
   }
-  
-  size_t op_pos = 0;
-  msec_t last_action = 0;
-  for (; op_pos < statuses.size(); ++ op_pos) {
-    OperatorState & status = statuses[op_pos];
-    if( status.op != op && status.availStepsDown > 0) {
-      return 0;
-    } else
-      last_action = max(last_action, status.last_state_change);
-  }
-  
-  msec_t now = get_msec();
-  if ( now - last_action < MIN_MS_BETWEEN_ACTIONS)
+  if (statuses.size() == 0) //monitor not hooked up
     return 0;
   
+  msec_t last_action = 0;
   double congest_level = congest->capacity_ratio();
   
-  VLOG(1) << congest->name() << " congest level was " << congest_level << endl;
+  OperatorState * status = NULL;
+  for (size_t op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
+    status = &statuses[op_pos];
+    if (status->op == op)
+      break;
+    if( (congest_level < 1 && status->availStepsDown > 0)
+      || (congest_level > 1 && status->availStepsUp > 0)) {
+      return 0; //other operator has priority to degrade/upgrade
+    }
+    last_action = max(last_action, status->last_state_change);
+  }
+  DLOG_IF(FATAL, status->op != op) << "no status record for " << op << " in policy";
+  msec_t now = get_msec();
+  if (status->op != op || now - last_action < MIN_MS_BETWEEN_ACTIONS)
+    return 0;
   
-  int delta = 0;
+  bool check_since_action  =  (status->last_check > status->last_state_change); // no action since state change
+  status->last_check = now;
+  if (! check_since_action)
+    return 0;
+  
+  // LOG(INFO)
+  VLOG(2) << "policy for " << op << ". Queue " <<congest->name() <<
+        " congest level was " << congest_level << endl;
+  
+  int targ_step = curLevel;
+
   if ( congest_level < 0.95) {
-    int targ_step = curLevel;
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)
       targ_step --;
-    delta =  targ_step - curLevel;
-  } else if (congest_level > 1.1  &&  (levelsLen - curLevel ) > 1)
-    delta = 1;
-  else
-    delta = 0;
+  } else {
+    //jump up one step, if room
+     if ( targ_step < (levelsLen -1) && 
+       (congest_level / levels[targ_step+1] * levels[curLevel] > 1.1 || (levels[curLevel] == 0))
+     )
+       targ_step ++;
+  }
   
-  if (delta != 0)
+  int delta =  targ_step - curLevel;
+  
+  if (delta != 0) {
     LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)<< ", congestion was " << congest_level;
+    status->last_state_change = now;
+  }
   return delta;
 }
 

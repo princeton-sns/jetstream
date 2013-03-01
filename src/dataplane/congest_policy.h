@@ -24,8 +24,10 @@ class CongestionPolicy {
     int availStepsDown;
     int availStepsUp;
     msec_t last_state_change;
+    msec_t last_check;
     
-    OperatorState(operator_id_t i) : op(i),availStepsDown(0), availStepsUp(0), last_state_change (0) {}
+    OperatorState(operator_id_t i) : op(i),availStepsDown(0), availStepsUp(0),
+      last_state_change (0), last_check(1) {}
   };
 
   protected:

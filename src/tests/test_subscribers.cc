@@ -330,7 +330,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     Tuple query_tuple = cube->empty_tuple();
     TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "VariableCoarseningSubscriber");
     add_cfg_to_task(subsc, "num_results", "100");
-    add_cfg_to_task(subsc, "ts_field","1");
+//    add_cfg_to_task(subsc, "ts_field","1");
     add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
 
     TaskMeta* recv =  add_operator_to_alter(topo, operator_id_t(compID, 2), "FixedRateQueue");
@@ -352,27 +352,33 @@ TEST_F(SubscriberTest,VariableSubscriber) {
   node->get_operator( operator_id_t(compID, 1)));
 
 
-  const int URL_COUNT = 10;
+  const int URL_COUNT = 10; //should take more than 5s to send 'em all
   string urls[URL_COUNT];
   for (int i =0; i < URL_COUNT; ++i)
     urls[i] = "url" + boost::lexical_cast<string>(i);
   
-  for (int t= 0; t < 15; ++t) {
-    time_t now = time(NULL);
-    for( int i =0; i < URL_COUNT; ++i) {
-      boost::shared_ptr<Tuple> tuple(new Tuple);
-      extend_tuple(*tuple, urls[i]);
-      extend_tuple_time(*tuple, now);
-      extend_tuple(*tuple, 1);
-      tuple->set_version(0);
-      cube->process(tuple);
-    }
-    js_usleep(1000 * 1000);
-    if (t % 2 == 0)
-      cout << "tick" << endl;
+    //preload some data into cube
+  time_t now = time(NULL);
+  for( int i =0; i < URL_COUNT; ++i) {
+    boost::shared_ptr<Tuple> tuple(new Tuple);
+    extend_tuple(*tuple, urls[i]);
+    extend_tuple_time(*tuple, now);
+    extend_tuple(*tuple, 1);
+    tuple->set_version(0);
+    cube->process(tuple);
+  }
+  
+  size_t tuples_last_window = 0;
+  for (int t= 0; t < 10; ++t) {
+      //cube will effectively just do the same query over and over
+    js_usleep(2000 * 1000);
+
+    size_t s = receiver->tuples.size();
+    cout << "tick; " <<  (s - tuples_last_window) << " tuples." << endl;
+    tuples_last_window = s;
   }
   cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
-  ASSERT_EQ(10000, subscriber->window_size());
+  EXPECT_EQ(5000, subscriber->window_size());
 //  for (int i = 0; i < receiver->tuples.size(); ++i)
 //    cout << fmt( (*receiver->tuples[i])) << endl;
 //    js_usleep(50 * 1000);

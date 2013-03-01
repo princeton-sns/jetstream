@@ -11,7 +11,8 @@ using namespace ::std;
 using namespace jetstream;
 using namespace boost;
 
-unsigned int const jetstream::DataCube::LEAF_LEVEL = std::numeric_limits<unsigned int>::max();
+unsigned int const jetstream::DataCube::LEAF_LEVEL =  100000;
+  //std::numeric_limits<unsigned int>::max();
 
 ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name), service(new io_service(1)), work(*service), cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
 
