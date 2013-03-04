@@ -6,12 +6,11 @@ from remote_controller import *
 import query_graph as jsapi
 from query_planner import QueryPlanner
 
-
-
-
 def parse_ts(start_ts):
   if start_ts is None:
-    return long(time.time())
+    t = time.time()
+    print "no start-time specified; using %d" % t
+    return long(t)
   if start_ts.isdigit():
     return int(start_ts)
   else:

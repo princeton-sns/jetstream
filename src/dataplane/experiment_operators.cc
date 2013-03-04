@@ -405,9 +405,8 @@ CountLogger::configure(std::map<std::string,std::string> &config) {
   if ( !(istringstream(config["field"]) >> field)) {
     return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
   }
+  return NO_ERR;  
 }
-
-
 
 
 

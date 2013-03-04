@@ -63,7 +63,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   int delta =  targ_step - curLevel;
   
   if (delta != 0) {
-    LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)<< ", congestion: " << congest_level << " TS " << now/1000;
+    LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)<< ", congestion: " << congest_level << " at " << congest->name() << " TS " << now/1000;
     status->last_state_change = now;
   }
   return delta;
