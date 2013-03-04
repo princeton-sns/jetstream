@@ -294,15 +294,13 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   if (config.find("simulation_rate") != config.end()) {
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
 
-    if (simulation_rate > 1) {
-      LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
-      windowOffsetMs *= simulation_rate;
-      simulation = true;
+    LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
+    windowOffsetMs *= simulation_rate;
+    simulation = true;
 
-      VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
-      VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
-      VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
-    }
+    VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
+    VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+    VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
   }
 
   return NO_ERR;

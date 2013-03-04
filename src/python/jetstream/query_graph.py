@@ -607,6 +607,12 @@ class TimeSubscriber(Operator):
     return in_schema  #everything is just passed through
 
 
+def VariableCoarseningSubscriber(*args, **kwargs):
+   op = TimeSubscriber(*args, **kwargs)
+   op.type = OpType.VAR_TIME_SUBSCRIBE
+   return op
+
+
 def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, interval_ms=1000):
    cfg = {"time_tuple_index" : str(time_tuple_index),
           "hostname_tuple_index" : str(hostname_tuple_index),
@@ -655,7 +661,6 @@ def URLToDomain(graph, field):
    return graph.add_operator(OpType.URLToDomain, cfg)
 
 
-def VariableCoarseningSubscriber(*args, **kwargs):
-   op = TimeSubscriber(*args, **kwargs)
-   op.type = OpType.VAR_TIME_SUBSCRIBE
-   return op
+def TimeWarp(graph, field, warp):
+   cfg = {"field":field, "warp":warp}
+   return graph.add_operator(OpType.TIMEWARP, cfg)

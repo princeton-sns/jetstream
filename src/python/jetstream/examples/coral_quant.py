@@ -97,7 +97,7 @@ def get_graph(all_nodes, root_node, options):
       f = jsapi.FileRead(g, options.fname, skip_empty=True)
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
-      round = jsapi.TRoundOperator(g, fld=1, round_to=1)
+      round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
       to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
       to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
       g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
@@ -112,7 +112,7 @@ def get_graph(all_nodes, root_node, options):
       pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
       
     pull_from_local.instantiate_on(node)
-    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+#    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few

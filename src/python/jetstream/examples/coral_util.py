@@ -1,4 +1,6 @@
 import sys
+import time
+
 from optparse import OptionParser
 from remote_controller import *
 import query_graph as jsapi
@@ -6,7 +8,10 @@ from query_planner import QueryPlanner
 
 
 
+
 def parse_ts(start_ts):
+  if start_ts is None:
+    return long(time.time())
   if start_ts.isdigit():
     return int(start_ts)
   else:
@@ -26,7 +31,7 @@ def standard_option_parser():
   parser.add_option("-l", "--latency_log_file", dest="latencylog",
   default="latencies.out", help="file to log latency into")
   parser.add_option("--start-time", dest="start_ts",
-  default="0", help="unix timestamp to start simulation at")
+  default=None, help="unix timestamp to start simulation at")
   parser.add_option("--timewarp", dest="warp_factor",
   default="1", help="simulation speedup")
   parser.add_option("--analyze_only", dest="analyze_only",

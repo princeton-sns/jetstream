@@ -23,6 +23,7 @@ class OpType (object):
   TO_SUMMARY = "ToSummary"
   SUMMARY_TO_COUNT = "SummaryToCount"
   URLToDomain = "URLToDomain"
+  TIMEWARP = "ExperimentTimeRewrite"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -119,7 +120,6 @@ def validate_TRound(in_schema, cfg):
   t = in_schema[fld_offset][0]
   if t not in roundable_types:
     raise SchemaError("rounding operator requires that field %d be a time, instead was %s" % (fld_offset,t))
-
   # NC being sneaky here...
   cfg['in_type'] = t
 
@@ -196,6 +196,19 @@ def validate_ToSummary(in_schema, cfg):
   newS[fld] = ('Histogram', 'summary of '+in_schema[fld][1])
   return newS  
 
+def validate_Timewarp(in_schema, cfg):
+  fld_offset = int(cfg['field'])
+  if fld_offset >= len(in_schema):
+    raise SchemaError("can't round field %d since input only has %d fields (%s)." % \
+         (fld_offset, len(in_schema), str(in_schema)))
+    
+  roundable_types = list('TD')
+  t = in_schema[fld_offset][0]
+  if t not in roundable_types:
+    raise SchemaError("rounding operator requires that field %d be a time, instead was %s" % (fld_offset,t))
+  out_schema = list(in_schema)
+  out_schema[fld_offset] = ('T', in_schema[fld_offset][1])
+  return out_schema
 
 def validate_URLToDomain(in_schema, cfg):
   fld = cfg['field']
@@ -236,3 +249,4 @@ SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
 SCHEMAS[OpType.QUANTILE] = validate_Quantile
 SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
+SCHEMAS[OpType.TIMEWARP] = validate_Timewarp

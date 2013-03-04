@@ -74,7 +74,7 @@ def get_graph(all_nodes, root_node, options):
   if ECHO_RESULTS:
     pull_q = jsapi.TimeSubscriber(g, {}, 5000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
-    pull_q.set_cfg("start_ts", start_ts)
+#    pull_q.set_cfg("start_ts", start_ts)
     pull_q.set_cfg("rollup_levels", "%d,0,1" % rollup_for_warp(options.warp_factor))
     pull_q.set_cfg("simulation_rate", options.warp_factor)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
@@ -97,7 +97,7 @@ def get_graph(all_nodes, root_node, options):
       f = jsapi.FileRead(g, options.fname, skip_empty=True)
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
-      round = jsapi.TRoundOperator(g, fld=1, round_to=10) #ASR experiment
+      round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
       url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
       g.chain( [f, csvp, round, url_to_dom, local_cube] )
       f.instantiate_on(node)
@@ -107,7 +107,7 @@ def get_graph(all_nodes, root_node, options):
     query_rate = 1000 if ANALYZE else 3600 * 1000
     pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
     pull_from_local.instantiate_on(node)
-    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+    pull_from_local.set_cfg("simulation_rate", 1)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
     pull_from_local.set_cfg("max_window_size", 30) #send data at least every 30 seconds

@@ -351,11 +351,12 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
 
   int emitted = emitted_count();
   
-  if(emitted == 0) {
+  if(first_tuple_t == 0) {
     first_tuple_t = old_ts;
-    delta = time(NULL); //amount to shift by
+    if (delta == 0)
+      delta = time(NULL); //amount to shift by
   }
-  time_t new_t = (old_ts - first_tuple_t) * warp + delta;
+  time_t new_t = (old_ts - first_tuple_t) / warp + delta;
   
   if ( (emitted & 0xFF) == 0 ) { // once every 256 tuples
     if (new_t < time(0) -1)
@@ -376,6 +377,13 @@ ExperimentTimeRewrite::configure(std::map<std::string,std::string> &config) {
   if ( !(istringstream(config["warp"]) >> warp)) {
     return operator_err_t("must specify a timewarp as 'warp'.  " + config["field"] +  " instead");
   }
+
+  if (config.find("delta") != config.end()) {
+    if ( !(istringstream(config["delta"]) >> delta)) {
+      return operator_err_t("Delta must be a timestamp, if set.  " + config["delta"] +  " instead");
+    }    
+  }
+
   return NO_ERR;
 
 }
