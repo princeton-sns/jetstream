@@ -508,6 +508,34 @@ TEST(Operator, URLToDomain) {
   ASSERT_EQ((size_t)1, rec->tuples.size());
   string dom = (rec->tuples)[0]->e(0).s_val();
   ASSERT_EQ(dom, "foo.com");
+}
+
+TEST(Operator, ExperimentTimeRewrite) {
+  ExperimentTimeRewrite time_shift;
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  time_shift.set_dest(rec);
+  
+  operator_config_t cfg;
+  cfg["field"] = "0";
+  cfg["warp"] = "100";
+  operator_err_t err = time_shift.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+
+  time_t T_BASE = 1358640903; //jan 19, 2013
+ 
+  shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+  extend_tuple_time(*t, T_BASE);
+  
+  time_shift.process(t);
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+  time_t shifted = (rec->tuples)[0]->e(0).t_val();
+  time_t now = time(NULL);
+  ASSERT_GT(shifted, now - 2);
+  ASSERT_LT(shifted, now + 2);
+  t->mutable_e(0)->set_t_val(T_BASE + 1);
+  time_shift.process(t);
+  time_t shifted_2 = (rec->tuples)[1]->e(0).t_val();
+  ASSERT_EQ(100U, shifted_2 - shifted);
   
 
 }

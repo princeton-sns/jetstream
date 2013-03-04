@@ -216,13 +216,14 @@ GENERIC_CLNAME
 class ExperimentTimeRewrite: public DataPlaneOperator {
  public:
 
-  ExperimentTimeRewrite(): warp(0),delta(0),field(0) {}
+  ExperimentTimeRewrite(): warp(0),first_tuple_t(0),delta(0),field(0) {}
   virtual void process(boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
  private:
   double warp;
-  time_t delta;
+  time_t first_tuple_t; //the tuple time of first tuple
+  time_t delta; //offset from simulation to reality for first tuple
 //  unsigned t_count;
   unsigned field;
 
