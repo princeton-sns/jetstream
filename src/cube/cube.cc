@@ -89,7 +89,7 @@ void ProcessCallable::do_check_flush() {
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf) :
   schema(_schema), name(_name), is_frozen(false),
   version(0),
-  flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10, "cube " + _name + " flush"))),
+  flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(1000, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
   processCongestMon->set_next_monitor(flushCongestMon);
