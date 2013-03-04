@@ -66,7 +66,7 @@ def get_graph(all_nodes, root_node, options):
     pull_q.set_cfg("latency_ts_field", 7)
     pull_q.set_cfg("start_ts", start_ts)
     pull_q.set_cfg("rollup_levels", "8,1")
-    pull_q.set_cfg("simulation_rate", options.warp_factor)
+    pull_q.set_cfg("simulation_rate",1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
     count_op = jsapi.SummaryToCount(g, 2)
@@ -112,7 +112,7 @@ def get_graph(all_nodes, root_node, options):
       pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
       
     pull_from_local.instantiate_on(node)
-#    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+    pull_from_local.set_cfg("simulation_rate", 1)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few

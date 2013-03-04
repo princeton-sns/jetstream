@@ -77,7 +77,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
-      LOG(INFO) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
+      LOG_EVERY_N(INFO, 10) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
        << " and window size was " << msg.window_length_ms();
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);

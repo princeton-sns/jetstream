@@ -74,9 +74,9 @@ def get_graph(all_nodes, root_node, options):
   if ECHO_RESULTS:
     pull_q = jsapi.TimeSubscriber(g, {}, 5000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
-#    pull_q.set_cfg("start_ts", start_ts)
+    pull_q.set_cfg("start_ts", start_ts)
     pull_q.set_cfg("rollup_levels", "%d,0,1" % rollup_for_warp(options.warp_factor))
-    pull_q.set_cfg("simulation_rate", options.warp_factor)
+    pull_q.set_cfg("simulation_rate", 1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
     echo = jsapi.Echo(g)
