@@ -42,7 +42,7 @@ class MysqlCubeNoDB: public MysqlCube {
 class TestTupleGenerator {
 
   public:
-    TestTupleGenerator(size_t num, DataCube * cube): cube(cube) {
+    TestTupleGenerator(size_t num, DataCube * cube, unsigned int time_offset=0): cube(cube) {
 
       //time_t time_entered = time(NULL);
       int time_entered = 1;
@@ -50,7 +50,7 @@ class TestTupleGenerator {
   
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+i, "http:\\\\www.example.com", 200, 50, 1);
+        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.com", 200, 50, 1);
         tuples.push_back(t);
       }
       LOG(INFO) << "Generated "<< tuples.size() << " tuples. Num= "<<num << " Time started=" << time_entered << "Time ended" << (time_entered+num);
@@ -181,7 +181,7 @@ class ProcessTest : public ::testing::Test {
       LOG(WARNING) << "statement was " << sql;
     }
 }*/
-
+/*
 void insert_tuple2(jetstream::Tuple & t, time_t time, string url, int rc, int sum, int count) {
   t.clear_e();
   jetstream::Element *e = t.add_e();
@@ -207,9 +207,9 @@ void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, un
     insert_tuple2(*t, time_entered+( i % rep ), "http:\\\\www.example.com", 200, 50, 1);
     vector.push_back(t);
   }
-}
+}*/
 
-void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads) {
+void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true) {
   NodeConfig conf;
   conf.cube_processor_threads = num_process_threads;
   
@@ -230,7 +230,11 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
   std::vector< TestTupleGenerator * > gens;
 
   for(size_t i = 0; i<num_tuple_insert_threads; ++i) {
-    TestTupleGenerator * g= new TestTupleGenerator(num_tuples/num_tuple_insert_threads, cube);
+    TestTupleGenerator * g;
+    if(overlap)
+     g = new TestTupleGenerator(num_tuples/num_tuple_insert_threads, cube);
+    else
+     g = new TestTupleGenerator(num_tuples/num_tuple_insert_threads, cube, (num_tuples/num_tuple_insert_threads)*i);
     gens.push_back(g);
   }
 
@@ -290,15 +294,31 @@ TEST_F(ProcessTest, DISABLED_D10K44) {
   run_test(sc, true, 10000, 4, 4);
 }
 
-TEST_F(ProcessTest, DISABLED_D100K44) {
-  run_test(sc, true, 100000, 4, 4);
+TEST_F(ProcessTest, DISABLED_D100K44O) {
+  run_test(sc, true, 100000, 4, 4, true);
 }
+
+TEST_F(ProcessTest, DISABLED_D100K11NO) {
+  run_test(sc, true, 100000, 4, 4, false);
+}
+
+TEST_F(ProcessTest, DISABLED_D100K44NO) {
+  run_test(sc, true, 100000, 4, 4, false);
+}
+
+TEST_F(ProcessTest, DISABLED_D100K88NO) {
+  run_test(sc, true, 100000, 4, 4, false);
+}
+
+
 TEST_F(ProcessTest, DISABLED_D100K14) {
   run_test(sc, true, 100000, 1, 4);
 }
+
 TEST_F(ProcessTest, DISABLED_D100K41) {
   run_test(sc, true, 100000, 4, 1);
 }
+
 TEST_F(ProcessTest, DISABLED_D100K11) {
   run_test(sc, true, 100000, 1, 1);
 }
