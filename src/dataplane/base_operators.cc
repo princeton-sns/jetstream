@@ -647,6 +647,27 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
 }
 
 
+void
+GreaterThan::process (boost::shared_ptr<Tuple> t) {
+
+  int val = t->e(field_id).i_val();
+  if (val > bound)
+    emit(t);
+}
+
+operator_err_t
+GreaterThan::configure (std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+
+  if ( !(istringstream(config["bound"]) >> bound)) {
+    return operator_err_t("must specify bound; got " + config["field"] +  " instead");
+  }
+  return NO_ERR;
+}
+
+
 const string FileRead::my_type_name("FileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
 const string StringGrep::my_type_name("StringGrep operator");
@@ -660,5 +681,7 @@ const string HashSampleOperator::my_type_name("Hash-sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
 const string UnixOperator::my_type_name("Unix command");
 const string URLToDomain::my_type_name("URL to Domain");
+const string GreaterThan::my_type_name("Numeric Filter");
+
 
 }
