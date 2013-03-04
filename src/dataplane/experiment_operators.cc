@@ -400,6 +400,19 @@ CountLogger::process(boost::shared_ptr<Tuple> t) {
   emit(t);
 }
 
+void
+CountLogger::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+
+  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+      time_t now = time(NULL);
+      LOG(INFO) << " Tally in window ending at " << now << " "
+        << tally_in_window << " or " << (1000 * tally_in_window) / msg.window_length_ms() << " per sec";
+      tally_in_window = 0;
+  }
+  DataPlaneOperator::meta_from_upstream(msg, pred);
+}
+
+
 operator_err_t
 CountLogger::configure(std::map<std::string,std::string> &config) {
   if ( !(istringstream(config["field"]) >> field)) {

@@ -115,13 +115,15 @@ def get_graph(all_nodes, root_node, options):
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)
+    count_logger = jsapi.CountLogger(g, field=3)
+
     timestamp_op= jsapi.TimestampOperator(g, "ms")
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
 
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
-    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
+    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
     if options.bw_cap:
       timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
 

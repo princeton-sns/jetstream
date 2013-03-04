@@ -238,6 +238,8 @@ class CountLogger: public DataPlaneOperator {
   CountLogger(): tally_in_window(0),field(0) {}
   virtual void process(boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
 
  private:
   unsigned tally_in_window;

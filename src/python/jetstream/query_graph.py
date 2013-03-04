@@ -665,7 +665,7 @@ def TimeWarp(graph, field, warp):
    cfg = {"field":field, "warp":warp}
    return graph.add_operator(OpType.TIMEWARP, cfg)
 
-def CountLogger(graph, field, warp):
+def CountLogger(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 

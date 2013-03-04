@@ -121,6 +121,7 @@ def get_graph(all_nodes, root_node, options):
 
     local_cube.instantiate_on(node)
 
+    count_logger = jsapi.CountLogger(g, field=4)
     timestamp_op= jsapi.TimestampOperator(g, "ms")
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])  #why is this here? -asr?
     count_extend_op.instantiate_on(node)      # TODO should get a real hostname here
@@ -128,7 +129,7 @@ def get_graph(all_nodes, root_node, options):
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
 
-    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
+    g.chain([local_cube, pull_from_local, count_logger,timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
     if options.bw_cap:
       timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
 #  g.chain([local_cube, pull_from_local, count_op, q_op, q_op2, echo] )
