@@ -359,8 +359,11 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
   time_t new_t = (old_ts - first_tuple_t) / warp + delta;
   
   if ( (emitted & 0xFF) == 0 ) { // once every 256 tuples
-    if (new_t < time(0) -1)
-      LOG(INFO) << "ExperimentTimeRewrite has fallen behind";
+    time_t now = time(0);
+    if (new_t < now -1) {
+      LOG(INFO) << "ExperimentTimeRewrite has fallen behind. Emitting " <<
+        new_t << " at " << now;
+    }
   }
   e->set_t_val( new_t);
   
