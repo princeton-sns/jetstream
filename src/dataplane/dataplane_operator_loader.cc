@@ -98,6 +98,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(MockCongestion);
   REGISTER_OP(FixedRateQueue);
   REGISTER_OP(ExperimentTimeRewrite);
+  REGISTER_OP(CountLogger);
   
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);

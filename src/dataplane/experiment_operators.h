@@ -232,6 +232,21 @@ GENERIC_CLNAME
 };  
 
 
+class CountLogger: public DataPlaneOperator {
+ public:
+
+  CountLogger(): tally_in_window(0),field(0) {}
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+ private:
+  unsigned tally_in_window;
+  unsigned field;
+
+
+GENERIC_CLNAME
+};  
+
   
 }
 

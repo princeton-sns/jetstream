@@ -389,6 +389,25 @@ ExperimentTimeRewrite::configure(std::map<std::string,std::string> &config) {
 }
 
 
+
+void
+CountLogger::process(boost::shared_ptr<Tuple> t) {
+
+  tally_in_window += t->e(field).i_val();
+  emit(t);
+}
+
+operator_err_t
+CountLogger::configure(std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+}
+
+
+
+
+
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
@@ -398,5 +417,7 @@ const string EchoOperator::my_type_name("Echo");
 const string MockCongestion::my_type_name("Mock Congestion");
 const string FixedRateQueue::my_type_name("Fixed rate queue");
 const string ExperimentTimeRewrite::my_type_name("Time rewrite");
+const string CountLogger::my_type_name("Count logger");
+
 
 }

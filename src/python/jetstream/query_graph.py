@@ -664,3 +664,9 @@ def URLToDomain(graph, field):
 def TimeWarp(graph, field, warp):
    cfg = {"field":field, "warp":warp}
    return graph.add_operator(OpType.TIMEWARP, cfg)
+
+def CountLogger(graph, field, warp):
+   cfg = {"field":field}
+   return graph.add_operator(OpType.COUNT_LOGGER, cfg)
+
+

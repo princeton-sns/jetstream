@@ -23,7 +23,7 @@ class OpType (object):
   TO_SUMMARY = "ToSummary"
   SUMMARY_TO_COUNT = "SummaryToCount"
   URLToDomain = "URLToDomain"
-  TIMEWARP = "ExperimentTimeRewrite"
+  COUNT_LOGGER = "CountLogger"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -31,6 +31,8 @@ class OpType (object):
   ECHO = "EchoOperator"
   RAND_SOURCE = "RandSourceOperator"
   RAND_EVAL = "RandEvalOperator"
+  TIMEWARP = "ExperimentTimeRewrite"
+
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   VAR_TIME_SUBSCRIBE = "VariableCoarseningSubscriber"
@@ -216,6 +218,13 @@ def validate_URLToDomain(in_schema, cfg):
     raise SchemaError("Can't parse field %d of %s" % (fld, str(in_schema)))
   return in_schema    
   
+def validate_CountLogger(in_schema, cfg):
+  fld = cfg['field']
+  if fld >= len(in_schema) or in_schema[fld][0] != 'I':
+    raise SchemaError("Can't tabulate field %d of %s" % (fld, str(in_schema)))
+  return in_schema
+
+
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
 # A schema itself is a list of pairs, where the first element is a typecode [I,D,S, or T]
@@ -250,3 +259,4 @@ SCHEMAS[OpType.QUANTILE] = validate_Quantile
 SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp
+#SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
