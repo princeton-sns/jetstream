@@ -582,10 +582,12 @@ BWReporter::sending_a_tuple(size_t b) {
   bytes += b;
   msec_t now = get_msec();
   if ( now > next_report) {
-    double tdiff = (now - next_report + REPORT_INTERVAL)/1000.0;
+    time_t last_report = next_report - REPORT_INTERVAL;
+    double tdiff = (now - last_report)/1000.0; // in seconds
     LOG(INFO)<< "BWReporter@ " << (now/1000) << " " << bytes/tdiff << " bytes/sec; " <<
         tuples/tdiff << " tuples/sec";
-    bytes = tuples = 0;
+    bytes = 0;
+    tuples = 0;
     next_report = now + REPORT_INTERVAL;
   }
 }

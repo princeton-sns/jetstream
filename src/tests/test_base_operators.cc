@@ -532,10 +532,10 @@ TEST(Operator, ExperimentTimeRewrite) {
   time_t now = time(NULL);
   ASSERT_GT(shifted, now - 2);
   ASSERT_LT(shifted, now + 2);
-  t->mutable_e(0)->set_t_val(T_BASE + 1);
+  t->mutable_e(0)->set_t_val(T_BASE + 100);
   time_shift.process(t);
   time_t shifted_2 = (rec->tuples)[1]->e(0).t_val();
-  ASSERT_EQ(100U, shifted_2 - shifted);
+  ASSERT_EQ(1U, shifted_2 - shifted);
   
 
 }

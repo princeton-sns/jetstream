@@ -30,7 +30,7 @@ class BWReporter {
   msec_t next_report;
   msec_t REPORT_INTERVAL;
   public:
-    BWReporter(): tuples(0), bytes(0),next_report(0),REPORT_INTERVAL(2000)
+    BWReporter(): tuples(0), bytes(0),next_report(0),REPORT_INTERVAL(5000)
     {}
     void sending_a_tuple(size_t b);
     
