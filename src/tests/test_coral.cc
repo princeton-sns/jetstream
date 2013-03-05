@@ -41,7 +41,7 @@ class TestTupleCoralGenerator {
   
         shared_ptr<FileRead> fr_op(new FileRead);
         shared_ptr<CSVParse> csvp_op(new CSVParseStrTk);
-        shared_ptr<TRoundingOperator> tr_op(new TRoundingOperator);
+        shared_ptr<ExperimentTimeRewrite> tr_op(new ExperimentTimeRewrite);
         
         operator_config_t cfg;
         cfg["file"] = CORAL_FILE;
@@ -49,10 +49,14 @@ class TestTupleCoralGenerator {
         cfg["discard_off_size"] = "true";
         cfg["types"] = "IDSSSSSSIIIIIIISS";
         cfg["fields_to_keep"]="all";
-        cfg["fld_offset"]="1";
-        cfg["round_to"]="1";
-        cfg["in_type"]="D";
-        cfg["add_offset"]="0";
+        //cfg["fld_offset"]="1";
+        //cfg["round_to"]="1";
+        //cfg["in_type"]="D";
+        //cfg["add_offset"]="0";
+        
+
+        cfg["field"]="1";
+        cfg["warp"]="300";
 
         configure_operator(fr_op, cfg);
         configure_operator(csvp_op, cfg);

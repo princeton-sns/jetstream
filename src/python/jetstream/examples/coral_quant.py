@@ -28,8 +28,9 @@ def main():
 
   all_nodes,server = get_all_nodes(options)
   root_node = find_root_node(options, all_nodes)
+  source_nodes = get_source_nodes(options, all_nodes, root_node)
 
-  g = get_graph(all_nodes, root_node,  options)
+  g = get_graph(source_nodes, root_node,  options)
 
   deploy_or_dummy(options, server, g)
 
@@ -44,7 +45,7 @@ def define_cube(cube, ids = [0,1,2,3,4]):
   cube.set_overwrite(True)
 
 
-def get_graph(all_nodes, root_node, options):
+def get_graph(source_nodes, root_node, options):
   g= jsapi.QueryGraph()
 
   ANALYZE = not options.load_only
@@ -89,7 +90,7 @@ def get_graph(all_nodes, root_node, options):
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
 
-  for node, i in numbered(all_nodes, not LOADING):
+  for node, i in numbered(source_nodes, not LOADING):
     local_cube = g.add_cube("local_coral_quant_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
