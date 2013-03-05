@@ -88,7 +88,7 @@ def get_graph(all_nodes, root_node, options):
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['URL_requested'], len(coral_types) ]
 
-  for node, i in zip(all_nodes, range(0, len(all_nodes))):
+  for node, i in numbered(all_nodes, not LOADING):
     local_cube = g.add_cube("local_coral_urls_%d" %i)
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()

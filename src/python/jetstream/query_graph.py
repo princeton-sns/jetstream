@@ -226,7 +226,7 @@ class QueryGraph(object):
       else:
         out_schema = self.cubes[n].out_schema (input_schema[n])
 
-      print "out-schema for", n, self.node_type(n), "is", out_schema
+#      print "out-schema for", n, self.node_type(n), "is", out_schema
 
       for o in forward_edges.get(n, []):
         if o in input_schema: #already have a schema:

@@ -1,10 +1,16 @@
+
+import os
+import os.path
+import pickle
 import sys
 import time
+
 
 from optparse import OptionParser
 from remote_controller import *
 import query_graph as jsapi
 from query_planner import QueryPlanner
+
 
 def parse_ts(start_ts):
   if start_ts is None:
@@ -84,6 +90,30 @@ def find_root_node(options, all_nodes):
     all_nodes.remove(root_node)
     
   return root_node
+
+
+
+
+CACHE_PATH = "host_numbering.cache"
+def numbered(all_nodes, can_read_cache = True):
+  
+  p = os.path.normpath(CACHE_PATH)
+  if os.path.exists(p) and can_read_cache:
+    print "reading cached cube numbering from", p
+    f = open(p, 'rb')
+    mapping = dict(pickle.load( f ))
+    f.close()
+    return [ (n, mapping.get(n.address, "x")) for n in all_nodes]
+  
+  else:
+    res = zip(all_nodes, range(0, len(all_nodes)))
+    unfolded_res = [ (n.address, num) for (n, num) in res]
+    f = open(p, 'wb')
+    pickle.dump(unfolded_res, f)
+    f.close()
+  
+  return res
+
 
 def deploy_or_dummy(options, server, g):
   req = g.get_deploy_pb()
