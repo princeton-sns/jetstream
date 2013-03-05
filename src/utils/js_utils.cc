@@ -81,9 +81,9 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
   if (el.has_s_val())
     buf << el.s_val();
   else if (el.has_d_val())
-    buf << el.d_val();
+    buf << "D=" << el.d_val();
   else if (el.has_i_val())
-    buf << el.i_val();
+    buf << "I="<<el.i_val();
   else if (el.has_t_val()) {
     time_t t = (time_t)el.t_val();
     struct tm parsed_time;
@@ -115,6 +115,14 @@ std::string fmt(const jetstream::Tuple& t) {
     add_one_el(buf, t.e(i));
   }
   buf<< ")";
+  return buf.str();
+}
+
+std::string fmt(const jetstream::Element& e) {
+  std::ostringstream buf;
+  buf << "[";
+    add_one_el(buf, e);
+  buf<< "]";
   return buf.str();
 }
 

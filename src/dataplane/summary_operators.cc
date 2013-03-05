@@ -90,7 +90,7 @@ void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
 
 operator_err_t
 SummaryToCount::configure(std::map<std::string,std::string> &config) {
-  if( !(istringstream(config["field"]) >> field))
+  if(config["field"].length() == 0 || !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
   return NO_ERR;
 }

@@ -17,7 +17,7 @@ jetstream::DataCube::DimensionKey MysqlDimensionTimeContainment::get_key(Tuple c
     return boost::lexical_cast<string>(e->t_val());
   }
 
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name << " index " <<tuple_indexes[0] << " Element: "<<fmt(*e);
 }
 
 void
@@ -27,7 +27,7 @@ MysqlDimensionTimeContainment::get_key(Tuple const &t, std::ostringstream &ostr)
     ostr << e.t_val();
     return;
   }
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name << " index " <<tuple_indexes[0] << " element: "<< fmt(e);
 }
 
 

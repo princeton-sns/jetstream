@@ -21,6 +21,7 @@ int          js_usleep(useconds_t usecs);
 
 
 std::string fmt(const jetstream::Tuple& t);
+std::string fmt(const jetstream::Element& t);
 
 void set_thread_name(std::string name);
 
