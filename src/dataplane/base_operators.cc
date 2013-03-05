@@ -20,6 +20,7 @@
 
 
 #include "js_utils.h"
+#include "strtk.hpp"
 
 using namespace std;
 using namespace boost;
@@ -163,6 +164,61 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
 std::string
 CSVParse::long_description() {
   return "CSV parser";
+}
+
+
+void
+CSVParseStrTk::process(boost::shared_ptr<Tuple> t) {
+  // FIXME assume we want to parse 0th element
+  const Element& e = t->e(0);
+
+  if (!e.has_s_val()) {
+    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
+    return;
+  }
+  try {
+   // boost::tokenizer<boost::escaped_list_separator<char> > csv_parser(e.s_val());
+
+   strtk::token_grid::options options;
+   options.column_delimiters = " ,";
+   options.support_dquotes = true;
+
+   string val = e.s_val();
+   val += "\n";
+   strtk::token_grid grid(val, val.size(), options);
+
+    shared_ptr<Tuple> t2(new Tuple);
+    t2->set_version(t->version());
+
+    strtk::token_grid::row_type row = grid.row(0);
+    int i=0;
+    for (std::size_t c = 0; c < row.size(); ++c) 
+    {
+      if (i >= n_fields) {
+        //LOG(INFO) << "Parse I=" << i << " Res = |" << row.get<std::string>(c) <<"|";
+        LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
+          << e.s_val()<< endl;
+      } else {
+        //LOG(INFO) << "Parse I=" << i << " Res = |" << row.get<std::string>(c)<<"|";
+        if (keep_fields[i])
+          parse_with_types(t2->add_e(), row.get<std::string>(c), types[i]);
+      }
+      i++;
+    }
+    if (row.get<std::string>(row.size()-1).size() == 0)
+      i--;
+    if (!discard_off_size || (i == n_fields)) {
+      emit(t2);
+    }
+    else
+    {
+      //LOG(INFO)  << "Not Emitting "<< discard_off_size << " i " << i << " nf " << n_fields;
+    }
+  } catch (boost::escaped_list_error err) {
+    LOG_FIRST_N(WARNING, 20) << err.what() << " on " << e.s_val();
+  }
+  // assume we don't need to pass through any other elements...
+  // TODO unassume
 }
 
 operator_err_t
@@ -670,6 +726,7 @@ GreaterThan::configure (std::map<std::string,std::string> &config) {
 
 const string FileRead::my_type_name("FileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
+const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");

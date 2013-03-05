@@ -40,7 +40,7 @@ class TestTupleCoralGenerator {
       //boost::shared_ptr<jetstream::Tuple> t;
   
         shared_ptr<FileRead> fr_op(new FileRead);
-        shared_ptr<CSVParse> csvp_op(new CSVParse);
+        shared_ptr<CSVParse> csvp_op(new CSVParseStrTk);
         shared_ptr<TRoundingOperator> tr_op(new TRoundingOperator);
         
         operator_config_t cfg;
@@ -155,7 +155,7 @@ class TestCSVGenerator {
     void parse() {
       unsigned int i = 0;
 
-      shared_ptr<CSVParse> csvp_op(new CSVParse);
+      shared_ptr<CSVParse> csvp_op(new CSVParseStrTk);
 
       operator_config_t cfg;
       cfg["discard_off_size"] = "true";
@@ -171,7 +171,7 @@ class TestCSVGenerator {
         csvp_op->process(*it);
         ++i;
 
-        LOG_EVERY_N(INFO, 10000) << "CSV Parse at " << i;// <<"Tup " << fmt(*(receive->tuples[0]));
+        LOG_EVERY_N(INFO, 10000) << "CSV Parse at " << i <<"Tup " << fmt(*(receive->tuples[0]));
       }
       LOG(INFO) << "Finished parsing: " << i << "tuples";
     }
