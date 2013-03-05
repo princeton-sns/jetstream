@@ -39,3 +39,37 @@ node12.princeton.vicci.org
 node13.princeton.vicci.org public_ip=128.112.171.44 server_index=6
 node3.princeton.vicci.org public_ip=128.112.171.24 server_index=12
 node10.princeton.vicci.org public_ip=128.112.171.38 server_index=7
+
+[new]
+node11.mpisws.vicci.org public_ip=141.39.220.21 server_index=34
+node12.mpisws.vicci.org public_ip=141.39.220.22 server_index=35
+node13.mpisws.vicci.org public_ip=141.39.220.23 server_index=36
+node14.mpisws.vicci.org public_ip=141.39.220.24 server_index=37
+node15.mpisws.vicci.org public_ip=141.39.220.25 server_index=38
+node16.mpisws.vicci.org public_ip=141.39.220.26 server_index=39
+node17.mpisws.vicci.org public_ip=141.39.220.27 server_index=40
+node18.mpisws.vicci.org public_ip=141.39.220.28 server_index=41
+node19.mpisws.vicci.org public_ip=141.39.220.29 server_index=42
+node20.mpisws.vicci.org public_ip=141.39.220.30 server_index=43
+node10.washington.vicci.org public_ip=128.95.1.115 server_index=44
+node11.washington.vicci.org public_ip=128.95.1.116 server_index=45
+node12.washington.vicci.org public_ip=128.95.1.117 server_index=46
+node13.washington.vicci.org public_ip=128.95.1.118 server_index=47
+node14.washington.vicci.org public_ip=128.95.1.119 server_index=48
+node15.washington.vicci.org public_ip=128.95.1.120 server_index=49
+node16.washington.vicci.org public_ip=128.95.1.121 server_index=50
+node17.washington.vicci.org public_ip=128.95.1.122 server_index=51
+node18.washington.vicci.org public_ip=128.95.1.123 server_index=52
+node19.washington.vicci.org public_ip=128.95.1.124 server_index=53
+node20.washington.vicci.org public_ip=128.95.1.125 server_index=54
+node10.gt.vicci.org public_ip=130.207.98.19 server_index=55
+node11.gt.vicci.org public_ip=130.207.98.20 server_index=56
+node12.gt.vicci.org public_ip=130.207.98.21 server_index=57
+node13.gt.vicci.org public_ip=130.207.98.22 server_index=58
+node14.gt.vicci.org public_ip=130.207.98.23 server_index=59
+node15.gt.vicci.org public_ip=130.207.98.24 server_index=60
+node16.gt.vicci.org public_ip=130.207.98.25 server_index=61
+node17.gt.vicci.org public_ip=130.207.98.26 server_index=62
+node18.gt.vicci.org public_ip=130.207.98.27 server_index=63
+node19.gt.vicci.org public_ip=130.207.98.28 server_index=64
+node20.gt.vicci.org public_ip=130.207.98.29 server_index=65
