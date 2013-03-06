@@ -73,6 +73,8 @@ def get_graph(source_nodes, root_node, options):
   thresh_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
   thresh_cube.add_agg("thresh", jsapi.Cube.AggType.COUNT, 1)
   thresh_cube.set_overwrite(True)
+  thresh_cube.instantiate_on(root_node)
+
 
   if ECHO_RESULTS:
     echo = jsapi.Echo(g)
@@ -80,7 +82,6 @@ def get_graph(source_nodes, root_node, options):
     g.chain( [q_op, echo, thresh_cube] )
   else:
     g.chain(  [q_op, thresh_cube] )  
-
 
 
 #   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
@@ -94,6 +95,8 @@ def get_graph(source_nodes, root_node, options):
 
   global_results = g.add_cube("global_anomalous")
   define_schema_for_raw_cube(global_results, parsed_field_offsets)
+  global_results.instantiate_on(root_node)
+
 
   FILTER_FIELD = coral_fidxs['nbytes']
   for node, i in numbered(source_nodes, False):
@@ -103,6 +106,7 @@ def get_graph(source_nodes, root_node, options):
     csvp = jsapi.CSVParse(g, coral_types)
     csvp.set_cfg("discard_off_size", "true")
     round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
+    round.set_cfg("wait_for_catch_up", "true")
     f.instantiate_on(node)
     
     local_raw_cube = g.add_cube("local_coral_all_%d" % i)
@@ -124,14 +128,18 @@ def get_graph(source_nodes, root_node, options):
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_q_cube.instantiate_on(node)
+    pull_from_local.instantiate_on(node)
 
     g.chain([local_q_cube, pull_from_local, central_cube])
 
 ################ Now do the second phase  
-  passthrough = jsapi.FilterSubscriber(g)
-  filter =  jsapi.FilterSubscriber(g, cube_field=FILTER_FIELD, level_in_field=1)
-  g.chain( [thresh_cube, passthrough, filter] )
-  g.chain( [local_raw_cube, filter, global_results] )
+    passthrough = jsapi.FilterSubscriber(g)
+    passthrough.instantiate_on(root_node)
+  
+    filter =  jsapi.FilterSubscriber(g, cube_field=FILTER_FIELD, level_in_field=1)
+    filter.instantiate_on(node)
+    g.chain( [thresh_cube, passthrough, filter] )
+    g.chain( [local_raw_cube, filter, global_results] )
 
   return g
 

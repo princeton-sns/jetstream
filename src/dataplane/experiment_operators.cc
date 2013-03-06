@@ -363,6 +363,10 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
     if (new_t < now -1) {
       LOG(INFO) << "ExperimentTimeRewrite has fallen behind. Emitting " <<
         new_t << " at " << now;
+    } else if (wait_for_catch_up && new_t > now + 1) {
+      time_t diff = new_t - now - 1;
+      js_usleep(diff * 1000 * 1000);
+      LOG_EVERY_N(INFO, 5) << "ExperimentTimeRewrite stalling for catch-up";
     }
   }
   e->set_t_val( new_t);
@@ -385,6 +389,11 @@ ExperimentTimeRewrite::configure(std::map<std::string,std::string> &config) {
     if ( !(istringstream(config["delta"]) >> delta)) {
       return operator_err_t("Delta must be a timestamp, if set.  " + config["delta"] +  " instead");
     }    
+  }
+  
+  wait_for_catch_up = false;
+  if ( config.find("wait_for_catch_up") != config.end()) {
+    wait_for_catch_up = (config["wait_for_catch_up"] != "false");
   }
 
   return NO_ERR;

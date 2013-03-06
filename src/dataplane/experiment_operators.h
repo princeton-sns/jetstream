@@ -226,6 +226,7 @@ class ExperimentTimeRewrite: public DataPlaneOperator {
   time_t delta; //offset from simulation to reality for first tuple
 //  unsigned t_count;
   unsigned field;
+  bool wait_for_catch_up;
 
 
 GENERIC_CLNAME

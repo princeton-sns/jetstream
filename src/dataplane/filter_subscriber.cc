@@ -1,5 +1,6 @@
 
 #include "filter_subscriber.h"
+#include "cube.h"
 
 using namespace jetstream;
 using namespace ::std;
@@ -23,14 +24,20 @@ FilterSubscriber::post_insert ( boost::shared_ptr<jetstream::Tuple> const &updat
     else if (update->e(cube_field).has_d_val())
       filtered_val = update->e(cube_field).d_val();
     else {
-      LOG(FATAL) << "expected field " <<  cube_field << " to be an int or double."
+      LOG(FATAL) << "Subscriber " << id() << " on cube " << cube->id_as_str()
+       << " expected field " <<  cube_field << " to be an int or double."
        << " Tuple was " << fmt(*update);
     }
-    if (filtered_val >= filter_bound)
-      emit(update);
-  } else
-    emit(update);
-  
+    if (filtered_val >= filter_bound) {
+      boost::shared_ptr<jetstream::Tuple> new_update(new Tuple);
+      new_update->CopyFrom(*update);
+      emit(new_update);
+    }
+  } else {
+    boost::shared_ptr<jetstream::Tuple> new_update(new Tuple);
+    new_update->CopyFrom(*update);
+    emit(new_update);  
+  }  
 }
 
 void
@@ -45,14 +52,15 @@ FilterSubscriber::post_update(  boost::shared_ptr<jetstream::Tuple> const &updat
 operator_err_t
 FilterSubscriber::configure(std::map<std::string,std::string> &config) {
 
-  if ( !(istringstream(config["cube_field"]) >> cube_field)) {
-    return operator_err_t("must specify an int as cube_field; got " + config["cube_field"] +  " instead");
+  if (config.find("cube_field") != config.end()) {
+    if ( !(istringstream(config["cube_field"]) >> cube_field)) {
+      return operator_err_t("must specify an int as cube_field; got " + config["cube_field"] +  " instead");
+    }
+    
+    if ( !(istringstream(config["level_in_field"]) >> level_in_field)) {
+      return operator_err_t("must specify an int as level_in_field; got " + config["level_in_field"] +  " instead");
+    }
   }
-  
-  if ( !(istringstream(config["level_in_field"]) >> level_in_field)) {
-    return operator_err_t("must specify an int as level_in_field; got " + config["level_in_field"] +  " instead");
-  }
-
 
   return NO_ERR;
 }
