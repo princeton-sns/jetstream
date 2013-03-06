@@ -1,0 +1,12 @@
+---
+#ansible-playbook  -i ansible_hosts_vicci copy_results_back_vicci.yml -u princeton_jetstream --module-path=modules/ -f 20; date
+
+### download results files###
+- hosts: workers
+  vars:
+    vicci_results_file: /jetstream/js/worker.out
+    local_dir: /disk/local/jetstream_results/
+  tasks:
+  - name: copy results back
+    fetch: src=${vicci_results_file} dest=${local_dir} 
+
