@@ -236,14 +236,16 @@ class QueryGraph(object):
 
 #      print "out-schema for", n, self.node_type(n), "is", out_schema
       for o in forward_edges.get(n, []):
+        if self.is_filtering_subsc(o) and n in self.cubes:
+          continue
+          
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
             err_msg = "Edge from %d of type %s to %d of type %s (%s) doesn't match existing schema %s" \
                 % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          if n in self.operators or not self.is_filtering_subsc(o):
-            input_schema[o] = out_schema
+          input_schema[o] = out_schema
           worklist.append(o)
 
 
