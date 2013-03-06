@@ -34,7 +34,8 @@ def main():
   plot_src_tuples(time_to_tuples, ax, leg_artists) 
   plot_bw(time_to_bw, ax, leg_artists) 
 
-  level_transitions = to_line(level_transitions, min(time_to_bw.keys()), max(time_to_bw.keys()))
+  MAX_T = max(max(time_to_bw.keys()), max([t for (t,l) in time_to_tuples]))
+  level_transitions = to_line(level_transitions, min(time_to_bw.keys()), MAX_T)
   
   plot_degradation(level_transitions, ax, leg_artists)
 
@@ -124,7 +125,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
   ax.set_ylim( 0, 1.2 *  max(lev_data))  
   ax.set_ylabel('Degradation level', fontsize=24)
   leg_artists.append( deg_line )
-#  print level_transitions  
+  print level_transitions  
 
 
 

@@ -82,7 +82,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
       << window_availtime_ms  <<" and window size was " << window_data_ms
       <<", saw " << bytes_per_sec << " bytes/sec";
   } else { //no data in window; we are therefore UNCONSTRAINED
-    last_ratio = 1;
+    last_ratio = 10;
   }
   bytes_in_window = 0;
   last_window_end = now;
