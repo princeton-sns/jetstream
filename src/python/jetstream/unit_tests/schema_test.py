@@ -154,9 +154,6 @@ class TestSchemas(unittest.TestCase):
       qGraph.validate_schemas()
     except SchemaError as ex:
       self.fail("should not throw, but got " + str(ex))
-
-  
-
         
   def test_cubeSubscribe(self):
   
@@ -191,10 +188,10 @@ class TestSchemas(unittest.TestCase):
       print "got expected err:", str(ex)
     else:
       self.fail("should throw, but didn't")
-    qGraph.remove(sub2)
-    qGraph.remove(rounder)
+#    qGraph.remove(sub2)
+#    qGraph.remove(rounder)  
 
-def test_cubeFilterSubscriber(self):
+  def test_cubeFilterSubscriber(self):
     qGraph = jsapi.QueryGraph()
     
     src = jsapi.RandSource(qGraph, 1, 2)
@@ -203,14 +200,18 @@ def test_cubeFilterSubscriber(self):
     local_cube.add_dim("state", Element.STRING, 0)
     local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)  
     
-    filter = jsapi.FilterSubscriber(qGraph, filteringIdx = 2, updateIdx=0)  
+    filter = jsapi.FilterSubscriber(qGraph, cube_field = 2, level_in_field=0)  
     eval_op = jsapi.RandEval(qGraph)
 
-    qGraph.chain( [src,local_cube, filter, echo, eval_op] )
+    qGraph.chain( [src,local_cube, filter, eval_op] )
 
     reader = jsapi.FileRead(qGraph, "file name")
     csv_parse = jsapi.CSVParse(qGraph, "I")
     qGraph.chain( [reader,csv_parse, filter] )
+    try: 
+      qGraph.validate_schemas()
+    except SchemaError as ex:
+      self.fail("should not throw, but got " + str(ex))
    
 
 

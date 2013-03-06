@@ -263,4 +263,4 @@ SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp
 SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
-SCHEMAS[OpType.FILTER_SUBSCRIBER = validate_FilterSubscriber
+SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
