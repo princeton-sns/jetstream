@@ -393,8 +393,10 @@ TimeBasedSubscriber::operator()() {
     int regular_window = regular_tuples - regular_old_window;
 
     if(backfill_window > 0) {
-      LOG(INFO)<< id() << ": Backfill in window: " << backfill_window <<". Non-Backfill: "<<regular_window
-               <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time;
+      LOG(INFO)<< id() << ": Backfill in window (at action_on_tuple): " << backfill_window <<". Non-Backfill: "<<regular_window
+               <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time 
+               <<" Process queue length: "<< cube->process_congestion_monitor()->queue_length();
+
     }
 
     backfill_old_window = backfill_tuples;
