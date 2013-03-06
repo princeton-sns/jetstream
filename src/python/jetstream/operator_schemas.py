@@ -12,7 +12,7 @@ class SchemaError(Exception):
 class OpType (object):
   FILE_READ = "FileRead"
   STRING_GREP = "StringGrep"
-  CSV_PARSE = "CSVParse"
+  CSV_PARSE = "CSVParseStrTk"
   PARSE = "GenericParse"
   EXTEND = "ExtendOperator"
   TIMESTAMP = "TimestampOperator"

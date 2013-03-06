@@ -78,6 +78,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator);
   REGISTER_OP(CSVParse);
+  REGISTER_OP(CSVParseStrTk);
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
 

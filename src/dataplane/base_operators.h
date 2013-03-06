@@ -59,6 +59,12 @@ class CSVParse: public DataPlaneOperator {
    GENERIC_CLNAME
 };
 
+class CSVParseStrTk: public CSVParse {
+  public:
+    virtual void process (boost::shared_ptr<Tuple> t);
+   GENERIC_CLNAME
+};
+
 
 /***
  * Operator for filtering strings. Expects one parameter, a string named 'pattern'

@@ -37,6 +37,8 @@ def standard_option_parser():
   default="latencies.out", help="file to log latency into")
   parser.add_option("--start-time", dest="start_ts",
   default=None, help="unix timestamp to start simulation at")
+  parser.add_option("-n", "--number-sources", dest="num_srcs",
+  default=None, help="Number of source nodes to use")
   parser.add_option("--timewarp", dest="warp_factor",
   default="1", help="simulation speedup")
   parser.add_option("--analyze_only", dest="analyze_only",
@@ -85,14 +87,19 @@ def find_root_node(options, all_nodes):
     root_node = all_nodes[0]  #TODO randomize
 
   print "Using",root_node,"as aggregator"
-  if not options.generate_at_union:
-    print "Removing aggregator from list of nodes"
-    all_nodes.remove(root_node)
-    
+
   return root_node
 
+def get_source_nodes(options, all_nodes, root_node):
+  source_nodes = all_nodes
+  if not options.generate_at_union:
+    print "Removing aggregator from list of nodes"
+    source_nodes.remove(root_node)
 
+  if options.num_srcs is not None:
+    source_nodes = source_nodes[0:options.num_srcs]
 
+  return source_nodes
 
 CACHE_PATH = "host_numbering.cache"
 def numbered(all_nodes, can_read_cache = True):
