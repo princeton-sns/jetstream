@@ -24,6 +24,7 @@ class OpType (object):
   SUMMARY_TO_COUNT = "SummaryToCount"
   URLToDomain = "URLToDomain"
   COUNT_LOGGER = "CountLogger"
+  EQUALS_FILTER = "IEqualityFilter"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -240,6 +241,8 @@ SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.TIMESTAMP] = validate_timestamp
 SCHEMAS[OpType.LATENCY_MEASURE_SUBSCRIBER] = validate_latency_measure
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
+# SCHEMAS[OpType.EQUALS_FILTER] 
+
 
 SCHEMAS[OpType.VARIABLE_SAMPLING] = lambda schema,cfg: schema 
 SCHEMAS[OpType.CONGEST_CONTROL] = lambda schema,cfg: schema 

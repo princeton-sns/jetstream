@@ -446,6 +446,10 @@ def CountLogger(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 
+def EqualsFilter(graph, field, targ):
+   cfg = {"field":field, "targ":targ}
+   return graph.add_operator(OpType.EQUALS_FILTER, cfg)
+
 def FilterSubscriber(graph, cube_field=None, level_in_field=None):
    cfg = {}
    if level_in_field is not None:

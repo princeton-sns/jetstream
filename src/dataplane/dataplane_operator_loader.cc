@@ -81,6 +81,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(CSVParseStrTk);
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
+  REGISTER_OP(IEqualityFilter);
 
   //operators on quantiles
   REGISTER_OP(QuantileOperator);

@@ -718,7 +718,26 @@ GreaterThan::configure (std::map<std::string,std::string> &config) {
   }
 
   if ( !(istringstream(config["bound"]) >> bound)) {
-    return operator_err_t("must specify bound; got " + config["field"] +  " instead");
+    return operator_err_t("must specify bound; got " + config["bound"] +  " instead");
+  }
+  return NO_ERR;
+}
+
+void
+IEqualityFilter::process (boost::shared_ptr<Tuple> t) {
+  int val = t->e(field_id).i_val();
+  if (val == targ)
+    emit(t);
+}
+
+operator_err_t
+IEqualityFilter::configure (std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+
+  if ( !(istringstream(config["targ"]) >> targ)) {
+    return operator_err_t("must specify targ; got " + config["targ"] +  " instead");
   }
   return NO_ERR;
 }
@@ -739,6 +758,7 @@ const string TRoundingOperator::my_type_name("Time rounding");
 const string UnixOperator::my_type_name("Unix command");
 const string URLToDomain::my_type_name("URL to Domain");
 const string GreaterThan::my_type_name("Numeric Filter");
+const string IEqualityFilter::my_type_name("Numeric Equality");
 
 
 }
