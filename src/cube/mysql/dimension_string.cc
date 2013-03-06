@@ -25,7 +25,12 @@ void MysqlDimensionString::get_key(Tuple const &t, std::ostringstream &ostr) con
 {
   const jetstream::Element& e = t.e(tuple_indexes[0]);
   if(e.has_s_val()) {
-    ostr << e.s_val();
+    if(e.s_val().size() > 255) {
+      ostr << e.s_val().substr(0, 255);
+    }
+    else {
+      ostr << e.s_val();
+    }
     return;
   }
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
@@ -53,7 +58,13 @@ void MysqlDimensionString::set_value_for_insert_tuple(shared_ptr<sql::PreparedSt
   jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
 
   if(e->has_s_val()) {
-    pstmt->setString(field_index, e->s_val());
+    if(e->s_val().size() > 255) {
+      LOG_FIRST_N(ERROR, 10) << "String given to cube too long. Truncating. (Only first 10 reported)";
+      pstmt->setString(field_index, e->s_val().substr(0, 255));
+    }
+    else {
+      pstmt->setString(field_index, e->s_val());
+    }
     field_index += 1;
     return;
   }
