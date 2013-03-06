@@ -32,7 +32,7 @@ class OpType (object):
   RAND_SOURCE = "RandSourceOperator"
   RAND_EVAL = "RandEvalOperator"
   TIMEWARP = "ExperimentTimeRewrite"
-
+  FILTER_SUBSCRIBER = "FilterSubscriber"
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   VAR_TIME_SUBSCRIBE = "VariableCoarseningSubscriber"
@@ -224,6 +224,9 @@ def validate_CountLogger(in_schema, cfg):
     raise SchemaError("Can't tabulate field %d of %s" % (fld, str(in_schema)))
   return in_schema
 
+def validate_FilterSubscriber(in_schema, cfg):
+  return in_schema
+
 
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -260,3 +263,4 @@ SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp
 SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
+SCHEMAS[OpType.FILTER_SUBSCRIBER = validate_FilterSubscriber

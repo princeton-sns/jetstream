@@ -455,7 +455,8 @@ class Cube(Destination):
           raise SchemaError ("Can't put value %s (type %s) into field %s of type %s" % \
             (in_schema[field_id][1],in_schema[field_id][0], name, ty))
         if in_schema[field_id][1] != name:
-          print "Matching input-name %s to cube column %s"  % (in_schema[field_id][1], name)
+          print "Matching input-name %s to cube column %s"  % \
+                     (in_schema[field_id][1], name)
 
     ret = []
 
@@ -487,13 +488,10 @@ def CSVParse(graph, types, fields_to_keep='all'):
    keepStr = fields_to_keep
    if fields_to_keep != 'all':
      if not all(isinstance(f, int) for f in fields_to_keep):
-       raise "CSVParse needs either \"all\" or list of field indices to keep,"\
-             " got {0}".format(str(fields_to_keep))
-
+       raise SchemaError("CSVParse needs either \"all\" or " \
+        "list of field indices to keep, got {0}".format(str(fields_to_keep)))
      keepStr = ' '.join(map(str, fields_to_keep))
-
    assert isinstance(keepStr, str)
-
    cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)
 
@@ -603,7 +601,7 @@ class TimeSubscriber(Operator):
         raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
           % (ts_field, len(in_schema)))
       if in_schema[ts_field][0] != 'T':
-        raise SchemaError('Expected a time element')
+        raise SchemaError('Expected a time element for ts_field %d' % ts_field)
     return in_schema  #everything is just passed through
 
 
@@ -618,12 +616,12 @@ def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, inte
           "hostname_tuple_index" : str(hostname_tuple_index),
           "interval_ms" : str(interval_ms)}
    return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)
+   
 ##### Test operators #####
 
 def SendK(graph, k):
    cfg = {"k" : str(k)}
    return graph.add_operator(OpType.SEND_K, cfg)
-
 
 def RateRecord(graph):
    cfg = {}
@@ -631,7 +629,6 @@ def RateRecord(graph):
 
 def DummySerialize(g):
   return g.add_operator("SerDeOverhead", {})
-
 
 def Echo(g):
   return g.add_operator(OpType.ECHO, {})
@@ -642,7 +639,6 @@ def VariableSampling(g):
 def SamplingController(g):
   return g.add_operator(OpType.CONGEST_CONTROL, {})
 
-
 def Quantile(graph, q, field):
    cfg = {"q":str(q), "field":field}
    return graph.add_operator(OpType.QUANTILE, cfg)
@@ -650,7 +646,6 @@ def Quantile(graph, q, field):
 def ToSummary(graph, size, field):
    cfg = {"size":str(size), "field":field}
    return graph.add_operator(OpType.TO_SUMMARY, cfg)
-
 
 def SummaryToCount(graph, field):
    cfg = {"field":field}
@@ -660,7 +655,6 @@ def URLToDomain(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.URLToDomain, cfg)
 
-
 def TimeWarp(graph, field, warp):
    cfg = {"field":field, "warp":warp}
    return graph.add_operator(OpType.TIMEWARP, cfg)
@@ -669,4 +663,8 @@ def CountLogger(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 
+def FilterSubscriber(graph, cube_field = 2, level_in_field=0):
+   cfg = {"cube_field":cube_field, "level_in_field":level_in_field}
+   return graph.add_operator(OpType.FILTER_SUBSCRIBER, cfg)
+  
 

@@ -194,7 +194,24 @@ class TestSchemas(unittest.TestCase):
     qGraph.remove(sub2)
     qGraph.remove(rounder)
 
+def test_cubeFilterSubscriber(self):
+    qGraph = jsapi.QueryGraph()
     
+    src = jsapi.RandSource(qGraph, 1, 2)
+    
+    local_cube = qGraph.add_cube("results")
+    local_cube.add_dim("state", Element.STRING, 0)
+    local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)  
+    
+    filter = jsapi.FilterSubscriber(qGraph, filteringIdx = 2, updateIdx=0)  
+    eval_op = jsapi.RandEval(qGraph)
+
+    qGraph.chain( [src,local_cube, filter, echo, eval_op] )
+
+    reader = jsapi.FileRead(qGraph, "file name")
+    csv_parse = jsapi.CSVParse(qGraph, "I")
+    qGraph.chain( [reader,csv_parse, filter] )
+   
 
 
 if __name__ == '__main__':

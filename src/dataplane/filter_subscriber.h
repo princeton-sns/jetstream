@@ -9,7 +9,7 @@ namespace  jetstream {
 
 class FilterSubscriber: public cube::Subscriber {
   public:
-    FilterSubscriber(): Subscriber (){};
+    FilterSubscriber(): Subscriber (), filter_bound(0),level_in_field(0),cube_field(-1) {};
     virtual ~FilterSubscriber() {};
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
@@ -25,6 +25,12 @@ class FilterSubscriber: public cube::Subscriber {
 
     virtual void process(boost::shared_ptr<Tuple> t);
 
+  
+
+  protected:
+    int filter_bound;
+    unsigned level_in_field; //field of tuple inputs to set filter
+    int cube_field; //field id of tuples from cube
 
 };
 
