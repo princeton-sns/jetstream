@@ -7,6 +7,8 @@
 
 #include "base_subscribers.h"
 #include "latency_measure_subscriber.h"
+#include "filter_subscriber.h"
+
 #include "base_operators.h"
 #include "experiment_operators.h"
 
@@ -264,19 +266,26 @@ TEST_F(SubscriberTest,TimeSubscriberRollup) {
   ASSERT_EQ(1U, rec->tuples.size());
 //  cout << "Tuple: " << fmt( *(rec->tuples[0])) << endl;
   ASSERT_EQ(8, rec->tuples[0]->e(2).i_val());
-  
-/*
-  {
-    boost::shared_ptr<Tuple> t2(new Tuple);
-    extend_tuple(*t2, "new text");
-    extend_tuple(*t2, 5);
-    t2->set_version(1);
-    cube->process(t2);
-    for(int i =0; i < 20 &&  cube->num_leaf_cells() < 2; i++) {
-      js_usleep(100 * 1000);
-    }
-  }*/
 
+}
+
+
+
+TEST_F(SubscriberTest,FilterSubscriber) {
+
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+
+  Tuple query_tuple;
+  extend_tuple(query_tuple, "http://foo.com");
+  query_tuple.add_e();  
+
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("FilterSubscriber", query_tuple);
+
+  add_tuples(cube);
+  for (int tries = 0; cube->num_leaf_cells() < 4 && tries< 50; tries++)
+    js_usleep(100 * 1000);
+  ASSERT_EQ(4U, cube->num_leaf_cells());
+  ASSERT_EQ(4U, rec->tuples.size());
 }
 
 TEST(LatencyMeasureSubscriber,TwoTuples) {

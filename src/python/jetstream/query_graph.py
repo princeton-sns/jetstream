@@ -5,6 +5,7 @@ from itertools import izip, tee
 from jetstream_types_pb2 import *
 Dimension = CubeSchema.Dimension
 from operator_schemas import SCHEMAS, OpType,SchemaError
+from base_constructs import *
 
 # from python itertools recipes
 def pairwise(iterable):
@@ -208,6 +209,9 @@ class QueryGraph(object):
     else:
       return self.cubes[id].name + " cube"
 
+  def is_filtering_subsc(self, o):
+    return o in self.operators and self.operators[o].type == OpType.FILTER_SUBSCRIBER
+
   def validate_schemas(self):
     worklist = self.get_sources()  #worklist is a list of IDs
 #    print "initial source operators",worklist
@@ -217,9 +221,13 @@ class QueryGraph(object):
 
     forward_edges = self.forward_edge_map();
     for n in worklist:
+      is_operator = n in self.operators
+    
       # print "validating schemas for outputs of %d" % n
       # note that cubes don't have an output schema and subscribers are a special case
-      if n in self.operators:
+      if self.is_filtering_subsc(n):
+        out_schema = filter_subsc_validate(self.operators[n], input_schema)
+      elif is_operator:
 #        print "found operator",n,"of type",self.operators[n].type
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
@@ -227,7 +235,6 @@ class QueryGraph(object):
         out_schema = self.cubes[n].out_schema (input_schema[n])
 
 #      print "out-schema for", n, self.node_type(n), "is", out_schema
-
       for o in forward_edges.get(n, []):
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
@@ -235,237 +242,10 @@ class QueryGraph(object):
                 % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          input_schema[o] = out_schema
+          if n in self.operators or not self.is_filtering_subsc(o):
+            input_schema[o] = out_schema
           worklist.append(o)
-        # TODO need to verify the subscribers, and add them to worklist
-  #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
 
-# This represents the abstract concept of an operator or cube, for building
-# the query graphs. The concrete executable implementations are elsewhere.
-class Destination(object):
-  def __init__(self, graph, id):
-    self.preds = set()  #set of refs, not IDs
-    self.graph = graph  #keep link to parent QueryGraph
-    self.id = id
-    self._location = None
-
-
-  def add_pred(self, p):
-    assert( isinstance(p,Destination) )
-
-    self.preds.add(p)
-
-  def remove_pred(self, src):  #note that argument is a Destination, not an ID
-    self.preds.remove(src)
-
-  def get_id(self):
-    return self.id
-
-  def location(self):
-    return self._location
-
-  def is_placed(self):
-    return self._location is not None
-
-  def instantiate_on(self, n):
-    """If n is a NodeID, will specify to place this destination on that node.
-    If n is a list of node IDs, will clone and place on each
-    """
-    if isinstance(n, NodeID):
-      self._location = n
-#      for p in self.preds:
-#        if not p.is_placed():
-#          p.instantiate_on(n)
-    else:
-      #n should be a list
-      assert len(n) > 0
-      assert isinstance(n[0], NodeID)
-      headcopies = self.graph.clone_back_from(self, len(n) -1 )
-      for site,copy in zip(n[1:], headcopies):
-        copy.instantiate_on(site)
-      self.instantiate_on(n[0])
-
-  def set_inlink_dummy(self, val=True):
-    for p in self.preds:
-      self.graph.edges[ (p, self.id) ]['dummy'] = val
-
-  def set_inlink_bwcap(self, val):
-    if len(self.preds) == 0:
-      raise SchemaError("No predecessors; you need to have some first before setting bwcap")
-    for p in self.preds:
-      e_attrs = self.graph.edges[ (p.id, self.id) ]
-      e_attrs.pop('dummy',None) #clear dummy
-      e_attrs['max_kb_per_sec'] = val
-
-class Operator(Destination):
-
-
-  def __init__(self, graph, type, cfg, id):
-    super(Operator,self).__init__(graph, id)
-    self.type = type
-    self.cfg = cfg # should be a map
-
-
-  def add_to_PB(self, alter):
-     task_meta = alter.toStart.add()
-     task_meta.id.computationID = 0 #filled in by controller
-     task_meta.id.task = self.id
-     task_meta.op_typename = self.type
-     if self._location is not None:
-       task_meta.site.CopyFrom(self._location)
-     for opt,val in self.cfg.items():
-       d_entry = task_meta.config.add()
-       d_entry.opt_name = opt
-       d_entry.val = str(val)
-     return task_meta
-
-  def set_cfg(self, key, val):
-    self.cfg[key] = val
-
-  def out_schema(self, in_schema):
-    if self.type in SCHEMAS:
-      return SCHEMAS[self.type](in_schema, self.cfg)
-    raise SchemaError("Need to define out_schema for %s" % self.type)
-
-  def __str__(self):
-    return '({0}, {1})'.format(str(self.type), str(self.cfg))
-
-
-class Cube(Destination):
-
-  class AggType (object):
-    COUNT = "count"
-    AVERAGE = "avg"
-    STRING = "string"
-    MIN_I = "min_i"
-    MIN_D = "min_d"
-    MIN_T = "min_t"
-    HISTO = "quantile_histogram"
-    SKETCH = "quantile_sketch"
-    SAMPLE = "quantile_sample"
-
-
-  def __init__(self, graph, name, desc, id):
-    super(Cube,self).__init__(graph, id)
-    self.name = name
-    self.desc = {}
-    self.desc.update(desc)
-    if 'dims' not in self.desc:
-      self.desc['dims'] = []
-    if 'aggs' not in self.desc:
-      self.desc['aggs'] = []
-    self.cached_schema = None
-
-  def add_dim(self, dim_name, dim_type, offset):
-    self.desc['dims'].append(  (dim_name, dim_type, offset) )
-
-
-  def add_agg(self, a_name, a_type, offset):
-    self.desc['aggs'].append(  (a_name, a_type, offset) )
-
-  def get_input_dimensions(self):
-    """Returns a map from INPUT key to dimension.
-    This is NOT the same as the OUTPUT dimensions"""
-    r = {}
-    for dim_name, dim_type, offset in self.desc['dims']:
-      r[offset] = (dim_name, dim_type)
-    return r
-
-  def get_output_dimensions(self):
-    r = []
-    for dim_name, dim_type, offset in self.desc['dims']:
-      r.append( (dim_name, dim_type) )
-    return r
-
-
-  def set_overwrite(self, overwrite):
-    assert(type(overwrite) == types.BooleanType)
-    self.desc['overwrite'] = overwrite
-
-
-  def add_to_PB(self, alter):
-    c_meta = alter.toCreate.add()
-    c_meta.name = self.name
-    if self._location is not None:
-      c_meta.site.CopyFrom(self._location)
-
-    for (name,type, offset) in self.desc['dims']:
-      d = c_meta.schema.dimensions.add()
-      d.name = name
-      d.type = type
-      d.tuple_indexes.append(offset)
-    for (name,type, offset) in self.desc['aggs']:
-      d = c_meta.schema.aggregates.add()
-      d.name = name
-      d.type = type
-      d.tuple_indexes.append(offset)
-    if 'overwrite' in  self.desc:
-      c_meta.overwrite_old = self.desc['overwrite']
-
-  def __str__(self):
-    return '({0}, {1})'.format(self.name, self.desc)
-
-
-  def get_name(self):
-    if self._location is not None:
-      return  "%s:%d/%s"% (self._location.address, self._location.portno, self.name)
-    else:
-      return self.name
-
-    # maps from a dimension-type to a typecode. Note that dimensions can't be blobs
-  typecode_for_dname = {Dimension.STRING: 'S', Dimension.INT32: 'I',
-      Dimension.DOUBLE: 'D', Dimension.TIME: 'T', Dimension.TIME_CONTAINMENT: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}
-
-  typecode_for_aname = { 'string':'S', 'count':'I', 'min_i':'I', 'min_d': 'D', 'min_t': 'T',  'blob': 'b', 'quantile_histogram':'Histogram', 'quantile_sketch':'Sketch',
-  'quantile_sample':'Sample'}
-
-  def in_schema_map(self):
-    """ Returns a map from offset-in-input-tuple to field-type,name pair"""
-#    if self.cached_schema is not None:
-#      return self.cached_schema
-    r = {}
-    for name, type, offset in self.desc['dims']:
-      r[offset] = (self.typecode_for_dname[type], name)
-
-    for name, type, offset in self.desc['aggs']:
-      r[offset] = (self.typecode_for_aname.get(type, "undef:"+type) , name)
-    return r
-
-
-  def out_schema(self, in_schema):
-    r = self.in_schema_map()
-
-#    print "in-schema", in_schema
-#    print "dims", self.desc['dims']
-    max_dim = max([ off for _,_,off in self.desc['dims']])
-    if max_dim >= len(in_schema) and len(in_schema) > 0:
-      raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
-          ( self.name, max_dim + 1,str(in_schema)))
-
-#    for (ty,name),i in zip(in_schema, range(0, len(in_schema))):
-#      db_schema = r.get(i, ('undef', 'undef'))
-#      if ty != db_schema[0]:
-    if len(in_schema) > 0:
-      for field_id,(ty,name) in r.items():
-        if field_id >= len(in_schema):
-          print "assuming COUNT for field %s" % name
-          continue
-
-        if in_schema[field_id][0] != ty:
-          raise SchemaError ("Can't put value %s (type %s) into field %s of type %s" % \
-            (in_schema[field_id][1],in_schema[field_id][0], name, ty))
-        if in_schema[field_id][1] != name:
-          print "Matching input-name %s to cube column %s"  % (in_schema[field_id][1], name)
-
-    ret = []
-
-    for name, type, offset in self.desc['dims']:
-      ret.append ( (self.typecode_for_dname[type], name) )
-
-    for name, type, offset in self.desc['aggs']:
-      ret.append ( (self.typecode_for_aname.get(type, "undef:"+type) , name)  )
-    "cube",self.name,"has schema", ret
-    return ret
 
 ##### Useful operators #####
 
@@ -487,13 +267,10 @@ def CSVParse(graph, types, fields_to_keep='all'):
    keepStr = fields_to_keep
    if fields_to_keep != 'all':
      if not all(isinstance(f, int) for f in fields_to_keep):
-       raise "CSVParse needs either \"all\" or list of field indices to keep,"\
-             " got {0}".format(str(fields_to_keep))
-
+       raise SchemaError("CSVParse needs either \"all\" or " \
+        "list of field indices to keep, got {0}".format(str(fields_to_keep)))
      keepStr = ' '.join(map(str, fields_to_keep))
-
    assert isinstance(keepStr, str)
-
    cfg = {"types" : types, "fields_to_keep" : keepStr}
    return graph.add_operator(OpType.CSV_PARSE, cfg)
 
@@ -603,7 +380,7 @@ class TimeSubscriber(Operator):
         raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
           % (ts_field, len(in_schema)))
       if in_schema[ts_field][0] != 'T':
-        raise SchemaError('Expected a time element')
+        raise SchemaError('Expected a time element for ts_field %d' % ts_field)
     return in_schema  #everything is just passed through
 
 
@@ -618,12 +395,12 @@ def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, inte
           "hostname_tuple_index" : str(hostname_tuple_index),
           "interval_ms" : str(interval_ms)}
    return graph.add_operator(OpType.LATENCY_MEASURE_SUBSCRIBER, cfg)
+   
 ##### Test operators #####
 
 def SendK(graph, k):
    cfg = {"k" : str(k)}
    return graph.add_operator(OpType.SEND_K, cfg)
-
 
 def RateRecord(graph):
    cfg = {}
@@ -631,7 +408,6 @@ def RateRecord(graph):
 
 def DummySerialize(g):
   return g.add_operator("SerDeOverhead", {})
-
 
 def Echo(g):
   return g.add_operator(OpType.ECHO, {})
@@ -642,7 +418,6 @@ def VariableSampling(g):
 def SamplingController(g):
   return g.add_operator(OpType.CONGEST_CONTROL, {})
 
-
 def Quantile(graph, q, field):
    cfg = {"q":str(q), "field":field}
    return graph.add_operator(OpType.QUANTILE, cfg)
@@ -650,7 +425,6 @@ def Quantile(graph, q, field):
 def ToSummary(graph, size, field):
    cfg = {"size":str(size), "field":field}
    return graph.add_operator(OpType.TO_SUMMARY, cfg)
-
 
 def SummaryToCount(graph, field):
    cfg = {"field":field}
@@ -660,7 +434,6 @@ def URLToDomain(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.URLToDomain, cfg)
 
-
 def TimeWarp(graph, field, warp):
    cfg = {"field":field, "warp":warp}
    return graph.add_operator(OpType.TIMEWARP, cfg)
@@ -669,4 +442,35 @@ def CountLogger(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 
+def FilterSubscriber(graph, cube_field = 2, level_in_field=0):
+   cfg = {"cube_field":int(cube_field), "level_in_field":int(level_in_field)}
+   return graph.add_operator(OpType.FILTER_SUBSCRIBER, cfg)
+  
+def filter_subsc_validate(filter_op, input_schemas):
+  saw_cube = False
+  saw_filter = False  
+  ret = []
+  cfg = filter_op.cfg
+  for pred in filter_op.preds:
 
+    if isinstance(pred, Cube):
+      if saw_cube:
+        raise SchemaError("filter should have a cube input and at most one other")
+      saw_cube = True
+      ret = input_schemas[pred.get_id()]
+      print "picking out_schema for filter. Guessing %s" % ret
+      #todo check that relevant field is int
+    else:
+      in_s = input_schemas[filter_op.get_id()]
+
+      if saw_filter:
+        raise SchemaError("filter should have a cube input and at most one other")
+      saw_filter = True
+      if not "level_in_field" in cfg:
+        raise SchemaError("must specify numeric 'level_in_field' if adding a filter edge")
+      level_in = cfg['level_in_field']
+      if len(in_s) <= level_in or  in_s[ level_in ][0] != 'I':
+        print input_schemas
+        raise SchemaError("level_in_field for FilterSubscriber should be int. " \
+            "Schema was %s." % str(in_s))
+  return ret

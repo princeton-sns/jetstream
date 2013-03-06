@@ -3,6 +3,7 @@
 #include "base_operators.h"
 #include "experiment_operators.h"
 #include "base_subscribers.h"
+#include "filter_subscriber.h"
 #include "latency_measure_subscriber.h"
 #include "rand_source.h"
 #include "variable_sampling.h"
@@ -106,6 +107,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(LatencyMeasureSubscriber);
   REGISTER_OP(OneShotSubscriber);
   REGISTER_OP(VariableCoarseningSubscriber);
+  REGISTER_OP(FilterSubscriber);
   
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
