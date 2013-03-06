@@ -209,6 +209,9 @@ class QueryGraph(object):
     else:
       return self.cubes[id].name + " cube"
 
+  def is_filtering_subsc(self, o):
+    return o in self.operators and self.operators[o].type == OpType.FILTER_SUBSCRIBER
+
   def validate_schemas(self):
     worklist = self.get_sources()  #worklist is a list of IDs
 #    print "initial source operators",worklist
@@ -218,9 +221,13 @@ class QueryGraph(object):
 
     forward_edges = self.forward_edge_map();
     for n in worklist:
+      is_operator = n in self.operators
+    
       # print "validating schemas for outputs of %d" % n
       # note that cubes don't have an output schema and subscribers are a special case
-      if n in self.operators:
+      if self.is_filtering_subsc(n):
+        out_schema = filter_subsc_validate(self.operators[n], input_schema)
+      elif is_operator:
 #        print "found operator",n,"of type",self.operators[n].type
         out_schema = self.operators[n].out_schema( input_schema[n])
 #        print "out schema is %s, have %d out-edges" % (str(out_schema), len(forward_edges.get(n, []) ))
@@ -228,7 +235,6 @@ class QueryGraph(object):
         out_schema = self.cubes[n].out_schema (input_schema[n])
 
 #      print "out-schema for", n, self.node_type(n), "is", out_schema
-
       for o in forward_edges.get(n, []):
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
@@ -236,10 +242,9 @@ class QueryGraph(object):
                 % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          input_schema[o] = out_schema
+          if n in self.operators or not self.is_filtering_subsc(o):
+            input_schema[o] = out_schema
           worklist.append(o)
-        # TODO need to verify the subscribers, and add them to worklist
-  #else case is verifying edges out of cubes; different subscribers are different so there's no unique out-schema
 
 
 ##### Useful operators #####
@@ -438,7 +443,34 @@ def CountLogger(graph, field):
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 
 def FilterSubscriber(graph, cube_field = 2, level_in_field=0):
-   cfg = {"cube_field":cube_field, "level_in_field":level_in_field}
+   cfg = {"cube_field":int(cube_field), "level_in_field":int(level_in_field)}
    return graph.add_operator(OpType.FILTER_SUBSCRIBER, cfg)
   
+def filter_subsc_validate(filter_op, input_schemas):
+  saw_cube = False
+  saw_filter = False  
+  ret = []
+  cfg = filter_op.cfg
+  for pred in filter_op.preds:
 
+    if isinstance(pred, Cube):
+      if saw_cube:
+        raise SchemaError("filter should have a cube input and at most one other")
+      saw_cube = True
+      ret = input_schemas[pred.get_id()]
+      print "picking out_schema for filter. Guessing %s" % ret
+      #todo check that relevant field is int
+    else:
+      in_s = input_schemas[filter_op.get_id()]
+
+      if saw_filter:
+        raise SchemaError("filter should have a cube input and at most one other")
+      saw_filter = True
+      if not "level_in_field" in cfg:
+        raise SchemaError("must specify numeric 'level_in_field' if adding a filter edge")
+      level_in = cfg['level_in_field']
+      if len(in_s) <= level_in or  in_s[ level_in ][0] != 'I':
+        print input_schemas
+        raise SchemaError("level_in_field for FilterSubscriber should be int. " \
+            "Schema was %s." % str(in_s))
+  return ret

@@ -201,12 +201,14 @@ class TestSchemas(unittest.TestCase):
     local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)  
     
     filter = jsapi.FilterSubscriber(qGraph, cube_field = 2, level_in_field=0)  
+    #out-schema from filter should be S,T, matching source
+    ex = jsapi.ExtendOperator(qGraph, "i", ["a count"])
     eval_op = jsapi.RandEval(qGraph)
 
-    qGraph.chain( [src,local_cube, filter, eval_op] )
+    qGraph.chain( [src,local_cube, filter, ex, eval_op] )
 
     reader = jsapi.FileRead(qGraph, "file name")
-    csv_parse = jsapi.CSVParse(qGraph, "I")
+    csv_parse = jsapi.CSVParse(qGraph, types="I", fields_to_keep="all")
     qGraph.chain( [reader,csv_parse, filter] )
     try: 
       qGraph.validate_schemas()
