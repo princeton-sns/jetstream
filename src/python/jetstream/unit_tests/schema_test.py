@@ -205,7 +205,7 @@ class TestSchemas(unittest.TestCase):
     ex = jsapi.ExtendOperator(qGraph, "i", ["a count"])
     eval_op = jsapi.RandEval(qGraph)
 
-    qGraph.chain( [src,local_cube, filter, ex, eval_op] )
+    qGraph.chain( [src,ex,local_cube, filter, eval_op] )
 
     reader = jsapi.FileRead(qGraph, "file name")
     csv_parse = jsapi.CSVParse(qGraph, types="I", fields_to_keep="all")

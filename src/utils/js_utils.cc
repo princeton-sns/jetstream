@@ -92,12 +92,16 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
     char tmbuf[80];
     strftime(tmbuf, sizeof(tmbuf), "%d-%m-%y %H:%M:%S", &parsed_time);
     buf << tmbuf;
-  } else if (el.has_summary() && el.summary().has_histo()) {
-    const JSHistogram & h = el.summary().histo();
-    unsigned tally = 0;
-    for (size_t i = 0; i < (size_t) h.bucket_vals_size(); ++i)
-      tally += h.bucket_vals(i);
-    buf << "histogram(" << h.bucket_vals_size()<<")-" << tally << " elems";
+  } else if (el.has_summary()) {
+     if(el.summary().has_histo()) {
+      const JSHistogram & h = el.summary().histo();
+      unsigned tally = 0;
+      for (size_t i = 0; i < (size_t) h.bucket_vals_size(); ++i)
+        tally += h.bucket_vals(i);
+      buf << "histogram(" << h.bucket_vals_size()<<")-" << tally << " elems";
+    } else {
+      buf << "misc. summary";
+    }
   } else if (el.has_blob()) {
     buf << el.blob().size() << "-byte blob";
   } else

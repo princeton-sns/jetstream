@@ -236,14 +236,16 @@ class QueryGraph(object):
 
 #      print "out-schema for", n, self.node_type(n), "is", out_schema
       for o in forward_edges.get(n, []):
+        if self.is_filtering_subsc(o) and n in self.cubes:
+          continue
+          
         if o in input_schema: #already have a schema:
           if input_schema[o] != out_schema:
             err_msg = "Edge from %d of type %s to %d of type %s (%s) doesn't match existing schema %s" \
                 % (n, self.node_type(n), o, self.node_type(o), str(out_schema), str(input_schema[o]))
             raise SchemaError(err_msg)
         else:
-          if n in self.operators or not self.is_filtering_subsc(o):
-            input_schema[o] = out_schema
+          input_schema[o] = out_schema
           worklist.append(o)
 
 
@@ -373,6 +375,8 @@ class TimeSubscriber(Operator):
     my_meta = Operator.add_to_PB(self,alter)
 
   def out_schema(self, in_schema):
+    if len(in_schema) == 0:
+      raise SchemaError("subscriber %s has no inputs"  % self.id)
 #    print "time subscriber schema"
     if 'ts_field' in self.cfg:
       ts_field = int(self.cfg['ts_field'])
@@ -442,8 +446,16 @@ def CountLogger(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.COUNT_LOGGER, cfg)
 
-def FilterSubscriber(graph, cube_field = 2, level_in_field=0):
-   cfg = {"cube_field":int(cube_field), "level_in_field":int(level_in_field)}
+def EqualsFilter(graph, field, targ):
+   cfg = {"field":field, "targ":targ}
+   return graph.add_operator(OpType.EQUALS_FILTER, cfg)
+
+def FilterSubscriber(graph, cube_field=None, level_in_field=None):
+   cfg = {}
+   if level_in_field is not None:
+    cfg["level_in_field"] = int(level_in_field)
+   if level_in_field is not None:
+    cfg["cube_field"] = int(cube_field)
    return graph.add_operator(OpType.FILTER_SUBSCRIBER, cfg)
   
 def filter_subsc_validate(filter_op, input_schemas):
@@ -451,6 +463,11 @@ def filter_subsc_validate(filter_op, input_schemas):
   saw_filter = False  
   ret = []
   cfg = filter_op.cfg
+  
+  if len(filter_op.preds) == 0:
+      raise SchemaError("subscriber %s has no inputs"  % filter_op.id)  
+
+
   for pred in filter_op.preds:
 
     if isinstance(pred, Cube):
@@ -461,16 +478,33 @@ def filter_subsc_validate(filter_op, input_schemas):
       print "picking out_schema for filter. Guessing %s" % ret
       #todo check that relevant field is int
     else:
-      in_s = input_schemas[filter_op.get_id()]
-
       if saw_filter:
         raise SchemaError("filter should have a cube input and at most one other")
       saw_filter = True
-      if not "level_in_field" in cfg:
-        raise SchemaError("must specify numeric 'level_in_field' if adding a filter edge")
-      level_in = cfg['level_in_field']
-      if len(in_s) <= level_in or  in_s[ level_in ][0] != 'I':
-        print input_schemas
-        raise SchemaError("level_in_field for FilterSubscriber should be int. " \
-            "Schema was %s." % str(in_s))
+      in_s = input_schemas.get(filter_op.get_id(), [] )
+
+
+  if len(filter_op.preds) == 1 and not saw_cube:
+      raise SchemaError("FilterSubscriber %s has no cube input"  % filter_op.id)  
+
+  if saw_filter and in_s != []:
+          
+    if not "cube_field" in cfg:
+      raise SchemaError("must specify numeric 'cube_field' if adding a filter edge")
+    c_in = int(cfg['cube_field'])
+    if len(ret) <= c_in:
+      raise SchemaError("Can't filter on %d. Schema len is only %d. " \
+        " Schema was %s" % (c_in, len(ret), str(ret)))
+    if ret[ c_in ][0] != 'I':
+      raise SchemaError("schema[c_in=%d] for FilterSubscriber should be int. " \
+          "Schema was %s, field %d was %s." % (c_in, str(ret), c_in, str(ret[c_in])))
+            
+    if not "level_in_field" in cfg:
+      raise SchemaError("must specify numeric 'level_in_field' if adding a filter edge")
+    level_in = int(cfg['level_in_field'])
+    if len(in_s) <= level_in or  in_s[ level_in ][0] != 'I':
+      raise SchemaError("schema[level_in_field=%d] for FilterSubscriber should be int. " \
+          "Schema was %s." % (level_in, str(in_s)))
+
+
   return ret

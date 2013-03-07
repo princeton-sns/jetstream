@@ -279,6 +279,18 @@ private:
 GENERIC_CLNAME
 };
 
+class IEqualityFilter: public DataPlaneOperator {
+
+public:
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+private:
+  unsigned field_id;
+  int targ;
+
+GENERIC_CLNAME
+};
+
 
 /**
  Rearranges the order of elements in a tuple
