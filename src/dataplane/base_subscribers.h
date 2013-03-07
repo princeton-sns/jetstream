@@ -48,6 +48,7 @@ class Querier {
 
     jetstream::Tuple min;
     jetstream::Tuple max;
+    std::vector<unsigned int> rollup_levels; //length will be zero if no rollups
     void set_cube(DataCube *c) {cube = c;}
 
     void tuple_inserted(const Tuple& t) {rollup_is_dirty = true;}
@@ -58,7 +59,6 @@ class Querier {
     volatile bool rollup_is_dirty; //should have real rollup manager eventually.
     operator_id_t id;
     std::list<std::string> sort_order;
-    std::vector<unsigned int> rollup_levels; //length will be zero if no rollups
     DataCube * cube;
     int32_t num_results; //a limit on the number of results returned. 0 = infinite
 
@@ -126,6 +126,8 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     TimeBasedSubscriber(): backfill_tuples(0), regular_tuples(0), next_window_start_time(0) {};
 
     virtual ~TimeBasedSubscriber() {};
+
+    unsigned int get_window_offset_sec();
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) ;
 

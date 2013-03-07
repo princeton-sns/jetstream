@@ -108,9 +108,9 @@ void TupleBatch::flush()
     }
   }
   msec_t now = get_msec();
-  LOG_FIRST_N(INFO, 10) << "Finished flush in "<< now-start_time <<" of "
+  LOG_IF(INFO, (now+10)-start_time >2000)  << "Finished flush in "<< now-start_time <<" of "
     << tpi_store.size() <<" elements with "
-    << num_flushes << " flushes. Rate = "<<  (now-start_time >0 ? tpi_store.size()/(now-start_time):0);
+    << num_flushes << " flushes. Rate = "<<  (now-start_time >0 ? (double)tpi_store.size()/(now-start_time):0);
   /*
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > new_tuples;
   std::map<jetstream::DimensionKey, boost::shared_ptr<jetstream::Tuple> > old_tuples;

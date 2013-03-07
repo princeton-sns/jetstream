@@ -194,9 +194,9 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
       <<" Process q: "<< cube->process_congestion_monitor()->queue_length();
 
     if (tuple_time < next_window_start_time) {
-      LOG(INFO) << id() << "DANGEROUS CASE: tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time 
+      LOG_EVERY_N(INFO, 1001) << id() << "DANGEROUS CASE (every 1001): tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time 
         << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
-        <<" Window Offset (scaled): "<< windowOffsetMs << " Process q: "<< cube->process_congestion_monitor()->queue_length();
+        <<" Window Offset(s): "<< get_window_offset_sec() << " Process q: "<< cube->process_congestion_monitor()->queue_length();
 
       if(latency_ts_field >= 0) {
         msec_t orig_time=  update->e(latency_ts_field).d_val();
@@ -314,6 +314,21 @@ string ts_to_str(time_t t) {
   return string(tmbuf);
 }
 
+unsigned int TimeBasedSubscriber::get_window_offset_sec(){
+      if(querier.rollup_levels.size() > 0)
+      {
+        size_t time_level = querier.rollup_levels[ts_field];
+        unsigned int level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
+        level_offset_sec = min(3600U, level_offset_sec);
+        return ((windowOffsetMs + 999) / 1000)+level_offset_sec; //TODO could instead offset from highest-ts-seen
+      }
+      else
+      {
+        return (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+      }
+
+}
+
 void
 TimeBasedSubscriber::operator()() {
 
@@ -329,7 +344,7 @@ TimeBasedSubscriber::operator()() {
   boost::shared_ptr<TimeTeller> tt(ts);
 
 
-  time_t newMax = tt->now() - (windowOffsetMs + 999) / 1000; // can be cautious here since it's just first window
+  time_t newMax = tt->now() - get_window_offset_sec(); // can be cautious here since it's just first window
 
   if (ts_field >= 0)
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
@@ -396,7 +411,7 @@ TimeBasedSubscriber::operator()() {
     if (ts_field >= 0) {
       next_window_start_time = querier.max.e(ts_field).t_val();
       querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
-      newMax = tt->now() - (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+      newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
       VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
         << "-" << ts_to_str(newMax);
