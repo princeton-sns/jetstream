@@ -56,7 +56,7 @@ class TestTupleCoralGenerator {
         
 
         cfg["field"]="1";
-        cfg["warp"]="300";
+        cfg["warp"]="1000";
 
         configure_operator(fr_op, cfg);
         configure_operator(csvp_op, cfg);
@@ -326,6 +326,11 @@ TEST_F(CoralTest, DISABLED_2K14) {
 TEST_F(CoralTest, DISABLED_20K14) {
   run_test(sc, 20000, 1, 4);
 }
+
+TEST_F(CoralTest, DISABLED_4M14) {
+  run_test(sc, 400000, 1, 4);
+}
+
 
 
 TEST_F(CoralTest, DISABLED_CSV20K) {

@@ -68,24 +68,28 @@ void TupleBatch::flush()
 
   msec_t start_time= get_msec();
   int num_flushes = 0;
-  std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin();
+  //std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iTpi = tpi_store.begin();
+  
+  //using DimensionKey order to avoid deadlocks in the db. (DimensionKey) follows same order as PK in the DB.
+  std::map<DimensionKey, size_t>::iterator iPos = lookup.begin();
   unsigned int max_elems_per_batch = std::numeric_limits<int>::max(); //was usefull before now isn't left it in to make code flexible
 
-  while(iTpi != tpi_store.end()){
+  while(iPos != lookup.end() ){
     unsigned int num_elems = 0;
     num_flushes++;
-    std::vector<boost::shared_ptr<jetstream::TupleProcessingInfo> >::iterator iStartBatch = iTpi;
+    std::map<DimensionKey, size_t>::iterator iStartBatchPos = iPos;
     std::vector<boost::shared_ptr<jetstream::Tuple> > tuple_store;
     std::vector<boost::shared_ptr<std::vector<unsigned int> > > levels_store;
     std::vector<bool> need_new_value_store;
     std::vector<bool> need_old_value_store;
 
-    while(iTpi != tpi_store.end() && num_elems < max_elems_per_batch ) {
-      tuple_store.push_back((*iTpi)->t);
-      levels_store.push_back((*iTpi)->levels);
-      need_new_value_store.push_back((*iTpi)->need_new_value);
-      need_old_value_store.push_back((*iTpi)->need_old_value);
-      ++iTpi;
+    while(iPos != lookup.end() && num_elems < max_elems_per_batch ) {
+      boost::shared_ptr<jetstream::TupleProcessingInfo> tpi = tpi_store[(*iPos).second];
+      tuple_store.push_back(tpi->t);
+      levels_store.push_back((tpi)->levels);
+      need_new_value_store.push_back((tpi)->need_new_value);
+      need_old_value_store.push_back((tpi)->need_old_value);
+      ++iPos;
       ++num_elems;
     }
 
@@ -96,9 +100,10 @@ void TupleBatch::flush()
     cube->save_tuple_batch(tuple_store, levels_store, need_new_value_store, need_old_value_store, new_tuple_store, old_tuple_store);
 
     int i = 0;
-    for(;iStartBatch != iTpi; ++iStartBatch)
+    for(;iStartBatchPos != iPos; ++iStartBatchPos)
     {
-      cube->save_callback(*(*iStartBatch), new_tuple_store[i], old_tuple_store[i]);
+      boost::shared_ptr<jetstream::TupleProcessingInfo> tpi = tpi_store[(*iStartBatchPos).second];
+      cube->save_callback(*tpi, new_tuple_store[i], old_tuple_store[i]);
       i++;
     }
   }

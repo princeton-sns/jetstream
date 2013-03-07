@@ -131,16 +131,7 @@ class DataCubeImpl : public DataCube {
 
     virtual DimensionKey get_dimension_key(const Tuple &t,  boost::shared_ptr<std::vector<unsigned int> > levels) const {
       std::ostringstream ostr;
-
-      for(size_t i=0; i<dimensions.size(); ++i) {
-        dimensions[i]->get_key(t, ostr);
-        ostr << "|";
-      }
-      for(std::vector<unsigned int>::iterator it = levels->begin(); it != levels->end(); ++it)
-      {
-        ostr << *it << "||";
-      }
-
+      get_dimension_key(t, levels, ostr);
       return ostr.str();
     }
 
@@ -148,12 +139,8 @@ class DataCubeImpl : public DataCube {
       for(size_t i=0; i<dimensions.size(); ++i) {
         dimensions[i]->get_key(t, ostr);
         ostr << "|";
+        ostr << (*levels)[i] << "|";
       }
-      for(std::vector<unsigned int>::iterator it = levels->begin(); it != levels->end(); ++it)
-      {
-        ostr << *it << "||";
-      }
-
     }
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {

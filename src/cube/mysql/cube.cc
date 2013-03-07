@@ -608,14 +608,6 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   msec_t post_prepare = get_msec();
 #endif
 
-#if  MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("START TRANSACTION");
-  #else
-    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  #endif
-#endif
-
 
 #if MYSQL_UNION_SELECT
   std::vector<boost::shared_ptr<sql::ResultSet> > old_value_results;
@@ -670,6 +662,15 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   size_t insert_store_index = 0;
   size_t count_insert_tally = 0;
 
+#if  MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("START TRANSACTION");
+  #else
+    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
+  #endif
+#endif
+
+
   while(count_insert_left > 0) {
     size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 14 - power_placeholders);
     count_insert_left -= count_insert_iter;
@@ -704,6 +705,14 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
   VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
   version ++;  //next insert will have higher version numbers
+
+#if MYSQL_TRANSACTIONS 
+  #if MYSQL_INNODB
+    execute_sql("COMMIT");
+  #else
+    execute_sql("UNLOCK TABLES");
+  #endif
+#endif
 
 #if MYSQL_PROFILE
   msec_t post_insert = get_msec();
@@ -759,13 +768,6 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   msec_t post_new_val = get_msec();
 #endif
 
-#if MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("COMMIT");
-  #else
-    execute_sql("UNLOCK TABLES");
-  #endif
-#endif
 
 
   /********* Populate tuples ******/
