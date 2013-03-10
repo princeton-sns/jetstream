@@ -11,6 +11,7 @@ using namespace jetstream::cube;
 #define MYSQL_UNION_SELECT 0
 #define MYSQL_TRANSACTIONS 1
 #define MYSQL_INNODB 1
+#define MYSQL_MAX_BATCH_PW_2 8
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
@@ -583,13 +584,13 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   int field_index;
 
 
-  size_t num_placeholders = num_dimensions() + num_aggregates();
+  /*size_t num_placeholders = num_dimensions() + num_aggregates();
   size_t  power_placeholders = 0;
   while (num_placeholders > 1) {
     num_placeholders = num_placeholders >> 1;
     power_placeholders++;
   }
-  power_placeholders++;
+  power_placeholders++;*/
 
 
 #if MYSQL_PROFILE
@@ -617,7 +618,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 14 - power_placeholders);
+      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_PW_2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
@@ -672,13 +673,13 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
 
   while(count_insert_left > 0) {
-    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left, 14 - power_placeholders);
+    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left,  MYSQL_MAX_BATCH_PW_2);
     count_insert_left -= count_insert_iter;
     count_insert_tally += count_insert_iter;
 
     boost::shared_ptr<sql::PreparedStatement> insert_stmt = get_insert_prepared_statement(count_insert_iter);
 
-    msec_t start_time_insert = get_msec();
+    //msec_t start_time_insert = get_msec();
     field_index = 1;
 
     for(; insert_store_index < count_insert_tally; ++insert_store_index) {
@@ -701,7 +702,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     }
   
     insert_stmt->execute();
-    LOG(INFO) << "Inserted "<< count_insert_iter << "tuples rate = "<< (double) count_insert_iter/(get_msec() - start_time_insert)<<" tuples/ms"; 
+    //LOG(INFO) << "Inserted "<< count_insert_iter << "tuples rate = "<< (double) count_insert_iter/(get_msec() - start_time_insert)<<" tuples/ms"; 
   }
 
 
@@ -728,7 +729,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_new;
 
     while(count_left > 0) {
-      size_t count_iter = round_down_to_power_of_two(count_left, 14 - power_placeholders);
+      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_PW_2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
