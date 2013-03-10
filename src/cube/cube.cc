@@ -73,11 +73,13 @@ void ProcessCallable::do_check_flush() {
   while(true) {
     if (batcher_ready()) {
       boost::shared_ptr<cube::TupleBatch> tb = batch_flush();
+      size_t batch_size = tb->size();
       VLOG_EVERY_N(1, 1000) << "Flushing with size "<< tb->size() << " thread id " << boost::this_thread::get_id()
+         << " size: " << batch_size 
          << " Current flushCongestMon = " << cube->flushCongestMon->queue_length()
          << " Current processhCongestMon = " << cube->processCongestMon->queue_length();
        tb->flush();
-       cube->flushCongestMon->report_delete(tb.get(), 1);
+       cube->flushCongestMon->report_delete(tb.get(), batch_size);
     }
     else
       return;
@@ -89,7 +91,7 @@ void ProcessCallable::do_check_flush() {
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf) :
   schema(_schema), name(_name), is_frozen(false),
   version(0),
-  flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(1000, "cube " + _name + " flush"))),
+  flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(1000000, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(10000, "cube " + _name + " process")))
 {
   processCongestMon->set_next_monitor(flushCongestMon);
@@ -187,6 +189,8 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
 
   if(!in_batch) {
     tupleBatcher->insert_tuple(tpi, can_batch);
+    if(can_batch)
+      flushCongestMon->report_insert(tpi.get(), 1);
   }
   else {
     tupleBatcher->update_batched_tuple(tpi, can_batch);
@@ -194,7 +198,6 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
 
   if(!tupleBatcher->is_empty() && was_empty)
   {
-    flushCongestMon->report_insert(tupleBatcher.get(), 1);
     proc->check_flush();
   }
   
@@ -206,7 +209,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
 void DataCube::wait_for_commits() {
   while(flushCongestMon->queue_length() > 0 || processCongestMon->queue_length() > 0)
   {
-    js_usleep(processCongestMon->queue_length() + (flushCongestMon->queue_length()*10));
+    js_usleep(processCongestMon->queue_length() + (flushCongestMon->queue_length()/10));
   }
 }
 
