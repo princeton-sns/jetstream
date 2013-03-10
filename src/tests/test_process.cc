@@ -22,19 +22,11 @@ class MysqlCubeNoDB: public MysqlCube {
     MysqlCubeNoDB (jetstream::CubeSchema const _schema,
                    string _name,
                    bool overwrite_if_present, const NodeConfig &conf): MysqlCube ( _schema, _name, overwrite_if_present, conf) {}
-    //TODO FIX THIS NOT WORKING
-/*
-    virtual void check_flush() {
-      while(flushCongestMon->queue_length() > 0) {
-        if(processors[current_processor]->batcher_ready()) {
-          boost::shared_ptr<cube::TupleBatch> tb = processors[current_processor]->batch_flush();
-          VLOG(1) << "Fake Flushing processor "<< current_processor << " with size "<< tb->size() << " thread id " << boost::this_thread::get_id();;
-          js_usleep(500);
-          flushCongestMon->report_delete(tb.get(), 1);
-        }
-        current_processor = (current_processor+1) % processors.size();
-      }
-    }*/
+
+      virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
+       const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
+       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
+       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) {}
 
 };
 
@@ -268,9 +260,10 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
 
   LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits << "; start" << start << "; now "<< get_msec();
 
-  LOG(INFO) << "Finished Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads << ". The time it took was: " << (get_msec() - start);
+  unsigned int diff =  (get_msec() - start);
+  double rate = (double) num_tuples/diff;
 
-
+  LOG(INFO) << "Finished Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads << " Overlap "<< overlap <<". The time it took was: " << diff <<" ms. Rate = " << rate <<" tuples/ms";
 
 }
 
@@ -299,15 +292,19 @@ TEST_F(ProcessTest, DISABLED_D100K44O) {
 }
 
 TEST_F(ProcessTest, DISABLED_D100K11NO) {
-  run_test(sc, true, 100000, 4, 4, false);
+  run_test(sc, true, 100000, 1, 1, false);
 }
 
 TEST_F(ProcessTest, DISABLED_D100K44NO) {
   run_test(sc, true, 100000, 4, 4, false);
 }
 
+TEST_F(ProcessTest, DISABLED_D1M44NO) {
+  run_test(sc, true, 1000000, 4, 4, false);
+}
+
 TEST_F(ProcessTest, DISABLED_D100K88NO) {
-  run_test(sc, true, 100000, 4, 4, false);
+  run_test(sc, true, 100000, 8, 8, false);
 }
 
 
