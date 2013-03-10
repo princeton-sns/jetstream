@@ -678,6 +678,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
 
     boost::shared_ptr<sql::PreparedStatement> insert_stmt = get_insert_prepared_statement(count_insert_iter);
 
+    msec_t start_time_insert = get_msec();
     field_index = 1;
 
     for(; insert_store_index < count_insert_tally; ++insert_store_index) {
@@ -700,6 +701,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     }
   
     insert_stmt->execute();
+    LOG(INFO) << "Inserted "<< count_insert_iter << "tuples rate = "<< (double) count_insert_iter/(get_msec() - start_time_insert)<<" tuples/ms"; 
   }
 
 
