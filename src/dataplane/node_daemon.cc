@@ -47,6 +47,10 @@ parse_config (program_options::variables_map *inputopts,
      "thread pool size")
     ("cube_processor_threads,c", value<u_int16_t>(),
      "Number of threads the cubes use")
+    ("cube_congestion_process_limit", value<u_int32_t>(),
+     "limit for congestion monitor queue cube process")
+    ("cube_congestion_flush_limit", value<u_int32_t>(),
+     "limit for congestion monitor queue cube flush")
     ;
 
 
@@ -119,6 +123,10 @@ parse_config (program_options::variables_map *inputopts,
   if (input_opts.count("cube_processor_threads"))
     config.cube_processor_threads = input_opts["cube_processor_threads"].as<u_int16_t>();
 
+  if (input_opts.count("cube_congestion_process_limit"))
+    config.cube_congestion_process_limit = input_opts["cube_congestion_process_limit"].as<u_int32_t>();
+  if (input_opts.count("cube_congestion_flush_limit"))
+    config.cube_congestion_flush_limit = input_opts["cube_congestion_flush_limit"].as<u_int32_t>();
 
   //if (input_opts.count("dataplane_port"))
   //  config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();

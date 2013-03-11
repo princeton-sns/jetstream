@@ -27,7 +27,8 @@ QueueCongestionMonitor::capacity_ratio() {
     uint32_t inserts = atomic_read32(&insertsInPeriod);
     uint32_t newi  = inserts;
     while ( ( newi = atomic_cas32(&insertsInPeriod, 0, newi)) != 0) { //reset to zero atomically with read
-      readQLen = atomic_read32(&queueLen); //prevents readQLen from being too low => causes prevQueueLen to be too low on next iteration => queueDelta too high => removes negative
+      if(inserts != newi)
+        readQLen = atomic_read32(&queueLen); //prevents readQLen from being too low => causes prevQueueLen to be too low on next iteration => queueDelta too high => removes negative.
       inserts = newi;
     }
 
@@ -42,9 +43,12 @@ QueueCongestionMonitor::capacity_ratio() {
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
     int32_t removes = inserts - queueDelta;
-    LOG_IF(FATAL, removes < 0) << "Shouldn't have data leaking out of " << name()    
-     <<  ". Inserts: " << inserts <<" queueDelta: " <<queueDelta << " readQLen: " << readQLen << " prevQueueLen: "<<prevQueueLen;
-    
+    if (removes < 0) {
+      LOG(WARNING) << "Shouldn't have data leaking out of " << name()    
+        <<  ". Inserts: " << inserts <<" queueDelta: " <<queueDelta << " readQLen: " << readQLen << " prevQueueLen: "<<prevQueueLen;
+      removes = 0;
+    }
+
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
     LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
         "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << inserts <<
