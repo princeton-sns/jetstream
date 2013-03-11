@@ -1,5 +1,6 @@
 [workers:children]
 setup
+new
 
 [setup]
 node1.mpisws.vicci.org public_ip=141.39.220.11 server_index=0
