@@ -22,12 +22,14 @@ QueueCongestionMonitor::capacity_ratio() {
 //    usec_t sample_period = now - lastQueryTS;
     lastQueryTS = now;
 
-    uint32_t readQLen = atomic_read32(&queueLen); //a fixed value
+    uint32_t readQLen = atomic_read32(&queueLen);
 
     uint32_t inserts = atomic_read32(&insertsInPeriod);
     uint32_t newi  = inserts;
-    while ( ( newi = atomic_cas32(&insertsInPeriod, 0, newi)) != 0) //reset to zero atomically with read
+    while ( ( newi = atomic_cas32(&insertsInPeriod, 0, newi)) != 0) { //reset to zero atomically with read
+      readQLen = atomic_read32(&queueLen); //prevents readQLen from being too low => causes prevQueueLen to be too low on next iteration => queueDelta too high => removes negative
       inserts = newi;
+    }
 
 
     int32_t queueDelta = readQLen - prevQueueLen; //negative implies queue is shrinking
