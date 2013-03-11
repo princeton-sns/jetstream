@@ -31,14 +31,14 @@ def main():
   leg_artists = []
   figure, ax = plt.subplots()
   
-  plot_src_tuples(time_to_tuples, ax, leg_artists) 
+#  plot_src_tuples(time_to_tuples, ax, leg_artists) 
   plot_bw(time_to_bw, ax, leg_artists) 
 
-  MAX_T = max(max(time_to_bw.keys()), max([t for (t,l) in time_to_tuples]))
+  MAX_T = max(time_to_bw.keys())
+  if len(time_to_tuples) > 0:
+    MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
   level_transitions = to_line(level_transitions, min(time_to_bw.keys()), MAX_T)
-  
   plot_degradation(level_transitions, ax, leg_artists)
-
 
   finish_plots(figure, ax, leg_artists)
 
@@ -49,28 +49,23 @@ def parse_log(infile):
   time_to_tuples = []
   f = open(infile, 'r')
   for ln in f:
-    if USE_BW_REP and 'BWReporter' in ln:
+    if 'RootReport' in ln:
       fields = ln.split(" ")
-      bytes = float(fields[ -4 ])
-      tuples = float(fields[ -2 ])
-      tstamp = long(fields[-5])
-      time_to_bw[tstamp] = (bytes, tuples)
-    elif not USE_BW_REP and 'window@' in ln:
-      fields = ln.split(" ")
-      tstamp = long(fields[7])
-      bytes = float( fields[-2])
-      time_to_bw[tstamp] = (bytes, 0)
-
+      ts = long(fields[-7])
+      window = long(fields[-4])
+      bw_sec = float(fields[-2])
+      level_transitions.append (  (ts, window) )
+      time_to_bw[ts] = (bw_sec, 0)
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
-    elif 'setting degradation level' in ln:
-      fields = ln.split(" ")
-      level, ts = int(fields[10].rstrip(',')), long(fields[-1])
-      level_transitions.append (  (ts, level) )
-    elif 'Tally in window' in ln:
-      fields = ln.split(" ")
-      ts, count = long(fields[-6]), int(fields[-3])     
-      time_to_tuples.append (  (ts, count) )
+#     elif 'setting degradation level' in ln:
+#       fields = ln.split(" ")
+#       level, ts = int(fields[10].rstrip(',')), long(fields[-1])
+#       level_transitions.append (  (ts, level) )
+#     elif 'Tally in window' in ln:
+#       fields = ln.split(" ")
+#       ts, count = long(fields[-6]), int(fields[-3])     
+#       time_to_tuples.append (  (ts, count) )
        
 
   f.close()
@@ -125,7 +120,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
   ax.set_ylim( 0, 1.2 *  max(lev_data))  
   ax.set_ylabel('Degradation level', fontsize=24)
   leg_artists.append( deg_line )
-  print level_transitions  
+#  print level_transitions  
 
 
 
@@ -133,12 +128,26 @@ def finish_plots(figure, ax, leg_artists):
   plt.xlabel('Time', fontsize=24)
   labels = ax.get_xticklabels() 
   for label in labels: 
-      label.set_rotation(30)   
-  plt.legend(leg_artists, ["Src Records", "BW", "Degradation"]);
+      label.set_rotation(30) 
+      #"Src Records",   
+  plt.legend(leg_artists, ["BW", "Degradation"]);
   
   if OUT_TO_FILE:
       plt.savefig("bw_over_time_e1.pdf")
       plt.close(figure)  
+
+# 
+#     if USE_BW_REP and 'BWReporter' in ln:
+#       fields = ln.split(" ")
+#       bytes = float(fields[ -4 ])
+#       tuples = float(fields[ -2 ])
+#       tstamp = long(fields[-5])
+#       time_to_bw[tstamp] = (bytes, tuples)
+#     elif not USE_BW_REP and 'window@' in ln:
+#       fields = ln.split(" ")
+#       tstamp = long(fields[7])
+#       bytes = float( fields[-2])
+#       time_to_bw[tstamp] = (bytes, 0)
 
   
 if __name__ == '__main__':
