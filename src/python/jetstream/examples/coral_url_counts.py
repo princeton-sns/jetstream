@@ -126,9 +126,12 @@ def get_graph(source_nodes, root_node, options):
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
 
+    congest_logger = jsapi.AvgCongestLogger(g)
+  
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
-    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
+    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, \
+    congest_logger, timestamp_cube_op, central_cube])
     if options.bw_cap:
       timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
 

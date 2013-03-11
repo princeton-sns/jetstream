@@ -469,9 +469,10 @@ AvgCongestLogger::report() {
       }
       double avg_window_secs = total_windows_secs / double(window_for.size());
       unsigned bytes_total = node->bytes_in.read();
-      unsigned bytes_in_window =  bytes_total - last_bytes;
+      unsigned bytes_per_sec =  (bytes_total - last_bytes) / report_interval;
       last_bytes = bytes_total;
-      LOG(INFO) << " Avg window: " << avg_window_secs << " - " << bytes_in_window;
+      LOG(INFO) << "@"<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
+       << " bytes/sec";
     }
     timer->expires_from_now(boost::posix_time::millisec(report_interval));
     timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
