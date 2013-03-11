@@ -6,6 +6,7 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio::ip;
 
+#undef REPORT_BW
 
 void
 IncomingConnectionState::no_more_tuples() {
@@ -583,10 +584,12 @@ BWReporter::sending_a_tuple(size_t b) {
   bytes += b;
   msec_t now = get_msec();
   if ( now > next_report) {
+#ifdef REPORT_BW
     time_t last_report = next_report - REPORT_INTERVAL;
     double tdiff = (now - last_report)/1000.0; // in seconds
     LOG(INFO)<< "BWReporter@ " << (now/1000) << " " << bytes/tdiff << " bytes/sec; " <<
         tuples/tdiff << " tuples/sec";
+#endif
     bytes = 0;
     tuples = 0;
     next_report = now + REPORT_INTERVAL;
