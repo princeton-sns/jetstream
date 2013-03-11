@@ -115,7 +115,7 @@ def get_graph(source_nodes, root_node, options):
     pull_from_local.set_cfg("simulation_rate", 1)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
-    pull_from_local.set_cfg("max_window_size", 30) #send data at least every 30 seconds
+    pull_from_local.set_cfg("max_window_size", options.max_rollup) 
 
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 

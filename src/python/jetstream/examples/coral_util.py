@@ -51,6 +51,8 @@ def standard_option_parser():
   action="store_true", default=False)
   parser.add_option("--no_backoff", dest="no_backoff",
   action="store_true", default=False)
+  parser.add_option("--max-rollup", dest="max_rollup",
+  default = "30")
   
   return parser
 
@@ -60,7 +62,10 @@ def get_all_nodes(options):
     id = NodeID()
     id.address ="somehost"
     id.portno = 12345
-    all_nodes = [id]
+    id2 = NodeID()
+    id2.address = "otherhost"
+    id2.portno = 12345
+    all_nodes = [id, id2]
     server = None
   else:
     serv_addr, serv_port = normalize_controller_addr(options.controller)

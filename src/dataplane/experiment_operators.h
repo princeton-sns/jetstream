@@ -234,13 +234,13 @@ GENERIC_CLNAME
 
 
 class CountLogger: public DataPlaneOperator {
+  //logs the total counts going past
  public:
 
   CountLogger(): tally_in_window(0),field(0) {}
   virtual void process(boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
-
 
  private:
   unsigned tally_in_window;
@@ -249,6 +249,34 @@ class CountLogger: public DataPlaneOperator {
 
 GENERIC_CLNAME
 };  
+
+
+class AvgCongestLogger: public DataPlaneOperator {
+  //logs the total counts going past
+ public:
+
+  AvgCongestLogger(): report_interval(5000),last_bytes(0)  {}
+  virtual void process(boost::shared_ptr<Tuple> t) {
+    emit(t);
+  }
+//  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+  virtual void start();
+  virtual void stop();
+  void report();
+
+
+ private:
+  std::map<operator_id_t, unsigned> window_for;
+  boost::mutex mutex;
+  volatile bool running;
+  boost::shared_ptr<boost::asio::deadline_timer> timer;
+  unsigned report_interval;
+  uint64_t last_bytes;
+
+GENERIC_CLNAME
+};  
+
 
   
 }

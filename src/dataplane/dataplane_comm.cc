@@ -302,6 +302,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   }
 
   conn = c;
+  conn->set_counters(mgr.send_counter, mgr.recv_counter);
 
   DataplaneMessage data_msg;
   data_msg.set_type(DataplaneMessage::CHAIN_CONNECT);

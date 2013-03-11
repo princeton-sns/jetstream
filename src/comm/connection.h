@@ -121,6 +121,10 @@ class ClientConnection {
   
   void close_now(); 
 
+  void set_counters(Counter * s, Counter * r) {
+    connSock->set_counters(s,r);
+  }
+
 private:
   void close () {close_async(no_op_v);}
 

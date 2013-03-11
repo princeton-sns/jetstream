@@ -3,6 +3,7 @@
 #include <fstream>
 #include <glog/logging.h>
 #include "window_congest_mon.h"
+#include "node.h"
 
 using namespace std;
 using namespace boost;
@@ -430,6 +431,53 @@ CountLogger::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;  
 }
 
+void
+AvgCongestLogger::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+    boost::lock_guard<boost::mutex> lock (mutex);
+    window_for[pred] = msg.window_length_ms();
+  }
+  DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class  
+}
+
+void
+AvgCongestLogger::start() {
+  running = true;
+  timer = get_timer();
+  timer->expires_from_now(boost::posix_time::millisec(report_interval));
+  timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
+
+}
+
+void
+AvgCongestLogger::stop() {
+  boost::lock_guard<boost::mutex> lock (mutex);
+  running = false;
+  timer->cancel();
+}
+
+void
+AvgCongestLogger::report() {
+  boost::lock_guard<boost::mutex> lock (mutex);
+
+  if ( running ) {
+    if (window_for.size() > 0) {
+      unsigned total_windows_secs = 0;
+      map<operator_id_t, unsigned>::iterator it = window_for.begin();
+      for ( ; it != window_for.end(); ++it) {
+        total_windows_secs += it->second;
+      }
+      double avg_window_secs = total_windows_secs / double(window_for.size());
+      unsigned bytes_total = node->bytes_in.read();
+      unsigned bytes_in_window =  bytes_total - last_bytes;
+      last_bytes = bytes_total;
+      LOG(INFO) << " Avg window: " << avg_window_secs << " - " << bytes_in_window;
+    }
+    timer->expires_from_now(boost::posix_time::millisec(report_interval));
+    timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
+  }
+}
+
 
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
@@ -442,6 +490,7 @@ const string MockCongestion::my_type_name("Mock Congestion");
 const string FixedRateQueue::my_type_name("Fixed rate queue");
 const string ExperimentTimeRewrite::my_type_name("Time rewrite");
 const string CountLogger::my_type_name("Count logger");
+const string AvgCongestLogger::my_type_name("Avg. Congest Reporter");
 
 
 }

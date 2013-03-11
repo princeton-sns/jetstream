@@ -12,7 +12,7 @@ using namespace jetstream;
 ConnectedSocket::ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv,
      boost::shared_ptr<boost::asio::ip::tcp::socket> s)
   : iosrv (srv), sock (s), sendStrand (*iosrv), recvStrand(*iosrv), closing_cb(no_op_v),
-  sock_state(CS_open),sendCount(0),bytesQueued(0),sending (false), receiving (false) {
+  sock_state(CS_open),bytesQueued(0),send_counter(NULL), recv_counter(NULL),sending (false), receiving (false) {
   VLOG(1) << "creating connected socket; s " << (s ? "is" : "is not")<< " defined";
   
   std::ostringstream mon_name;
@@ -196,7 +196,8 @@ ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
 		       const boost::system::error_code &error,
 		       size_t bytes_transferred)
 {
-  sendCount++;
+  if(send_counter)
+    send_counter->update(bytes_transferred);
 
   sending = false;
 
@@ -317,7 +318,11 @@ ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recvMsg,
     fail(asio::error::invalid_argument);
     return;
   }
-    
+
+  if(recv_counter)
+    recv_counter->update(bytes_transferred + 4); //4 for header
+
+  
   VLOG(2) << "In ConnectedSocket::received_body; passing along buffer of length "
      << recvMsg->len << " data bytes on port " << sock->local_endpoint().port();
 

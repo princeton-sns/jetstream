@@ -9,7 +9,7 @@
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
 #include "queue_congestion_mon.h"
-
+#include "counter.h"
 
 #include <glog/logging.h>
 
@@ -75,9 +75,10 @@ friend class ClientConnection;
   cb_raw_msg_t recvcb;
   close_cb_t closing_cb;
   volatile  sock_state_t sock_state;
-  volatile size_t sendCount; //total number of send operations over lifetime.
-  //TODO should be atomic?
   volatile size_t bytesQueued;
+  
+  Counter * send_counter;
+  Counter * recv_counter;
 
   /********* SENDING *********/
 
@@ -184,8 +185,12 @@ friend class ClientConnection;
    */
   std::string get_fourtuple () const;
 
-  size_t send_count() { return sendCount; }
+  size_t send_count() { return send_counter ? send_counter->read() : -1; }
   size_t bytes_queued() { return bytesQueued; }
+  void set_counters(Counter * s, Counter * r) {
+    send_counter = s;
+    recv_counter = r;
+  }
   boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return mon;}
 
 };

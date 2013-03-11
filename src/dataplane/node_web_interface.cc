@@ -85,6 +85,10 @@ NodeWebInterface::make_base_page(ostream &buf) {
   buf << "<h2>JetStream worker alive</h2>"<< endl ;
   boost::shared_ptr<vector<string> > cubeList = node.cubeMgr.list_cubes();
   
+  buf << "<p>" << node.bytes_in.read() << " bytes in.</p>";
+  buf << "<p>" << node.bytes_out.read() << " bytes out </p>";
+
+  
   buf << "<p>Cubes:</p>" << endl<<"<ol>"<<endl;
   vector<string>::iterator cube_it;
   for (cube_it = cubeList->begin();cube_it != cubeList->end(); ++cube_it) {

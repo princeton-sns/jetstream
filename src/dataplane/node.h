@@ -15,6 +15,8 @@
 #include "node_web_interface.h"
 #include "node_config.h"
 #include "congest_policy.h"
+#include "counter.h"
+
 
 namespace jetstream {
   
@@ -114,6 +116,9 @@ class Node {
   boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
     return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
   }
+
+  Counter bytes_in, bytes_out;
+
 
 //TODO include private copy-constructor and operator= here?
 

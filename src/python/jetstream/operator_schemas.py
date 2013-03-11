@@ -34,6 +34,7 @@ class OpType (object):
   RAND_EVAL = "RandEvalOperator"
   TIMEWARP = "ExperimentTimeRewrite"
   FILTER_SUBSCRIBER = "FilterSubscriber"
+  AVG_CONGEST_LOGGER = "AvgCongestLogger"
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   VAR_TIME_SUBSCRIBE = "VariableCoarseningSubscriber"
@@ -266,5 +267,6 @@ SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp
 SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
+SCHEMAS[OpType.AVG_CONGEST_LOGGER] = lambda schema,cfg: schema
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
 # is a special case

@@ -31,6 +31,7 @@ class NodeWebInterface {
   void stop ();  // Idempotent, but may block to join with worker threads.
   
   static void * process_req (enum mg_event event, struct mg_connection *conn);
+  
 };
 
 }
