@@ -255,7 +255,7 @@ class AvgCongestLogger: public DataPlaneOperator {
   //logs the total counts going past
  public:
 
-  AvgCongestLogger(): report_interval(5000),last_bytes(0)  {}
+  AvgCongestLogger(): report_interval(2000),last_bytes(0)  {}
   virtual void process(boost::shared_ptr<Tuple> t) {
     emit(t);
   }
