@@ -86,7 +86,8 @@ def get_graph(source_nodes, root_node, options):
   
     g.chain([central_cube,pull_q, echo] )
 
-
+  congest_logger = jsapi.AvgCongestLogger(g)
+  congest_logger.instantiate_on(root_node)
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['URL_requested'], len(coral_types) ]
 
@@ -120,20 +121,20 @@ def get_graph(source_nodes, root_node, options):
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)
-    count_logger = jsapi.CountLogger(g, field=3)
+#    count_logger = jsapi.CountLogger(g, field=3)
 
     timestamp_op= jsapi.TimestampOperator(g, "ms")
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
-
-    congest_logger = jsapi.AvgCongestLogger(g)
   
-    timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
-    timestamp_cube_op.instantiate_on(root_node)
-    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, \
-    congest_logger, timestamp_cube_op, central_cube])
-    if options.bw_cap:
-      timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
+    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, congest_logger])
+
+  timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
+  timestamp_cube_op.instantiate_on(root_node)
+
+  g.chain ( [congest_logger, timestamp_cube_op, central_cube])
+  if options.bw_cap:
+    congest_logger.set_inlink_bwcap(float(options.bw_cap))
 
   return g
   
