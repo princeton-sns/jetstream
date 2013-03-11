@@ -20,11 +20,13 @@ class NodeConfig {
   std::string cube_db_pass;
   std::string cube_db_name;
   u_int cube_processor_threads;
+  u_int cube_congestion_process_limit;
+  u_int cube_congestion_flush_limit;
   NodeConfig ()
     : dataplane_ep("0.0.0.0", 0), webinterface_port (0),
     heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000),sendQueueSize(1E5),
     cube_db_host("localhost"), cube_db_user("root"), cube_db_pass(""), cube_db_name("test_cube"),
-    cube_processor_threads(1)
+    cube_processor_threads(1), cube_congestion_process_limit(10000), cube_congestion_flush_limit(1000000)
     {}
 };
 
