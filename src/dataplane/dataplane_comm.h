@@ -14,7 +14,7 @@
 #include "node_config.h"
 #include "queue_congestion_mon.h"
 #include "window_congest_mon.h"
-
+#include "counter.h"
 
 #undef ACK_EACH_PACKET
 #define ACK_WINDOW_END 1
@@ -223,7 +223,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
   
  public:
   DataplaneConnManager (boost::asio::io_service& io, const NodeConfig& c):
-      iosrv(io), strand(iosrv), cfg(c) {}
+      send_counter(NULL), recv_counter(NULL),iosrv(io), strand(iosrv), cfg(c) {}
  
  
     // called to attach incoming connection c to existing operator dest
@@ -254,20 +254,27 @@ Internally, we identify endpoints by a string consisting of either an operator I
        adaptors[p->dest_as_str] = p;
     }
   
-   void cleanup(std::string id) {
+    void cleanup(std::string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
   
     void deferred_cleanup(std::string);
 
-   void cleanup_incoming(boost::asio::ip::tcp::endpoint c) {
+    void cleanup_incoming(boost::asio::ip::tcp::endpoint c) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup_in,this, c));
     }
   
     void deferred_cleanup_in(boost::asio::ip::tcp::endpoint);
 
     size_t maxQueueSize() { return cfg.sendQueueSize; }
+
+    Counter * send_counter, *recv_counter;
+    void set_counters(Counter * s, Counter * r) {
+      send_counter = s;
+      recv_counter = r;
+    }  
  
+
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
@@ -277,7 +284,6 @@ Internally, we identify endpoints by a string consisting of either an operator I
   * Maps from a destination operator ID to an RDA for it.
   */
     std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
-  
   
 };
 

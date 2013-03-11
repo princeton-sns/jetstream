@@ -9,6 +9,7 @@
 #include "jetstream_types.pb.h"
 #include "subscriber.h"
 
+
 using namespace jetstream;
 using namespace std;
 using namespace boost;
@@ -98,7 +99,7 @@ Node::start ()
     shared_ptr<thread> t (new thread(bind(&asio::io_service::run, iosrv)));
     threads.push_back(t);
   }
-  
+  dataConnMgr.set_counters(&bytes_out, &bytes_in);
   webInterface.start();
 
 //  VLOG(1) << "Finished node::run" << endl;
@@ -253,7 +254,7 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
   
   // Need to convert the connected socket to a client_connection
   LOG(INFO) << "Incoming dataplane connection from " << sock->get_remote_endpoint();
-  
+  sock->set_counters(&bytes_out, &bytes_in);
   boost::shared_ptr<ClientConnection> conn (new ClientConnection(sock));
   conn->recv_data_msg(bind(&Node::received_data_msg, this, conn,  _1, _2), e);  
 

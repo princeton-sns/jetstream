@@ -115,7 +115,7 @@ def get_graph(source_nodes, root_node, options):
     pull_from_local.set_cfg("simulation_rate", 1)
     pull_from_local.set_cfg("ts_field", 0)
     pull_from_local.set_cfg("start_ts", start_ts)
-    pull_from_local.set_cfg("max_window_size", 30) #send data at least every 30 seconds
+    pull_from_local.set_cfg("max_window_size", options.max_rollup) 
 
     pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
@@ -126,9 +126,12 @@ def get_graph(source_nodes, root_node, options):
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     count_extend_op.instantiate_on(node)
 
+    congest_logger = jsapi.AvgCongestLogger(g)
+  
     timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
     timestamp_cube_op.instantiate_on(root_node)
-    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, timestamp_cube_op, central_cube])
+    g.chain([local_cube, pull_from_local,count_logger, timestamp_op, count_extend_op, \
+    congest_logger, timestamp_cube_op, central_cube])
     if options.bw_cap:
       timestamp_cube_op.set_inlink_bwcap(float(options.bw_cap))
 
