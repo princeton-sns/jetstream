@@ -43,7 +43,7 @@ QueueCongestionMonitor::capacity_ratio() {
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
     int32_t removes = inserts - queueDelta;
     LOG_IF(FATAL, removes < 0) << "Shouldn't have data leaking out of " << name()    
-     <<  ". Inserts: " << inserts <<" queueDelta: " <<queueDelta;
+     <<  ". Inserts: " << inserts <<" queueDelta: " <<queueDelta << " readQLen: " << readQLen << " prevQueueLen: "<<prevQueueLen;
     
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
     LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
