@@ -1049,10 +1049,6 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
   assert(levels.size() == dimensions.size());
 
   vector<string> column_names;
-  vector<string> select_clause;
-  vector<string> groupby_clause;
-
-  vector<unsigned int>::const_iterator iLevel = levels.begin();
 
   for(size_t i=0; i<dimensions.size(); i++) {
     vector<string> names = dimensions[i]->get_column_names();
@@ -1062,6 +1058,48 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
     }
 
     column_names.push_back(dimensions[i]->get_rollup_level_column_name());
+  }
+
+  for(size_t i=0; i<aggregates.size(); i++) {
+    vector<string> names = aggregates[i]->get_column_names();
+
+    for (size_t j = 0; j < names.size(); j++) {
+      column_names.push_back("`"+names[j]+"`");
+    }
+  }
+
+  string sql = "REPLACE INTO `"+get_rollup_table_name()+"`";
+  sql += " ("+boost::algorithm::join(column_names, ", ")+") ";
+  sql += get_rollup_sql(levels, min, max);
+
+  //  sql += " ON DUPLICATE KEY UPDATE";
+  VLOG(1) << "in rollup_slice_query; query is " << sql;
+
+  execute_sql(sql);
+}
+
+CubeIterator 
+MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) {
+  assert(levels.size() == dimensions.size());
+  string sql = get_rollup_sql(levels, min, max);
+
+  VLOG(1) << "in slice_and_rollup; query is " << sql;
+
+  return get_result_iterator(sql, false, false);
+}
+
+
+string
+MysqlCube::get_rollup_sql(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) const {
+  assert(levels.size() == dimensions.size());
+
+  vector<string> select_clause;
+  vector<string> groupby_clause;
+
+  vector<unsigned int>::const_iterator iLevel = levels.begin();
+
+  for(size_t i=0; i<dimensions.size(); i++) {
+    
     select_clause.push_back(dimensions[i]->get_select_clause_for_rollup(*iLevel));
 
     if(*iLevel > 0) {
@@ -1076,30 +1114,20 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
   }
 
   for(size_t i=0; i<aggregates.size(); i++) {
-    vector<string> names = aggregates[i]->get_column_names();
-
-    for (size_t j = 0; j < names.size(); j++) {
-      column_names.push_back("`"+names[j]+"`");
-    }
-
     select_clause.push_back(aggregates[i]->get_select_clause_for_rollup());
   }
 
-  string sql = "REPLACE INTO `"+get_rollup_table_name()+"`";
-  sql += " ("+boost::algorithm::join(column_names, ", ")+") ";
-  sql += "SELECT "+boost::algorithm::join(select_clause, ", ");
+  string  sql = "SELECT "+boost::algorithm::join(select_clause, ", ");
   sql += " FROM "+get_table_name();
   sql += get_where_clause(min, max);
 
   if(!groupby_clause.empty()) {
     sql += " GROUP BY "+boost::algorithm::join(groupby_clause, ", ");
   }
-
-//  sql += " ON DUPLICATE KEY UPDATE";
-  VLOG(1) << "in rollup_slice_query; query is " << sql;
-
-  execute_sql(sql);
+  
+  return sql;
 }
+
 
 
 

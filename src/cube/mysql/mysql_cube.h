@@ -84,7 +84,9 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
 
     virtual void
     do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max);
-
+    
+    virtual CubeIterator slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max);
+      
     virtual ~MysqlCube();
 
   protected:
@@ -101,6 +103,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
                             std::vector<unsigned int> const &levels = std::vector<unsigned int>()) const;
     CubeIterator get_result_iterator(string sql, bool final, bool rollup=false) const;
 
+    string get_rollup_sql(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) const;
 
 
     string get_insert_prepared_sql(size_t batch);
