@@ -25,6 +25,7 @@ class OpType (object):
   URLToDomain = "URLToDomain"
   COUNT_LOGGER = "CountLogger"
   EQUALS_FILTER = "IEqualityFilter"
+  GT_FILTER = "GreaterThan"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -41,11 +42,22 @@ class OpType (object):
 
   LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
 
+  TPUT_WORKER = "MultiRoundSender"
+  TPUT_CONTROLLER = "MultiRoundCoordinator"
 
   # Supported by Python local controller/worker only
   UNIX = "Unix"
   FETCHER = "Fetcher"
 
+
+def check_ts_field(in_schema, cfg):
+  if 'ts_field' in cfg:
+    ts_field = int(cfg['ts_field'])
+    if ts_field >= len(in_schema):
+      raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
+        % (ts_field, len(in_schema)))
+    if in_schema[ts_field][0] != 'T':
+      raise SchemaError('Expected a time element for ts_field %d' % ts_field)
 
 
 def validate_FileRead(in_schema, cfg):
@@ -229,6 +241,13 @@ def validate_CountLogger(in_schema, cfg):
 def validate_FilterSubscriber(in_schema, cfg):
   return in_schema
 
+def validate_Tput_Control(in_schema, cfg):
+  check_ts_field(in_schema, cfg)
+  if "num_results" not in cfg:
+    raise SchemaError("must specify num_results for tput")
+  if "sort_column" not in cfg:
+    raise SchemaError("must specify sort_column for tput")
+  return in_schema
 
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -268,5 +287,8 @@ SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp
 SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
 SCHEMAS[OpType.AVG_CONGEST_LOGGER] = lambda schema,cfg: schema
+SCHEMAS[OpType.TPUT_CONTROLLER] = validate_Tput_Control
+SCHEMAS[OpType.TPUT_WORKER] = lambda schema,cfg: schema
+
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
 # is a special case

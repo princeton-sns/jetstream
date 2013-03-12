@@ -49,14 +49,21 @@ private:
 };
 
 
-
+typedef boost::recursive_mutex tput_mutex;
 class MultiRoundCoordinator: public DataPlaneOperator {
 
  private:
    std::vector<boost::shared_ptr<TupleSender> > predecessors;
+   std::vector<boost::shared_ptr<TupleSender> > new_preds;
+
    unsigned int num_results;
-   Tuple dim_filter_sta;
+   unsigned int min_window_size; //seconds
+   Tuple dim_filter_start;
    Tuple dim_filter_end;
+  
+   time_t start_ts;
+   int ts_field;
+   int window_offset;
    std::string sort_column;
    unsigned int responses_this_phase;
    unsigned int total_col;
@@ -65,6 +72,10 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    double calculate_tao();
 
 //   std::string downstream_cube_name;
+  
+  volatile bool running;
+  tput_mutex mutex;
+  boost::shared_ptr<boost::asio::deadline_timer> timer;
   
   struct CandidateItem {
     double val;
@@ -85,11 +96,12 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
    virtual void start();
+   virtual void stop();
 
  
    virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t pred);
   
-   virtual void add_pred (boost::shared_ptr<TupleSender> d) { predecessors.push_back(d); }
+   virtual void add_pred (boost::shared_ptr<TupleSender> d) { new_preds.push_back(d); }
    virtual void clear_preds () { predecessors.clear(); }
   
    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
@@ -97,8 +109,10 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    ProtoState phase; //visible for debugging
 
  protected:
+   void start_phase_1(time_t window_end);
    void start_phase_2();
    void start_phase_3();
+   void wait_for_restart();
 
 GENERIC_CLNAME
 };

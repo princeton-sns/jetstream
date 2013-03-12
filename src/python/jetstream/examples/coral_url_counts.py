@@ -17,6 +17,8 @@ def main():
 
   parser = standard_option_parser()
   parser.add_option("--full_url", dest="full_url", action="store_true", default=False)
+  parser.add_option("--multiround", dest="multiround",
+  action="store_true", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -61,7 +63,7 @@ def get_graph(source_nodes, root_node, options):
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
   ECHO_RESULTS = not options.no_echo
-
+  MULTIROUND = options.multiround
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -88,6 +90,20 @@ def get_graph(source_nodes, root_node, options):
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
+
+  if MULTIROUND:
+    tput_merge = jsapi.MultiRoundCoord(g)
+    tput_merge.set_cfg("start_ts", start_ts)
+    tput_merge.set_cfg("window_offset", 5 * 1000)
+    tput_merge.set_cfg("ts_field", 0)
+    tput_merge.set_cfg("num_results", 10)
+    tput_merge.set_cfg("sort_column", "-count")
+    tput_merge.set_cfg("min_window_size", 5)
+
+
+    g.connect(tput_merge, congest_logger)
+
+
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
       coral_fidxs['URL_requested'], len(coral_types) ]
 
@@ -110,24 +126,32 @@ def get_graph(source_nodes, root_node, options):
     else:
        local_cube.set_overwrite(False)
 
-    query_rate = 1000 if ANALYZE else 3600 * 1000
-    pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
-    pull_from_local.instantiate_on(node)
-    pull_from_local.set_cfg("simulation_rate", 1)
-    pull_from_local.set_cfg("ts_field", 0)
-    pull_from_local.set_cfg("start_ts", start_ts)
-    pull_from_local.set_cfg("max_window_size", options.max_rollup) 
 
-    pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
+    if MULTIROUND:
+      pull_from_local = jsapi.MultiRoundClient(g)
+    else:
+      query_rate = 1000 if ANALYZE else 3600 * 1000
+      pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
+      pull_from_local.set_cfg("simulation_rate", 1)
+      pull_from_local.set_cfg("max_window_size", options.max_rollup) 
+      pull_from_local.set_cfg("ts_field", 0)
+      pull_from_local.set_cfg("start_ts", start_ts)
+      pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
+
+    pull_from_local.instantiate_on(node)
 
     local_cube.instantiate_on(node)
 #    count_logger = jsapi.CountLogger(g, field=3)
 
     timestamp_op= jsapi.TimestampOperator(g, "ms")
-    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
+    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"]) #used as dummy hostname for latency tracker
     count_extend_op.instantiate_on(node)
   
-    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op, congest_logger])
+    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op])
+    if MULTIROUND:
+      g.connect(count_extend_op, tput_merge)
+    else:
+      g.connect(count_extend_op, congest_logger)
 
   timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
   timestamp_cube_op.instantiate_on(root_node)

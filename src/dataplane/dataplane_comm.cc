@@ -369,6 +369,9 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       break;
     }
 
+    case DataplaneMessage::TPUT_START:
+    case DataplaneMessage::TPUT_ROUND_2:
+    case DataplaneMessage::TPUT_ROUND_3:
     case DataplaneMessage::SET_BACKOFF:
     {
       pred->meta_from_downstream(msg);
@@ -393,9 +396,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                    << std::endl << "Error code is " << error;
   }
 
-  boost::system::error_code err;  
-  conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
-  			this, _1, _2), err);
+  if (conn) { //might have failed during meta_from_downstream etc calls
+    boost::system::error_code err;
+    conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
+          this, _1, _2), err);
+  } else {
+    pred->chain_is_broken();
+  }
 
 }
 
@@ -500,7 +507,8 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
     return;
   }
 #ifdef ACK_WINDOW_END
-  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW) {
+  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
+      msg.has_window_length_ms()) {
     if (remote_processing->get_window_start() > 0) { //no data in window
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
@@ -526,7 +534,7 @@ bool
 RemoteDestAdaptor::wait_for_chain_ready() {
   unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
   while (!chainIsReady) {
-    LOG(INFO) << "trying to send data to "<< dest_as_str << " on "
+    LOG(INFO) <<  pred->id_as_str() <<  " trying to send data to "<< dest_as_str << " on "
 		 << remoteAddr << " through closed conn. Should block";
     
     system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);

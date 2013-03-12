@@ -877,6 +877,8 @@ boost::shared_ptr<jetstream::Tuple> jetstream::cube::MysqlCube::get_cell_value(j
   return make_tuple_from_result_set(res, 1, final);
 }
 
+
+
 boost::shared_ptr<jetstream::Tuple>
 jetstream::cube::MysqlCube::make_tuple_from_result_set(boost::shared_ptr<sql::ResultSet> res, int column_index /*= 1 */, bool final, bool rollup) const {
   boost::shared_ptr<jetstream::Tuple> result = make_shared<jetstream::Tuple>();
