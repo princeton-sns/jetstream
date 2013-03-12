@@ -57,6 +57,10 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int num_results;
    Tuple dim_filter_sta;
    Tuple dim_filter_end;
+  
+   time_t start_ts;
+   int ts_field;
+   int window_offset;
    std::string sort_column;
    unsigned int responses_this_phase;
    unsigned int total_col;

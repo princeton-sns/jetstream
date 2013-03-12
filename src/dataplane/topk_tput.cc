@@ -119,6 +119,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     }
     LOG(INFO) << "end of tput for " << id() << "; emitting " << emitted << " tuples";
     end_of_round(3);
+    
   } else {
     DataPlaneOperator::meta_from_downstream(msg);
   }
@@ -136,8 +137,27 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
   if (config.find("sort_column") != config.end()) {
     sort_column = config["sort_column"];
-  } else
+  } else {
     return operator_err_t("must specify sort_column for multi-round top-k");
+  }
+
+  if (config.find("ts_field") != config.end()) {
+    ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
+//    total_fields = boost::lexical_cast<int32_t>(config["total_fields"]);
+
+    if (config.find("start_ts") != config.end())
+      start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
+    else
+      start_ts = 0;
+    
+    window_offset = 0;
+    if (config.find("window_offset") != config.end())
+      window_offset = boost::lexical_cast<time_t>(config["window_offset"]);
+    
+  }
+  else
+    ts_field = -1;
+
 
   phase = NOT_STARTED;
   return NO_ERR;
@@ -146,10 +166,19 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 void
 MultiRoundCoordinator::start() {
 
-  destcube = boost::dynamic_pointer_cast<DataCube>(get_dest());
+  boost::shared_ptr<TupleReceiver> dest = get_dest();
+  boost::shared_ptr<DataPlaneOperator> dest_op;
+  do {
+    destcube = boost::dynamic_pointer_cast<DataCube>(dest);
+    dest_op = boost::dynamic_pointer_cast<DataPlaneOperator>(dest);
+    if (dest_op)
+      dest = dest_op->get_dest();
+  } while (dest_op && !destcube);
+  
   if (!destcube) {
     LOG(FATAL) << "must attach MultiRoundCoordinator to cube";
   }
+  
   string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
   total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
 
@@ -163,6 +192,8 @@ MultiRoundCoordinator::start() {
       << predecessors.size() << " predecessors";
 
   //todo should set tput_r1_start and tput_r2_start
+  
+  
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];
     pred->meta_from_downstream(start_proto);

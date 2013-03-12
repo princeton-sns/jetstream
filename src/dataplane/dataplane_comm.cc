@@ -500,7 +500,8 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
     return;
   }
 #ifdef ACK_WINDOW_END
-  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW) {
+  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
+      msg.has_window_length_ms()) {
     if (remote_processing->get_window_start() > 0) { //no data in window
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);

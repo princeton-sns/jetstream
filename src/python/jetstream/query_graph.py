@@ -4,7 +4,7 @@ from itertools import izip, tee
 
 from jetstream_types_pb2 import *
 Dimension = CubeSchema.Dimension
-from operator_schemas import SCHEMAS, OpType,SchemaError
+from operator_schemas import SCHEMAS, OpType,SchemaError,check_ts_field
 from base_constructs import *
 
 # from python itertools recipes
@@ -377,16 +377,9 @@ class TimeSubscriber(Operator):
   def out_schema(self, in_schema):
     if len(in_schema) == 0:
       raise SchemaError("subscriber %s has no inputs"  % self.id)
+    check_ts_field(in_schema, self.cfg)
 #    print "time subscriber schema"
-    if 'ts_field' in self.cfg:
-      ts_field = int(self.cfg['ts_field'])
-      if ts_field >= len(in_schema):
-        raise SchemaError('ts_field %d illegal for operator; only %d real inputs' \
-          % (ts_field, len(in_schema)))
-      if in_schema[ts_field][0] != 'T':
-        raise SchemaError('Expected a time element for ts_field %d' % ts_field)
     return in_schema  #everything is just passed through
-
 
 def VariableCoarseningSubscriber(*args, **kwargs):
    op = TimeSubscriber(*args, **kwargs)
@@ -453,6 +446,16 @@ def AvgCongestLogger(graph):
 def EqualsFilter(graph, field, targ):
    cfg = {"field":field, "targ":targ}
    return graph.add_operator(OpType.EQUALS_FILTER, cfg)
+
+def GreaterThan(graph, field, targ):
+   cfg = {"field":field, "targ":targ}
+   return graph.add_operator(OpType.GT_FILTER, cfg)
+
+def MultiRoundClient(graph):
+   return graph.add_operator(OpType.TPUT_WORKER, cfg)
+
+def MultiRoundCoord(graph):
+   return graph.add_operator(OpType.TPUT_CONTROLLER, cfg)
 
 
 def FilterSubscriber(graph, cube_field=None, level_in_field=None):
