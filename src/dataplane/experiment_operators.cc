@@ -450,6 +450,14 @@ AvgCongestLogger::start() {
 }
 
 void
+AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
+  boost::lock_guard<boost::mutex> lock (mutex);
+  tuples_in_interval ++;
+  emit(t);
+}
+
+
+void
 AvgCongestLogger::stop() {
   boost::lock_guard<boost::mutex> lock (mutex);
   running = false;
@@ -470,9 +478,11 @@ AvgCongestLogger::report() {
       double avg_window_secs = total_windows_secs / double(window_for.size());
       uint64_t bytes_total = node->bytes_in.read();
       double bytes_per_sec =  double(bytes_total - last_bytes) * 1000 / report_interval;
+      double tuples_per_sec = tuples_in_interval * 1000.0 / report_interval;
       last_bytes = bytes_total;
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
-       << " bytes/sec"; // << " (bytes_total " << bytes_total << ")";
+       << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
+       tuples_in_interval = 0;
     }
     timer->expires_from_now(boost::posix_time::millisec(report_interval));
     timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
