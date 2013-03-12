@@ -9,8 +9,8 @@ using namespace jetstream::cube;
 
 #define MYSQL_PROFILE 0
 #define MYSQL_UNION_SELECT 0
-#define MYSQL_TRANSACTIONS 1
-#define MYSQL_INNODB 1
+#define MYSQL_TRANSACTIONS 0
+#define MYSQL_INNODB 0
 #define MYSQL_MAX_BATCH_PW_2 8
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,

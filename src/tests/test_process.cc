@@ -299,6 +299,10 @@ TEST_F(ProcessTest, DISABLED_D100K44NO) {
   run_test(sc, true, 100000, 4, 4, false);
 }
 
+TEST_F(ProcessTest, DISABLED_D500K44NO) {
+  run_test(sc, true, 500000, 4, 4, false);
+}
+
 TEST_F(ProcessTest, DISABLED_D1M44NO) {
   run_test(sc, true, 1000000, 4, 4, false);
 }
