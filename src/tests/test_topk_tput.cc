@@ -58,6 +58,7 @@ TEST(Topk_TPUT, TwoLocal) {
   int K = 3;
   boost::system::error_code error;
   Node node(cfg, error);
+  node.start();
   ASSERT_TRUE(error == 0);
   AlterTopo topo;
 
@@ -114,6 +115,7 @@ TEST(Topk_TPUT, TwoLocal) {
     cout << fmt(*t) << endl;
     it++;
   }
+  ASSERT_TRUE( expected < 17);
   cout << "done" << endl;
-
+  node.stop();
 }

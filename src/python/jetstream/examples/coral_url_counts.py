@@ -17,7 +17,7 @@ def main():
 
   parser = standard_option_parser()
   parser.add_option("--full_url", dest="full_url", action="store_true", default=False)
-  parser.add_option("--multi_round", dest="multiround",
+  parser.add_option("--multiround", dest="multiround",
   action="store_true", default=False)
 
   (options, args) = parser.parse_args()
@@ -63,7 +63,7 @@ def get_graph(source_nodes, root_node, options):
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
   ECHO_RESULTS = not options.no_echo
-
+  MULTIROUND = options.multiround
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -93,9 +93,14 @@ def get_graph(source_nodes, root_node, options):
 
   if MULTIROUND:
     tput_merge = jsapi.MultiRoundCoord(g)
-    g.edge(tput_merge, congest_logger)
+    tput_merge.set_cfg("start_ts", start_ts)
+    tput_merge.set_cfg("window_offset", 5 * 1000)
+    tput_merge.set_cfg("ts_field", 0)
+    tput_merge.set_cfg("num_results", 10)
+    tput_merge.set_cfg("sort_column", "count")
 
 
+    g.connect(tput_merge, congest_logger)
 
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
@@ -128,11 +133,11 @@ def get_graph(source_nodes, root_node, options):
       pull_from_local = jsapi.VariableCoarseningSubscriber(g, {}, query_rate)
       pull_from_local.set_cfg("simulation_rate", 1)
       pull_from_local.set_cfg("max_window_size", options.max_rollup) 
+      pull_from_local.set_cfg("ts_field", 0)
+      pull_from_local.set_cfg("start_ts", start_ts)
+      pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     pull_from_local.instantiate_on(node)
-    pull_from_local.set_cfg("ts_field", 0)
-    pull_from_local.set_cfg("start_ts", start_ts)
-    pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
 
     local_cube.instantiate_on(node)
 #    count_logger = jsapi.CountLogger(g, field=3)

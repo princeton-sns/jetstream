@@ -243,6 +243,10 @@ def validate_FilterSubscriber(in_schema, cfg):
 
 def validate_Tput_Control(in_schema, cfg):
   check_ts_field(in_schema, cfg)
+  if "num_results" not in cfg:
+    raise SchemaError("must specify num_results for tput")
+  if "sort_column" not in cfg:
+    raise SchemaError("must specify sort_column for tput")
   return in_schema
 
 # Schemas are represented as a function that maps from an input schema and configuration

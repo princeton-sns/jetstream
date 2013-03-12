@@ -527,7 +527,7 @@ bool
 RemoteDestAdaptor::wait_for_chain_ready() {
   unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
   while (!chainIsReady) {
-    LOG(INFO) << "trying to send data to "<< dest_as_str << " on "
+    LOG(INFO) <<  pred->id_as_str() <<  " trying to send data to "<< dest_as_str << " on "
 		 << remoteAddr << " through closed conn. Should block";
     
     system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);

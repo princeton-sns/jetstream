@@ -62,13 +62,14 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
   const jetstream::Tuple& min = msg.has_tput_r1_start() ?  msg.tput_r1_start() : cube->empty_tuple();
   const jetstream::Tuple& max = msg.has_tput_r1_end() ?  msg.tput_r1_end(): min;
   take_greatest = msg.tput_sort_key()[0] == '-';
-  VLOG(2) << "got meta from downstream";
+//  VLOG(1) << "TPUT got meta from downstream";
   if ( msg.type() == DataplaneMessage::TPUT_START) {
     //sources send their top k.  TODO what about ties?
     sort_order.push_back(msg.tput_sort_key());
 
     VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, msg.tput_k());
+//    VLOG(1) << "slice query returned " << it.numCells() << " cells";
     while ( it != cube->end()) {
       emit(*it);
       it++;
@@ -141,6 +142,11 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("must specify sort_column for multi-round top-k");
   }
 
+  if (config.find("min_window_size") != config.end())
+    min_window_size = boost::lexical_cast<unsigned>(config["min_window_size"]);
+  else
+    min_window_size = 0;
+
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
 //    total_fields = boost::lexical_cast<int32_t>(config["total_fields"]);
@@ -151,13 +157,16 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
       start_ts = 0;
     
     window_offset = 0;
-    if (config.find("window_offset") != config.end())
+    if (config.find("window_offset") != config.end()) {
       window_offset = boost::lexical_cast<time_t>(config["window_offset"]);
-    
+      window_offset /= 1000; //convert to seconds from ms
+    }
   }
-  else
+  else {
     ts_field = -1;
-
+    start_ts = 0;
+    window_offset = 0;
+  }
 
   phase = NOT_STARTED;
   return NO_ERR;
@@ -181,6 +190,20 @@ MultiRoundCoordinator::start() {
   
   string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
   total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
+  running = true;
+  timer = get_timer();
+  
+  wait_for_restart();
+}
+
+
+  //invoked only via timer
+void
+MultiRoundCoordinator::start_phase_1(time_t window_end) {
+  boost::lock_guard<tput_mutex> lock (mutex);
+
+  if (! running)
+    return;
 
   phase = ROUND_1;
   responses_this_phase = 0;
@@ -188,11 +211,29 @@ MultiRoundCoordinator::start() {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
+  
+  while (! new_preds.empty()) {
+    predecessors.push_back(new_preds.back());
+    LOG(INFO) << "Adding pred " << new_preds.back()->id_as_str();
+    new_preds.pop_back();
+  }
+  
   LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << "). "
       << predecessors.size() << " predecessors";
 
   //todo should set tput_r1_start and tput_r2_start
-  
+  if (ts_field > -1) {
+    
+    dim_filter_start = destcube->empty_tuple();
+    dim_filter_end = destcube->empty_tuple();
+    
+    dim_filter_start.mutable_e(ts_field)->set_t_val( start_ts );
+    dim_filter_end.mutable_e(ts_field)->set_t_val( window_end );
+    start_ts = window_end + 1;
+    
+    start_proto.mutable_tput_r1_start()->CopyFrom(dim_filter_start);
+    start_proto.mutable_tput_r1_end()->CopyFrom(dim_filter_end);
+  }
   
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];
@@ -205,6 +246,7 @@ MultiRoundCoordinator::start() {
 
 void
 MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t pred) {
+  boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
 
@@ -233,6 +275,8 @@ MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t p
 
 void
 MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  boost::lock_guard<tput_mutex> lock (mutex);
+
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
    // check what phase source was in; increment label and counter.
    // If we're done with phase, proceed!
@@ -251,6 +295,8 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
           LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3";
           //done!
           phase = NOT_STARTED;
+          if (min_window_size > 0)
+            wait_for_restart();
         }
 
       }
@@ -329,10 +375,25 @@ MultiRoundCoordinator::start_phase_3() {
     shared_ptr<TupleSender> pred = predecessors[i];
     pred->meta_from_downstream(r3_start);
   }
-
 }
 
 
+void
+MultiRoundCoordinator::wait_for_restart() {
+  time_t now = time(NULL);
+  time_t window_end = max( now - window_offset, start_ts + min_window_size);
+//  LOG(INFO) << "Going to run TPUT at " << window_end << " (now is  " << now<< ")";
+  timer->expires_at(boost::posix_time::from_time_t(window_end));
+  timer->async_wait(boost::bind(&MultiRoundCoordinator::start_phase_1, this, window_end));
+//  LOG(INFO) << "Timer will expire in " << timer->expires_from_now();
+}
+
+void
+MultiRoundCoordinator::stop() {
+  boost::lock_guard<tput_mutex> lock (mutex);
+  running = false;
+  timer->cancel();
+}
 
 const string MultiRoundSender::my_type_name("TPUT Multi-Round sender");
 const string MultiRoundCoordinator::my_type_name("TPUT Multi-Round coordinator");

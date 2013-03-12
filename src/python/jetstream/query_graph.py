@@ -452,10 +452,10 @@ def GreaterThan(graph, field, targ):
    return graph.add_operator(OpType.GT_FILTER, cfg)
 
 def MultiRoundClient(graph):
-   return graph.add_operator(OpType.TPUT_WORKER, cfg)
+   return graph.add_operator(OpType.TPUT_WORKER, {})
 
 def MultiRoundCoord(graph):
-   return graph.add_operator(OpType.TPUT_CONTROLLER, cfg)
+   return graph.add_operator(OpType.TPUT_CONTROLLER, {})
 
 
 def FilterSubscriber(graph, cube_field=None, level_in_field=None):
