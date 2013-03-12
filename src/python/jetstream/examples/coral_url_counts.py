@@ -97,7 +97,8 @@ def get_graph(source_nodes, root_node, options):
     tput_merge.set_cfg("window_offset", 5 * 1000)
     tput_merge.set_cfg("ts_field", 0)
     tput_merge.set_cfg("num_results", 10)
-    tput_merge.set_cfg("sort_column", "count")
+    tput_merge.set_cfg("sort_column", "-count")
+    tput_merge.set_cfg("min_window_size", 5)
 
 
     g.connect(tput_merge, congest_logger)

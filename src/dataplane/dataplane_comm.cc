@@ -369,6 +369,9 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
       break;
     }
 
+    case DataplaneMessage::TPUT_START:
+    case DataplaneMessage::TPUT_ROUND_2:
+    case DataplaneMessage::TPUT_ROUND_3:
     case DataplaneMessage::SET_BACKOFF:
     {
       pred->meta_from_downstream(msg);
@@ -393,9 +396,13 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
                    << std::endl << "Error code is " << error;
   }
 
-  boost::system::error_code err;  
-  conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
-  			this, _1, _2), err);
+  if (conn) { //might have failed during meta_from_downstream etc calls
+    boost::system::error_code err;
+    conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
+          this, _1, _2), err);
+  } else {
+    pred->chain_is_broken();
+  }
 
 }
 

@@ -67,7 +67,8 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     //sources send their top k.  TODO what about ties?
     sort_order.push_back(msg.tput_sort_key());
 
-    VLOG(1) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
+    LOG(INFO) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
+    
     cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, msg.tput_k());
 //    VLOG(1) << "slice query returned " << it.numCells() << " cells";
     while ( it != cube->end()) {
@@ -108,7 +109,8 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
       const Tuple& q = msg.tput_r3_query(i);
-      boost::shared_ptr<Tuple> v = cube->get_cell_value(q, *(cube->get_leaf_levels()));
+      Tuple q_as_src = cube->get_sourceformat_tuple(q);
+      boost::shared_ptr<Tuple> v = cube->get_cell_value(q_as_src, *(cube->get_leaf_levels()));
       if(v) {
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *v);
         emit(v);
@@ -119,6 +121,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       }
     }
     LOG(INFO) << "end of tput for " << id() << "; emitting " << emitted << " tuples";
+//     << " based on " << msg.tput_r3_query_size() << " query terms";
     end_of_round(3);
     
   } else {
@@ -211,12 +214,21 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
+  candidates.clear();
   
   while (! new_preds.empty()) {
     predecessors.push_back(new_preds.back());
     LOG(INFO) << "Adding pred " << new_preds.back()->id_as_str();
     new_preds.pop_back();
   }
+  
+  if ( predecessors.size() == 0) {
+    LOG(INFO) << "TPUT stalling waiting for a predecessor";
+    timer->expires_from_now(boost::posix_time::seconds(2));
+    timer->async_wait(boost::bind(&MultiRoundCoordinator::start_phase_1, this, window_end+2));
+    return;
+  }
+  
   
   LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << "). "
       << predecessors.size() << " predecessors";
@@ -286,13 +298,17 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
       responses_this_phase ++;
       if (responses_this_phase == predecessors.size()) {
         LOG(INFO) << id() << " completed TPUT round " << phase << " with " << candidates.size()<< " candidates";
+        if (candidates.size() == 0) {          
+          phase = ROUND_3;
+        }
+        
         responses_this_phase = 0;
         if ( phase == 1) {
           start_phase_2();
         } else if (phase == 2) {
           start_phase_3();
         } else {
-          LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3";
+          LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3, was " << phase;
           //done!
           phase = NOT_STARTED;
           if (min_window_size > 0)
@@ -308,6 +324,7 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
 double
 MultiRoundCoordinator::calculate_tao() {
   double tao = 0;
+  
   vector<double> vals;
   vals.reserve(candidates.size());
   std::map<DimensionKey, CandidateItem >::iterator iter;
@@ -382,7 +399,7 @@ void
 MultiRoundCoordinator::wait_for_restart() {
   time_t now = time(NULL);
   time_t window_end = max( now - window_offset, start_ts + min_window_size);
-//  LOG(INFO) << "Going to run TPUT at " << window_end << " (now is  " << now<< ")";
+  LOG(INFO) << "Going to run TPUT at " << window_end << " (now is  " << now<< ")";
   timer->expires_at(boost::posix_time::from_time_t(window_end));
   timer->async_wait(boost::bind(&MultiRoundCoordinator::start_phase_1, this, window_end));
 //  LOG(INFO) << "Timer will expire in " << timer->expires_from_now();

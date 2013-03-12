@@ -51,15 +51,16 @@ MysqlDimensionTimeContainment::set_value_for_insert_tuple(shared_ptr<sql::Prepar
   if(tuple_indexes.size() != 1)
     LOG(FATAL) << "Wrong number of tuple indexes for field "<< name;
 
-  jetstream::Element * const e = const_cast<jetstream::Tuple &>(t).mutable_e(tuple_indexes[0]);
+  const jetstream::Element&  e = t.e(tuple_indexes[0]);
 
-  if(e->has_t_val()) {
-    pstmt->setInt(field_index, e->t_val());
+  if(e.has_t_val()) {
+    pstmt->setInt(field_index, e.t_val());
     field_index += 1;
     return;
   }
 
-  LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
+  LOG(FATAL) << "Field " << name << " ("<< tuple_indexes[0] <<
+    ") should have been time-type in " << fmt(t);
 }
 
 
