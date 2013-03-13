@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 #include "topk_tput.h"
+#include "querier.h"
 
 using namespace ::std;
 //using namespace boost;
@@ -176,6 +177,10 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
   else
     min_window_size = 0;
 
+  if (config.find("rollup_levels") != config.end()) {
+    get_rollup_level_array(config["rollup_levels"], rollup_levels);
+  }
+
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);
 //    total_fields = boost::lexical_cast<int32_t>(config["total_fields"]);
@@ -240,8 +245,13 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
-  for (int i = 0; i < destcube->num_dimensions(); ++i)
-    start_proto.add_rollup_levels(DataCube::LEAF_LEVEL);
+  if (rollup_levels.size() > 0)
+    for (int i = 0; i < rollup_levels.size(); ++i)
+      start_proto.add_rollup_levels(rollup_levels[i]);
+  else
+    for (int i = 0; i <  destcube->num_dimensions(); ++i)
+      start_proto.add_rollup_levels(DataCube::LEAF_LEVEL);
+  
   candidates.clear();
   
   while (! new_preds.empty()) {
@@ -273,6 +283,7 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
     
     start_proto.mutable_tput_r1_start()->CopyFrom(dim_filter_start);
     start_proto.mutable_tput_r1_end()->CopyFrom(dim_filter_end);
+    
     start_proto.set_rollup_levels(ts_field, 0); //roll up the time period
   }
   
@@ -405,6 +416,7 @@ MultiRoundCoordinator::start_phase_3() {
   double tao = calculate_tao();
   DataplaneMessage r3_start;
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
+  r3_start.set_tput_r3_timecol(ts_field);
 
   std::map<DimensionKey, CandidateItem >::iterator iter;
   unsigned int pred_size = predecessors.size();

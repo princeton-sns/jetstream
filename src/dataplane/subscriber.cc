@@ -36,6 +36,17 @@ void Subscriber::no_more_tuples () {
 
 namespace jetstream {
 
+void get_rollup_level_array(const string & as_str, std::vector<unsigned>& rollup_levels) {
+
+  std::stringstream ss(as_str);
+  std::string item;
+
+  while(std::getline(ss, item, ',')) {
+    unsigned int level = boost::lexical_cast<unsigned int>(item);
+    rollup_levels.push_back(level);
+  }
+}
+
 operator_err_t
 Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id) {
   id = _id;
@@ -59,13 +70,7 @@ Querier::configure(std::map<std::string,std::string> &config, operator_id_t _id)
   }
 
   if (config.find("rollup_levels") != config.end()) {
-    std::stringstream ss(config["rollup_levels"]);
-    std::string item;
-
-    while(std::getline(ss, item, ',')) {
-      unsigned int level = boost::lexical_cast<unsigned int>(item);
-      rollup_levels.push_back(level);
-    }
+    get_rollup_level_array(config["rollup_levels"], rollup_levels);
   }
 
   return NO_ERR;

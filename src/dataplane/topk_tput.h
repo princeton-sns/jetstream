@@ -62,6 +62,8 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int min_window_size; //seconds
    Tuple dim_filter_start;
    Tuple dim_filter_end;
+   std::vector<unsigned> rollup_levels;
+  
   
    time_t start_ts;
    int ts_field;
