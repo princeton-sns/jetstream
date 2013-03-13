@@ -39,6 +39,7 @@ public:
 
     virtual void meta_from_downstream(const DataplaneMessage & msg);
 
+    void get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col);
 
 private:
   void end_of_round(int round_no);

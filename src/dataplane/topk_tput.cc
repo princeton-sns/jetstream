@@ -58,6 +58,18 @@ MultiRoundSender::end_of_round(int round_no) {
 }
 
 void
+MultiRoundSender::get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col) {
+    my_min.CopyFrom(q);
+    my_max.CopyFrom(q);
+    for (unsigned i = 0; i < rollup_levels.size(); ++i) {
+      if (rollup_levels[i] == 0) {
+        my_min.mutable_e(i)->CopyFrom(min.e(i));
+        my_max.mutable_e(i)->CopyFrom(max.e(i));
+      }
+    }
+}
+
+void
 MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
   take_greatest = msg.tput_sort_key()[0] == '-';
@@ -121,14 +133,10 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
           //The below is a yucky hack to make sure we do a rollup of the time dimension
       const Tuple& q = msg.tput_r3_query(i);
       Tuple my_min;
-      my_min.CopyFrom(q);
       Tuple my_max;
-      my_max.CopyFrom(q);
-      if ( time_col >= 0) {
-        my_min.mutable_e(time_col)->CopyFrom(min.e(time_col));
-        my_max.mutable_e(time_col)->CopyFrom(max.e(time_col));
-      }
-      
+      get_bounds(my_min, my_max, q, time_col);
+//      LOG(INFO) << "R3 querying for " << fmt( my_min ) << " to " << fmt(my_max);
+
       cube::CubeIterator v = cube->slice_and_rollup(rollup_levels, my_min, my_max);
       
       if(v.numCells() == 1) {
@@ -147,7 +155,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
               " to " << fmt(my_max) << " ( got " << v.numCells() << ")";
       }
     }
-    LOG(INFO) << "end of tput for " << id() << "; emitted " << emitted << " tuples";
+//    LOG(INFO) << "end of tput for " << id() << "; emitted " << emitted << " tuples";
 //     << " based on " << msg.tput_r3_query_size() << " query terms";
     end_of_round(3);
     
@@ -427,7 +435,7 @@ MultiRoundCoordinator::start_phase_3() {
       t->CopyFrom(iter->second.example);
     }
   }
-  LOG(INFO) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
+  VLOG(1) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
 
   for (unsigned int i = 0; i < pred_size; ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];
