@@ -99,9 +99,9 @@ def get_graph(source_nodes, root_node, options):
     tput_merge.set_cfg("num_results", 10)
     tput_merge.set_cfg("sort_column", "-count")
     tput_merge.set_cfg("min_window_size", 5)
+    tput_merge.set_cfg("rollup_levels", "8,0,1") # roll up by response code
     tput_merge.instantiate_on(root_node)
     pull_q.set_cfg("window_offset", 10* 1000) #but trailing by a few
-
 
     g.connect(tput_merge, congest_logger)
 
