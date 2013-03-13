@@ -72,8 +72,6 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     if (rollup_levels.size() == 0) {
       for (int i =0; i < msg.rollup_levels_size(); ++i) {
         rollup_levels.push_back( msg.rollup_levels(i));
-        if (rollup_levels[i] == 0)
-          time_col = i;
       }
     }
     LOG_IF(FATAL, rollup_levels.size() != cube->num_dimensions()) << "Got "
@@ -118,7 +116,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
-    
+      int time_col = msg.has_tput_r3_timecol() ? msg.tput_r3_timecol() :  -1;
           //The below is a yucky hack to make sure we do a rollup of the time dimension
       const Tuple& q = msg.tput_r3_query(i);
       Tuple my_min;
@@ -134,7 +132,8 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       
       if(v.numCells() == 1) {
         boost::shared_ptr<Tuple> val = *v;
-        val->mutable_e(time_col)->set_t_val(my_min.e(time_col).t_val());
+        if (time_col != -1)
+          val->mutable_e(time_col)->set_t_val(my_min.e(time_col).t_val());
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *(val));
         emit(val);
         emitted ++;

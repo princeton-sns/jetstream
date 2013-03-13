@@ -24,7 +24,7 @@ double get_rank_val(boost::shared_ptr<const jetstream::Tuple>, size_t col);
 class MultiRoundSender: public jetstream::cube::Subscriber {
 
 public:
-    MultiRoundSender(): Subscriber (), time_col(-1) {};
+    MultiRoundSender(): Subscriber () {};
     virtual ~MultiRoundSender() {};
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
@@ -46,7 +46,6 @@ private:
   bool take_greatest;
   Tuple min, max;
   std::vector<unsigned> rollup_levels;
-  int time_col;
 
   GENERIC_CLNAME
 };
