@@ -1086,10 +1086,9 @@ MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::
   string sql = get_rollup_sql(levels, min, max);
   sql += get_sort_clause(sort);
   sql += get_limit_clause(limit);
-  
 
-  VLOG(1) << "in slice_and_rollup; query is " << sql;
-
+  VLOG(1) << "in slice_and_rollup; query is " << sql << "\nMin was " << fmt(min)
+   << " and max was " << fmt(max);
   return get_result_iterator(sql, false, false);
 }
 

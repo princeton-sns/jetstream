@@ -72,6 +72,8 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     if (rollup_levels.size() == 0) {
       for (int i =0; i < msg.rollup_levels_size(); ++i) {
         rollup_levels.push_back( msg.rollup_levels(i));
+        if (rollup_levels[i] == 0)
+          time_col = i;
       }
     }
     LOG_IF(FATAL, rollup_levels.size() != cube->num_dimensions()) << "Got "
@@ -116,22 +118,23 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
+    
+          //The below is a yucky hack to make sure we do a rollup of the time dimension
       const Tuple& q = msg.tput_r3_query(i);
       Tuple my_min;
       my_min.CopyFrom(q);
       Tuple my_max;
       my_max.CopyFrom(q);
-      for ( int i = 0; i < rollup_levels.size(); ++i)
-        if ( rollup_levels[i] == 0) {
-          my_min.mutable_e(i)->CopyFrom(min.e(i));
-          my_max.mutable_e(i)->CopyFrom(max.e(i));
-        }
+      if ( time_col >= 0) {
+        my_min.mutable_e(time_col)->CopyFrom(min.e(time_col));
+        my_max.mutable_e(time_col)->CopyFrom(max.e(time_col));
+      }
       
-      cube::CubeIterator v = cube->slice_and_rollup(rollup_levels,
-                    cube->get_sourceformat_tuple(my_min),
-                    cube->get_sourceformat_tuple(my_max));
+      cube::CubeIterator v = cube->slice_and_rollup(rollup_levels, my_min, my_max);
+      
       if(v.numCells() == 1) {
         boost::shared_ptr<Tuple> val = *v;
+        val->mutable_e(time_col)->set_t_val(my_min.e(time_col).t_val());
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *(val));
         emit(val);
         emitted ++;
