@@ -59,18 +59,26 @@ MultiRoundSender::end_of_round(int round_no) {
 void
 MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
-  const jetstream::Tuple& min = msg.has_tput_r1_start() ?  msg.tput_r1_start() : cube->empty_tuple();
-  const jetstream::Tuple& max = msg.has_tput_r1_end() ?  msg.tput_r1_end(): min;
   take_greatest = msg.tput_sort_key()[0] == '-';
 //  VLOG(1) << "TPUT got meta from downstream";
   if ( msg.type() == DataplaneMessage::TPUT_START) {
     //sources send their top k.  TODO what about ties?
     sort_order.push_back(msg.tput_sort_key());
+    min.CopyFrom(msg.has_tput_r1_start() ?  msg.tput_r1_start() : cube->empty_tuple());
+    max.CopyFrom( msg.has_tput_r1_end() ?  msg.tput_r1_end(): min);
+
 
     LOG(INFO) << id() << " doing query; range is " << fmt(min) << " to " << fmt(max);
-    
-    cube::CubeIterator it = cube->slice_query(min, max, true, sort_order, msg.tput_k());
-//    VLOG(1) << "slice query returned " << it.numCells() << " cells";
+    if (rollup_levels.size() == 0) {
+      for (int i =0; i < msg.rollup_levels_size(); ++i) {
+        rollup_levels.push_back( msg.rollup_levels(i));
+      }
+    }
+    LOG_IF(FATAL, rollup_levels.size() != cube->num_dimensions()) << "Got "
+        << rollup_levels.size() << " rollup dimensions for cube with "
+        << cube->num_dimensions() << "dims";
+    cube::CubeIterator it = cube->slice_and_rollup(rollup_levels, min, max, sort_order, msg.tput_k());
+//    LOG(INFO) << "round-1 slice query returned " << it.numCells() << " cells";
     while ( it != cube->end()) {
       emit(*it);
       it++;
@@ -81,7 +89,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
 
     size_t total_col = msg.tput_r2_col();
   // Sources send all items >= T  and not in top k.
-    cube::CubeIterator it = cube->slice_query(min, max, true, sort_order);
+    cube::CubeIterator it = cube->slice_and_rollup(rollup_levels, min, max, sort_order);
     int count = 0;
     while ( it != cube->end() && count++ < msg.tput_k() ) {
       it++;
@@ -109,18 +117,34 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
     int emitted = 0;
     for (int i =0; i < msg.tput_r3_query_size(); ++i) {
       const Tuple& q = msg.tput_r3_query(i);
-      Tuple q_as_src = cube->get_sourceformat_tuple(q);
-      boost::shared_ptr<Tuple> v = cube->get_cell_value(q_as_src, *(cube->get_leaf_levels()));
-      if(v) {
-        VLOG(1) << "R3 of " << id() << " emitting " << fmt( *v);
-        emit(v);
+      Tuple my_min;
+      my_min.CopyFrom(q);
+      Tuple my_max;
+      my_max.CopyFrom(q);
+      for ( int i = 0; i < rollup_levels.size(); ++i)
+        if ( rollup_levels[i] == 0) {
+          my_min.mutable_e(i)->CopyFrom(min.e(i));
+          my_max.mutable_e(i)->CopyFrom(max.e(i));
+        }
+      
+      cube::CubeIterator v = cube->slice_and_rollup(rollup_levels,
+                    cube->get_sourceformat_tuple(my_min),
+                    cube->get_sourceformat_tuple(my_max));
+      if(v.numCells() == 1) {
+        boost::shared_ptr<Tuple> val = *v;
+        VLOG(1) << "R3 of " << id() << " emitting " << fmt( *(val));
+        emit(val);
         emitted ++;
-      } else {
+      } else if (v.numCells() == 0) {
         //this is not an error. Something might be a candidate but have no hits on this node.
-//        LOG(WARNING) << "no matches when querying for " << fmt( q );
+        LOG(WARNING) << "no matches when querying for " << fmt( my_min ) << " to " <<
+              fmt(my_max);
+      } else {
+        LOG(WARNING) << "too many matches querying for " << fmt( my_min ) <<
+              " to " << fmt(my_max) << " ( got " << v.numCells() << ")";
       }
     }
-    LOG(INFO) << "end of tput for " << id() << "; emitting " << emitted << " tuples";
+    LOG(INFO) << "end of tput for " << id() << "; emitted " << emitted << " tuples";
 //     << " based on " << msg.tput_r3_query_size() << " query terms";
     end_of_round(3);
     
@@ -214,6 +238,8 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
+  for (int i = 0; i < destcube->num_dimensions(); ++i)
+    start_proto.add_rollup_levels(DataCube::LEAF_LEVEL);
   candidates.clear();
   
   while (! new_preds.empty()) {
@@ -245,6 +271,7 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
     
     start_proto.mutable_tput_r1_start()->CopyFrom(dim_filter_start);
     start_proto.mutable_tput_r1_end()->CopyFrom(dim_filter_end);
+    start_proto.set_rollup_levels(ts_field, 0); //roll up the time period
   }
   
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
@@ -386,7 +413,7 @@ MultiRoundCoordinator::start_phase_3() {
       t->CopyFrom(iter->second.example);
     }
   }
-  VLOG(1) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
+  LOG(INFO) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
 
   for (unsigned int i = 0; i < pred_size; ++i) {
     shared_ptr<TupleSender> pred = predecessors[i];

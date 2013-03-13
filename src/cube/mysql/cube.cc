@@ -1081,9 +1081,12 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
 }
 
 CubeIterator 
-MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max) {
+MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<std::string> const &sort, size_t limit) {
   assert(levels.size() == dimensions.size());
   string sql = get_rollup_sql(levels, min, max);
+  sql += get_sort_clause(sort);
+  sql += get_limit_clause(limit);
+  
 
   VLOG(1) << "in slice_and_rollup; query is " << sql;
 
@@ -1126,7 +1129,6 @@ MysqlCube::get_rollup_sql(std::vector<unsigned int> const &levels, jetstream::Tu
   if(!groupby_clause.empty()) {
     sql += " GROUP BY "+boost::algorithm::join(groupby_clause, ", ");
   }
-  
   return sql;
 }
 

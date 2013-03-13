@@ -44,6 +44,8 @@ private:
   void end_of_round(int round_no);
   std::list<std::string> sort_order;
   bool take_greatest;
+  Tuple min, max;
+  std::vector<unsigned> rollup_levels;
 
   GENERIC_CLNAME
 };
