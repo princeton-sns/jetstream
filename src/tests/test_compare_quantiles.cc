@@ -174,6 +174,28 @@ class EmpiricalData: public DataMaker {
 };
 
 
+class SporadicData: public DataMaker {
+    unsigned points, max_val;
+    
+public:
+    SporadicData(): points(100), max_val(1e9) {}
+    virtual int * operator()(size_t t) {
+        int * ret = new int[t];
+        boost::mt19937 gen;
+        boost::random::uniform_int_distribution<> randsrc(1, max_val);
+
+        unsigned int i;
+        for (i=0; i < points; ++ i)
+            ret[i] = (int) randsrc(gen);
+        for (; i < t; ++i)
+            ret[i] = ret[i % points];
+        return ret;
+    }
+    virtual string name() { return "sporadic-" + boost::lexical_cast<string>(points)
+        + "-" + boost::lexical_cast<string>(max_val); }
+};
+
+
 
 TEST(DISABLED_Datagen, ZipfDist) {
   ZipfData d(1.3, 10000);
