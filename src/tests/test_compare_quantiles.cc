@@ -34,18 +34,14 @@ int * make_rand_data(size_t size, T& randsrc) {
 }
 
 
-double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
-  double err = abs( est - true_quantile[q]);
-  mean_error[q] +=  err ;
-  return err;
-}
-
 
 class DataMaker {
   public:
     virtual int * operator()(size_t t) = 0;
 
     virtual string name() = 0;
+  
+    virtual size_t size() {return 0;}
 };
 
 class UniformData: public DataMaker {
@@ -174,6 +170,34 @@ class EmpiricalData: public DataMaker {
 };
 
 
+class SporadicData: public DataMaker {
+    unsigned points, max_val;
+    
+public:
+    SporadicData(): points(200), max_val(1 << 27) {}
+    virtual int * operator()(size_t t) {
+        int * ret = new int[t];
+        boost::mt19937 gen;
+        boost::random::uniform_int_distribution<> randsrc(1, max_val);
+        
+        unsigned int i = 0;
+        const int64_t ratio = 32;
+        for (int part = 0; part < 2; ++part) {
+        
+          unsigned end_of_part = unsigned((ratio - 1) * t / ratio + t * part / ratio);
+          unsigned off = i;
+          for (; i < points; ++ i)
+              ret[i] = (int) randsrc(gen);
+          for (; i < end_of_part; ++i)
+              ret[i] = ret[i % points + off];
+        }
+        return ret;
+    }
+    virtual string name() { return "sporadic-" + boost::lexical_cast<string>(points)
+        + "-" + boost::lexical_cast<string>(max_val); }
+};
+
+
 
 TEST(DISABLED_Datagen, ZipfDist) {
   ZipfData d(1.3, 10000);
@@ -187,11 +211,19 @@ TEST(DISABLED_Datagen, ZipfDist) {
 
 }
 
-void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, DataMaker& maker) {
+
+double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
+  double err = abs( est - true_quantile[q]);
+  mean_error[q] +=  err ;
+  return err / true_quantile[q];
+}
+
+void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w,
+    DataMaker& maker, bool use_sketch = true) {
 
   const int TRIALS = 8;
 
-  const int APPROACHES = 3;
+  const int APPROACHES = use_sketch ? 3 : 2;
   
   size_t data_bytes = DATA_SIZE * sizeof(int);
 
@@ -212,9 +244,10 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
   memset(time_querying, 0, sizeof(time_querying));
 
   vector<string> labels;
-  labels.push_back("sketch");
   labels.push_back("sample");
   labels.push_back("histogram");
+  if(use_sketch)
+    labels.push_back("sketch");
 
   for (int i =0; i < TRIALS; ++i) {
     LOG(INFO) << "Trial " << i << endl;
@@ -228,18 +261,27 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
     
     
     QuantileEstimation * estimators[APPROACHES];
-    CMMultiSketch sketch(sketch_w, 6, 2 + i);
-    ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo( sketch.size()/ sizeof(int) );
+    int ints_in_summary = 0;
+    if (use_sketch) {
+      CMMultiSketch sketch(sketch_w, 6, 2 + i);
+      estimators[2] = &sketch;
+      ints_in_summary = sketch.size()/ sizeof(int);
+    } else {
+      ints_in_summary  = (1 << (sketch_w + 4)) ;
+    }
+    ReservoirSample sample(ints_in_summary);
+    LogHistogram histo( ints_in_summary );
     
-    estimators[0] = &sketch;
-    estimators[1] = &sample;
-    estimators[2] = &histo;
+    estimators[0] = &sample;
+    estimators[1] = &histo;
+    
+    int summary_size = ints_in_summary * sizeof(int)/1024;
     
     if (i ==0) {
-      cout << "sketch size is " << (sketch.size()/1024)<< "kb and data is " << data_bytes/1024 << "kb. ";
+      cout << "sketch-w " << sketch_w<< ". Size is " << summary_size<<
+            "kb and data is " << data_bytes/1024 << "kb from " << maker.name();
       cout << "Histograms have " << histo.bucket_count() << " cells\n";
-      data_out << "DATA: " << maker.name() << " sketch/sample size " << (sketch.size()/1024) << endl;
+      data_out << "DATA: " << maker.name() << " sketch/sample size " << summary_size << endl;
     }
     
     for (int a = 0; a < APPROACHES; ++a) {
@@ -252,7 +294,8 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
       for (int q = 0; q < QUANTILES_TO_CHECK; ++ q) {
         double quantile_pt = quantiles_to_check[q];
 //      cout << " checking quantile " << quantile_pt<< " ("<<q<<"/"<< 5<<")\n";
-        update_err(q, mean_error_with[a], true_quantile, estimators[a]->quantile(quantile_pt));
+        double err = update_err(q, mean_error_with[a], true_quantile, estimators[a]->quantile(quantile_pt));
+        data_out << "rel err for " <<  labels[a]<< " " << summary_size << " "  << quantile_pt << " " << err << endl;
       }
       time_querying[a] += (get_usec() - query_start);
     }
@@ -302,24 +345,32 @@ TEST(DISABLED_CMSketch, MultiComp) {
   ofstream data_out;
   data_out.open("quant_est_comparison.out");
   
-  const int DISTRIBS = 2;
-  DataMaker * distribs[DISTRIBS];
-//  distribs[0] = new ZipfData(1.2, 100 * 1000);
+  vector<DataMaker *> distribs;
+  
+
   EmpiricalData * empirical_sizes = new EmpiricalData("c_sizes.out");
-  empirical_sizes->read_data();
-  distribs[0] = empirical_sizes;
-  distribs[1] = new EmpiricalData("c_times.out");
-  DATA_SIZE = empirical_sizes->size();
-  /*
-  distribs[0] = new UniformData;
-  distribs[1] = new ExpData;
-  distribs[2] = new NormalData;
-  distribs[3] = new ZipfData(1.2, 100 * 1000);*/
-  cout << "data size is " << DATA_SIZE << " ints" <<endl;
-  assert (DATA_SIZE > 0);
-  for (int d = 0; d < DISTRIBS; ++d) {
-    for (int sketchw = 4; sketchw < 11; sketchw += 1) {
-      compareOnce(data_out, DATA_SIZE, sketchw, *(distribs[d]));
+  distribs.push_back(empirical_sizes);
+  distribs.push_back(new EmpiricalData("c_times.out"));
+  for (int i = 0; i < 2; ++i)
+    ((EmpiricalData*)distribs[i])->read_data();
+
+  cout << "empirical data size is " << empirical_sizes->size() << " ints" <<endl;
+  assert (empirical_sizes->size()  > 0);
+
+  distribs.push_back ( new UniformData);
+  distribs.push_back ( new ExpData);
+  distribs.push_back (new NormalData);
+
+  distribs.push_back( new SporadicData);
+  distribs.push_back(new ZipfData(1.2, 100 * 1000));
+  
+  for (int d = 0; d < distribs.size(); ++d) {
+    DataMaker * distrib = distribs[d];
+    size_t s = distrib->size();
+    if (s == 0)
+      s = DATA_SIZE;
+    for (int sketchw = 4; sketchw < 9; sketchw += 1) {
+      compareOnce(data_out, s, sketchw, *(distrib), false);
     }
   }
   

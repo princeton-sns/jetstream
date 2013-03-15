@@ -24,7 +24,7 @@ double get_rank_val(boost::shared_ptr<const jetstream::Tuple>, size_t col);
 class MultiRoundSender: public jetstream::cube::Subscriber {
 
 public:
-    MultiRoundSender(): Subscriber (){};
+    MultiRoundSender(): Subscriber () {};
     virtual ~MultiRoundSender() {};
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
@@ -39,11 +39,14 @@ public:
 
     virtual void meta_from_downstream(const DataplaneMessage & msg);
 
+    void get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col);
 
 private:
   void end_of_round(int round_no);
   std::list<std::string> sort_order;
   bool take_greatest;
+  Tuple min, max;
+  std::vector<unsigned> rollup_levels;
 
   GENERIC_CLNAME
 };
@@ -60,6 +63,8 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int min_window_size; //seconds
    Tuple dim_filter_start;
    Tuple dim_filter_end;
+   std::vector<unsigned> rollup_levels;
+  
   
    time_t start_ts;
    int ts_field;

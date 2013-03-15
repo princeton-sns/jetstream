@@ -38,6 +38,7 @@ class Querier {
 
 };
 
+void get_rollup_level_array(const std::string & as_str, std::vector<unsigned>& rollup_levels);
 
 }
 

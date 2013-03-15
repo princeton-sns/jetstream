@@ -79,7 +79,7 @@ def get_graph(source_nodes, root_node, options):
     pull_q = jsapi.TimeSubscriber(g, {}, 5000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
-    pull_q.set_cfg("rollup_levels", "%d,0,1" % rollup_for_warp(options.warp_factor))
+    pull_q.set_cfg("rollup_levels", "8,0,1")  # every five seconds to match subscription. Roll up counts.
     pull_q.set_cfg("simulation_rate", 1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
@@ -99,7 +99,9 @@ def get_graph(source_nodes, root_node, options):
     tput_merge.set_cfg("num_results", 10)
     tput_merge.set_cfg("sort_column", "-count")
     tput_merge.set_cfg("min_window_size", 5)
-
+    tput_merge.set_cfg("rollup_levels", "10,0,1") # roll up response codes
+    tput_merge.instantiate_on(root_node)
+    pull_q.set_cfg("window_offset", 10* 1000) #but trailing by a few
 
     g.connect(tput_merge, congest_logger)
 

@@ -189,46 +189,11 @@ void
 LogHistogram::set_bucket_starts(size_t bucket_target) {
 
   assert (bucket_target > 1);
-#ifdef UGLY_BUCKETS
-  const size_t MAX_LAYERS = 10;
 
-  size_t incr_per_layer[MAX_LAYERS];
-
-  size_t layers = 3;
-  assert(layers < MAX_LAYERS);
-
-  layers = std::max( (size_t)3, bucket_target / 10);
-
-  for(size_t i =0; i < layers; ++i)
-    incr_per_layer[i] = 2;
-
-  if(bucket_target < 5 * layers)
-    bucket_target = 5 * layers;
-  size_t precise_layers = std::min(bucket_target/5 -layers, layers);
-  for (size_t b = 0; b < precise_layers; ++b)
-    incr_per_layer[b] = 1;
-
-
-  int exp = 1;
-//  cout << "buckets: 0 ";
-  bucket_starts.push_back(0);
-  if (incr_per_layer[0] == 1)
-    bucket_starts.push_back(1);
-
-  for(size_t layer = 0; layer < layers; ++layer) {
-    for (int i = 2; i <= 10; i+=incr_per_layer[layer]) {
-      bucket_starts.push_back(i * exp);
-//      cout << i * exp << " ";
-    }
-    exp *= 10;
-  }
-#else
   bucket_starts.reserve(bucket_target);
   make_l2_buckets(bucket_target, bucket_starts, 1 << 28);
   assert(bucket_starts.size() == bucket_target);
   std::sort (bucket_starts.begin(), bucket_starts.end());
-
-#endif
 }
 
 
