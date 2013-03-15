@@ -14,7 +14,7 @@
 
 
 ###initial packages###
-- hosts: setup
+- hosts: new
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
