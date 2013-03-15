@@ -40,6 +40,8 @@ class DataMaker {
     virtual int * operator()(size_t t) = 0;
 
     virtual string name() = 0;
+  
+    virtual size_t size() {return 0;}
 };
 
 class UniformData: public DataMaker {
@@ -216,11 +218,12 @@ double update_err(int q, double* mean_error, int64_t* true_quantile, int est) {
   return err / true_quantile[q];
 }
 
-void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, DataMaker& maker) {
+void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w,
+    DataMaker& maker, bool use_sketch = true) {
 
   const int TRIALS = 8;
 
-  const int APPROACHES = 3;
+  const int APPROACHES = use_sketch ? 3 : 2;
   
   size_t data_bytes = DATA_SIZE * sizeof(int);
 
@@ -241,9 +244,10 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
   memset(time_querying, 0, sizeof(time_querying));
 
   vector<string> labels;
-  labels.push_back("sketch");
   labels.push_back("sample");
   labels.push_back("histogram");
+  if(use_sketch)
+    labels.push_back("sketch");
 
   for (int i =0; i < TRIALS; ++i) {
     LOG(INFO) << "Trial " << i << endl;
@@ -257,18 +261,25 @@ void compareOnce(ofstream& data_out, const int DATA_SIZE, const int sketch_w, Da
     
     
     QuantileEstimation * estimators[APPROACHES];
-    CMMultiSketch sketch(sketch_w, 6, 2 + i);
-    ReservoirSample sample(sketch.size()/ sizeof(int));
-    LogHistogram histo( sketch.size()/ sizeof(int) );
+    int ints_in_summary = 0;
+    if (use_sketch) {
+      CMMultiSketch sketch(sketch_w, 6, 2 + i);
+      estimators[2] = &sketch;
+      ints_in_summary = sketch.size()/ sizeof(int);
+    } else {
+      ints_in_summary  = (1 << (sketch_w + 4)) ;
+    }
+    ReservoirSample sample(ints_in_summary);
+    LogHistogram histo( ints_in_summary );
     
-    estimators[0] = &sketch;
-    estimators[1] = &sample;
-    estimators[2] = &histo;
-    int summary_size = (sketch.size()/1024);
+    estimators[0] = &sample;
+    estimators[1] = &histo;
+    
+    int summary_size = ints_in_summary * sizeof(int)/1024;
     
     if (i ==0) {
       cout << "sketch-w " << sketch_w<< ". Size is " << summary_size<<
-            "kb and data is " << data_bytes/1024 << "kb. ";
+            "kb and data is " << data_bytes/1024 << "kb from " << maker.name();
       cout << "Histograms have " << histo.bucket_count() << " cells\n";
       data_out << "DATA: " << maker.name() << " sketch/sample size " << summary_size << endl;
     }
@@ -336,29 +347,30 @@ TEST(DISABLED_CMSketch, MultiComp) {
   
   vector<DataMaker *> distribs;
   
-  {
-    distribs.push_back( new SporadicData);
-  }
-  
-  
-//  distribs.push_back(new ZipfData(1.2, 100 * 1000));
 
-/*
   EmpiricalData * empirical_sizes = new EmpiricalData("c_sizes.out");
-  empirical_sizes->read_data();
-  distribs[0] = empirical_sizes;
-  distribs[1] = new EmpiricalData("c_times.out");
-  DATA_SIZE = empirical_sizes->size();
-*/
-  /*
+  distribs.push_back(empirical_sizes);
+  distribs.push_back(new EmpiricalData("c_times.out"));
+  for (int i = 0; i < 2; ++i)
+    ((EmpiricalData*)distribs[i])->read_data();
+
+  cout << "empirical data size is " << empirical_sizes->size() << " ints" <<endl;
+  assert (empirical_sizes->size()  > 0);
+
   distribs.push_back ( new UniformData);
   distribs.push_back ( new ExpData);
-  distribs.push_back (new NormalData);*/
-  cout << "data size is " << DATA_SIZE << " ints" <<endl;
-  assert (DATA_SIZE > 0);
+  distribs.push_back (new NormalData);
+
+  distribs.push_back( new SporadicData);
+  distribs.push_back(new ZipfData(1.2, 100 * 1000));
+  
   for (int d = 0; d < distribs.size(); ++d) {
-    for (int sketchw = 4; sketchw < 11; sketchw += 1) {
-      compareOnce(data_out, DATA_SIZE, sketchw, *(distribs[d]));
+    DataMaker * distrib = distribs[d];
+    size_t s = distrib->size();
+    if (s == 0)
+      s = DATA_SIZE;
+    for (int sketchw = 4; sketchw < 9; sketchw += 1) {
+      compareOnce(data_out, s, sketchw, *(distrib), false);
     }
   }
   
