@@ -364,7 +364,7 @@ TEST(DISABLED_CMSketch, MultiComp) {
   distribs.push_back( new SporadicData);
   distribs.push_back(new ZipfData(1.2, 100 * 1000));
   
-  for (int d = 0; d < distribs.size(); ++d) {
+  for (unsigned int d = 0; d < distribs.size(); ++d) {
     DataMaker * distrib = distribs[d];
     size_t s = distrib->size();
     if (s == 0)

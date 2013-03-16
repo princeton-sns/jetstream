@@ -155,7 +155,7 @@ class DataCubeImpl : public DataCube {
     get_sourceformat_tuple(const jetstream::Tuple &t) const {
       if (src_tuple_min_len == 0) {
         for ( unsigned i = 0; i < dimensions.size(); ++i) {
-          for(int j = 0; j < dimensions[i]->tuple_indexes.size(); ++j) {
+          for(unsigned int j = 0; j < dimensions[i]->tuple_indexes.size(); ++j) {
             int m = dimensions[i]->tuple_indexes[j];
             src_tuple_min_len = max (m, src_tuple_min_len);
           }
@@ -167,8 +167,8 @@ class DataCubeImpl : public DataCube {
         for (int i = 0; i <= src_tuple_min_len; ++i)
           reordered.add_e();
         
-        for (int i = 0; i < dimensions.size(); ++i) {
-          for(int dim_part =0; dim_part < dimensions[i]->tuple_element_count(); ++dim_part) {
+        for (unsigned int i = 0; i < dimensions.size(); ++i) {
+          for(unsigned int dim_part =0; dim_part < dimensions[i]->tuple_element_count(); ++dim_part) {
             int src_offset = dimensions[i]->tuple_indexes[dim_part];
             reordered.mutable_e(src_offset)->CopyFrom(t.e(i+dim_part));
           }
