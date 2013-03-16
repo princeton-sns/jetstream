@@ -13,7 +13,7 @@
 
 
 ### download and build js###
-- hosts: workers
+- hosts: new
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
