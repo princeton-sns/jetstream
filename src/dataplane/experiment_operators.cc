@@ -14,6 +14,19 @@ using namespace boost::posix_time;
 namespace jetstream {
 
 
+void
+DummyReceiver::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+  for (unsigned i = 0; i < tuples.size(); ++i) {
+    boost::shared_ptr<Tuple> t = tuples[i];
+      //TODO this may be sensitive to field order. This is probably okay.
+    if (t->SerializeAsString() == oldV.SerializeAsString()) {
+      tuples[i] = newV;
+    }
+  }
+
+}
+
+
 
 operator_err_t
 SendK::configure (std::map<std::string,std::string> &config) {

@@ -49,6 +49,14 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 
         dest->process(data, remote_op);
       }
+      
+      for (int i = 0; i < msg.old_val_size(); ++i) {
+        shared_ptr<Tuple> new_data (new Tuple);
+        new_data->MergeFrom (msg.new_val(i));
+        Tuple old_data;
+        old_data.MergeFrom(msg.old_val(i));
+        dest->process_delta(old_data, new_data, remote_op);      
+      }
 #ifdef ACK_EACH_PACKET
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);

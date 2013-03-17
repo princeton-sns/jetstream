@@ -92,6 +92,8 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
  protected:
 
   void emit (boost::shared_ptr<Tuple> t); // Passes the tuple along the chain
+  void emit (Tuple& old, boost::shared_ptr<Tuple>); // Passes a delta along the chain
+
   void send_meta_downstream(const DataplaneMessage & msg);
   
 //  Node * get_node() {return node;} //not sure if we should allow operators this much access --asr
