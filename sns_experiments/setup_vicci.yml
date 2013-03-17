@@ -23,6 +23,7 @@
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
+    js_results: /jetstream/results
   connection: fireball
   tasks:
   - name: install packages
@@ -111,6 +112,8 @@
 #js
   - name: make sure jetstream dir exists
     file: dest=${js_checkout} state=directory mode=777
+  - name: make sure jetstream results dir exists
+    file: dest=${js_results} state=directory mode=777
   - name: copy deploy key
     copy: src=deploy_key dest=/root/.ssh/id_rsa mode=0700
   - name: copy deploy key.pub
