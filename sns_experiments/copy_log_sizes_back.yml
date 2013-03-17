@@ -1,0 +1,23 @@
+---
+#ansible-playbook  -i ansible_hosts_vicci copy_log_sizes_back_vicci.yml -u princeton_jetstream --module-path=modules/ -f 20; date
+
+### download results files###
+#
+
+- hosts: workers
+  gather_facts: no
+  connection: paramiko
+  tasks:
+      - action: fireball bind_address=${public_ip}
+
+- hosts: workers
+  connection: fireball
+  vars:
+    local_dir: /disk/local/jetstream_results/
+    js_data: /jetstream/data
+  tasks:
+  - name: generate log size file
+    shell: ls -l ${js_data}/coral.log | awk '{print $5}' > ${js_data}/coral_log_size 
+  - name: copy results back
+    fetch: src=${js_data}/coral_log_size dest=${local_dir}/coral_log_sizes/${server_index}
+
