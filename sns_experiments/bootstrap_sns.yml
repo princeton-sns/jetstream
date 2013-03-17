@@ -1,0 +1,18 @@
+---
+#ansible-playbook  -i ansible_hosts_sns bootstrap_sns.yml --module-path=modules/ -f 100 -K ; date
+
+###initial packages###
+- hosts: new
+  sudo: True
+  tasks:
+    - name: install packages
+      apt: name=$item state=present
+      with_items:
+        - python-pip
+    - action: pip name=$item state=present
+      with_items:
+        - pyzmq
+        - pyasn1
+        - PyCrypto
+        - python-keyczar
+

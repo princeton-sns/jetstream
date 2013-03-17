@@ -1,2 +1,9 @@
+[workers:children]
+setup
+new
+
 [setup]
-sns48.cs.princeton.edu
+
+[new]
+sns49.cs.princeton.edu public_ip=128.112.7.139 server_index=549 
+sns48.cs.princeton.edu public_ip=128.113.7.136 server_index=548

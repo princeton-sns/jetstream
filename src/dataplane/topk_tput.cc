@@ -254,10 +254,10 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
   if (rollup_levels.size() > 0)
-    for (int i = 0; i < rollup_levels.size(); ++i)
+    for (unsigned int i = 0; i < rollup_levels.size(); ++i)
       start_proto.add_rollup_levels(rollup_levels[i]);
   else
-    for (int i = 0; i <  destcube->num_dimensions(); ++i)
+    for (unsigned int i = 0; i <  destcube->num_dimensions(); ++i)
       start_proto.add_rollup_levels(DataCube::LEAF_LEVEL);
   
   candidates.clear();

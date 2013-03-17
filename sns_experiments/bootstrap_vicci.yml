@@ -1,24 +1,20 @@
 ---
-# Instructions:
-# 1) install ansible 
-# 2) add hosts you are working with to ansible_hosts file under [setup] section 
-# 3) run the following:
-#ansible-playbook  -i ansible_hosts_vicci bootstrap_vicci.yml -u princeton_jetstream
-#
-#
-#
-# This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
-# mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
-# it could run unit test.
-
-
+#ansible-playbook  -i ansible_hosts_vicci bootstrap_vicci.yml -u princeton_jetstream --module-path=modules/ -f 100; date
 
 ###initial packages###
-- hosts: setup
+- hosts: new
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
   tasks:
+    - name: install packages
+      yum: name=$item state=present
+      with_items:
+        - python-setuptools
+        - gcc
+        - gcc-c++
+        - make
+        - python-devel
     - action: easy_install name=pip
     - action: pip name=$item state=present
       with_items:

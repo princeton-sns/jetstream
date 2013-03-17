@@ -13,13 +13,13 @@
 
 
 ###initial packages###
-- hosts: setup
+- hosts: new
   gather_facts: no
   connection: paramiko
   tasks:
       - action: fireball bind_address=${public_ip}
 
-- hosts: setup
+- hosts: new
   vars:
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
