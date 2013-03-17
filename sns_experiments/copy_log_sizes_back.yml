@@ -3,6 +3,11 @@
 
 ### download results files###
 #
+# then run in /disk/local/jetstream_results/coral_log_sizes:
+# find * -name coral_log_size -exec cat {} \; > all_sizes
+# sed ':a;N;s/\n/+/;ta' all_sizes |bc
+#
+#
 
 - hosts: workers
   gather_facts: no
@@ -19,5 +24,5 @@
   - name: generate log size file
     shell: ls -l ${js_data}/coral.log | awk '{print $5}' > ${js_data}/coral_log_size 
   - name: copy results back
-    fetch: src=${js_data}/coral_log_size dest=${local_dir}/coral_log_sizes/${server_index}
+    fetch: src=${js_data}/coral_log_size dest=${local_dir}/coral_log_sizes
 
