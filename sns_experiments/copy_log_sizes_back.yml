@@ -19,5 +19,5 @@
   - name: generate log size file
     shell: ls -l ${js_data}/coral.log | awk '{print $5}' > ${js_data}/coral_log_size 
   - name: copy results back
-    fetch: src=${js_data}/coral_log_size dest=${local_dir}/coral_log_sizes/${server_index}
+    fetch: src=${js_data}/coral_log_size dest=${local_dir}/coral_log_sizes
 
