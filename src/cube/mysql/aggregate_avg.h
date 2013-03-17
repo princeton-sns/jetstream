@@ -38,7 +38,7 @@ class MysqlAggregateAvg: public MysqlAggregate {
     
     virtual string get_select_clause_for_rollup() const;
 
-//    virtual void update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const;
+    virtual void update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const;
 
 
   protected:

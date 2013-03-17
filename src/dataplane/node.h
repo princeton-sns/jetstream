@@ -75,6 +75,8 @@ class Node {
   void establish_congest_policies( const AlterTopo & topo,
                                    ControlMessage & resp,
                                    const std::vector<operator_id_t>& toStart);
+
+  void log_statistics();
   
  public:
   Node (const NodeConfig &conf, boost::system::error_code &error);

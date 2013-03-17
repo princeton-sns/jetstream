@@ -78,20 +78,29 @@ jetstream::get_strtime () {
 namespace jetstream {
 
 inline void add_one_el(std::ostringstream& buf, const Element& el) {
-  if (el.has_s_val())
+  bool had_el = false;
+  if (el.has_s_val()) {
     buf << el.s_val();
-  else if (el.has_d_val())
-    buf << "D=" << el.d_val();
-  else if (el.has_i_val())
-    buf << "I="<<el.i_val();
-  else if (el.has_t_val()) {
+    had_el = true;
+  }
+  if (el.has_d_val()) {
+    buf << "D=" << el.d_val()<< " ";
+    had_el = true;  
+  }
+  if (el.has_i_val()) {
+    buf << "I="<<el.i_val()<< " ";
+    had_el = true;  
+  }
+  
+  if (el.has_t_val()) {
     time_t t = (time_t)el.t_val();
     struct tm parsed_time;
     gmtime_r(&t, &parsed_time);
 
     char tmbuf[80];
     strftime(tmbuf, sizeof(tmbuf), "%d-%m-%y %H:%M:%S", &parsed_time);
-    buf << tmbuf;
+    buf << tmbuf<< " ";
+    had_el = true;      
   } else if (el.has_summary()) {
      if(el.summary().has_histo()) {
       const JSHistogram & h = el.summary().histo();
@@ -105,7 +114,8 @@ inline void add_one_el(std::ostringstream& buf, const Element& el) {
   } else if (el.has_blob()) {
     buf << el.blob().size() << "-byte blob";
   } else
-    buf << "UNDEF";
+    if(!had_el)
+      buf << "UNDEF";
 }
 
 std::string fmt(const jetstream::Tuple& t) {
@@ -151,20 +161,27 @@ add_operator_to_alter(AlterTopo& topo, operator_id_t dest_id, const std::string&
 
 
 
-void add_dimension(CubeMeta* m, CubeSchema_Dimension_DimensionType d, const std::string& name, int idx) {
+jetstream::CubeSchema_Dimension *
+ add_dimension(CubeMeta* m, CubeSchema_Dimension_DimensionType d, const std::string& name, int idx) {
   jetstream::CubeSchema * sc = m->mutable_schema();
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_type(d);
   dim->set_name(name);
   dim->add_tuple_indexes(idx);
+  return dim;
 }
 
-void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& name, int idx) {
+jetstream::CubeSchema_Aggregate *
+add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& name, int idx) {
   jetstream::CubeSchema * sc = m->mutable_schema();
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
   agg->set_name(name);
   agg->set_type(agg_name);
   agg->add_tuple_indexes(idx);
+  if (agg_name == "avg")
+    agg->add_tuple_indexes(idx + 1);
+
+  return agg;
 }
 
 Edge *

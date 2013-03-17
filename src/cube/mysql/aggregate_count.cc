@@ -86,8 +86,16 @@ string MysqlAggregateCount::get_select_clause_for_rollup() const {
 
 void
 MysqlAggregateCount::update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const {
-  int old_val = oldV.e(tuple_indexes[0]).i_val();
-  int new_val = newV.e(tuple_indexes[0]).i_val();
-  newV.mutable_e(tuple_indexes[0])->set_i_val(new_val - old_val);
+  int old_val = oldV.e_size()-1 >= (int) tuple_indexes[0] ? oldV.e(tuple_indexes[0]).i_val() : 1;
+  int new_val = 1;
+  if (newV.e_size() > (int) tuple_indexes[0]) {
+    new_val =  newV.e(tuple_indexes[0]).i_val();
+  } else {
+    //no new val
+    LOG_IF(FATAL, old_val > 1) << "not sure how to emit a negative tuple";
+    while( newV.e_size() <= (int) tuple_indexes[0])
+      newV.add_e();
+  }
+  newV.mutable_e(tuple_indexes[0])->set_i_val(new_val - old_val);  
 }
 

@@ -144,6 +144,29 @@ void MysqlAggregateAvg::populate_tuple_partial(boost::shared_ptr<jetstream::Tupl
 }
 
 
+void
+MysqlAggregateAvg::update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const {
+  double old_sum;
+  const Element & old_sum_e = oldV.e(tuple_indexes[0]);
+  if (old_sum_e.has_d_val())
+    old_sum = old_sum_e.d_val();
+  else
+    old_sum = old_sum_e.i_val();
+
+  Element * new_sum_e = newV.mutable_e(tuple_indexes[0]);
+
+  if (new_sum_e->has_d_val()) {
+    new_sum_e->set_d_val(new_sum_e->d_val() - old_sum);
+  } else {
+    new_sum_e->set_i_val(new_sum_e->i_val() - int(old_sum));
+  }
+  
+  int new_count = newV.e(tuple_indexes[1]).i_val() - oldV.e(tuple_indexes[1]).i_val();
+  newV.mutable_e(tuple_indexes[1])->set_i_val(new_count);
+}
+
+
+
 string MysqlAggregateAvg::get_select_clause_for_rollup() const {
   return "SUM("+get_base_column_name()+"_sum), SUM("+get_base_column_name()+"_count)";
 }

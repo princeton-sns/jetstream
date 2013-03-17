@@ -226,17 +226,18 @@ string ts_to_str(time_t t) {
 }
 
 unsigned int TimeBasedSubscriber::get_window_offset_sec(){
-      if(querier.rollup_levels.size() > 0)
-      {
-        size_t time_level = querier.rollup_levels[ts_field];
-        unsigned int level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
-        level_offset_sec = min(3600U, level_offset_sec);
-        return ((windowOffsetMs + 999) / 1000)+level_offset_sec; //TODO could instead offset from highest-ts-seen
-      }
-      else
-      {
-        return (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
-      }
+  if(querier.rollup_levels.size() > 0)
+  {
+    size_t time_level = querier.rollup_levels[ts_field];
+    if(time_level < DTC_LEVEL_COUNT) {
+//        LOG_IF(FATAL, time_level >= DTC_LEVEL_COUNT) << "unknown rollup level " << time_level;
+      unsigned int level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
+      level_offset_sec = min(3600U, level_offset_sec);
+      return ((windowOffsetMs + 999) / 1000)+level_offset_sec; //TODO could instead offset from highest-ts-seen
+    }
+  }
+    //either not rolled up, or else rolled up completely
+  return (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
 
 }
 

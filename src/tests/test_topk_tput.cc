@@ -14,7 +14,7 @@ using namespace jetstream;
 using namespace boost;
 using namespace ::std;
 
-
+static
 shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
 
   AlterTopo topo;
@@ -34,6 +34,7 @@ shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
   return cube;
 }
 
+static
 void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
   unsigned int CELLS = 10;
 

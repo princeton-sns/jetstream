@@ -84,8 +84,15 @@ inline CubeMeta* add_cube_to_alter(AlterTopo& topo, std::string name, bool overw
   return m;
 }
 
-void add_dimension(CubeMeta* m, CubeSchema_Dimension_DimensionType, const std::string& name, int idx);
-void add_aggregate(CubeMeta* m, const std::string& agg_name, const std::string& name, int idx);
+jetstream::CubeSchema_Dimension * add_dimension(CubeMeta* m,
+                                              CubeSchema_Dimension_DimensionType,
+                                              const std::string& name,
+                                              int idx);
+    
+jetstream::CubeSchema_Aggregate * add_aggregate( CubeMeta* m,
+                                                const std::string& agg_name,
+                                                const std::string& name,
+                                                int idx);
 
 
 void add_cfg_to_task(TaskMeta*, std::string optname, std::string val);
