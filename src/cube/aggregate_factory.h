@@ -55,7 +55,7 @@ struct AggregateFactory<jetstream::cube::MysqlAggregate> {
       obj = boost::make_shared<MysqlAggregateMin<time_t> >();
     }
     else {
-      LOG(FATAL) << "Don't have right aggregate";
+      LOG(FATAL) << "Don't know how to make an aggregate named " << _schema.type();
     }
     obj->init(_schema);
     return obj;
