@@ -101,6 +101,7 @@ Node::start ()
   }
   dataConnMgr.set_counters(&bytes_out, &bytes_in);
   webInterface.start();
+  iosrv->post(bind(&Node::log_statistics, this));
 
 //  VLOG(1) << "Finished node::run" << endl;
 //  LOG(INFO) << "Finished node::run" << endl;
@@ -162,6 +163,14 @@ Node::stop ()
   LOG(INFO) << "Finished node::stop" << endl;
 }
 
+void Node::log_statistics()
+{
+  while(!iosrv->stopped())
+  {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
+    LOG(INFO) << "Node Statistics: bytes_in="  << bytes_in.read() << " bytes_out=" <<bytes_out.read() ; 
+  }
+}
 
 void
 Node::controller_connected (shared_ptr<ClientConnection> conn,
