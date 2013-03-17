@@ -1,4 +1,6 @@
 ---
+# ansible-playbook  -i ansible_hosts_sns config_sns.yml -u arye --module-path=modules/ -f 100; date
+
 # ansible-playbook  -i ansible_hosts_sns build_sns.yml --module-path=modules/ -f 20 -K ; date
 #- hosts: workers
 #  gather_facts: no
@@ -15,9 +17,12 @@
       - action: fireball port=5100 #run as non-sudo
 
 - hosts: workers
+  gather_facts: no
+  connection: fireball
+  port: 5100 #non-sudo
   vars:
     controller_ip: 128.112.7.136
-    js_checkout: /jetstream/js
+    js_checkout: /disk/local/jetstream
   tasks:
   - name: vicci_config
     template: src=vicci_config.j2 dest=${js_checkout}/config/vicci.conf

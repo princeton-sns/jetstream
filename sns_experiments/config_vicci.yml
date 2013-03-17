@@ -15,9 +15,8 @@
 ### download and build js###
 - hosts: workers
   vars:
-    js_deps: /jetstream/deps
+    controller_ip: 128.112.7.136
     js_checkout: /jetstream/js
-    num_cores: 24
   tasks:
   - name: vicci_config
     template: src=vicci_config.j2 dest=${js_checkout}/config/vicci.conf
