@@ -18,23 +18,18 @@
 - hosts: setup
   sudo: True
   tasks:
-  - name: install cmake
-    apt: pkg=cmake state=present
-  - name: install libgtest0
-    apt: pkg=libgtest0 state=present
-  - name: install libgtest-dev
-    apt: pkg=libgtest-dev state=present
-  - name: install glog
-    apt: pkg=libgoogle-glog-dev state=present
-  - name: install mysql
-    apt: pkg=mysql-server state=present
-  - name: install mysqldb python 
-    apt: pkg=python-mysqldb state=present
-  - name: install mysqlclientdev python 
-    apt: pkg=libmysqlclient-dev state=present
-  - name: install git 
-    apt: pkg=git state=present
-
+  - name: install packages
+    apt: name=$item state=present
+    with_items:
+      - cmake
+      - libgtest0
+      - libgtest-dev
+      - libgoogle-glog-dev
+      - mysql-server
+      - python-mysqldb
+      - libmysqlclient-dev
+      - git
+      - python-protobuf
 
 ###intitial setup###
 - hosts: setup

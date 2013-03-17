@@ -1,2 +1,7 @@
+[workers:children]
+setup
+new
+
 [new]
 sns49.cs.princeton.edu
+sns48.cs.princeton.edu

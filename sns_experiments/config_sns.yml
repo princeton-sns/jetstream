@@ -1,0 +1,23 @@
+---
+# ansible-playbook  -i ansible_hosts_sns build_sns.yml --module-path=modules/ -f 20 -K ; date
+#- hosts: workers
+#  gather_facts: no
+#  connection: paramiko
+#  sudo: True
+#  tasks:
+#      - action: fireball port=5101 #run as sudo
+
+- hosts: workers
+  gather_facts: no
+  connection: paramiko
+  sudo: False
+  tasks:
+      - action: fireball port=5100 #run as non-sudo
+
+- hosts: workers
+  vars:
+    controller_ip: 128.112.7.136
+    js_checkout: /jetstream/js
+  tasks:
+  - name: vicci_config
+    template: src=vicci_config.j2 dest=${js_checkout}/config/vicci.conf
