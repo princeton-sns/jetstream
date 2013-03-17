@@ -3,6 +3,11 @@
 
 ### download results files###
 #
+# then run in /disk/local/jetstream_results/coral_log_sizes:
+# find * -name coral_log_size -exec cat {} \; > all_sizes
+# sed ':a;N;s/\n/+/;ta' all_sizes |bc
+#
+#
 
 - hosts: workers
   gather_facts: no
