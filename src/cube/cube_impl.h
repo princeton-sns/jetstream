@@ -151,6 +151,7 @@ class DataCubeImpl : public DataCube {
     }
 
     mutable int src_tuple_min_len; //for a dimensions-only tuple
+  
     virtual jetstream::Tuple
     get_sourceformat_tuple(const jetstream::Tuple &t) const {
       if (src_tuple_min_len == 0) {
@@ -175,7 +176,19 @@ class DataCubeImpl : public DataCube {
         }
         return reordered;
       }
+    } //end method
+  
+    virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+      
+      Tuple& newVref = *newV;
+      for (unsigned i = 0; i < aggregates.size(); ++i) {
+        aggregates[i]->update_from_delta(newVref, oldV);
+      }
+      
+      process(newV, pred);
     }
+
+  
 
 };
 

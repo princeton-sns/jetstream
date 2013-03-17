@@ -90,6 +90,7 @@ class RemoteDestAdaptor : public TupleReceiver {
  }
 
   virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
   
   virtual void no_more_tuples();
 

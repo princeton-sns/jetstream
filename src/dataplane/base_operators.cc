@@ -397,15 +397,20 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
 }
 
 void
-ExtendOperator::process (boost::shared_ptr<Tuple> t) {
-
-  //TODO: should we copy t first?
+ExtendOperator::mutate_tuple (Tuple& t) {
   for (u_int i = 0; i < new_data.size(); ++i) {
-    Element * e = t->add_e();
+    Element * e = t.add_e();
     e->CopyFrom(new_data[i]);
   }
-  emit(t);
 }
+
+void
+ExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+  mutate_tuple(oldV);
+  mutate_tuple(*newV);
+  emit(oldV, newV);
+}
+
 
 operator_err_t
 ExtendOperator::configure (std::map<std::string,std::string> &config) {

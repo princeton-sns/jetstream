@@ -25,6 +25,9 @@ class DummyReceiver: public DataPlaneOperator {
     tuples.push_back(t);
   }
   
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+
+  
   virtual std::string long_description() {
       std::ostringstream buf;
       buf << tuples.size() << " stored tuples.";

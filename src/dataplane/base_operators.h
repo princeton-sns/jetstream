@@ -132,7 +132,14 @@ void parse_with_types(Element * e, const std::string& s, char typecode);
 class ExtendOperator: public DataPlaneOperator {
  public:
   std::vector< Element > new_data;
-  virtual void process (boost::shared_ptr<Tuple> t);
+
+  void mutate_tuple(Tuple& t);
+  virtual void process (boost::shared_ptr<Tuple> t) {
+    mutate_tuple(*t);
+    emit(t);
+  }
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
   

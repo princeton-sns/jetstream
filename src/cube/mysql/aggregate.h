@@ -36,6 +36,10 @@ class MysqlAggregate : public Aggregate {
       boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const =0;
 
     virtual string get_select_clause_for_rollup() const = 0;
+  
+    virtual void update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const {
+        //no-op, just keep new
+    }
 
   protected:
     virtual void merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const = 0;

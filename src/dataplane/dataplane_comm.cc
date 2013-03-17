@@ -49,6 +49,14 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 
         dest->process(data, remote_op);
       }
+      
+      for (int i = 0; i < msg.old_val_size(); ++i) {
+        shared_ptr<Tuple> new_data (new Tuple);
+        new_data->MergeFrom (msg.new_val(i));
+        Tuple old_data;
+        old_data.MergeFrom(msg.old_val(i));
+        dest->process_delta(old_data, new_data, remote_op);      
+      }
 #ifdef ACK_EACH_PACKET
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
@@ -438,6 +446,41 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src)
       do_send_unlocked();
   }
 }
+
+
+void
+RemoteDestAdaptor::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
+		 << ". Aborting data message send. Should queue/retry instead?";
+    return;
+  }
+
+  {
+    size_t sz = oldV.ByteSize() + newV->ByteSize();
+    reporter.sending_a_tuple(sz);
+    remote_processing->report_insert(0, sz);
+
+    unique_lock<boost::mutex> lock(mutex); //lock around buffers
+    msg.set_type(DataplaneMessage::DATA); //TODO should be delta?
+    
+    bool buffer_was_empty = (this_buf_size == 0);
+    this_buf_size += sz;
+    msg.add_old_val()->MergeFrom(oldV);
+    msg.add_new_val()->MergeFrom(*newV);
+    
+    
+    if (this_buf_size < SIZE_TO_SEND) {
+      if (buffer_was_empty) {
+        timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
+        timer.async_wait(boost::bind(&RemoteDestAdaptor::force_send, this));
+      }
+      return;
+    } else
+      do_send_unlocked();
+  }
+}
+
 
 
 void

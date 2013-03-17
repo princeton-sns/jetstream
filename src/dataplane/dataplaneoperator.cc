@@ -33,6 +33,14 @@ DataPlaneOperator::process (boost::shared_ptr<Tuple> t) {
   LOG(INFO) << "Operator: base operator process" << endl;
 }
 
+void
+DataPlaneOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+
+  if (dest)
+    dest->process_delta(oldV, newV, operID);
+  else
+    LOG(WARNING) << "Operator: no destination for operator " << operID << endl;
+}
 
 void 
 DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
@@ -42,6 +50,12 @@ DataPlaneOperator::emit (boost::shared_ptr<Tuple> t)
     dest->process(t, operID);
   else
     LOG(WARNING) << "Operator: no destination for operator " << operID << endl;
+}
+
+void
+DataPlaneOperator::emit (Tuple& old, boost::shared_ptr<Tuple> newV) {
+  if (dest)
+    dest->process_delta(old, newV, operID);
 }
 
 
