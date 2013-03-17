@@ -84,3 +84,10 @@ string MysqlAggregateCount::get_select_clause_for_rollup() const {
   return "SUM("+get_base_column_name()+")";
 }
 
+void
+MysqlAggregateCount::update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const {
+  int old_val = oldV.e(tuple_indexes[0]).i_val();
+  int new_val = newV.e(tuple_indexes[0]).i_val();
+  newV.mutable_e(tuple_indexes[0])->set_i_val(new_val - old_val);
+}
+

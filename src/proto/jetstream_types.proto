@@ -225,6 +225,7 @@ message DataplaneMessage {
   CHAIN_CONNECT = 4; CHAIN_READY = 5; NO_MORE_DATA = 6;
   TS_ECHO = 7; CONGEST_STATUS = 8; SET_BACKOFF = 9; END_OF_WINDOW = 10; ROLLUP_LEVELS = 12;
   TPUT_START = 20; TPUT_ROUND_2 = 25; TPUT_ROUND_3 = 26;
+  DELTA = 40;
   }
   required DataplaneType type  = 1;
 
@@ -247,6 +248,10 @@ message DataplaneMessage {
   repeated Tuple tput_r3_query = 26;
   optional int32 tput_round = 27;
   optional int32 tput_r3_timecol = 28;
+
+    //for delta records
+  repeated Tuple old_val = 40;
+  repeated Tuple new_val = 41;
 }
 
 

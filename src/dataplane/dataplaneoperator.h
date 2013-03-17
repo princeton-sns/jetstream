@@ -45,6 +45,12 @@ class TupleSender {
 class TupleReceiver {
  public:
   virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t pred) = 0;
+
+  /*
+    Note that the dimension fields of oldV need not be defined.
+  */
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) = 0;
+  
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
     return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
   }
@@ -134,7 +140,9 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   
   virtual void process (boost::shared_ptr<Tuple> t); // NOT abstract here
   virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src); // NOT abstract here
-
+  
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
   
   /** Called when no more data will be passed in from upstream; operators
   may choose to stop in response to this.
