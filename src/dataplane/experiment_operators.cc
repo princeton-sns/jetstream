@@ -495,6 +495,7 @@ AvgCongestLogger::report() {
       last_bytes = bytes_total;
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
+      LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read();
        tuples_in_interval = 0;
     }
     timer->expires_from_now(boost::posix_time::millisec(report_interval));
