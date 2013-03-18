@@ -466,6 +466,8 @@ void
 AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
   boost::lock_guard<boost::mutex> lock (mutex);
   tuples_in_interval ++;
+  if (field >= 0)
+    count_tally += t->e(field).i_val();
   emit(t);
 }
 
@@ -495,7 +497,8 @@ AvgCongestLogger::report() {
       last_bytes = bytes_total;
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
-      LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read();
+      LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
+      << " Lifetime total count=" << count_tally;
        tuples_in_interval = 0;
     }
     timer->expires_from_now(boost::posix_time::millisec(report_interval));
@@ -503,6 +506,16 @@ AvgCongestLogger::report() {
   }
 }
 
+
+operator_err_t
+AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
+  if ( config.find("field") != config.end())
+    if ( !(istringstream(config["field"]) >> field)) {
+      return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+    }
+  
+  return NO_ERR;
+}
 
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");

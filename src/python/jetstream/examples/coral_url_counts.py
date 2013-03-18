@@ -90,6 +90,7 @@ def get_graph(source_nodes, root_node, options):
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
+  congest_logger.set_cfg("field", 3)
 
   if MULTIROUND:
     tput_merge = jsapi.MultiRoundCoord(g)

@@ -258,9 +258,10 @@ class AvgCongestLogger: public DataPlaneOperator {
   //logs the total counts going past
  public:
 
-  AvgCongestLogger(): report_interval(2000),last_bytes(0),tuples_in_interval(0)  {}
+  AvgCongestLogger(): report_interval(2000),last_bytes(0),tuples_in_interval(0), field(-1),
+      count_tally(0) {}
   virtual void process(boost::shared_ptr<Tuple> t); 
-//  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
   virtual void start();
   virtual void stop();
@@ -274,9 +275,12 @@ class AvgCongestLogger: public DataPlaneOperator {
   boost::mutex mutex;
   volatile bool running;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
+  
   unsigned report_interval;
   uint64_t last_bytes;
   unsigned tuples_in_interval;
+  int field;
+  uint64_t count_tally;
 
 GENERIC_CLNAME
 };  
