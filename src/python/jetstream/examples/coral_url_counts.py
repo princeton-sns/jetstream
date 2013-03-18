@@ -157,7 +157,7 @@ def get_graph(source_nodes, root_node, options):
     hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker
     hostname_extend_op.instantiate_on(node)
   
-    g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op])
+    g.chain([local_cube, pull_from_local,timestamp_op, hostname_extend_op])
     #output: 0=>time, 1=>response_code, 2=> url 3=> count, 4=> timestamp at source, 5=> hostname
 
 
