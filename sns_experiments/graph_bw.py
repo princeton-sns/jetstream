@@ -26,12 +26,20 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 def main():
 
   infile = sys.argv[1]
+
+  outname = "bw_over_time_e1.pdf"
+  if len(sys.argv) > 2:
+    outname = sys.argv[2]
   time_to_bw, time_to_tuples, level_transitions = parse_log(infile)
+  
+
   
   leg_artists = []
   figure, ax = plt.subplots()
   
 #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
+  time_to_bw = smooth_bw(time_to_bw)
+#  print "smoothed to",time_to_bw
   plot_bw(time_to_bw, ax, leg_artists) 
 
   MAX_T = max(time_to_bw.keys())
@@ -40,7 +48,7 @@ def main():
   level_transitions = to_line(level_transitions, min(time_to_bw.keys()), MAX_T)
   plot_degradation(level_transitions, ax, leg_artists)
 
-  finish_plots(figure, ax, leg_artists)
+  finish_plots(figure, ax, leg_artists, outname)
 
 USE_BW_REP = False
 def parse_log(infile):
@@ -50,12 +58,16 @@ def parse_log(infile):
   f = open(infile, 'r')
   for ln in f:
     if 'RootReport' in ln:
-      fields = ln.split(" ")
-      ts = long(fields[-7])
-      window = long(fields[-4])
-      bw_sec = float(fields[-2])
-      level_transitions.append (  (ts, window) )
-      time_to_bw[ts] = (bw_sec, 0)
+      try:
+        fields = ln.split(" ")
+        ts = long(fields[-9])
+        window = long(float(fields[-6]))
+        bw_sec = float(fields[-4])
+        level_transitions.append (  (ts, window) )
+        time_to_bw[ts] = (bw_sec, 0)
+      except Exception as e:
+        print str(e),ln
+        sys.exit(0)
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
 #     elif 'setting degradation level' in ln:
@@ -70,6 +82,17 @@ def parse_log(infile):
 
   f.close()
   return time_to_bw,time_to_tuples,level_transitions
+
+
+def smooth_bw(time_to_bw):
+  last_bytes = []
+  res = {}
+  for tm, (bytes,tuples) in sorted(time_to_bw.items()):
+    last_bytes.append(bytes)
+    smoothed = sum( last_bytes[-10:])
+    b = len(last_bytes[-10:])
+    res[tm] = ((smoothed) / b, 0)
+  return res
 
 def plot_bw(time_to_bw, ax, leg_artists):
   time_data = []
@@ -124,7 +147,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 
 
 
-def finish_plots(figure, ax, leg_artists):
+def finish_plots(figure, ax, leg_artists, outname):
   plt.xlabel('Time', fontsize=24)
   labels = ax.get_xticklabels() 
   for label in labels: 
@@ -133,7 +156,7 @@ def finish_plots(figure, ax, leg_artists):
   plt.legend(leg_artists, ["BW", "Degradation"]);
   
   if OUT_TO_FILE:
-      plt.savefig("bw_over_time_e1.pdf")
+      plt.savefig(outname)
       plt.close(figure)  
 
 # 
