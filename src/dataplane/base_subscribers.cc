@@ -236,8 +236,7 @@ string ts_to_str(time_t t) {
   return string(tmbuf);
 }
 
-unsigned int TimeBasedSubscriber::get_window_offset_sec(){
-
+unsigned int TimeBasedSubscriber::get_window_offset_sec() {
   unsigned int level_offset_sec = 0;
   if(querier.rollup_levels.size() > 0) {
     size_t time_level = querier.rollup_levels[ts_field];
@@ -279,7 +278,6 @@ TimeBasedSubscriber::operator()() {
   TimeTeller * ts;
 
   if (simulation) {
-    // FIXME I hope this is right
     ts = new TimeSimulator(start_ts, simulation_rate);
   }
   else
@@ -287,8 +285,7 @@ TimeBasedSubscriber::operator()() {
 
   boost::shared_ptr<TimeTeller> tt(ts);
 
-
-  time_t newMax = tt->now() - get_window_offset_sec(); // can be cautious here since it's just first window
+  time_t newMax = tt->now() - get_window_offset_sec(); 
 
   if (ts_field >= 0)
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
@@ -335,7 +332,7 @@ TimeBasedSubscriber::operator()() {
 
     update_backfill_stats(elems);
     js_usleep(1000 * windowSizeMs);
-    respond_to_congestion(); //do this BEFORE updating window
+    respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
 
     if (ts_field >= 0) {
       next_window_start_time = querier.max.e(ts_field).t_val() + 1;

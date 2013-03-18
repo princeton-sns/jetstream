@@ -95,9 +95,10 @@ cube::CubeIterator Querier::do_query() {
     VLOG(1) << id << " doing rollup query. Range is " << fmt(min) << " to " << fmt(max) <<
             " and rollup levels are " << fmt_list(rollup_levels);
 
-    cube->do_rollup(rollup_levels, min, max);
-    VLOG(1) << "rollup done; now doing query";
-    return cube->rollup_slice_query(rollup_levels, min, max, true, sort_order, num_results);
+//    cube->do_rollup(rollup_levels, min, max);
+ //   VLOG(1) << "rollup done; now doing query";
+//    return cube->rollup_slice_query(rollup_levels, min, max, true, sort_order, num_results);
+    return cube -> slice_and_rollup(rollup_levels, min, max, sort_order, num_results);
   }
   else {
     VLOG(1) << id << " doing query; range is " << fmt(min) << " to " << fmt(max);
