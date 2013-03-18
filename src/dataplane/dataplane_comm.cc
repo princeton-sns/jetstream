@@ -86,7 +86,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
-      LOG_EVERY_N(INFO, 10) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
+      LOG_EVERY_N(INFO, 40) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
        << " and window size was " << msg.window_length_ms();
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
@@ -556,7 +556,7 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
       msg_out.set_timestamp(  remote_processing->get_window_start()  );
-      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
+//      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
       //we are on caller's thread so this is thread-safe.
       force_send(); 
       conn->send_msg(msg_out, err);

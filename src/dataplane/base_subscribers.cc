@@ -237,20 +237,41 @@ string ts_to_str(time_t t) {
 }
 
 unsigned int TimeBasedSubscriber::get_window_offset_sec(){
-  if(querier.rollup_levels.size() > 0)
-  {
+
+  unsigned int level_offset_sec = 0;
+  if(querier.rollup_levels.size() > 0) {
     size_t time_level = querier.rollup_levels[ts_field];
-    if(time_level < DTC_LEVEL_COUNT) {
-//        LOG_IF(FATAL, time_level >= DTC_LEVEL_COUNT) << "unknown rollup level " << time_level;
-      unsigned int level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
+//    LOG_IF(FATAL, time_level >= DTC_LEVEL_COUNT) << "unknown rollup level " << time_level;
+
+    if(time_level < DTC_LEVEL_COUNT-1) { //not a leaf
+      level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
       level_offset_sec = min(3600U, level_offset_sec);
-      return ((windowOffsetMs + 999) / 1000)+level_offset_sec; //TODO could instead offset from highest-ts-seen
     }
   }
     //either not rolled up, or else rolled up completely
-  return (windowOffsetMs + 999) / 1000; //TODO could instead offset from highest-ts-seen
+  return (windowOffsetMs + 999) / 1000+level_offset_sec; //TODO could instead offset from highest-ts-seen
 
 }
+
+
+void
+TimeBasedSubscriber::update_backfill_stats(int elems) {
+  int backfill_window = backfill_tuples - backfill_old_window;
+  int regular_window = regular_tuples - regular_old_window;
+
+  if(backfill_window > 0) {
+    LOG(INFO)<< id() << ": Backfill in window (at action_on_tuple): " << backfill_window <<". Non-Backfill: "<<regular_window
+             <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time 
+             <<" Process queue length: "<< cube->process_congestion_monitor()->queue_length();
+
+  }
+
+  backfill_old_window = backfill_tuples;
+  regular_old_window = regular_tuples;
+
+  VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
+}
+
 
 void
 TimeBasedSubscriber::operator()() {
@@ -291,8 +312,6 @@ TimeBasedSubscriber::operator()() {
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
   send_rollup_levels();
 
-  int backfill_old_window = backfill_tuples;
-  int regular_old_window = regular_tuples;
 
   while (running)  {
 
@@ -314,26 +333,13 @@ TimeBasedSubscriber::operator()() {
     end_msg.set_window_length_ms(windowSizeMs);
     send_meta_downstream(end_msg);
 
-    int backfill_window = backfill_tuples - backfill_old_window;
-    int regular_window = regular_tuples - regular_old_window;
-
-    if(backfill_window > 0) {
-      LOG(INFO)<< id() << ": Backfill in window (at action_on_tuple): " << backfill_window <<". Non-Backfill: "<<regular_window
-               <<". Next window start time = "<< next_window_start_time<< ". Last backfill was at: " << last_backfill_time 
-               <<" Process queue length: "<< cube->process_congestion_monitor()->queue_length();
-
-    }
-
-    backfill_old_window = backfill_tuples;
-    regular_old_window = regular_tuples;
-
-    VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
+    update_backfill_stats(elems);
     js_usleep(1000 * windowSizeMs);
     respond_to_congestion(); //do this BEFORE updating window
 
     if (ts_field >= 0) {
-      next_window_start_time = querier.max.e(ts_field).t_val();
-      querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time + 1);
+      next_window_start_time = querier.max.e(ts_field).t_val() + 1;
+      querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time);
       newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
       querier.max.mutable_e(ts_field)->set_t_val(newMax);
       VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)

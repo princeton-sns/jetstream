@@ -96,12 +96,17 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     time_t next_window_start_time; //all data from before this should be visible
     boost::shared_ptr<CongestionPolicy> congest_policy;
 
+
+    int backfill_old_window; 
+    int regular_old_window; 
+
     virtual void respond_to_congestion();
 
     void send_rollup_levels();
 
   public:
-    TimeBasedSubscriber(): backfill_tuples(0), regular_tuples(0), next_window_start_time(0) {};
+    TimeBasedSubscriber(): backfill_tuples(0), regular_tuples(0), next_window_start_time(0),
+     backfill_old_window(0),regular_old_window(0) {};
 
     virtual ~TimeBasedSubscriber() {};
 
@@ -129,6 +134,8 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     int window_size() {return windowSizeMs;}
 
   private:
+  
+    void update_backfill_stats(int elems);
 
     bool simulation;
     int simulation_rate;
