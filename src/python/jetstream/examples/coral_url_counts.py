@@ -88,6 +88,13 @@ def get_graph(source_nodes, root_node, options):
   
     g.chain([central_cube,pull_q, echo] )
 
+  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
+  latency_measure_op.instantiate_on(root_node)
+  echo_op = jsapi.Echo(g);
+  echo_op.set_cfg("file_out", options.latencylog)
+  echo_op.instantiate_on(root_node)
+  g.chain([central_cube, latency_measure_op, echo_op])
+
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
   congest_logger.set_cfg("field", 3)
@@ -147,10 +154,13 @@ def get_graph(source_nodes, root_node, options):
 #    count_logger = jsapi.CountLogger(g, field=3)
 
     timestamp_op= jsapi.TimestampOperator(g, "ms")
-    count_extend_op = jsapi.ExtendOperator(g, "i", ["1"]) #used as dummy hostname for latency tracker
-    count_extend_op.instantiate_on(node)
+    hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker
+    hostname_extend_op.instantiate_on(node)
   
     g.chain([local_cube, pull_from_local,timestamp_op, count_extend_op])
+    #output: 0=>time, 1=>response_code, 2=> url 3=> count, 4=> timestamp at source, 5=> hostname
+
+
     if MULTIROUND:
       g.connect(count_extend_op, tput_merge)
     else:
@@ -160,6 +170,7 @@ def get_graph(source_nodes, root_node, options):
   timestamp_cube_op.instantiate_on(root_node)
 
   g.chain ( [congest_logger, timestamp_cube_op, central_cube])
+  #input to central cube : 0=>time, 1=>response_code, 2=> url 3=> count, 4=> timestamp at source, 5=> hostname 6=> timestamp at union
   if options.bw_cap:
     congest_logger.set_inlink_bwcap(float(options.bw_cap))
 
