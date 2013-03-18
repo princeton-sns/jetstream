@@ -54,7 +54,7 @@ def get_graph(source_nodes, root_node, options):
 
   start_ts = parse_ts(options.start_ts)
 
-  central_cube = g.add_cube("global_coral_quant")
+  central_cube = g.add_cube("global_coral_anamolous_quant")
   central_cube.instantiate_on(root_node)
   define_quant_cube(central_cube)
 
@@ -69,7 +69,7 @@ def get_graph(source_nodes, root_node, options):
 
   g.chain([central_cube, pull_q, q_op] )
 
-  thresh_cube = g.add_cube("coral_thresh")
+  thresh_cube = g.add_cube("global_coral_anamalous_thresh")
   thresh_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
   thresh_cube.add_agg("thresh", jsapi.Cube.AggType.COUNT, 1)
   thresh_cube.set_overwrite(True)
@@ -109,13 +109,13 @@ def get_graph(source_nodes, root_node, options):
     round.set_cfg("wait_for_catch_up", "true")
     f.instantiate_on(node)
     
-    local_raw_cube = g.add_cube("local_coral_all_%d" % i)
+    local_raw_cube = g.add_cube("local_coral_anamolous_all_%d" % i)
     define_schema_for_raw_cube(local_raw_cube, parsed_field_offsets)
     
     pass_raw = jsapi.FilterSubscriber(g) # to pass through to the summary and q-cube
     to_summary = jsapi.ToSummary(g, field=FILTER_FIELD, size=100)
 
-    local_q_cube = g.add_cube("local_coral_quant_%d" %i)
+    local_q_cube = g.add_cube("local_coral_anamolous_quant_%d" %i)
     define_quant_cube(local_q_cube, [coral_fidxs['timestamp'],  FILTER_FIELD ])
 
     g.chain( [f, csvp, round, local_raw_cube, pass_raw,to_summary,local_q_cube] )
