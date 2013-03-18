@@ -1,20 +1,20 @@
 ---
 # ansible-playbook  -i ansible_hosts_sns build_sns.yml --module-path=modules/ -f 20 -K ; date
-- hosts: setup
+- hosts: workers
   gather_facts: no
   connection: paramiko
   sudo: True
   tasks:
       - action: fireball port=5101 #run as sudo
 
-- hosts: setup
+- hosts: workers
   gather_facts: no
   connection: paramiko
   sudo: False
   tasks:
       - action: fireball port=5100 #run as non-sudo
 
-#- hosts: setup #don't need ntp on sns machines 
+#- hosts: workers #don't need ntp on sns machines 
 #  vars:
 #    js_deps: /disk/local/jetstream_deps
 #    js_checkout: /disk/local/jetstream
@@ -26,7 +26,7 @@
 #  tasks:
 #  - include: build_include_sudo_ntp.yml
 
-- hosts: setup
+- hosts: workers
   gather_facts: no
   vars:
     js_deps: /disk/local/jetstream_deps
@@ -39,7 +39,7 @@
   tasks:
   - include: build_include.yml
 
-- hosts: setup
+- hosts: workers
   gather_facts: no
   vars:
     js_deps: /disk/local/jetstream_deps

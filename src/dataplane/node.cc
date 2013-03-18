@@ -14,6 +14,7 @@ using namespace jetstream;
 using namespace std;
 using namespace boost;
 
+bool PRINT_STATS = false;
 
 Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   : config (conf),
@@ -101,7 +102,8 @@ Node::start ()
   }
   dataConnMgr.set_counters(&bytes_out, &bytes_in);
   webInterface.start();
-  iosrv->post(bind(&Node::log_statistics, this));
+  if(PRINT_STATS)
+    iosrv->post(bind(&Node::log_statistics, this));
 
 //  VLOG(1) << "Finished node::run" << endl;
 //  LOG(INFO) << "Finished node::run" << endl;

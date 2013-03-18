@@ -429,11 +429,11 @@ RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src)
     remote_processing->report_insert(0, sz);
 
     unique_lock<boost::mutex> lock(mutex); //lock around buffers
-    msg.set_type(DataplaneMessage::DATA);
+    out_buffer_msg.set_type(DataplaneMessage::DATA);
     
     bool buffer_was_empty = (this_buf_size == 0);
     this_buf_size += sz;
-    msg.add_data()->MergeFrom(*t);
+    out_buffer_msg.add_data()->MergeFrom(*t);
     
     
     if (this_buf_size < SIZE_TO_SEND) {
@@ -462,12 +462,12 @@ RemoteDestAdaptor::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, co
     remote_processing->report_insert(0, sz);
 
     unique_lock<boost::mutex> lock(mutex); //lock around buffers
-    msg.set_type(DataplaneMessage::DATA); //TODO should be delta?
+    out_buffer_msg.set_type(DataplaneMessage::DATA); //TODO should be delta?
     
     bool buffer_was_empty = (this_buf_size == 0);
     this_buf_size += sz;
-    msg.add_old_val()->MergeFrom(oldV);
-    msg.add_new_val()->MergeFrom(*newV);
+    out_buffer_msg.add_old_val()->MergeFrom(oldV);
+    out_buffer_msg.add_new_val()->MergeFrom(*newV);
     
     
     if (this_buf_size < SIZE_TO_SEND) {
@@ -498,8 +498,8 @@ RemoteDestAdaptor::do_send_unlocked() {
   timer.cancel();
   
   boost::system::error_code err;
-  conn->send_msg(msg, err);
-  msg.Clear();
+  conn->send_msg(out_buffer_msg, err);
+  out_buffer_msg.Clear();
   
   if (err != 0) {
     //send failed
@@ -551,18 +551,19 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
   }
 #ifdef ACK_WINDOW_END
   else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
-      msg.has_window_length_ms()) {
-    if (remote_processing->get_window_start() > 0) { //no data in window
+      msg_in.has_window_length_ms()) {
+    if (remote_processing->get_window_start() > 0) { //data in window
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
       msg_out.set_timestamp(  remote_processing->get_window_start()  );
-//      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
+      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
       //we are on caller's thread so this is thread-safe.
       force_send(); 
       conn->send_msg(msg_out, err);
       remote_processing->new_window_start(); //reset clock
     } else {
-      remote_processing->end_of_window(msg.window_length_ms(), 0);
+      LOG(INFO) << "end of window with no data";
+      remote_processing->end_of_window(msg_in.window_length_ms(), 0);
     }
   }
 #endif

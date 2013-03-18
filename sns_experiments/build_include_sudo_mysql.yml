@@ -4,4 +4,4 @@
   - name: restart mysqld
     service: name=${mysqld_name} state=restarted
   - name: run mysql sql udf install script
-    shell: mysql test_cube < ${js_checkout}/src/mysql_udfs/merge/installdb_linux.sql
+    shell: mysql test_cube -u root < ${js_checkout}/src/mysql_udfs/merge/installdb_linux.sql

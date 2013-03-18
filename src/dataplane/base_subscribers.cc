@@ -15,6 +15,8 @@ using namespace std;
 using namespace boost;
 using namespace jetstream::cube;
 
+#undef BACKFILL
+
 jetstream::cube::Subscriber::Action QueueSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
   return returnAction;
 }
@@ -129,6 +131,14 @@ TimeBasedSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &upda
     LOG_EVERY_N(INFO, 10001) << "(every 10001) TimeBasedSubscriber after db update next_window_start_time: "<< next_window_start_time <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time);
   }
 
+  boost::shared_ptr<jetstream::Tuple> new_to_propagate(new Tuple);
+  new_to_propagate->CopyFrom(*new_value);
+  
+  Tuple old_to_propagate;
+  old_to_propagate.CopyFrom(*old_value);
+  #ifdef BACKFILL
+  emit(old_to_propagate, new_to_propagate);
+  #endif
 }
 
 operator_err_t
