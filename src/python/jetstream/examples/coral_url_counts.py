@@ -162,9 +162,9 @@ def get_graph(source_nodes, root_node, options):
 
 
     if MULTIROUND:
-      g.connect(count_extend_op, tput_merge)
+      g.connect(hostname_extend_op, tput_merge)
     else:
-      g.connect(count_extend_op, congest_logger)
+      g.connect(hostname_extend_op, congest_logger)
 
   timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
   timestamp_cube_op.instantiate_on(root_node)
