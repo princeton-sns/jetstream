@@ -58,7 +58,7 @@ class RemoteDestAdaptor : public TupleReceiver {
   std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
   Edge dest_as_edge;
-  DataplaneMessage msg;
+  DataplaneMessage out_buffer_msg;
   boost::asio::deadline_timer timer;
   BWReporter reporter;
   

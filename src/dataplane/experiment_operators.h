@@ -266,6 +266,8 @@ class AvgCongestLogger: public DataPlaneOperator {
   virtual void stop();
   void report();
 
+  virtual void no_more_tuples() {} //don't exit at end, since we take multiple inputs
+
 
  private:
   std::map<operator_id_t, unsigned> window_for;

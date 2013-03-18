@@ -106,7 +106,9 @@ void
 WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
   if (window_start_time == 0) {
 //      LOG(INFO) << "SAW A SEND";
-    window_start_time = get_msec();
+    boost::unique_lock<boost::mutex> lock(internals);
+    if (window_start_time == 0) //doublecheck now that we have lock
+      window_start_time = get_msec();
   }
   bytes_in_window += weight;
 }
