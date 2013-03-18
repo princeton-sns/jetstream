@@ -447,9 +447,11 @@ MultiRoundCoordinator::start_phase_3() {
 void
 MultiRoundCoordinator::wait_for_restart() {
   time_t now = time(NULL);
-  time_t window_end = max( now - window_offset, start_ts + min_window_size);
+//  time_t window_end = max( now - window_offset, start_ts + min_window_size);
+  time_t window_end = start_ts + min_window_size;
+  
   LOG(INFO) << "Going to run TPUT at " << window_end << " (now is  " << now<< ")";
-  timer->expires_at(boost::posix_time::from_time_t(window_end));
+  timer->expires_at(boost::posix_time::from_time_t(window_end + window_offset));
   timer->async_wait(boost::bind(&MultiRoundCoordinator::start_phase_1, this, window_end));
 //  LOG(INFO) << "Timer will expire in " << timer->expires_from_now();
 }

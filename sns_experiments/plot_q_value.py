@@ -85,7 +85,7 @@ def plot_error(all_data):
     ax = fig.add_subplot(111)
     ax.set_yscale('symlog', linthreshy= 1e-8, linscaley = 1)
  
-    ax.set_title('Accuracy finding %dth percentile of %s' % (int(100 * float(target_quant)), distrib_name))
+#    ax.set_title('Accuracy finding %dth percentile of %s' % (int(100 * float(target_quant)), distrib_name))
 
     y_vals_for = {}
     y_errbars_for = {}
