@@ -46,12 +46,18 @@ PeriodicCongestionReporter::report_congestion() {
 
 void
 VariableSamplingOperator::start() {
-  reporter.set_dest(get_dest());
-  reporter.start(get_timer());
-  atomic_write32(&threshold, 0); //start fully choked
+  for( unsigned i =0; i < STEPS ; ++i) {
+    steps.push_back( double(i) / (STEPS - 1) );
+  }
+//  reporter.set_dest(get_dest());
+//  reporter.start(get_timer());
+    cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+    unsigned thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
+    VLOG(1) << " Initial step for " << id() << " is " << cur_step << " thresh is " << thresh;
+    atomic_write32(&threshold, thresh); //start sending everything
 }
 
-
+/*
 
 void
 VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
@@ -67,6 +73,22 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
     DataPlaneOperator::meta_from_downstream(msg);
   }
 }
+
+*/
+
+void
+VariableSamplingOperator::meta_from_upstream( const DataplaneMessage & msg,
+                                              const operator_id_t pred) {
+  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+    cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+    unsigned thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
+    atomic_write32(&threshold, thresh); //start sending everything
+    
+//    boost::lock_guard<boost::mutex> lock (mutex);
+  }
+  DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
+}
+
 
 
 void
