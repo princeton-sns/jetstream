@@ -564,6 +564,8 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const ope
     } else {
       LOG(INFO) << "end of window with no data";
       remote_processing->end_of_window(msg_in.window_length_ms(), 0);
+      force_send();
+      conn->send_msg(msg_in, err);      
     }
   }
 #endif
