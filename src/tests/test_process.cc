@@ -230,12 +230,11 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
     gens.push_back(g);
   }
 
+  js_usleep(5000000);
   msec_t start = get_msec();
 
   LOG(INFO) << "starting timer: "<< start;
 
-  js_usleep(5000);
-  
   boost::thread_group tg;
   for(size_t i = 0; i<gens.size(); ++i) {
     TestTupleGenerator * g= gens[i];
@@ -248,14 +247,13 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
   ChainedQueueMonitor * procMon = ( ChainedQueueMonitor *)cube->congestion_monitor().get();
   QueueCongestionMonitor * flushMon =  (  QueueCongestionMonitor *)procMon->dest.get();
 
-
-
   int waits = 0;
 
   while(procMon->queue_length() > 0 || flushMon->queue_length() > 0) {
     waits ++;
-    js_usleep(200000);
-    LOG(INFO) << "Waiting on completeness. outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+    int waiting = procMon->queue_length() + (flushMon->queue_length()/10);
+    js_usleep(waiting);
+    LOG(INFO) << "Waiting "<< waiting <<" on completeness. outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
 
   LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits << "; start" << start << "; now "<< get_msec();
@@ -306,6 +304,14 @@ TEST_F(ProcessTest, DISABLED_D500K44NO) {
 TEST_F(ProcessTest, DISABLED_D1M44NO) {
   run_test(sc, true, 1000000, 4, 4, false);
 }
+
+TEST_F(ProcessTest, DISABLED_D1M88NO) {
+  run_test(sc, true, 1000000, 8, 8, false);
+}
+TEST_F(ProcessTest, DISABLED_D1M84NO) {
+  run_test(sc, true, 1000000, 8, 4, false);
+}
+
 
 TEST_F(ProcessTest, DISABLED_D100K88NO) {
   run_test(sc, true, 100000, 8, 8, false);

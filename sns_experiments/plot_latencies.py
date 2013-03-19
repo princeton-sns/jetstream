@@ -35,6 +35,8 @@ def parse_infile(infile):
 #    print ln
     _,ln = ln.split(':')  #ditch operator ID from echo output
     hostname, label, bucket, count = ln[2:-2].split(",")
+    fake, bucket = bucket.split("=");
+    fake, count = count.split("=")
 #    if 'after' in label:
 #      continue
     bucket = int(bucket)
