@@ -33,6 +33,7 @@ class QueryGraph(object):
     self.operators = {}     # maps id -> value
     self.cubes = {}         # maps id -> value
     self.externalEdges = [] # literal protobuf edges
+    self.policies = []
 
 
   def get_sources(self):
@@ -129,6 +130,13 @@ class QueryGraph(object):
           print "cubes:",self.cubes
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
+    for p in self.policies:    
+      print "policy:", p
+      pb_policy = alter.congest_policies.add()
+      for op in p:
+        pb_o = pb_policy.op.add()
+        pb_o.task = op
+
 
   def connect(self, oper1, oper2, bwLimit=-1):
     """ Add an edge from the the first operator to the second. """
@@ -248,6 +256,12 @@ class QueryGraph(object):
           input_schema[o] = out_schema
           worklist.append(o)
 
+  def add_policy(self, oplist):
+    l = []
+    for op in oplist:
+      l.append( op.id )
+    self.policies.append(l)
+    pass
 
 ##### Useful operators #####
 

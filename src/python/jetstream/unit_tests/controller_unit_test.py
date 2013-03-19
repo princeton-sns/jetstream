@@ -358,6 +358,33 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(subscribers), 1)
 
 
+  def test_serializePolicy(self):
+
+    qGraph = jsapi.QueryGraph()
+    local_cube = qGraph.add_cube("results")
+    local_cube.add_dim("state", Element.STRING, 0)
+    local_cube.add_dim("time", Element.TIME, 1)
+    local_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+        
+    src = jsapi.RandSource(qGraph, 1, 2)
+    sub = jsapi.TimeSubscriber(qGraph, {}, 1000, "-count") #pull every second
+    sample = jsapi.VariableSampling(qGraph)
+
+    eval_op = jsapi.RandEval(qGraph)
+    qGraph.chain( [src, local_cube, sub, sample, eval_op] )
+    qGraph.add_policy( [sub,sample] )
+
+    try: 
+      pb =  qGraph.get_deploy_pb()
+      self.assertEquals( len (pb.alter.congest_policies), 1)
+      oid = pb.alter.congest_policies[0].op[0].task
+      self.assertEquals( oid, sub.id)
+
+#      print str(pb.alter)
+    except SchemaError as ex:
+      self.fail("should not throw, but got " + str(ex))
+
+
 
 if __name__ == '__main__':
   unittest.main()
