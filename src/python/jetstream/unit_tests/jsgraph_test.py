@@ -151,6 +151,7 @@ class TestJSGraph (unittest.TestCase):
     self.assertEquals(lca, self.operators[-1])
 
 
+
 if __name__ == '__main__':
   unittest.main()
   sys.exit(0)

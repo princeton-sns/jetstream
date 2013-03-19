@@ -22,7 +22,7 @@ using namespace ::std;
 const int compID = 4;
 
 
-TEST(Sampling, TwoLocalChains) {
+TEST(DISABLED_Sampling, TwoLocalChains) {
   const unsigned int CHAINS = 2;
   unsigned int K = 100;
   ostringstream fmt;
@@ -135,7 +135,7 @@ TEST(Sampling, TwoLocalChains) {
   cout << "done" << endl;
 }
 
-TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
+TEST_F(NodeTwoNodesTest, DISABLED_LocalAndRemoteSampling) {
 
   const int CHAINS = 2;
   int nextOpID = 1;
@@ -251,3 +251,53 @@ TEST_F(NodeTwoNodesTest, LocalAndRemoteSampling) {
   cout << "-------------end of test-----------" << endl;
 }
 
+
+
+TEST(Operator, ControllableConsistSampling) {
+  int ROUNDS = 100, T_PER_ROUND = 100;
+
+  VariableSamplingOperator op;
+  shared_ptr<DummyReceiver> receive(new DummyReceiver);
+
+  operator_config_t cfg;
+//  cfg["fraction"] = "0.5";
+  cfg["hash_field"] = "0";
+  cfg["hash_type"] = "I";
+
+  operator_err_t err = op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  op.set_dest(receive);
+  
+  boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+  boost::shared_ptr<QueueCongestionMonitor> mockCongest(new QueueCongestionMonitor(256, "dummy"));
+  mockCongest->set_downstream_congestion(0.5);
+  policy->set_congest_monitor(mockCongest);
+  policy->add_operator(op.id());
+
+  op.set_congestion_policy(policy);
+  op.start();
+  
+
+  int rounds_with_data = 0;
+  for (int i=0; i < ROUNDS; ++i) {
+
+    boost::shared_ptr<Tuple> t(new Tuple);
+    extend_tuple(*t, i);
+
+    int processed_before = receive->tuples.size();
+    for (int j = 0; j < T_PER_ROUND; ++j) {
+      op.process(t);
+    }
+    int processed_in_round = receive->tuples.size() - processed_before;
+    if (processed_in_round > 0)
+      rounds_with_data ++;
+    ASSERT_EQ(0, processed_in_round % T_PER_ROUND); //all or none
+  }
+  cout << "done! " << rounds_with_data << " of " << ROUNDS << " values passed the hash" << endl;
+  ASSERT_GT(  0.6 * ROUNDS, rounds_with_data);
+  ASSERT_LT(  0.4 * ROUNDS, rounds_with_data);
+
+  
+//  cout << fmt(*result) << endl;
+
+}

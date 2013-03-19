@@ -33,6 +33,7 @@ class QueryGraph(object):
     self.operators = {}     # maps id -> value
     self.cubes = {}         # maps id -> value
     self.externalEdges = [] # literal protobuf edges
+    self.policies = []
 
 
   def get_sources(self):
@@ -129,6 +130,14 @@ class QueryGraph(object):
           print "cubes:",self.cubes
         assert(e[1] in self.cubes)
         pb_e.dest_cube = self.cubes[e[1]].name
+    for p in self.policies:    
+      print "policy:", p
+      pb_policy = alter.congest_policies.add()
+      for op in p:
+        pb_o = pb_policy.op.add()
+        pb_o.task = op
+        pb_o.computationID = 0
+
 
   def connect(self, oper1, oper2, bwLimit=-1):
     """ Add an edge from the the first operator to the second. """
@@ -140,6 +149,7 @@ class QueryGraph(object):
     
     self.edges[ (oper1.get_id(), oper2.get_id()) ] = aux
     oper2.add_pred(oper1)
+    return oper2
 
   def chain(self, operators):
     """ Add edges from each destination in the list to the next destination in
@@ -147,17 +157,17 @@ class QueryGraph(object):
     assert all(isinstance(op, Destination) for op in operators)
     for oper, next_oper in pairwise(operators):
       self.connect(oper, next_oper)
+    return next_oper
 
   # right now this is for adding an edge to the client so it can act as a
   # receiver
   def connectExternal(self, operator, nodeid):
-      """ Add an edge from an operator to a node """
-      e = Edge()
-      e.computation = 0  # dummy
-      e.src = operator.get_id()
-      e.dest_addr.CopyFrom(nodeid)
-
-      self.externalEdges.append(e)
+    """ Add an edge from an operator to a node """
+    e = Edge()
+    e.computation = 0  # dummy
+    e.src = operator.get_id()
+    e.dest_addr.CopyFrom(nodeid)
+    self.externalEdges.append(e)
 
   def clone_back_from(self, head, numcopies):
     to_copy = {}  #maps id to object
@@ -248,6 +258,12 @@ class QueryGraph(object):
           input_schema[o] = out_schema
           worklist.append(o)
 
+  def add_policy(self, oplist):
+    l = []
+    for op in oplist:
+      l.append( op.id )
+    self.policies.append(l)
+    pass
 
 ##### Useful operators #####
 
@@ -409,8 +425,9 @@ def DummySerialize(g):
 def Echo(g):
   return g.add_operator(OpType.ECHO, {})
 
-def VariableSampling(g):
-  return g.add_operator(OpType.VARIABLE_SAMPLING, {})
+def VariableSampling(g, field=1, type='S'):
+  cfg = {'hash_field':field, 'hash_type':type}
+  return g.add_operator(OpType.VARIABLE_SAMPLING, cfg)
 
 def SamplingController(g):
   return g.add_operator(OpType.CONGEST_CONTROL, {})

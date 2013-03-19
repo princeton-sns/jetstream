@@ -7,10 +7,12 @@ import time
 import numpy
 import numpy.linalg
 from numpy import array
+from optparse import OptionParser
 
 
 
 OUT_TO_FILE = True
+ALIGN = True
 
 import matplotlib
 if OUT_TO_FILE:
@@ -25,30 +27,36 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 def main():
 
-  infile = sys.argv[1]
+  parser = OptionParser()
 
-  outname = "bw_over_time_e1.pdf"
-  if len(sys.argv) > 2:
-    outname = sys.argv[2]
-  time_to_bw, time_to_tuples, level_transitions = parse_log(infile)
-  
+  parser.add_option("-o", "--output", dest="outfile",
+                  help="output file name", default="bw_over_time_e1.pdf")
+  (options, args) = parser.parse_args()
 
-  
+
+
   leg_artists = []
   figure, ax = plt.subplots()
-  
-#  plot_src_tuples(time_to_tuples, ax, leg_artists) 
-  time_to_bw = smooth_bw(time_to_bw)
-#  print "smoothed to",time_to_bw
-  plot_bw(time_to_bw, ax, leg_artists) 
 
-  MAX_T = max(time_to_bw.keys())
-  if len(time_to_tuples) > 0:
-    MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
-  level_transitions = to_line(level_transitions, min(time_to_bw.keys()), MAX_T)
-  plot_degradation(level_transitions, ax, leg_artists)
+  for infile in args:
+ 
+    time_to_bw, time_to_tuples, level_transitions = parse_log(infile)
+  #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
+    time_to_bw,offset = smooth_bw(time_to_bw)
+    print "bw range is", min(time_to_bw.keys()), " - ", max(time_to_bw.keys())
+  #  print "smoothed to",time_to_bw
+    plot_bw(time_to_bw, ax, leg_artists) 
 
-  finish_plots(figure, ax, leg_artists, outname)
+    if ALIGN:
+      MAX_T = 7 * 60
+    else:
+      MAX_T = max(time_to_bw.keys())
+      if len(time_to_tuples) > 0:
+        MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
+    level_transitions = to_line(level_transitions, offset, MAX_T)
+    plot_degradation(level_transitions, ax, leg_artists)
+
+  finish_plots(figure, ax, leg_artists, options.outfile)
 
 USE_BW_REP = False
 def parse_log(infile):
@@ -87,12 +95,18 @@ def parse_log(infile):
 def smooth_bw(time_to_bw):
   last_bytes = []
   res = {}
+  offset = 0
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
+    if offset == 0:
+      if bytes > 0:
+        offset = tm - 10
+      else:
+        continue
     last_bytes.append(bytes)
     smoothed = sum( last_bytes[-10:])
     b = len(last_bytes[-10:])
-    res[tm] = ((smoothed) / b, 0)
-  return res
+    res[tm-offset] = ((smoothed) / b, 0)
+  return res,offset
 
 def plot_bw(time_to_bw, ax, leg_artists):
   time_data = []
@@ -105,8 +119,10 @@ def plot_bw(time_to_bw, ax, leg_artists):
   MAX_Y = max(bw)
   
   ax.set_ylim( 0, 1.2 *  MAX_Y)  
+  plt.tick_params(axis='both', which='major', labelsize=16)
   bw_line, = ax.plot_date(time_data, bw, "b.-", label="BW") 
-  ax.set_ylabel('BW (bytes)', fontsize=24)
+  ax.set_xlabel('Time', fontsize=22)  
+  ax.set_ylabel('BW (bytes)', fontsize=22)
   leg_artists.append( bw_line )
 
 
@@ -118,6 +134,7 @@ def  plot_src_tuples(time_to_count, ax, leg_artists):
   MAX_Y = max(counts)
   
   ax.set_ylim( 0, 1.2 *  MAX_Y)  
+  
   line, = ax.plot_date(times,counts, "g.-") 
   ax.set_ylabel('Source records/sec', fontsize=24)
   leg_artists.append( line )  
@@ -125,12 +142,16 @@ def  plot_src_tuples(time_to_count, ax, leg_artists):
   
 
 def to_line(level_transitions, min_time, max_time):
-  last_level = 3
-  revised = [(min_time, last_level)]
+  last_level = 1
+  revised = [(0, last_level)]
   for  (t, lev) in level_transitions:
-    revised.append ( (t-1, last_level))
-    revised.append ( (t, lev))
-    last_level = lev
+    if t - min_time > max_time:
+      break
+    lev = float(lev) / 1000
+    revised.append ( (t-1 - min_time, last_level))
+    revised.append ( (t - min_time, lev ))
+    last_level = lev 
+  print "would be appending",(max_time, last_level), " to " ,revised[-1]
   revised.append ( (max_time, last_level))
   return revised
   
@@ -140,20 +161,24 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
   time_data = [datetime.datetime.fromtimestamp(t) for t,l in level_transitions]
   lev_data = [l for t,l in level_transitions]
   deg_line, = ax.plot_date(time_data, lev_data, "k-") 
-  ax.set_ylim( 0, 1.2 *  max(lev_data))  
-  ax.set_ylabel('Degradation level', fontsize=24)
+#  ax.set_ylim( 0, 1.2 *  max(lev_data))    
+  ax.set_ylim( 0, 30)  
+ 
+  ax.set_ylabel('Avg window size (secs)', fontsize=22)
   leg_artists.append( deg_line )
 #  print level_transitions  
 
 
 
 def finish_plots(figure, ax, leg_artists, outname):
-  plt.xlabel('Time', fontsize=24)
+  figure.subplots_adjust(left=0.15)
+  figure.subplots_adjust(bottom=0.18)  
   labels = ax.get_xticklabels() 
   for label in labels: 
       label.set_rotation(30) 
       #"Src Records",   
   plt.legend(leg_artists, ["BW", "Degradation"]);
+  plt.tick_params(axis='both', which='major', labelsize=16)
   
   if OUT_TO_FILE:
       plt.savefig(outname)

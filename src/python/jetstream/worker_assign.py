@@ -20,7 +20,8 @@ class WorkerAssignment (object):
     self.cubes = cubes if cubes is not None else []
     
     self.edges = [] #just a list of PB edges for now
-
+    self.policies = [] # list of PB policies
+    
   def __eq__ (self, other):
     if isinstance(other, WorkerAssignment):
       if ((len(self.operators) != len(other.operators)) or
@@ -55,6 +56,9 @@ class WorkerAssignment (object):
   def add_edge(self, e):
     self.edges.append(e)
 
+  def add_policy(self, p):
+    self.policies.append(p)
+
   def get_pb(self):
     req = ControlMessage()
     req.type = ControlMessage.ALTER
@@ -62,4 +66,5 @@ class WorkerAssignment (object):
     req.alter.toStart.extend(self.operators)
     req.alter.toCreate.extend(self.cubes)
     req.alter.edges.extend(self.edges)
+    req.alter.congest_policies.extend(self.policies)
     return req

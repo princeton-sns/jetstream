@@ -381,12 +381,13 @@ VariableCoarseningSubscriber::respond_to_congestion() {
 //  int prev_level = cur_level;
   int delta = congest_policy->get_step(id(), rollup_data_ratios.data(), rollup_data_ratios.size(), cur_level);
   
+  
   if (delta != 0) {
     cur_level += delta;
     int change_in_window = rollup_time_periods[cur_level] * 1000 - windowSizeMs;
     int prev_window = windowSizeMs;
     windowSizeMs = rollup_time_periods[cur_level] * 1000;
-
+    congest_policy->set_effect_delay(id(), 2 * windowSizeMs);
     LOG(INFO) << "Subscriber " << id() << " switching to period " << windowSizeMs
               << " from " << prev_window;
     if (ts_field >= 0) {

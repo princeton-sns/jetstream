@@ -50,29 +50,38 @@ public:
 
 };
 
-class VariableSamplingOperator: public SampleOperator {
+class VariableSamplingOperator: public HashSampleOperator {
+  const static int STEPS = 11;
   private:
-    PeriodicCongestionReporter reporter;
+//    PeriodicCongestionReporter reporter;
 //    boost::shared_ptr<CongestionMonitor> downstream_congestion;
 
   public:
   
-    VariableSamplingOperator():reporter(this) {}
+    VariableSamplingOperator():cur_step(STEPS-1) {}
   
     virtual void start();
   
     virtual void stop() {
-      reporter.stop();
+//      reporter.stop();
     }
   
     //needs to respond to congestion signals
-    virtual void meta_from_downstream(const DataplaneMessage & msg);
+//    virtual void meta_from_downstream(const DataplaneMessage & msg);
+    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
-
-    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
-      return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);
+    virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+      congest_policy = p;
     }
-  
+
+ private:
+  boost::mutex mutex; 
+  unsigned cur_step;
+  std::vector<double> steps;
+  boost::shared_ptr<CongestionPolicy> congest_policy;
+
+
+
 GENERIC_CLNAME
 
 };

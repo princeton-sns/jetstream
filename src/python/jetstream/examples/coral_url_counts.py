@@ -19,6 +19,8 @@ def main():
   parser.add_option("--full_url", dest="full_url", action="store_true", default=False)
   parser.add_option("--multiround", dest="multiround",
   action="store_true", default=False)
+  parser.add_option("--hash_sample", dest="hash_sample",
+  action="store_true", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -64,6 +66,7 @@ def get_graph(source_nodes, root_node, options):
   LOADING = not options.analyze_only
   ECHO_RESULTS = not options.no_echo
   MULTIROUND = options.multiround
+  HASH_SAMPLE = options.hash_sample
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -162,7 +165,13 @@ def get_graph(source_nodes, root_node, options):
     hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker
     hostname_extend_op.instantiate_on(node)
   
-    g.chain([local_cube, pull_from_local,timestamp_op, hostname_extend_op])
+    lastOp = g.chain([local_cube, pull_from_local])
+    if HASH_SAMPLE:
+      v = jsapi.VariableSampling(g, field=1, type='S')
+#      print "connecting ", 
+      lastOp = g.connect(lastOp, v)
+      g.add_policy( [pull_from_local, v] )
+    g.chain( [lastOp,timestamp_op, hostname_extend_op])
     #output: 0=>time, 1=>response_code, 2=> url 3=> count, 4=> timestamp at source, 5=> hostname
 
 

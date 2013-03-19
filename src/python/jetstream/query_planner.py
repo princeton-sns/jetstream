@@ -107,6 +107,9 @@ class QueryPlanner (object):
     for edge in self.alter.edges:
       edge.computation = compID
 
+    for policy in self.alter.congest_policies:
+      for o in policy.op:
+        o.computationID = compID
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.
@@ -207,6 +210,10 @@ class QueryPlanner (object):
         assert(edge.HasField("dest_addr"))
     
       assignments[srcWorkerID].add_edge(edge)
+
+    for policy in self.alter.congest_policies:
+      worker = taskToWorker[ policy.op[0].task ]
+      assignments[worker].add_policy(policy)
 
     #TODO: WE SHOULD VALIDATE THE ASSIGNMENT HERE
 

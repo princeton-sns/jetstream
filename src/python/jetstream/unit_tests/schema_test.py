@@ -19,7 +19,6 @@ class TestSchemas(unittest.TestCase):
       self.fail("Should not throw, but got: " + str(ex))
 
   def test_randEval(self):
-
     qGraph = jsapi.QueryGraph()
     src = jsapi.RandSource(qGraph, 1, 2)
     ex = jsapi.ExtendOperator(qGraph, "i", ["a count"])

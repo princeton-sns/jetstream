@@ -37,7 +37,7 @@ class CongestionPolicy {
   
   public:
     //-1 means "lower send rate", +1 means "raise send rate, and "0" means no shift
-    int get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel);
+    int get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel); 
   
     void add_operator(operator_id_t id) {
       statuses.push_back( OperatorState(id));
@@ -46,6 +46,8 @@ class CongestionPolicy {
     void set_congest_monitor(boost::shared_ptr<CongestionMonitor> c) {
       congest = c;
     }
+  
+   void set_effect_delay(operator_id_t op, unsigned msecs);
 
 };
 
