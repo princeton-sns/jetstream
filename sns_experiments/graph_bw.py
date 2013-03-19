@@ -164,7 +164,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
   ax.set_ylim( 0, 30)  
  
-  ax.set_ylabel('Degradation level', fontsize=22)
+  ax.set_ylabel('Avg window size (secs)', fontsize=22)
   leg_artists.append( deg_line )
 #  print level_transitions  
 
