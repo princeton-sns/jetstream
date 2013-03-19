@@ -353,14 +353,22 @@ Node::establish_congest_policies( const AlterTopo & topo,
     const CongestPolicySpec& p_spec = topo.congest_policies(i);
     boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
     boost::shared_ptr<DataPlaneOperator> op;
+    ostringstream op_list;
     for (int t = 0;  t < p_spec.op_size(); ++t) {
       operator_id_t id = unparse_id(p_spec.op(t));
       policy->add_operator(id);
       op = get_operator(id);
-      op->set_congestion_policy(policy);
-      operators_with_policies[id] = true;
+      if (op) {
+        op->set_congestion_policy(policy);
+        operators_with_policies[id] = true;
+        op_list << " " << op->id_as_str();
+      } else {
+        LOG(FATAL) << "can't set policy for nonexistent operator " << id;
+      }
     }
     policy->set_congest_monitor( op->congestion_monitor() );
+    
+    LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << op->congestion_monitor()->name();
   }
   
   for (unsigned int i = 0; i < toStart.size(); ++i) {

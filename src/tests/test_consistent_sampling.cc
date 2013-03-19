@@ -293,7 +293,7 @@ TEST(Operator, ControllableConsistSampling) {
       rounds_with_data ++;
     ASSERT_EQ(0, processed_in_round % T_PER_ROUND); //all or none
   }
-  cout << "done! " << rounds_with_data << " of " << ROUNDS << "values passed the hash" << endl;
+  cout << "done! " << rounds_with_data << " of " << ROUNDS << " values passed the hash" << endl;
   ASSERT_GT(  0.6 * ROUNDS, rounds_with_data);
   ASSERT_LT(  0.4 * ROUNDS, rounds_with_data);
 

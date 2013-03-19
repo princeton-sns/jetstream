@@ -11,6 +11,7 @@ const unsigned int MIN_MS_BETWEEN_ACTIONS = 50;
 
 int
 CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel) {
+//  boost::lock_guard<boost::mutex> lock (stateLock);
   
   if (!congest) {
 //    LOG(WARNING) << "no congestion monitor ahead of " << op;
@@ -19,24 +20,35 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   if (statuses.size() == 0) //monitor not hooked up
     return 0;
   
-  msec_t last_action = 0;
   double congest_level = congest->capacity_ratio();
   
   OperatorState * status = NULL;
-  for (size_t op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
+  msec_t now = get_msec();
+
+  size_t op_pos;
+  for (op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
     status = &statuses[op_pos];
+
+    if (status->last_state_change + MIN_MS_BETWEEN_ACTIONS > now)
+      return 0; //did something recently
+
     if (status->op == op)
       break;
-    if( (congest_level < 1 && status->availStepsDown > 0)
-      || (congest_level > 1 && status->availStepsUp > 0)) {
-      return 0; //other operator has priority to degrade/upgrade
+      //some other operator has higher priority and some available steps
+    if( (congest_level < 1 && status->availStepsDown > 0)) {
+      return 0; //other operator has priority to degrade
     }
-    last_action = max(last_action, status->last_state_change);
   }
   DLOG_IF(FATAL, status->op != op) << "no status record for " << op << " in policy";
-  msec_t now = get_msec();
-  if (status->op != op || now - last_action < MIN_MS_BETWEEN_ACTIONS)
+  if (status->op != op)
     return 0;
+  
+      //if we are upgrading, search list in opposite order
+  if (congest_level > 1) {
+    for (size_t back_op_pos = statuses.size() -1 ; back_op_pos > op_pos ; --back_op_pos)
+      if(statuses[back_op_pos].availStepsUp > 0)
+        return 0;
+  }
   
   bool check_since_action  =  (status->last_check > status->last_state_change); // no action since state change
   status->last_check = now;
@@ -70,6 +82,20 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   status->availStepsDown = targ_step;
   status->availStepsUp = levelsLen - targ_step -1;
   return delta;
+}
+
+
+void
+CongestionPolicy::set_effect_delay(operator_id_t op, unsigned msecs) {
+//  boost::lock_guard<boost::mutex> lock (mutex);
+
+  for (size_t op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
+    if (statuses[op_pos].op == op) {
+      statuses[op_pos].last_state_change += msecs;
+      return;
+    }
+  }
+  LOG(WARNING) << "attempt to adjust effect delay for unknown operator  " << op;
 }
 
 
