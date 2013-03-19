@@ -51,7 +51,7 @@ public:
 };
 
 class VariableSamplingOperator: public HashSampleOperator {
-  const static int STEPS = 11;
+  const static unsigned STEPS = 11;
   private:
 //    PeriodicCongestionReporter reporter;
 //    boost::shared_ptr<CongestionMonitor> downstream_congestion;
