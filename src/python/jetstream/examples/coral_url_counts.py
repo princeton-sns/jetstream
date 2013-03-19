@@ -118,7 +118,12 @@ def get_graph(source_nodes, root_node, options):
       coral_fidxs['URL_requested'], len(coral_types) ]
 
   for node, i in numbered(source_nodes, not LOADING):
-    local_cube = g.add_cube("local_coral_urls_%d" %i)
+    if not options.full_url:
+      table_prefix = "local_coral_domains";
+    else:
+      table_prefix = "local_coral_urls";
+    table_prefix += "_"+options.warp_factor;
+    local_cube = g.add_cube(table_prefix+("_%d" %i))
     define_cube(local_cube, parsed_field_offsets)
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
