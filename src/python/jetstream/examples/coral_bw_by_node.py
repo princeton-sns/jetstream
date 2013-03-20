@@ -89,11 +89,12 @@ def get_graph(source_nodes, root_node, options):
     n_to_intermediate, intermediates = get_intermediates(source_nodes)
     intermed_cubes = []
     for n, i in numbered (intermediates):
-      med_cube = g.add_cube("global_coral_bw")
+      med_cube = g.add_cube("med_coral_bw_%i" % i)
       med_cube.instantiate_on(n)
-      define_cube(med_cube)
+      med_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+      med_cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, 2)
       intermed_cubes.append(med_cube)
-
+      connect_to_root(g, med_cube, n, congest_logger, start_ts)
 
   for node, i in numbered(source_nodes, not LOADING):
     local_cube = g.add_cube("local_coral_bw_%d" %i)
@@ -111,7 +112,6 @@ def get_graph(source_nodes, root_node, options):
       f.instantiate_on(node)
     else:
        local_cube.set_overwrite(False)
-      
 
     if ONE_LAYER:
       print node
@@ -126,6 +126,7 @@ def get_graph(source_nodes, root_node, options):
 
 
 def  get_intermediates(source_nodes):
+  # source_nodes is a list of NodeIDs
   n_to_intermediate = {}
   intermediates = []
   return n_to_intermediate, intermediates

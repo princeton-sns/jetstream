@@ -589,11 +589,14 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   
   congest_op->congestion = 10; //congestion resolved!
   cout << "removed dummy congestion" << endl;
+  src_op->end_of_window(500);
 
   tries = 0;
   while (tries++ < 50 && dest->tuples.size() < 2 * k) {
     js_usleep(200 * 1000);
   }
+  cout << "at monitor, status age is " <<
+    src_op->congestion_monitor()->measurement_staleness_ms();
 
   ASSERT_EQ(2 * k, dest->tuples.size());
 }

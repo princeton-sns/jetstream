@@ -77,6 +77,10 @@ def get_graph(source_nodes, root_node, options):
   
     g.chain([central_cube, pull_q, q_op, echo] )
 
+  congest_logger = jsapi.AvgCongestLogger(g)
+  congest_logger.instantiate_on(root_node)
+  g.connect(congest_logger, central_cube)
+
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['nbytes'] ]
 
   for node, i in numbered(source_nodes, not LOADING):
@@ -108,7 +112,7 @@ def get_graph(source_nodes, root_node, options):
 
     local_cube.instantiate_on(node)
 
-    g.chain([local_cube, pull_from_local, central_cube])
+    g.chain([local_cube, pull_from_local, congest_logger])
 
   return g
 

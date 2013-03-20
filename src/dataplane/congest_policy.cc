@@ -20,16 +20,18 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   if (statuses.size() == 0) //monitor not hooked up
     return 0;
   
+
+  unsigned staleness = congest->measurement_staleness_ms();
   double congest_level = congest->capacity_ratio();
   
   OperatorState * status = NULL;
   msec_t now = get_msec();
-
   size_t op_pos;
   for (op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
     status = &statuses[op_pos];
 
-    if (status->last_state_change + MIN_MS_BETWEEN_ACTIONS > now)
+    if ( (status->last_state_change + MIN_MS_BETWEEN_ACTIONS > now - staleness)
+     && (congest_level > 0))
       return 0; //did something recently
 
     if (status->op == op)
@@ -45,9 +47,12 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
       //if we are upgrading, search list in opposite order
   if (congest_level > 1) {
-    for (size_t back_op_pos = statuses.size() -1 ; back_op_pos > op_pos ; --back_op_pos)
+    for (size_t back_op_pos = statuses.size() -1 ; back_op_pos > op_pos ; --back_op_pos) {
       if(statuses[back_op_pos].availStepsUp > 0)
         return 0;
+      if (statuses[back_op_pos].last_state_change + MIN_MS_BETWEEN_ACTIONS > now - staleness)
+        return 0; //did something recently
+    }
   }
   
   bool check_since_action  =  (status->last_check > status->last_state_change); // no action since state change
@@ -84,7 +89,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   return delta;
 }
 
-
+/*
 void
 CongestionPolicy::set_effect_delay(operator_id_t op, unsigned msecs) {
 //  boost::lock_guard<boost::mutex> lock (mutex);
@@ -97,7 +102,7 @@ CongestionPolicy::set_effect_delay(operator_id_t op, unsigned msecs) {
   }
   LOG(WARNING) << "attempt to adjust effect delay for unknown operator  " << op;
 }
-
+*/
 
 
 }
