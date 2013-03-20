@@ -167,7 +167,7 @@ def get_graph(source_nodes, root_node, options):
   
     lastOp = g.chain([local_cube, pull_from_local])
     if HASH_SAMPLE:
-      v = jsapi.VariableSampling(g, field=1, type='S')
+      v = jsapi.VariableSampling(g, field=2, type='S')
 #      print "connecting ", 
       lastOp = g.connect(lastOp, v)
       g.add_policy( [pull_from_local, v] )

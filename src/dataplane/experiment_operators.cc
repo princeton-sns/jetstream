@@ -450,7 +450,7 @@ AvgCongestLogger::meta_from_upstream(const DataplaneMessage & msg, const operato
     boost::lock_guard<boost::mutex> lock (mutex);
     window_for[pred] = msg.window_length_ms();
   }
-  DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class  
+  DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
 }
 
 void

@@ -79,17 +79,18 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
 void
 VariableSamplingOperator::meta_from_upstream( const DataplaneMessage & msg,
                                               const operator_id_t pred) {
+  DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
   if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+//    boost::lock_guard<boost::mutex> lock (mutex);
     int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+    congest_policy->set_effect_delay(id(), msg.window_length_ms() * 2);
     cur_step += delta;
     LOG_IF (INFO, delta != 0) << "hash-filtering will let through " <<
        100 * steps[cur_step] << "% of data";
-    unsigned thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
-    atomic_write32(&threshold, thresh); //start sending everything
-//    boost::lock_guard<boost::mutex> lock (mutex);
-    
+    uint32_t thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
+    atomic_write32(&threshold, thresh);
   }
-  DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
+  
 }
 
 
