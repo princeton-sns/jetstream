@@ -201,7 +201,7 @@ void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, un
   }
 }*/
 
-void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true) {
+void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true, bool subscriber = false) {
   NodeConfig conf;
   conf.cube_processor_threads = num_process_threads;
   
@@ -214,6 +214,13 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
   }
   else {
     cube = new MysqlCubeNoDB(*sc, "web_requests", true, conf);
+  }
+
+  if(subscriber)
+  {
+    boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+    sub->returnAction = Subscriber::SEND_UPDATE;
+    cube->add_subscriber(sub);
   }
 
   cube->destroy();
@@ -301,9 +308,21 @@ TEST_F(ProcessTest, DISABLED_D500K44NO) {
   run_test(sc, true, 500000, 4, 4, false);
 }
 
+TEST_F(ProcessTest, DISABLED_D500K44NOSUB) {
+  run_test(sc, true, 500000, 4, 4, false, true);
+}
+
+
+
 TEST_F(ProcessTest, DISABLED_D1M44NO) {
   run_test(sc, true, 1000000, 4, 4, false);
 }
+
+
+TEST_F(ProcessTest, DISABLED_D1M44NOSUB) {
+  run_test(sc, true, 1000000, 4, 4,  true);
+}
+
 
 TEST_F(ProcessTest, DISABLED_D1M88NO) {
   run_test(sc, true, 1000000, 8, 8, false);
