@@ -8,10 +8,11 @@ using namespace ::std;
 using namespace jetstream::cube;
 
 #define MYSQL_PROFILE 0
-#define MYSQL_UNION_SELECT 0
+#define MYSQL_UNION_SELECT 1
 #define MYSQL_TRANSACTIONS 0
 #define MYSQL_INNODB 0
 #define MYSQL_MAX_BATCH_PW_2 8
+#define MYSQL_MAX_BATCH_QUERY_PW_2 5
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
@@ -618,7 +619,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
-      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_PW_2);
+      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_QUERY_PW_2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
@@ -729,7 +730,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_new;
 
     while(count_left > 0) {
-      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_PW_2);
+      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_QUERY_PW_2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
