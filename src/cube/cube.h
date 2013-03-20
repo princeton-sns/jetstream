@@ -212,6 +212,7 @@ class DataCube : public TupleReceiver {
     jetstream::CubeSchema schema;
     std::string name;
     bool is_frozen;
+    NodeConfig config;
 
 
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
