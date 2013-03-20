@@ -55,12 +55,11 @@ TEST(Operator, ToSummary) {
   ToSummary op;
   shared_ptr<DummyReceiver> receive(new DummyReceiver);
   operator_config_t cfg;
-  //cfg["size"] = "50";
+  cfg["size"] = "50";
   cfg["field"] = "0";
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   op.set_dest(receive);
-
 
   boost::shared_ptr<Tuple> t(new Tuple);
   extend_tuple(*t, 2);

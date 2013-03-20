@@ -417,7 +417,7 @@ bool should_make_into_aggregate<jetstream::CMMultiSketch>(const jetstream::JSSum
 template<>
 void make_aggregate<jetstream::LogHistogram>(jetstream::JSSummary  & summary) {
     assert(!contains_aggregate<jetstream::LogHistogram>(summary));//LOG_IF(FATAL, contains_aggregate<jetstream::LogHistogram>(summary)) << "should not be an aggregate";
-    LogHistogram l(300);
+    LogHistogram l(summary.future_hist_size());
     for(int i=0; i<summary.items_size(); ++i)
     {
       l.add_item(i, 1);

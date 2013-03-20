@@ -100,8 +100,8 @@ def get_graph(source_nodes, root_node, options):
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
       round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
-      to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=100)
-      to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=100)
+      to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[2], size=5000)
+      to_summary2 = jsapi.ToSummary(g, field=parsed_field_offsets[3], size=5000)
       g.chain( [f, csvp, round, to_summary1, to_summary2, local_cube] )
       f.instantiate_on(node)
     else:

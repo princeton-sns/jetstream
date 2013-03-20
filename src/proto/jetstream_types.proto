@@ -286,5 +286,5 @@ message JSSummary {
  optional JSHistogram histo = 2;
  optional JSCMSketch sketch = 3;
  repeated int32 items = 4;
-
+ optional int32 future_hist_size = 5;
 }

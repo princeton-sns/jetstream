@@ -106,6 +106,7 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
     JSSummary * s = t->mutable_e(field)->mutable_summary();
     s->add_items(i);
     t->mutable_e(field)->clear_i_val();
+    s->set_future_hist_size(s_size);
     /*LogHistogram l(s_size);
     l.add_item(i, 1);
     JSSummary * s = t->mutable_e(field)->mutable_summary();
@@ -118,8 +119,8 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
 operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  //if( !(istringstream(config["size"]) >> s_size))
-  //return operator_err_t("must specify a summary size; got " + config["size"]);
+  if( !(istringstream(config["size"]) >> s_size))
+    return operator_err_t("must specify a summary size; got " + config["size"]);
 
   return NO_ERR;
 }
