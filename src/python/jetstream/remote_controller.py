@@ -41,7 +41,6 @@ class RemoteController():
       req.type = ControlMessage.GET_NODE_LIST_REQ
   
       resp = self.client.ctrl_rpc(req, True)
-      print resp
 
       for nID in resp.nodes:
         nID2 = NodeID()
