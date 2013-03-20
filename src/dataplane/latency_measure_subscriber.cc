@@ -83,10 +83,10 @@ int LatencyMeasureSubscriber::get_bucket(int latency) {
   }
 
   if(abs(latency) <1000) {
-    return (latency/100)*100;
+    return (latency/20)*20;
   }
 
-  return (latency/1000)*1000;
+  return (latency/100)*100;
 }
 
 void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
