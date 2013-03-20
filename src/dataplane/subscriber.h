@@ -33,6 +33,8 @@ class Subscriber: public jetstream::DataPlaneOperator {
 
     virtual void process (boost::shared_ptr<jetstream::Tuple> t);
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) = 0;
+    virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
+    virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
 
     //TODO: should this be inline?
       //These are the thing that should be invoked externally; they call into synchronized code underneath.
