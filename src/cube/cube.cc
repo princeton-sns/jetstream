@@ -153,19 +153,21 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
       it != subscribers.end(); ++it) {
     boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
     cube::Subscriber::Action act = sub->action_on_tuple(t);
+    if(!in_batch) {
+      tpi->need_new_value = sub->need_new_value(t);
+      tpi->need_old_value = sub->need_old_value(t);
+    }
     //LOG(INFO) << "Action: "<< act << "send is: " <<  cube::Subscriber::SEND;
     if(act == cube::Subscriber::SEND) {
       if(!in_batch) {
         VLOG(3) << "Action: "<< act << " adding to insert: " <<  tpi->key;
         tpi->insert.push_back((*it).first);
-        tpi->need_new_value = true;
       }
     }
     else if(act == cube::Subscriber::SEND_NO_BATCH) {
       if(!in_batch) {
         VLOG(3) << "Action: "<< act << " adding to insert: " <<  tpi->key;
         tpi->insert.push_back((*it).first);
-        tpi->need_new_value = true;
       }
       can_batch = false;
     }
@@ -173,9 +175,6 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
       if(!in_batch) {
         VLOG(3) << "Action: "<< act << " adding to update: " <<  tpi->key;
         tpi->update.push_back((*it).first);
-
-        tpi->need_new_value = true;
-        tpi->need_old_value = true;
       }
     }
   }

@@ -21,14 +21,20 @@ namespace cube {
 
 class QueueSubscriber: public Subscriber {
   public:
-    QueueSubscriber(): Subscriber (), returnAction(SEND) {};
+    QueueSubscriber(): Subscriber (), returnAction(SEND), need_new(true), need_old(true) {};
     virtual ~QueueSubscriber() {};
 
     Action returnAction;
     std::vector<boost::shared_ptr<jetstream::Tuple> > insert_q;
     std::vector<boost::shared_ptr<jetstream::Tuple> > update_q;
 
+    bool need_new;
+    bool need_old;
+
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) { return need_new; }
+    virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) { return need_old; }
+
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
