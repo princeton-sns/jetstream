@@ -21,6 +21,8 @@ class CongestionMonitor {
     virtual double capacity_ratio() = 0;
   
     bool is_congested() {return capacity_ratio() < 1;}
+  
+    virtual msec_t measurement_staleness_ms() {return 0;}
 
     virtual ~CongestionMonitor() {};
   

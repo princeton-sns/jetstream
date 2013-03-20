@@ -47,7 +47,7 @@ class CongestionPolicy {
       congest = c;
     }
   
-   void set_effect_delay(operator_id_t op, unsigned msecs);
+//   void set_effect_delay(operator_id_t op, unsigned msecs);
 
 };
 

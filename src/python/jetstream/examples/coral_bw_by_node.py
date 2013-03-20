@@ -41,7 +41,8 @@ def main():
 
 def define_cube(cube, ids = [0,1,2,3,4]):
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
-  cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, ids[1])
+  cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, ids[1])
+  cube.add_dim("hostname", CubeSchema.Dimension.STRING, ids[2])
 
   cube.set_overwrite(True)
 
@@ -52,6 +53,7 @@ def get_graph(source_nodes, root_node, options):
   ANALYZE = not options.load_only
   LOADING = not options.analyze_only
   ECHO_RESULTS = not options.no_echo
+  ONE_LAYER = True
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -61,7 +63,10 @@ def get_graph(source_nodes, root_node, options):
 
   central_cube = g.add_cube("global_coral_bw")
   central_cube.instantiate_on(root_node)
-  define_cube(central_cube)
+  if ONE_LAYER:
+    define_cube(central_cube)
+  else:
+    define_cube(central_cube, [0,2,1])  
 
   if ECHO_RESULTS:
     pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
@@ -71,21 +76,31 @@ def get_graph(source_nodes, root_node, options):
     pull_q.set_cfg("simulation_rate",1)
     pull_q.set_cfg("window_offset", 4* 1000) #but trailing by a few
   
-    q_op = jsapi.Quantile(g, 0.95, 1)
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
   
-    g.chain([central_cube, pull_q, q_op, echo] )
+    g.chain([central_cube, pull_q, echo] )
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
   g.connect(congest_logger, central_cube)
-
-  parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['nbytes'] ]
+  
+  if not ONE_LAYER:
+    n_to_intermediate, intermediates = get_intermediates(source_nodes)
+    intermed_cubes = []
+    for n, i in numbered (intermediates):
+      med_cube = g.add_cube("med_coral_bw_%i" % i)
+      med_cube.instantiate_on(n)
+      med_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+      med_cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, 2)
+      intermed_cubes.append(med_cube)
+      connect_to_root(g, med_cube, n, congest_logger, start_ts)
 
   for node, i in numbered(source_nodes, not LOADING):
-    local_cube = g.add_cube("local_coral_quant_%d" %i)
-    define_cube(local_cube, parsed_field_offsets)
+    local_cube = g.add_cube("local_coral_bw_%d" %i)
+    local_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, coral_fidxs['timestamp'])
+    local_cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, coral_fidxs['nbytes'])
+    
     print "cube output dimensions:", local_cube.get_output_dimensions()
 
     if LOADING:
@@ -93,14 +108,33 @@ def get_graph(source_nodes, root_node, options):
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
       round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
-      to_summary1 = jsapi.ToSummary(g, field=parsed_field_offsets[1], size=100)
-      g.chain( [f, csvp, round, to_summary1, local_cube] )
+      g.chain( [f, csvp, round, local_cube] )
       f.instantiate_on(node)
     else:
        local_cube.set_overwrite(False)
-  
-    query_rate = 1000 if ANALYZE else 3600 * 1000
-    pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate)
+
+    if ONE_LAYER:
+      print node
+      my_root = congest_logger      
+    else:
+      print "multi-layer not yet implemented"
+      sys.exit(0)
+      intermed_id = n_to_intermediate[node]
+      my_root = intermed_cubes[intermed_id]
+    connect_to_root(g, local_cube, node, my_root, start_ts)
+  return g
+
+
+def  get_intermediates(source_nodes):
+  # source_nodes is a list of NodeIDs
+  n_to_intermediate = {}
+  intermediates = []
+  return n_to_intermediate, intermediates
+
+
+def connect_to_root(g, local_cube, node, root_op, start_ts):
+    
+    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000)
       
     pull_from_local.instantiate_on(node)
     pull_from_local.set_cfg("simulation_rate", 1)
@@ -111,10 +145,10 @@ def get_graph(source_nodes, root_node, options):
 #    pull_from_local.set_cfg("window_size", "5000")
 
     local_cube.instantiate_on(node)
+    hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) 
+    hostname_extend_op.instantiate_on(node)
 
-    g.chain([local_cube, pull_from_local, congest_logger])
-
-  return g
+    g.chain([local_cube, pull_from_local, hostname_extend_op, root_op])
 
 if __name__ == '__main__':
     main()

@@ -112,6 +112,14 @@ WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
   }
   bytes_in_window += weight;
 }
+
+msec_t
+WindowCongestionMonitor::measurement_staleness_ms() {
+  if (downstream_status < last_ratio)
+    return get_msec() - downstream_report_time;
+  else
+    return get_msec() - last_window_end;
+}
   
   
 } //end namespace
