@@ -35,8 +35,9 @@ def parse_infile(infile):
 #    print ln
     _,ln = ln.split(':')  #ditch operator ID from echo output
     hostname, label, bucket, count = ln[2:-2].split(",")
-    fake, bucket = bucket.split("=");
-    fake, count = count.split("=")
+    _, bucket = bucket.split("=");
+    _, count = count.split("=")
+#    label = " ".join(label.split(" ")[0:3])
 #    if 'after' in label:
 #      continue
     bucket = int(bucket)
@@ -45,7 +46,7 @@ def parse_infile(infile):
       ret[label][bucket] += count
     else:
       ret[label][bucket] = count
-    
+  
   f.close()
   return ret
 
@@ -61,12 +62,13 @@ def plot_overall_latencies(data):
       else:
         latency_to_count_after[bucket] += count
 
+
   before_total = sum(latency_to_count_before.values())
   after_total = sum(latency_to_count_after.values())
   print "Total of %d tuples before DB and %d after" %  (before_total,after_total )
   
-  before_vals = [100.0 * x /before_total for x in  latency_to_count_before.values()]
-  after_vals = [100.0 * x /after_total for x in  latency_to_count_after.values() ]
+  before_vals = [100.0 * x /before_total for _,x in  sorted(latency_to_count_before.items())]
+  after_vals = [100.0 * x /after_total for _,x in sorted(latency_to_count_after.items()) ]
   MAX_Y = int(max ( max(before_vals), max(after_vals)))
   MAX_X = max( latency_to_count_after.keys())
   MIN_X = min( 0,  min (latency_to_count_after.keys() ), min(latency_to_count_before.keys() ) ) 
@@ -76,19 +78,22 @@ def plot_overall_latencies(data):
   fig = plt.figure(figsize=(9,5))
   ax = fig.add_subplot(111)
 
-  width = (MAX_X+(-MIN_X))/200
-  fig.subplots_adjust(bottom=0.2)
+  width = (MAX_X+(-MIN_X))/100.0
+  fig.subplots_adjust(bottom=0.14)
+  fig.subplots_adjust(left=0.1)
+
   plt.ylim( (0, 1.2 *  MAX_Y) )    
-  plt.xlim( ( MIN_X * 1.2, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
+  plt.xlim( ( MIN_X * 1.2 - 1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
 
   before_bars = ax.bar(latency_to_count_before.keys(), before_vals, width, color='r', linewidth = 0)    
   
-  bar_positions = [width + x for x in latency_to_count_after.keys()]
+  bar_positions = [width + x for x in sorted(latency_to_count_after.keys())]
   after_bars = ax.bar(bar_positions, after_vals, width, color='y', linewidth = 0)    
   
   ax.legend( (before_bars[0], after_bars[0]), ('Before DB', 'After DB') )
   plt.ylabel('Fraction of Tuples', fontsize=24)
   plt.xlabel('Latency (MS)', fontsize=24)
+  plt.tick_params(axis='both', which='major', labelsize=16)
 
 #  plt.xticks(xlocations, justify(top_langs), fontsize = 18, rotation = 60)
 
