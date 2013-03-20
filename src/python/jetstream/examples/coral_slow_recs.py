@@ -38,7 +38,7 @@ def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
   cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])
   cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4])
-#  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
 
   cube.set_overwrite(True)
 
@@ -51,7 +51,8 @@ def get_graph(source_nodes, root_node, options):
   start_ts = parse_ts(options.start_ts)
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
-     coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'] ]
+     coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'],
+    len(coral_fidxs) ]
 
   global_results = g.add_cube("global_slow")
   define_schema_for_raw_cube(global_results, parsed_field_offsets)

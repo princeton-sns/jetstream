@@ -275,8 +275,10 @@ SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.TIMESTAMP] = validate_timestamp
 SCHEMAS[OpType.LATENCY_MEASURE_SUBSCRIBER] = validate_latency_measure
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
-SCHEMAS[OpType.RATIO_FILTER] = \
-  lambda schema,cfg: schema if is_numeric(schema, cfg, "numer_field", OpType.RATIO_FILTER) and \
+SCHEMAS[OpType.EQUALS_FILTER] = lambda schema,cfg: schema if \
+  is_numeric(schema, cfg, "field", OpType.EQUALS_FILTER) else None
+SCHEMAS[OpType.RATIO_FILTER] = lambda schema,cfg: schema if \
+  is_numeric(schema, cfg, "numer_field", OpType.RATIO_FILTER) and \
     is_numeric(schema, cfg, "denom_field", OpType.RATIO_FILTER) else None
 
 

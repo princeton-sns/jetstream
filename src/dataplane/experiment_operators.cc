@@ -466,8 +466,11 @@ void
 AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
   boost::lock_guard<boost::mutex> lock (mutex);
   tuples_in_interval ++;
-  if (field >= 0)
+  if (field >= 0) {
+    LOG_IF(FATAL, t->e_size() <= field) << "no such field " << field<< ". Got "
+      << fmt(*t) << ".";
     count_tally += t->e(field).i_val();
+  }
   emit(t);
 }
 
