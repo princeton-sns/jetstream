@@ -51,6 +51,12 @@ parse_config (program_options::variables_map *inputopts,
      "limit for congestion monitor queue cube process")
     ("cube_congestion_flush_limit", value<u_int32_t>(),
      "limit for congestion monitor queue cube flush")
+    ("cube_mysql_innodb", "use mysql Innodb")
+    ("cube_mysql_transactions", "use Mysql Transactions")
+    ("cube_mysql_insert_batch_pw2", value<u_int16_t>(),
+     "Maximum batch on mysql inserts (as power of 2)")
+    ("cube_mysql_query_batch_pw2", value<u_int16_t>(),
+     "Maximum batch on mysql union selects (as power of 2)")
     ;
 
 
@@ -127,6 +133,15 @@ parse_config (program_options::variables_map *inputopts,
     config.cube_congestion_process_limit = input_opts["cube_congestion_process_limit"].as<u_int32_t>();
   if (input_opts.count("cube_congestion_flush_limit"))
     config.cube_congestion_flush_limit = input_opts["cube_congestion_flush_limit"].as<u_int32_t>();
+
+  if (input_opts.count("cube_mysql_innodb"))
+    config.cube_mysql_innodb = true;
+  if (input_opts.count("cube_mysql_transactions"))
+    config.cube_mysql_transactions = true;
+  if (input_opts.count("cube_mysql_insert_batch_pw2"))
+    config.cube_mysql_insert_batch_pw2 = input_opts["cube_mysql_insert_batch_pw2"].as<u_int16_t>();
+  if (input_opts.count("cube_mysql_query_batch_pw2"))
+    config.cube_mysql_query_batch_pw2 = input_opts["cube_mysql_query_batch_pw2"].as<u_int16_t>();
 
   //if (input_opts.count("dataplane_port"))
   //  config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();

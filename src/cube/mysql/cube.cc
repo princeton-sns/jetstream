@@ -9,10 +9,6 @@ using namespace jetstream::cube;
 
 #define MYSQL_PROFILE 0
 #define MYSQL_UNION_SELECT 1
-#define MYSQL_TRANSACTIONS 0
-#define MYSQL_INNODB 0
-#define MYSQL_MAX_BATCH_PW_2 8
-#define MYSQL_MAX_BATCH_QUERY_PW_2 5
 
 jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
                                        string _name,
@@ -184,11 +180,10 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
   sql += boost::algorithm::join(pk, ", ");
   sql += ")";
   sql += ") CHARACTER SET utf8";
-#if MYSQL_INNODB
-  sql += " ENGINE=InnoDB";
-#else
-  sql += " ENGINE=MyISAM";
-#endif
+  if(config.cube_mysql_innodb)
+    sql += " ENGINE=InnoDB";
+  else
+    sql += " ENGINE=MyISAM";
 
   VLOG(1) << "Create statement: " << sql;
   return sql;
@@ -492,13 +487,12 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
 
 
   /******** Execute statements *******/
-#if  MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("START TRANSACTION");
-  #else
-    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  #endif
-#endif
+  if(config.cube_mysql_transactions) {
+    if(config.cube_mysql_innodb)
+      execute_sql("START TRANSACTION");
+    else
+      execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
+  }
 
 
   boost::shared_ptr<sql::ResultSet> old_value_results;
@@ -514,14 +508,13 @@ void MysqlCube::save_tuple(jetstream::Tuple const &t, vector<unsigned int> level
   if(need_new_value) {
     new_value_results.reset(new_value_stmt->executeQuery());
   }
-#if  MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("COMMIT");
-  #else
-    execute_sql("UNLOCK TABLES");
-  #endif
-#endif
-  
+  if(config.cube_mysql_transactions) {
+    if(config.cube_mysql_innodb)
+      execute_sql("COMMIT");
+    else
+      execute_sql("UNLOCK TABLES");
+  }
+
   /********* Populate tuples ******/
   if(need_old_value && old_value_results->first()) {
     old_tuple = make_tuple_from_result_set(old_value_results, 1, false);
@@ -619,7 +612,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_old;
 
     while (count_left > 0 ) {
-      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_QUERY_PW_2);
+      size_t count_iter = round_down_to_power_of_two(count_left,  config.cube_mysql_query_batch_pw2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> old_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "old_value");
@@ -664,17 +657,16 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   size_t insert_store_index = 0;
   size_t count_insert_tally = 0;
 
-#if  MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("START TRANSACTION");
-  #else
-    execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
-  #endif
-#endif
+  if(config.cube_mysql_transactions) {
+    if(config.cube_mysql_innodb)
+      execute_sql("START TRANSACTION");
+    else
+      execute_sql("LOCK TABLES `"+get_table_name()+"` WRITE");
+  }
 
 
   while(count_insert_left > 0) {
-    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left,  MYSQL_MAX_BATCH_PW_2);
+    size_t count_insert_iter = round_down_to_power_of_two(count_insert_left,   config.cube_mysql_insert_batch_pw2);
     count_insert_left -= count_insert_iter;
     count_insert_tally += count_insert_iter;
 
@@ -710,13 +702,12 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
   VLOG(2) << "incrementing version in save_tuple_batch, now " << version;
   version ++;  //next insert will have higher version numbers
 
-#if MYSQL_TRANSACTIONS 
-  #if MYSQL_INNODB
-    execute_sql("COMMIT");
-  #else
-    execute_sql("UNLOCK TABLES");
-  #endif
-#endif
+  if(config.cube_mysql_transactions) {
+    if(config.cube_mysql_innodb)
+      execute_sql("COMMIT");
+    else
+      execute_sql("UNLOCK TABLES");
+  }
 
 #if MYSQL_PROFILE
   msec_t post_insert = get_msec();
@@ -730,7 +721,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     size_t count_left = count_new;
 
     while(count_left > 0) {
-      size_t count_iter = round_down_to_power_of_two(count_left,  MYSQL_MAX_BATCH_QUERY_PW_2);
+      size_t count_iter = round_down_to_power_of_two(count_left,   config.cube_mysql_query_batch_pw2);
       count_left -= count_iter;
 
       boost::shared_ptr<sql::PreparedStatement> new_value_stmt = get_select_cell_prepared_statement(count_iter, 1, "new_value");
