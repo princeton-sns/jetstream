@@ -79,9 +79,11 @@ def plot_overall_latencies(data):
   ax = fig.add_subplot(111)
 
   width = (MAX_X+(-MIN_X))/100.0
-  fig.subplots_adjust(bottom=0.2)
+  fig.subplots_adjust(bottom=0.14)
+  fig.subplots_adjust(left=0.1)
+
   plt.ylim( (0, 1.2 *  MAX_Y) )    
-  plt.xlim( ( MIN_X * 1.2, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
+  plt.xlim( ( MIN_X * 1.2 - 1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
 
   before_bars = ax.bar(latency_to_count_before.keys(), before_vals, width, color='r', linewidth = 0)    
   
@@ -91,6 +93,7 @@ def plot_overall_latencies(data):
   ax.legend( (before_bars[0], after_bars[0]), ('Before DB', 'After DB') )
   plt.ylabel('Fraction of Tuples', fontsize=24)
   plt.xlabel('Latency (MS)', fontsize=24)
+  plt.tick_params(axis='both', which='major', labelsize=16)
 
 #  plt.xticks(xlocations, justify(top_langs), fontsize = 18, rotation = 60)
 
