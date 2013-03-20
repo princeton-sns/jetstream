@@ -86,7 +86,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     LOG(INFO) << "End of window@ " << (now/1000) << " Capacity ratio at " << name() << " is now "
       << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
       << window_availtime_ms  <<" and window size was " << window_data_ms
-      <<", saw " << bytes_per_sec << " bytes/sec";
+      <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, last_ratio);
   } else { //no data in window; we are therefore UNCONSTRAINED
     last_ratio = 10;
   }
