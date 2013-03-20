@@ -468,6 +468,13 @@ def GreaterThan(graph, field, targ):
    cfg = {"field":field, "targ":targ}
    return graph.add_operator(OpType.GT_FILTER, cfg)
 
+def RatioFilter(graph, numer, denom, bound):
+   cfg = {"numer_field":numer, "denom_field":denom, "bound":bound}
+   return graph.add_operator(OpType.RATIO_FILTER, cfg)
+
+
+
+
 def MultiRoundClient(graph):
    return graph.add_operator(OpType.TPUT_WORKER, {})
 

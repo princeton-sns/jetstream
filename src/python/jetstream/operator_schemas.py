@@ -26,6 +26,7 @@ class OpType (object):
   COUNT_LOGGER = "CountLogger"
   EQUALS_FILTER = "IEqualityFilter"
   GT_FILTER = "GreaterThan"
+  RATIO_FILTER = "RatioFilter"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   SEND_K = "SendK"
@@ -59,6 +60,17 @@ def check_ts_field(in_schema, cfg):
     if in_schema[ts_field][0] != 'T':
       raise SchemaError('Expected a time element for ts_field %d' % ts_field)
 
+def is_numeric(in_schema, cfg, field_name, op_name):
+  if field_name not in cfg:
+    raise SchemaError("Must specify %s for %s" % (field_name,op_name))
+  fld = int( cfg[field_name] )
+  if len(in_schema) <= fld:
+    raise SchemaError("Only %d fields for input to %s; %s was %i" % \
+      (len(in_schema), op_name, field_name,fld))
+  if in_schema[fld][0] not in 'ID':
+    raise SchemaError("Field %s [%i] of %s was of type %s"\
+      (field_name, fld, op_name, in_schema[fld][0]))
+  return True
 
 def validate_FileRead(in_schema, cfg):
   if len(in_schema) > 0:
@@ -249,6 +261,8 @@ def validate_Tput_Control(in_schema, cfg):
     raise SchemaError("must specify sort_column for tput")
   return in_schema
 
+
+
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
 # A schema itself is a list of pairs, where the first element is a typecode [I,D,S, or T]
@@ -261,7 +275,9 @@ SCHEMAS[OpType.EXTEND] = validate_extend
 SCHEMAS[OpType.TIMESTAMP] = validate_timestamp
 SCHEMAS[OpType.LATENCY_MEASURE_SUBSCRIBER] = validate_latency_measure
 SCHEMAS[OpType.T_ROUND_OPERATOR] = validate_TRound
-# SCHEMAS[OpType.EQUALS_FILTER] 
+SCHEMAS[OpType.RATIO_FILTER] = \
+  lambda schema,cfg: schema if is_numeric(schema, cfg, "numer_field", OpType.RATIO_FILTER) and \
+    is_numeric(schema, cfg, "denom_field", OpType.RATIO_FILTER) else None
 
 
 SCHEMAS[OpType.VARIABLE_SAMPLING] = lambda schema,cfg: schema 

@@ -275,7 +275,7 @@ GENERIC_CLNAME
 };
 
 class GreaterThan: public DataPlaneOperator {
-
+  //passes tuples that are greater than the filter
 public:
   virtual void process (boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
@@ -298,6 +298,18 @@ private:
 GENERIC_CLNAME
 };
 
+class RatioFilter: public DataPlaneOperator {
+
+public:
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+private:
+  unsigned numer_field_id;
+  unsigned denom_field_id;
+  double bound;
+
+GENERIC_CLNAME
+};
 
 /**
  Rearranges the order of elements in a tuple

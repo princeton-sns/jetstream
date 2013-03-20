@@ -708,10 +708,15 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
 }
 
 
+inline
+double numeric(boost::shared_ptr<Tuple> t, unsigned field) {
+  const Element & d = t->e(field);
+  return d.has_d_val() ? d.d_val() : d.i_val();
+}
+
 void
 GreaterThan::process (boost::shared_ptr<Tuple> t) {
-
-  int val = t->e(field_id).i_val();
+  double val = numeric(t, field_id);
   if (val > bound)
     emit(t);
 }
@@ -748,6 +753,34 @@ IEqualityFilter::configure (std::map<std::string,std::string> &config) {
 }
 
 
+
+void
+RatioFilter::process (boost::shared_ptr<Tuple> t) {
+  double denom = numeric(t, denom_field_id);
+  double numer = numeric(t, numer_field_id);
+  
+//  cout << "ratio was " << (numer/denom) << endl;
+  if ( denom == 0 ||  numer / denom > bound)
+    emit(t);
+}
+
+operator_err_t
+RatioFilter::configure (std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["denom_field"]) >> denom_field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["denom_field"] +  " instead");
+  }
+
+  if ( !(istringstream(config["numer_field"]) >> numer_field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["numer_field"] +  " instead");
+  }
+
+  if ( !(istringstream(config["bound"]) >> bound)) {
+    return operator_err_t("must specify bound; got " + config["bound"] +  " instead");
+  }
+  return NO_ERR;
+}
+
+
 const string FileRead::my_type_name("FileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
 const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
@@ -764,6 +797,7 @@ const string UnixOperator::my_type_name("Unix command");
 const string URLToDomain::my_type_name("URL to Domain");
 const string GreaterThan::my_type_name("Numeric Filter");
 const string IEqualityFilter::my_type_name("Numeric Equality");
+const string RatioFilter::my_type_name("Ratio Filter");
 
 
 }
