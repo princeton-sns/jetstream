@@ -320,7 +320,7 @@ TEST_F(ProcessTest, DISABLED_D1M44NO) {
 
 
 TEST_F(ProcessTest, DISABLED_D1M44NOSUB) {
-  run_test(sc, true, 1000000, 4, 4,  true);
+  run_test(sc, true, 1000000, 4, 4,  false, true);
 }
 
 
