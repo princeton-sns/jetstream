@@ -114,7 +114,7 @@ def plot_bw(time_to_bw, ax, leg_artists):
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
 #    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
     time_data.append( datetime.datetime.fromtimestamp(tm))
-    bw.append(bytes)
+    bw.append( 8 * bytes)
 
   MAX_Y = max(bw)
   
@@ -122,7 +122,7 @@ def plot_bw(time_to_bw, ax, leg_artists):
   plt.tick_params(axis='both', which='major', labelsize=16)
   bw_line, = ax.plot_date(time_data, bw, "b.-", label="BW") 
   ax.set_xlabel('Time', fontsize=22)  
-  ax.set_ylabel('BW (bytes)', fontsize=22)
+  ax.set_ylabel('Bandwidth (bits/sec)', fontsize=22)
   leg_artists.append( bw_line )
 
 
@@ -177,7 +177,7 @@ def finish_plots(figure, ax, leg_artists, outname):
   for label in labels: 
       label.set_rotation(30) 
       #"Src Records",   
-  plt.legend(leg_artists, ["BW", "Degradation"]);
+  plt.legend(leg_artists, ["Bandwidth", "Degradation"]);
   plt.tick_params(axis='both', which='major', labelsize=16)
   
   if OUT_TO_FILE:
