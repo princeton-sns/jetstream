@@ -97,7 +97,7 @@ def get_graph(source_nodes, root_node, options):
     local_cube = g.add_cube(table_prefix+("_%d" %i))
     define_schema_for_cube(local_cube, parsed_field_offsets)
   
-   if LOADING:
+    if LOADING:
       f = jsapi.FileRead(g, options.fname, skip_empty=True)
       csvp = jsapi.CSVParse(g, coral_types)
       csvp.set_cfg("discard_off_size", "true")
