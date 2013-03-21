@@ -11,16 +11,16 @@ class SeqToRatio: public DataPlaneOperator {
   //logs the total counts going past
  public:
 
-  SeqToRatio(): total_field_off(0),total_val(0), respcode_offset(0), url_offset(0) {}
+  SeqToRatio(): total_field(0),total_val(0), respcode_field(0), url_field(0) {}
   virtual void process(boost::shared_ptr<Tuple> t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 //  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
  private:
-  unsigned total_field_off;
+  unsigned total_field;
   double total_val;
-  unsigned respcode_offset;
-  unsigned url_offset;
+  unsigned respcode_field;
+  unsigned url_field;
   std::string cur_url;
   boost::shared_ptr<Tuple> targ_el;
 

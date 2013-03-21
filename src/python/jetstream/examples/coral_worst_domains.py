@@ -43,6 +43,9 @@ def define_schema_for_cube(cube, ids = [0,1,2,3,4,5,6]):
 
 def get_graph(source_nodes, root_node, options):
   ECHO_RESULTS = not options.no_echo
+  ANALYZE = not options.load_only
+  LOADING = not options.analyze_only
+  
   g= jsapi.QueryGraph()
   
   start_ts = parse_ts(options.start_ts)
@@ -61,23 +64,23 @@ def get_graph(source_nodes, root_node, options):
   global_ratios.instantiate_on(root_node)
   
   pull_resp = jsapi.TimeSubscriber(g, {}, 1000)
-  pull_q.set_cfg("ts_field", 0)
-  pull_q.set_cfg("start_ts", start_ts)
+  pull_resp.set_cfg("ts_field", 0)
+  pull_resp.set_cfg("start_ts", start_ts)
 #    pull_q.set_cfg("rollup_levels", "8,1")
-  pull_q.set_cfg("simulation_rate",1)
-  pull_q.set_cfg("window_offset", 6* 1000)
+  pull_resp.set_cfg("simulation_rate",1)
+  pull_resp.set_cfg("window_offset", 4* 1000)
 
-  compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 4, respcode_field = 1)
+  compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 3, respcode_field = 1)
 
   g.chain( [congest_logger, global_respcodes, pull_resp, compute_ratio, global_ratios] )
 
   if ECHO_RESULTS:
-    pull_q = jsapi.TimeSubscriber(g, {}, 1000)
+    pull_q = jsapi.TimeSubscriber(g, {}, 1000, num_results= 5, sort_order="-ratio")
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
-  #    pull_q.set_cfg("rollup_levels", "8,1")
+    pull_q.set_cfg("rollup_levels", "8,1")
     pull_q.set_cfg("simulation_rate",1)
-    pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+    pull_q.set_cfg("window_offset", 8* 1000) #but trailing by a few
   
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
@@ -100,6 +103,7 @@ def get_graph(source_nodes, root_node, options):
     round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
     round.set_cfg("wait_for_catch_up", "true")
     f.instantiate_on(node)
+    url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
     
     query_rate = 1000 if ANALYZE else 3600 * 1000
     pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate)
@@ -112,7 +116,7 @@ def get_graph(source_nodes, root_node, options):
     local_cube.instantiate_on(node)
     pull_from_local.instantiate_on(node)
     
-    g.chain( [f, csvp, round, local_cube, pull_from_local, congest_logger] )
+    g.chain( [f, csvp, round, url_to_dom, local_cube, pull_from_local, congest_logger] )
 
   return g
 

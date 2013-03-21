@@ -88,7 +88,7 @@ def get_graph(source_nodes, root_node, options):
   if not ONE_LAYER:
     n_to_intermediate, intermediates = get_intermediates(source_nodes)
     intermed_cubes = []
-    for n, i in numbered (intermediates):
+    for n, i in zip (intermediates, range(0, len(intermediates))):
       med_cube = g.add_cube("med_coral_bw_%i" % i)
       med_cube.instantiate_on(n)
       med_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
@@ -127,8 +127,23 @@ def get_graph(source_nodes, root_node, options):
 
 def  get_intermediates(source_nodes):
   # source_nodes is a list of NodeIDs
+  prefix = lambda x: x[0:6]
+  
   n_to_intermediate = {}
   intermediates = []
+
+  ips = [ (n.address,n) for n in source_nodes]
+  ips.sort()
+  for (addr, n), id in zip([ips[0], ips[-1] ], [0,1]):
+    prefix_mapping [ prefix(addr)] = id
+    intermediates.append(n)
+  print "prefix map is", prefix_mapping
+  for node, i in numbered(source_nodes):
+    p = prefix(node.address)
+    if p in prefix_mapping:
+      n_to_intermediate[i] = prefix_mapping[p]
+    else:
+      print "no mapping for IP address %s" % n.address
   return n_to_intermediate, intermediates
 
 
