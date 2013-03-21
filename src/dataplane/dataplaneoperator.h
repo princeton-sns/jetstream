@@ -200,6 +200,16 @@ class OperatorCleanup {
    boost::asio::strand cleanup_strand;
 };
 
+
+
+inline
+double numeric(boost::shared_ptr<Tuple> t, unsigned field) {
+  const Element & d = t->e(field);
+  return d.has_d_val() ? d.d_val() : d.i_val();
+}
+
+
+
 }
 
 #endif /* _dataplaneoperator_H_ */

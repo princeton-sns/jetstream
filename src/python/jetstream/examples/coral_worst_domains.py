@@ -32,13 +32,11 @@ def main():
   deploy_or_dummy(options, server, g)
 
 
-def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
+def define_schema_for_cube(cube, ids = [0,1,2,3,4,5,6]):
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
   cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
-  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])
-  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4])
-  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[3])
 
   cube.set_overwrite(True)
 
@@ -46,36 +44,55 @@ def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
 def get_graph(source_nodes, root_node, options):
   ECHO_RESULTS = not options.no_echo
   g= jsapi.QueryGraph()
-  BOUND = 100
   
   start_ts = parse_ts(options.start_ts)
 
-  parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
-     coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'],
-    len(coral_fidxs) ]
-
-  global_results = g.add_cube("global_slow")
-  define_schema_for_raw_cube(global_results, parsed_field_offsets)
-  global_results.instantiate_on(root_node)
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
 
-  g.connect(congest_logger, global_results)
+  global_respcodes = g.add_cube("global_respcodes")
+  define_schema_for_cube(global_respcodes)
+  global_respcodes.instantiate_on(root_node)
+
+  global_ratios = g.add_cube("global_ratios")
+  define_schema_for_cube(global_ratios)
+  global_ratios.add_agg("ratio", jsapi.Cube.AggType.MIN_D, 4)
+  global_ratios.instantiate_on(root_node)
+  
+  pull_resp = jsapi.TimeSubscriber(g, {}, 1000)
+  pull_q.set_cfg("ts_field", 0)
+  pull_q.set_cfg("start_ts", start_ts)
+#    pull_q.set_cfg("rollup_levels", "8,1")
+  pull_q.set_cfg("simulation_rate",1)
+  pull_q.set_cfg("window_offset", 6* 1000)
+
+  compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 4, respcode_field = 1)
+
+  g.chain( [congest_logger, global_respcodes, pull_resp, compute_ratio, global_ratios] )
 
   if ECHO_RESULTS:
     pull_q = jsapi.TimeSubscriber(g, {}, 1000)
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
   #    pull_q.set_cfg("rollup_levels", "8,1")
-  #    pull_q.set_cfg("simulation_rate",1)
+    pull_q.set_cfg("simulation_rate",1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
   
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
-    g.chain( [global_results, pull_q, echo] )
+    g.chain( [global_ratios, pull_q, echo] )
+
+
+  parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
+     coral_fidxs['URL_requested'],  len(coral_fidxs) ]
 
   for node, i in numbered(source_nodes, False):
+
+    table_prefix = "local_coral_respcodes";
+    table_prefix += "_"+options.warp_factor;
+    local_cube = g.add_cube(table_prefix+("_%d" %i))
+    define_schema_for_cube(local_cube, parsed_field_offsets)
   
     f = jsapi.FileRead(g, options.fname, skip_empty=True)
     csvp = jsapi.CSVParse(g, coral_types)
@@ -84,9 +101,18 @@ def get_graph(source_nodes, root_node, options):
     round.set_cfg("wait_for_catch_up", "true")
     f.instantiate_on(node)
     
-    filter = jsapi.RatioFilter(g, numer=coral_fidxs['dl_utime'], \
-      denom = coral_fidxs['nbytes'], bound = BOUND)
-    g.chain( [f, csvp, round, filter, congest_logger] )
+    query_rate = 1000 if ANALYZE else 3600 * 1000
+    pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate)
+      
+    pull_from_local.instantiate_on(node)
+    pull_from_local.set_cfg("simulation_rate", 1)
+    pull_from_local.set_cfg("ts_field", 0)
+    pull_from_local.set_cfg("start_ts", start_ts)
+    pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
+    local_cube.instantiate_on(node)
+    pull_from_local.instantiate_on(node)
+    
+    g.chain( [f, csvp, round, local_cube, pull_from_local, congest_logger] )
 
   return g
 

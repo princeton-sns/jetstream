@@ -473,6 +473,9 @@ def RatioFilter(graph, numer, denom, bound):
    return graph.add_operator(OpType.RATIO_FILTER, cfg)
 
 
+def SeqToRatio(graph, url_field, total_field, respcode_field):
+    cfg = {"url_field":url_field, "total_field": total_field, "respcode_field":respcode_field}
+    return graph.add_operator(OpType.SEQ_TO_RATIO, cfg)
 
 
 def MultiRoundClient(graph):

@@ -707,13 +707,6 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-
-inline
-double numeric(boost::shared_ptr<Tuple> t, unsigned field) {
-  const Element & d = t->e(field);
-  return d.has_d_val() ? d.d_val() : d.i_val();
-}
-
 void
 GreaterThan::process (boost::shared_ptr<Tuple> t) {
   double val = numeric(t, field_id);

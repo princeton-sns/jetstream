@@ -9,6 +9,8 @@
 #include "variable_sampling.h"
 #include "topk_tput.h"
 #include "summary_operators.h"
+#include "sosp_operators.h"
+
 
 #include <iostream>
 #include <dlfcn.h>
@@ -120,6 +122,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(MultiRoundSender);
   REGISTER_OP(MultiRoundCoordinator);
   
+  REGISTER_OP(SeqToRatio);
   
   if(cache.count(name) < 1)
   {

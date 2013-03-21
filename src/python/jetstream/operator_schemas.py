@@ -50,7 +50,9 @@ class OpType (object):
   UNIX = "Unix"
   FETCHER = "Fetcher"
 
-
+  SEQ_TO_RATIO = "SeqToRatio"
+  
+  
 def check_ts_field(in_schema, cfg):
   if 'ts_field' in cfg:
     ts_field = int(cfg['ts_field'])
@@ -61,13 +63,23 @@ def check_ts_field(in_schema, cfg):
       raise SchemaError('Expected a time element for ts_field %d' % ts_field)
 
 def is_numeric(in_schema, cfg, field_name, op_name):
+  return is_of_type(in_schema, cfg, field_name, op_name, 'ID')
+
+def is_string(in_schema, cfg, field_name, op_name):
+  return is_of_type(in_schema, cfg, field_name, op_name, 'S')
+
+def is_int(in_schema, cfg, field_name, op_name):
+  return is_of_type(in_schema, cfg, field_name, op_name, 'I')
+
+
+def is_of_type(in_schema, cfg, field_name, op_name, valid_types):
   if field_name not in cfg:
     raise SchemaError("Must specify %s for %s" % (field_name,op_name))
   fld = int( cfg[field_name] )
   if len(in_schema) <= fld:
     raise SchemaError("Only %d fields for input to %s; %s was %i" % \
       (len(in_schema), op_name, field_name,fld))
-  if in_schema[fld][0] not in 'ID':
+  if in_schema[fld][0] not in valid_types:
     raise SchemaError("Field %s [%i] of %s was of type %s"\
       (field_name, fld, op_name, in_schema[fld][0]))
   return True
@@ -262,6 +274,14 @@ def validate_Tput_Control(in_schema, cfg):
   return in_schema
 
 
+def validate_SeqToRatio(schema,cfg):
+  is_numeric(schema, cfg, "total_field", OpType.SEQ_TO_RATIO) 
+  is_int(schema, cfg, "respcode_field", OpType.SEQ_TO_RATIO) 
+  is_string(schema, cfg, "url_field", OpType.SEQ_TO_RATIO) 
+  s2 = []
+  s2.extend(schema)
+  s2.append(  ('D', 'ratio')  ) 
+  return s2
 
 # Schemas are represented as a function that maps from an input schema and configuration
 # to an output schema
@@ -307,6 +327,10 @@ SCHEMAS[OpType.COUNT_LOGGER] = validate_CountLogger
 SCHEMAS[OpType.AVG_CONGEST_LOGGER] = lambda schema,cfg: schema
 SCHEMAS[OpType.TPUT_CONTROLLER] = validate_Tput_Control
 SCHEMAS[OpType.TPUT_WORKER] = lambda schema,cfg: schema
+
+SCHEMAS[OpType.SEQ_TO_RATIO] = validate_SeqToRatio
+
+
 
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
 # is a special case
