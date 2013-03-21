@@ -3,7 +3,8 @@ node1.mpisws.vicci.org public_ip=141.39.220.11 server_index=0
 node17.gt.vicci.org public_ip=130.207.98.26 server_index=1
 node12.mpisws.vicci.org public_ip=141.39.220.22 server_index=2
 node12.gt.vicci.org public_ip=130.207.98.21 server_index=3
-node13.mpisws.vicci.org public_ip=141.39.220.23 server_index=4
+#node13.mpisws.vicci.org public_ip=141.39.220.23 server_index=4
+node5.mpisws.vicci.org public_ip=141.39.220.15 server_index=4
 node19.gt.vicci.org public_ip=130.207.98.28 server_index=5
 #node49.mpisws.vicci.org public_ip=141.39.220.59 server_index=6
 node21.mpisws.vicci.org public_ip=141.39.220.31 server_index=6
@@ -67,7 +68,6 @@ node4.stanford.vicci.org public_ip=171.67.66.14 server_index=
 node4.mpisws.vicci.org public_ip=141.39.220.14 server_index=
 node5.princeton.vicci.org public_ip=128.112.171.28 server_index=
 node5.stanford.vicci.org public_ip=171.67.66.15 server_index=
-node5.mpisws.vicci.org public_ip=141.39.220.15 server_index=
 node61.princeton.vicci.org public_ip=128.112.171.140 server_index=
 node6.stanford.vicci.org public_ip=171.67.66.16 server_index=
 node6.mpisws.vicci.org public_ip=141.39.220.16 server_index=
