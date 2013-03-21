@@ -42,10 +42,13 @@ class TestTupleGenerator {
   
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.com", 200, 50, 1);
+        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
+        
+	//the following performs poorly because of the uniqueness in the index structure
+	//create_tuple(*t, 1, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
         tuples.push_back(t);
       }
-      LOG(INFO) << "Generated "<< tuples.size() << " tuples. Num= "<<num << " Time started=" << time_entered << "Time ended" << (time_entered+num);
+      LOG(INFO) << "Generated "<< tuples.size() << " tuples. Num= "<<num << " Time started=" << time_entered+time_offset << "Time ended" << (time_entered+time_offset+num);
 
     }
 
@@ -95,21 +98,24 @@ class ProcessTest : public ::testing::Test {
     virtual void SetUp() {
 
       sc = new jetstream::CubeSchema();
+      jetstream::CubeSchema_Dimension * dim;
 
-      jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
+      dim = sc->add_dimensions();
       dim->set_name("time");
       dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
       dim->add_tuple_indexes(0);
-
       dim = sc->add_dimensions();
       dim->set_name("url");
       dim->set_type(CubeSchema_Dimension_DimensionType_STRING);
       dim->add_tuple_indexes(1);
+      
 
       dim = sc->add_dimensions();
       dim->set_name("response_code");
       dim->set_type(CubeSchema_Dimension_DimensionType_INT32);
       dim->add_tuple_indexes(2);
+      
+
 
       jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
       agg->set_name("count");
@@ -204,6 +210,7 @@ void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, un
 void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true, bool subscriber = false) {
   NodeConfig conf;
   conf.cube_processor_threads = num_process_threads;
+  conf.cube_mysql_transactions = true;
   
   LOG(INFO) << "Running Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads ;
 
@@ -316,6 +323,10 @@ TEST_F(ProcessTest, DISABLED_D500K44NOSUB) {
 
 TEST_F(ProcessTest, DISABLED_D1M44NO) {
   run_test(sc, true, 1000000, 4, 4, false);
+}
+
+TEST_F(ProcessTest, DISABLED_D1M504NO) {
+  run_test(sc, true, 1000000, 50, 4, false);
 }
 
 
