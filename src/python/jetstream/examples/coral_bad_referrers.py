@@ -95,7 +95,7 @@ def get_graph(source_nodes, root_node, options):
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['Referrer_URL'], len(coral_types) ]
 
   for node, i in numbered(source_nodes, not LOADING):
-    table_prefix = "local_coral_ua";
+    table_prefix = "local_coral_bad_refer";
     table_prefix += "_"+options.warp_factor;
     local_cube = g.add_cube(table_prefix+("_%d" %i))
     define_cube(local_cube, parsed_field_offsets)

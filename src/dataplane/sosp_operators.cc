@@ -31,7 +31,7 @@ SeqToRatio::process(boost::shared_ptr<Tuple> t) {
   total_val += numeric(t, total_field);
   int response_code = t->e(respcode_field).i_val();
 
-  if (response_code == 404 || !targ_el) {
+  if (response_code == 200 || !targ_el) {
     targ_el = t;  
   }  
 }

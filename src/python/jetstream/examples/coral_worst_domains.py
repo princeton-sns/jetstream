@@ -66,9 +66,9 @@ def get_graph(source_nodes, root_node, options):
   pull_resp = jsapi.TimeSubscriber(g, {}, 1000)
   pull_resp.set_cfg("ts_field", 0)
   pull_resp.set_cfg("start_ts", start_ts)
-#    pull_q.set_cfg("rollup_levels", "8,1")
+  pull_resp.set_cfg("rollup_levels", "8,1,1")
   pull_resp.set_cfg("simulation_rate",1)
-  pull_resp.set_cfg("window_offset", 4* 1000)
+  pull_resp.set_cfg("window_offset", 5* 1000)
 
   compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 3, respcode_field = 1)
 
@@ -78,9 +78,9 @@ def get_graph(source_nodes, root_node, options):
     pull_q = jsapi.TimeSubscriber(g, {}, 1000, num_results= 5, sort_order="-ratio")
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
-    pull_q.set_cfg("rollup_levels", "8,1")
+    pull_q.set_cfg("rollup_levels", "8,1,1")
     pull_q.set_cfg("simulation_rate",1)
-    pull_q.set_cfg("window_offset", 8* 1000) #but trailing by a few
+    pull_q.set_cfg("window_offset", 12* 1000) #but trailing by a few
   
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
