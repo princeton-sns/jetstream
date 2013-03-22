@@ -53,6 +53,7 @@ def get_graph(source_nodes, root_node, options):
 
   for node, i in numbered(source_nodes):
     sender = jsapi.RandHist(g)
+    sender.set_cfg("schedule_start", 200);
     sender.instantiate_on(node)
     
     degrade = jsapi.DegradeSummary(g, 2)
