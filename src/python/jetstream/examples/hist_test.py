@@ -17,6 +17,10 @@ def main():
 
   parser = standard_option_parser()
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
+  parser.add_option("--schedule_start", dest="schedule_start", default = "400")
+  parser.add_option("--schedule_wait", dest="schedule_wait", default = "20000")
+  parser.add_option("--schedule_increment", dest="schedule_increment", default = "10")
+
 
   (options, args) = parser.parse_args()
 
@@ -53,7 +57,9 @@ def get_graph(source_nodes, root_node, options):
 
   for node, i in numbered(source_nodes):
     sender = jsapi.RandHist(g)
-    sender.set_cfg("schedule_start", 200);
+    sender.set_cfg("schedule_start", options.schedule_start);
+    sender.set_cfg("schedule_wait", options.schedule_wait);
+    sender.set_cfg("schedule_increment", options.schedule_increment);
     sender.instantiate_on(node)
     
     degrade = jsapi.DegradeSummary(g, 2)
