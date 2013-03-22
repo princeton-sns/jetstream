@@ -50,6 +50,15 @@ def parse_infile(infile):
   f.close()
   return ret
 
+
+def median(values, total):
+  running_tally = 0
+  for k,v in sorted(values.items()):
+    running_tally += v
+    if running_tally > total/2:
+      return k
+  return INFINITY
+
 def plot_overall_latencies(data):
   
   latency_to_count_before = defaultdict(int)
@@ -66,6 +75,9 @@ def plot_overall_latencies(data):
   before_total = sum(latency_to_count_before.values())
   after_total = sum(latency_to_count_after.values())
   print "Total of %d tuples before DB and %d after" %  (before_total,after_total )
+  print "Median before is %d ms" % median(latency_to_count_before, before_total)
+  print "Median after is %d ms" % median(latency_to_count_after, after_total)
+
   
   before_vals = [100.0 * x /before_total for _,x in  sorted(latency_to_count_before.items())]
   after_vals = [100.0 * x /after_total for _,x in sorted(latency_to_count_after.items()) ]
@@ -78,17 +90,16 @@ def plot_overall_latencies(data):
   fig = plt.figure(figsize=(9,5))
   ax = fig.add_subplot(111)
 
-  width = (MAX_X+(-MIN_X))/100.0
+  width = (MAX_X+(-MIN_X))/100.0 /2
   fig.subplots_adjust(bottom=0.14)
   fig.subplots_adjust(left=0.1)
 
   plt.ylim( (0, 1.2 *  MAX_Y) )    
-  plt.xlim( ( MIN_X * 1.2 - 1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
+  plt.xlim( (-1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
 
-  before_bars = ax.bar(latency_to_count_before.keys(), before_vals, width, color='r', linewidth = 0)    
-  
-  bar_positions = [width + x for x in sorted(latency_to_count_after.keys())]
-  after_bars = ax.bar(bar_positions, after_vals, width, color='y', linewidth = 0)    
+  before_bars = ax.plot(sorted(latency_to_count_before.keys()), before_vals, 'r.-')      
+  bar_positions = [x for x in sorted(latency_to_count_after.keys())]
+  after_bars = ax.plot(bar_positions, after_vals, "k-")    
   
   ax.legend( (before_bars[0], after_bars[0]), ('Before DB', 'After DB') )
   plt.ylabel('Fraction of Tuples', fontsize=24)
