@@ -22,6 +22,8 @@ class OpType (object):
   QUANTILE = "QuantileOperator"
   TO_SUMMARY = "ToSummary"
   SUMMARY_TO_COUNT = "SummaryToCount"
+  DEGRADE_SUMMARY = "DegradeSummary"
+
   URLToDomain = "URLToDomain"
   COUNT_LOGGER = "CountLogger"
   EQUALS_FILTER = "IEqualityFilter"
@@ -34,6 +36,7 @@ class OpType (object):
   ECHO = "EchoOperator"
   RAND_SOURCE = "RandSourceOperator"
   RAND_EVAL = "RandEvalOperator"
+  RAND_HIST = "RandHistOperator"
   TIMEWARP = "ExperimentTimeRewrite"
   FILTER_SUBSCRIBER = "FilterSubscriber"
   AVG_CONGEST_LOGGER = "AvgCongestLogger"
@@ -70,6 +73,11 @@ def is_string(in_schema, cfg, field_name, op_name):
 
 def is_int(in_schema, cfg, field_name, op_name):
   return is_of_type(in_schema, cfg, field_name, op_name, 'I')
+
+SUMMARY_TYPES = ["Histogram", "Sketch", "Sample"]
+
+def is_summary(in_schema, cfg, field_name, op_name):
+  return is_of_type(in_schema, cfg, field_name, op_name, SUMMARY_TYPES)
 
 
 def is_of_type(in_schema, cfg, field_name, op_name, valid_types):
@@ -194,7 +202,6 @@ def validate_CSVParse(in_schema, cfg):
   except ValueError as e:
     raise SchemaError("Needed field indices. " + str(e))
 
-SUMMARY_TYPES = ["Histogram", "Sketch", "Sample"]
 def validate_Quantile(in_schema, cfg):
   fld = cfg["field"]
   if len(in_schema) <= fld:
@@ -310,6 +317,8 @@ SCHEMAS[OpType.ECHO] = lambda schema,cfg: schema
 SCHEMAS[OpType.SEND_K] =  lambda schema,cfg: [('I','K')]
 SCHEMAS[OpType.RATE_RECEIVER] = lambda schema,cfg: schema
 SCHEMAS[OpType.RAND_SOURCE] = lambda schema,cfg: [('S','state'), ('T', 'timestamp')]
+SCHEMAS[OpType.RAND_HIST] = lambda schema,cfg: [('T', 'timestamp'), ('I', 'dummy key'), \
+   ('Histogram', 'dummy data')]
 SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
@@ -320,6 +329,9 @@ SCHEMAS[OpType.URLToDomain] = validate_URLToDomain
 
 SCHEMAS[OpType.CSV_PARSE] = validate_CSVParse
 SCHEMAS[OpType.QUANTILE] = validate_Quantile
+SCHEMAS[OpType.DEGRADE_SUMMARY] = lambda schema,cfg:  schema if \
+  is_summary(schema, cfg, "field", OpType.DEGRADE_SUMMARY) else None
+  
 SCHEMAS[OpType.TO_SUMMARY] = validate_ToSummary
 SCHEMAS[OpType.SUMMARY_TO_COUNT] = validate_S2Count
 SCHEMAS[OpType.TIMEWARP] = validate_Timewarp

@@ -375,6 +375,10 @@ Node::establish_congest_policies( const AlterTopo & topo,
     if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
       boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
       boost::shared_ptr<DataPlaneOperator> op = get_operator(toStart[i]);
+      if (!op) {
+        LOG(ERROR) << "Can't add policy to " << toStart[i] << "; no such operator.";
+        continue;
+      }
       policy->add_operator(toStart[i]);
       policy->set_congest_monitor( op->congestion_monitor() );
       op->set_congestion_policy(policy);

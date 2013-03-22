@@ -86,6 +86,34 @@ size_t fillin_s(std::vector<double>&, std::vector<std::string>&);
 size_t fillin_zipf(std::vector<double>&, std::vector<std::string>&, int len);
 
 
+class RandHistOperator: public ThreadedSource {
+ private:
+//  const static int DEFAULT_BATCH_SIZE = 50;
+//  int BATCH_SIZE;
+ 
+  int hist_size;
+  int tuples_per_sec;
+  unsigned wait_per_batch;
+  int next_version_number;
+
+ public:
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  RandHistOperator(): hist_size(200), wait_per_batch(1000),next_version_number(0) {}
+
+  virtual bool emit_1();
+
+ protected:
+
+  std::vector<double> rand_data;
+  std::vector<std::string> rand_labels;
+
+
+GENERIC_CLNAME
+};  
+
+
+
+
 }
 
 #endif
