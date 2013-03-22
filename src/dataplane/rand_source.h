@@ -97,6 +97,8 @@ class RandHistOperator: public ThreadedSource {
   int next_version_number;
   
   bool schedule;
+  unsigned schedule_increment;
+  unsigned schedule_wait; 
   msec_t last_schedule_update;
   
 

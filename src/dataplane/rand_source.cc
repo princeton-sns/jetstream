@@ -278,9 +278,19 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
   }
 
-  schedule = true;
-  if (config["rate"].length() > 0)
-    schedule = false;
+  schedule = false;
+  if (config["rate"].length() == 0) {
+    schedule = true;
+
+    schedule_increment = 10;
+    if ((config["schedule_increment"].length() > 0)  && !(stringstream(config["schedule_increment"]) >> schedule_increment)) {
+      return operator_err_t("'schedule_increment' param should be a number, but '" + config["schedule_increment"] + "' is not.");
+    }
+    schedule_wait = 5000;
+    if ((config["schedule_wait"].length() > 0)  && !(stringstream(config["schedule_wait"]) >> schedule_wait)) {
+      return operator_err_t("'schedule_wait' param should be a number, but '" + config["schedule_wait"] + "' is not.");
+    }
+  }
   
   return NO_ERR;
  
@@ -303,9 +313,9 @@ RandHistOperator::emit_1() {
   LogHistogram lh(hist_size);
   
   msec_t now_msec = get_msec();
-  if(now_msec > last_schedule_update + 2  && tuples_per_sec < 1000){
+  if(now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < 1000){
     last_schedule_update = now_msec;
-    tuples_per_sec += 10;
+    tuples_per_sec += schedule_increment;
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
   }
   for (int i = 0; i < 22; ++i)
