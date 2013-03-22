@@ -92,7 +92,7 @@ class RandHistOperator: public ThreadedSource {
 //  int BATCH_SIZE;
  
   int hist_size;
-  int tuples_per_sec;
+  unsigned tuples_per_sec;
   unsigned wait_per_batch;
   int next_version_number;
   
