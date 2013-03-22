@@ -25,7 +25,7 @@ def main():
   data = parse_infile(infile)
 #  print data
 
-  plot_overall_latencies(data)
+  plot_cdf(data)
 
 
 def parse_infile(infile):
@@ -50,6 +50,72 @@ def parse_infile(infile):
   f.close()
   return ret
 
+<<<<<<< HEAD
+def plot_cdf(data):
+  latency_to_count_before = defaultdict(int)
+  latency_to_count_after = defaultdict(int)
+
+  for label,map in data.items():
+    for bucket,count in map.items():
+      if bucket < 10:
+        bucket += 2
+      elif bucket < 100:
+        bucket += 10
+      elif bucket < 1000:
+        bucket += 20
+      else:
+        bucket += 100
+      if 'before' in label:
+        latency_to_count_before[bucket] += count
+      else:
+        latency_to_count_after[bucket] += count
+
+  before_total = sum(latency_to_count_before.values())
+  after_total = sum(latency_to_count_after.values())
+
+  print "Total of %d tuples before DB and %d after" %  (before_total,after_total )
+
+  before_vals = [100.0 * x /before_total for _,x in  sorted(latency_to_count_before.items())]
+  after_vals = [100.0 * x /after_total for _,x in sorted(latency_to_count_after.items()) ]
+  MAX_X = max( latency_to_count_after.keys())
+  MIN_X = min( 0,  min (latency_to_count_after.keys() ), min(latency_to_count_before.keys() ) ) 
+  print "latencies range from %d to %d" % (MIN_X, MAX_X)
+
+  before_vals_cum = np.cumsum(before_vals);
+  after_vals_cum = np.cumsum(after_vals);
+
+
+  fig = plt.figure(figsize=(9,5))
+  ax = fig.add_subplot(111)
+
+  fig.subplots_adjust(bottom=0.14)
+  fig.subplots_adjust(left=0.1)
+
+  plt.ylim((0, 100)) 
+  
+  min_bucket =  min([bucket for bucket, cum in zip(sorted(latency_to_count_after.keys()), after_vals_cum) if cum > 99])
+  print "min bucket is %d" % min_bucket
+  plt.xlim( (0, min_bucket) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
+  ax.grid(True)
+  
+  print after_vals_cum
+  print sorted(latency_to_count_after.keys())
+  before_plot = ax.plot(sorted(latency_to_count_before.keys()), before_vals_cum, color='r')    
+  after_plot = ax.plot(sorted(latency_to_count_after.keys()), after_vals_cum, color='y')    
+  
+  ax.legend( (before_plot[0], after_plot[0]), ('Before DB', 'After DB') )
+  plt.ylabel('CDF of Tuples', fontsize=24)
+  plt.xlabel('Latency (MS)', fontsize=24)
+  plt.tick_params(axis='both', which='major', labelsize=16)
+
+
+  if OUT_TO_FILE:
+      plt.savefig("latency_distrib.pdf")
+      plt.close(fig)  
+  
+
+
+=======
 
 def quantile(values, total, q):
   running_tally = 0
@@ -58,6 +124,7 @@ def quantile(values, total, q):
     if running_tally > total * q:
       return k
   return INFINITY
+>>>>>>> 26c0862a507307630418d379390d4761c9f920f5
 
 
 def plot_overall_latencies(data):
