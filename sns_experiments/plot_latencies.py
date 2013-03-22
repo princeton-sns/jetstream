@@ -50,7 +50,6 @@ def parse_infile(infile):
   f.close()
   return ret
 
-<<<<<<< HEAD
 def plot_cdf(data):
   latency_to_count_before = defaultdict(int)
   latency_to_count_after = defaultdict(int)
@@ -112,10 +111,6 @@ def plot_cdf(data):
   if OUT_TO_FILE:
       plt.savefig("latency_distrib.pdf")
       plt.close(fig)  
-  
-
-
-=======
 
 def quantile(values, total, q):
   running_tally = 0
@@ -124,8 +119,6 @@ def quantile(values, total, q):
     if running_tally > total * q:
       return k
   return INFINITY
->>>>>>> 26c0862a507307630418d379390d4761c9f920f5
-
 
 def plot_overall_latencies(data):
   

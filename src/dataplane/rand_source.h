@@ -95,10 +95,14 @@ class RandHistOperator: public ThreadedSource {
   int tuples_per_sec;
   unsigned wait_per_batch;
   int next_version_number;
+  
+  bool schedule;
+  msec_t last_schedule_update;
+  
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  RandHistOperator(): hist_size(200), wait_per_batch(1000),next_version_number(0) {}
+  RandHistOperator(): hist_size(200), wait_per_batch(1000),next_version_number(0), last_schedule_update(0) {}
 
   virtual bool emit_1();
 

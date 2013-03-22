@@ -277,6 +277,11 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
   if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> tuples_per_sec)) {
     return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
   }
+
+  schedule = true;
+  if (config["rate"].length() > 0)
+    schedule = false;
+  
   return NO_ERR;
  
 /*  BATCH_SIZE = DEFAULT_BATCH_SIZE;
@@ -292,10 +297,17 @@ RandHistOperator::emit_1() {
 
   int dim_vals = 10;
   time_t now = time(NULL);
+
   unsigned tuples_sent = 0;
 
   LogHistogram lh(hist_size);
   
+  msec_t now_msec = get_msec();
+  if(now_msec > last_schedule_update + 2  && tuples_per_sec < 1000){
+    last_schedule_update = now_msec;
+    tuples_per_sec += 10;
+    LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
+  }
   for (int i = 0; i < 22; ++i)
     lh.add_item(i*i, i + 10);
 
