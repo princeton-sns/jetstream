@@ -30,17 +30,21 @@ def main():
   parser = OptionParser()
 
   parser.add_option("-o", "--output", dest="outfile",
-                  help="output file name", default="bw_over_time_e1.pdf")
+                  help="output file name", default="bw_over_time_e1")
+  parser.add_option("-l", "--latency", dest="latency",
+                  help="latency file name")
+
   (options, args) = parser.parse_args()
 
 
 
   leg_artists = []
   figure, ax = plt.subplots()
-
+  PLOT_LAT = options.latency is not None
+  
   for infile in args:
  
-    time_to_bw, time_to_tuples, level_transitions = parse_log(infile)
+    time_to_bw, time_to_tuples, level_transitions = parse_log(infile, PLOT_LAT)
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     time_to_bw,offset = smooth_bw(time_to_bw)
     print "bw range is", min(time_to_bw.keys()), " - ", max(time_to_bw.keys())
@@ -48,22 +52,29 @@ def main():
     plot_bw(time_to_bw, ax, leg_artists) 
 
     if ALIGN:
-      MAX_T = 7 * 60
+      MAX_T = min(7 * 60, max(time_to_bw.keys()))
     else:
       MAX_T = max(time_to_bw.keys())
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
+
     level_transitions = to_line(level_transitions, offset, MAX_T)
     plot_degradation(level_transitions, ax, leg_artists)
 
   finish_plots(figure, ax, leg_artists, options.outfile)
+  
+  if options.latency:
+    do_latency_bw_plot(time_to_bw, offset, options)
+    
+    
 
 USE_BW_REP = False
-def parse_log(infile):
+def parse_log(infile, PLOT_LAT):
   time_to_bw = {}
   level_transitions = []
   time_to_tuples = []
   f = open(infile, 'r')
+  hist_sizes = []
   for ln in f:
     if 'RootReport' in ln:
       try:
@@ -71,11 +82,16 @@ def parse_log(infile):
         ts = long(fields[-9])
         window = long(float(fields[-6]))
         bw_sec = float(fields[-4])
-        level_transitions.append (  (ts, window) )
+        if not PLOT_LAT:
+          level_transitions.append (  (ts, window) )
         time_to_bw[ts] = (bw_sec, 0)
       except Exception as e:
         print str(e),ln
         sys.exit(0)
+    if 'avg hist size' in ln:
+        h_size = int(ln.split(" ")[-1])
+        level_transitions.append (  (ts, 200000 / h_size) )
+        
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
 #     elif 'setting degradation level' in ln:
@@ -89,7 +105,10 @@ def parse_log(infile):
        
 
   f.close()
-  return time_to_bw,time_to_tuples,level_transitions
+  if len(hist_sizes) > 0:
+    return time_to_bw,time_to_tuples, hist_sizes
+  else:
+    return time_to_bw,time_to_tuples,level_transitions
 
 
 def smooth_bw(time_to_bw):
@@ -173,6 +192,81 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 
 
 
+    
+
+def do_latency_bw_plot(time_to_bw, offset, options): 
+    print "offset is ",offset   
+    lat_series = get_latencies_over_time(options.latency, offset)
+    print lat_series[0:10]
+    
+    figure, ax = plt.subplots()
+    leg_artists = []
+
+    plot_bw(time_to_bw, ax, leg_artists) 
+    plot_latencies(lat_series, ax, leg_artists)
+    finish_plots(figure, ax, leg_artists, options.outfile + "_latencies")
+
+
+
+def quantile(values, total, q):
+  running_tally = 0
+  for k,v in sorted(values.items()):
+    running_tally += v
+    if running_tally > total * q:
+      return k
+  return INFINITY
+
+
+
+def get_latencies_over_time(infile, offset):
+  f = open(infile, 'r')
+  ret = defaultdict( dict ) # label --> bucket --> count
+  for ln in f:
+#    print ln
+    _,ln = ln.split(':')  #ditch operator ID from echo output
+    hostname, label, bucket, count = ln[2:-2].split(",")
+    _, bucket = bucket.split("=");
+    _, count = count.split("=")
+#    label = " ".join(label.split(" ")[0:3])
+#    if 'after' in label:
+#      continue
+    bucket = int(bucket)
+    count = int(count)
+    
+    if 'before' in label:
+      continue
+      
+    l = label.split(" ")[3].split(",")[0]
+    label = int (l)
+    
+    if bucket in ret[label]:    
+      ret[label][bucket] += count
+    else:
+      ret[label][bucket] = count
+  f.close()
+  
+  ts_to_quant = []
+  for l, buckets in sorted(ret.items()):
+    q = quantile(buckets, sum(buckets.values()), 0.9)
+    ts_to_quant.append (   (l/1000 - offset, q))
+  
+  return ts_to_quant
+  
+def plot_latencies(lat_series, old_ax, leg_artists):
+  print "plotting latency data"
+  ax = old_ax.twinx()
+  time_data = [datetime.datetime.fromtimestamp(t) for t,l in lat_series]
+  latency_data = [l for t,l in lat_series]
+  line, = ax.plot_date(time_data, latency_data, "k-") 
+#  ax.set_ylim( 0, 1.2 *  max(lev_data))    
+  ax.set_ylim( 0, max(latency_data) *1.2)  
+ 
+  ax.set_ylabel('Avg latency (msecs)', fontsize=22)
+  leg_artists.append( line )
+  
+  
+
+
 def finish_plots(figure, ax, leg_artists, outname):
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.18)  
@@ -184,7 +278,7 @@ def finish_plots(figure, ax, leg_artists, outname):
   plt.tick_params(axis='both', which='major', labelsize=16)
   
   if OUT_TO_FILE:
-      plt.savefig(outname)
+      plt.savefig(outname + ".pdf")
       plt.close(figure)  
 
 # 

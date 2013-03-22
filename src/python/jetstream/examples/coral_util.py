@@ -142,6 +142,7 @@ def deploy_or_dummy(options, server, g):
 
 
 def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog):
+  #time tuple-index and host tuple-index, 
   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, tti, hti, interval_ms=100)
   latency_measure_op.instantiate_on(root_node)
   echo_op = jsapi.Echo(g);
