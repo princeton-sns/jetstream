@@ -290,6 +290,10 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     if ((config["schedule_wait"].length() > 0)  && !(stringstream(config["schedule_wait"]) >> schedule_wait)) {
       return operator_err_t("'schedule_wait' param should be a number, but '" + config["schedule_wait"] + "' is not.");
     }
+    if ((config["schedule_start"].length() > 0)  && !(stringstream(config["schedule_start"]) >> tuples_per_sec)) {
+      return operator_err_t("'schedule_start' param should be a number, but '" + config["schedule_start"] + "' is not.");
+    }
+
   }
   
   return NO_ERR;
