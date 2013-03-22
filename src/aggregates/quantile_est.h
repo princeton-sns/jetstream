@@ -208,7 +208,7 @@ void merge_into_aggregate(jetstream::JSSummary  &sum_into, const jetstream::JSSu
 
     if(contains_aggregate<AggregateClass>(sum_update)) {
       AggregateClass agg_update(sum_update);
-      if (agg_into.size() >=agg_update.size())
+      if (agg_into.size() <= agg_update.size())
         agg_into.merge_in(agg_update);
       else {
         AggregateClass dest(sum_update);
