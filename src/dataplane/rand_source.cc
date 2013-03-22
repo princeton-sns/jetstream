@@ -313,7 +313,7 @@ RandHistOperator::emit_1() {
   LogHistogram lh(hist_size);
   
   msec_t now_msec = get_msec();
-  if(now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < 1000){
+  if(schedule && now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < 1000){
     last_schedule_update = now_msec;
     tuples_per_sec += schedule_increment;
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
