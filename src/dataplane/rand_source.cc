@@ -269,6 +269,9 @@ RandEvalOperator::~RandEvalOperator() {
 
 operator_err_t
 RandHistOperator::configure(std::map<std::string,std::string> &config) {
+
+  ADAPT = false;
+
   tuples_per_sec = 50;
 
   if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> tuples_per_sec)) {
@@ -286,15 +289,21 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 bool
 RandHistOperator::emit_1() {
 
+
   int dim_vals = 10;
   time_t now = time(NULL);
   unsigned tuples_sent = 0;
+
+  LogHistogram lh(hist_size);
+  
+  for (int i = 0; i < 22; ++i)
+    lh.add_item(i*i, i + 10);
+
   while (tuples_sent++ < tuples_per_sec) {
     shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
     extend_tuple(*t, int32_t(tuples_sent % dim_vals));
     JSSummary * s = t->add_e()->mutable_summary();
-    LogHistogram lh(hist_size);
     
     lh.serialize_to(*s);
 
@@ -302,10 +311,10 @@ RandHistOperator::emit_1() {
 
     emit(t);
   }
-
+  end_of_window(wait_per_batch);
 
   js_usleep( 1000 * wait_per_batch);
-  end_of_window(wait_per_batch);
+  
 
   return false; //keep running indefinitely
 }

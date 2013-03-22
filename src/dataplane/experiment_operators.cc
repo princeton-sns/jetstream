@@ -471,6 +471,14 @@ AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
       << fmt(*t) << ".";
     count_tally += t->e(field).i_val();
   }
+
+  if (hist_field >= 0) {
+    LOG_IF(FATAL, t->e_size() <= hist_field) << "no such field " << hist_field<< ". Got "
+      << fmt(*t) << ".";
+    hist_size_total += t->e(hist_field).summary().histo().bucket_vals_size();
+  }
+  
+  
   emit(t);
 }
 
@@ -498,11 +506,18 @@ AvgCongestLogger::report() {
       double bytes_per_sec =  double(bytes_total - last_bytes) * 1000 / report_interval;
       double tuples_per_sec = tuples_in_interval * 1000.0 / report_interval;
       last_bytes = bytes_total;
+      
+      string maybe_h_stats = "";
+      if (hist_field >= 0)
+        maybe_h_stats = " avg hist size " + boost::lexical_cast<string>( hist_size_total / tuples_in_interval );
+      
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
       LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
-        << " Lifetime total count=" << count_tally;
-       tuples_in_interval = 0;
+        << " Lifetime total count=" << count_tally << maybe_h_stats;
+      tuples_in_interval = 0;
+      hist_size_total = 0;
+      
     }
     timer->expires_from_now(boost::posix_time::millisec(report_interval));
     timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
@@ -516,6 +531,11 @@ AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
     if ( !(istringstream(config["field"]) >> field)) {
       return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
     }
+
+  if ( config.find("hist_field") != config.end())
+    if ( !(istringstream(config["hist_field"]) >> hist_field)) {
+      return operator_err_t("must specify an int as hist_field; got " + config["hist_field"] +  " instead");
+    }  
   
   return NO_ERR;
 }

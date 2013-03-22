@@ -66,7 +66,9 @@ ThreadedSource::operator()() {
   }
 
   do {
-      is_running += congest_policy->get_step(id(), congestSteps, 2, is_running);
+      if (ADAPT)
+        is_running += congest_policy->get_step(id(), congestSteps, 2, is_running);
+    
       if (is_running == 0) {
         boost::this_thread::yield();
         js_usleep(100 * 1000);
