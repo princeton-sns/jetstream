@@ -36,8 +36,8 @@ def get_graph(source_nodes, root_node, options):
   congest_logger.instantiate_on(root_node)
   congest_logger.set_cfg("hist_field", 2)
 
-  timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
-  timestamp_cube_op.instantiate_on(root_node)
+#  timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
+#  timestamp_cube_op.instantiate_on(root_node)
   
   central_cube = g.add_cube("global_hists")
   central_cube.instantiate_on(root_node)
@@ -46,9 +46,9 @@ def get_graph(source_nodes, root_node, options):
   central_cube.add_agg("the_hist", jsapi.Cube.AggType.HISTO, 2)
 
   
-  g.chain([congest_logger, timestamp_cube_op, central_cube] )
+  g.chain([congest_logger, central_cube] )
 
-  add_latency_measure(g, central_cube, root_node, tti=4, hti=5, latencylog= options.latencylog)
+  add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog)
 
 
   for node, i in numbered(source_nodes):
