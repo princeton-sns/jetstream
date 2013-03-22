@@ -120,20 +120,21 @@ class LogHistogram : public QuantileEstimation {
     std::vector<count_val_t> buckets;
     std::vector<int> bucket_starts;
     uint64_t total_vals;
-    size_t bucket_target;
 
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
 
     virtual void set_bucket_starts(size_t b_count);
 
     void fillIn(const JSHistogram&);
-    LogHistogram(const LogHistogram&); //no public copy constructor
-    LogHistogram& operator=(const LogHistogram&);
 
   public:
     LogHistogram(size_t buckets);
     LogHistogram(const JSHistogram& s): total_vals(0) { fillIn(s); }
     LogHistogram(const JSSummary& s): total_vals(0) { fillIn(s.histo()); }
+
+    LogHistogram(const LogHistogram&); //no public copy constructor
+    LogHistogram& operator=(const LogHistogram&);
+
 
     virtual int quantile(double q);
 
@@ -207,7 +208,13 @@ void merge_into_aggregate(jetstream::JSSummary  &sum_into, const jetstream::JSSu
 
     if(contains_aggregate<AggregateClass>(sum_update)) {
       AggregateClass agg_update(sum_update);
-      agg_into.merge_in(agg_update);
+      if (agg_into.size() >=agg_update.size())
+        agg_into.merge_in(agg_update);
+      else {
+        AggregateClass dest(sum_update);
+        dest.merge_in(agg_into);
+        agg_into = dest;
+      }
     }
     else {
       for(int i = 0; i < sum_update.items_size(); ++i) {

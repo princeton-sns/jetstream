@@ -158,8 +158,8 @@ ReservoirSample::merge_in(const ReservoirSample& rhs) {
 
 
 LogHistogram::LogHistogram(size_t bt):
-  total_vals(0), bucket_target(bt) {
-  set_bucket_starts(bucket_target);
+  total_vals(0)  {
+  set_bucket_starts(bt);
   buckets.assign(bucket_starts.size(), 0);
 }
 
@@ -255,9 +255,7 @@ void
 LogHistogram::fillIn(const JSHistogram& serialized) {
   assert(total_vals == 0); // only called during construction
 
-  bucket_target = serialized.num_buckets();
-
-  set_bucket_starts( bucket_target);
+  set_bucket_starts( serialized.num_buckets());
   buckets.assign(bucket_starts.size(), 0);
 
   if ((uint) serialized.bucket_vals_size() > bucket_starts.size()) {
@@ -281,8 +279,7 @@ LogHistogram::fillIn(const JSHistogram& serialized) {
 void
 LogHistogram::serialize_to(JSSummary& q) const {
   JSHistogram * serialized_hist = q.mutable_histo();
-  assert(bucket_target == bucket_count());
-  serialized_hist->set_num_buckets(bucket_target);
+  serialized_hist->set_num_buckets( bucket_count() );
 //  cout << "serializing histogram with " << bucket_target << " buckets and "
 //       << total_vals << " vals" << endl;
   serialized_hist->clear_bucket_vals();
@@ -335,6 +332,21 @@ LogHistogram::operator==(const LogHistogram & rhs) const {
   assert(total_vals == rhs.total_vals);
   return true;
 }
+
+
+LogHistogram::LogHistogram(const LogHistogram& rhs) {
+  buckets = rhs.buckets;
+  bucket_starts = rhs.bucket_starts;
+  total_vals = rhs.total_vals;
+}
+
+LogHistogram& LogHistogram::operator=(const LogHistogram& rhs) {
+  buckets = rhs.buckets;
+  bucket_starts = rhs.bucket_starts;
+  total_vals = rhs.total_vals;
+  return *this;
+}
+
 
 
 std::ostream& operator<<(std::ostream& out, const LogHistogram& hist) {

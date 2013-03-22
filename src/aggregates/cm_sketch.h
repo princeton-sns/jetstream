@@ -142,11 +142,13 @@ class CMMultiSketch: public QuantileEstimation {
     return panes[0].total_count;
   }
   
- private:
+  
   void operator= (const CMMultiSketch &) 
     { assert(false); } //LOG(FATAL) << "cannot copy a CMSketch"; }
   CMMultiSketch (const CMMultiSketch &) 
     { assert(false); } // LOG(FATAL) << "cannot copy a CMSketch"; }
+  
+ private:
 
 
 };
