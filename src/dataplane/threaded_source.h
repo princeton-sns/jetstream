@@ -27,7 +27,7 @@ class ThreadedSource: public DataPlaneOperator {
   }
   
  protected:
-  ThreadedSource(): running(false),send_now(false),exit_at_end(true) {}
+  ThreadedSource(): running(false),send_now(false),exit_at_end(true),ADAPT(true){}
   
   virtual bool emit_1() = 0; //returns true to stop sending; else false
 
@@ -35,7 +35,7 @@ class ThreadedSource: public DataPlaneOperator {
   boost::shared_ptr<CongestionPolicy> congest_policy;
   volatile bool running;
   volatile bool send_now, exit_at_end;
-  
+  bool ADAPT;
 
 };
 

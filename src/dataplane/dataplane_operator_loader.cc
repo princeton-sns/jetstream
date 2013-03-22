@@ -101,6 +101,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(EchoOperator);
   REGISTER_OP(RandSourceOperator);
   REGISTER_OP(RandEvalOperator);
+  REGISTER_OP(RandHistOperator);
   REGISTER_OP(MockCongestion);
   REGISTER_OP(FixedRateQueue);
   REGISTER_OP(ExperimentTimeRewrite);

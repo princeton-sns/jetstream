@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <time.h>
 #include <fstream>
+#include "quantile_est.h"
 
 using namespace ::std;
 using namespace boost;
@@ -265,9 +266,64 @@ RandEvalOperator::~RandEvalOperator() {
   }
 }
 
+
+operator_err_t
+RandHistOperator::configure(std::map<std::string,std::string> &config) {
+
+  ADAPT = false;
+
+  tuples_per_sec = 50;
+
+  if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> tuples_per_sec)) {
+    return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
+  }
+  return NO_ERR;
+ 
+/*  BATCH_SIZE = DEFAULT_BATCH_SIZE;
+  if (BATCH_SIZE > rate_per_sec )
+    BATCH_SIZE = rate_per_sec;
+  wait_per_batch = BATCH_SIZE * 1000 / rate_per_sec;
+*/
+}
+
+bool
+RandHistOperator::emit_1() {
+
+
+  int dim_vals = 10;
+  time_t now = time(NULL);
+  unsigned tuples_sent = 0;
+
+  LogHistogram lh(hist_size);
+  
+  for (int i = 0; i < 22; ++i)
+    lh.add_item(i*i, i + 10);
+
+  while (tuples_sent++ < tuples_per_sec) {
+    shared_ptr<Tuple> t(new Tuple);
+    extend_tuple_time(*t, now);
+    extend_tuple(*t, int32_t(tuples_sent % dim_vals));
+    JSSummary * s = t->add_e()->mutable_summary();
+    
+    lh.serialize_to(*s);
+
+    t->set_version(next_version_number++);
+
+    emit(t);
+  }
+  end_of_window(wait_per_batch);
+
+  js_usleep( 1000 * wait_per_batch);
+  
+
+  return false; //keep running indefinitely
+}
+
+
+
 const string RandSourceOperator::my_type_name("Random source");
 const string RandEvalOperator::my_type_name("Random data quality measurement");
-
+const string RandHistOperator::my_type_name("Random hist source");
 
 
 }

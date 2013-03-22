@@ -327,6 +327,9 @@ def RandSource(graph, n, k):
 def RandEval(graph):
   return graph.add_operator(OpType.RAND_EVAL, {} )
 
+def RandHist(graph):
+  return graph.add_operator(OpType.RAND_HIST, {} )
+
 
 def TRoundOperator(graph, fld, round_to, add_offset=0):
   cfg = {"fld_offset": str(fld),
@@ -443,6 +446,10 @@ def ToSummary(graph, size, field):
 def SummaryToCount(graph, field):
    cfg = {"field":field}
    return graph.add_operator(OpType.SUMMARY_TO_COUNT, cfg)
+
+def DegradeSummary(graph, field):
+   cfg = {"field":field}
+   return graph.add_operator(OpType.DEGRADE_SUMMARY, cfg)
 
 def URLToDomain(graph, field):
    cfg = {"field":field}

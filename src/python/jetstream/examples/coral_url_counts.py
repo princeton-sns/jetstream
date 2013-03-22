@@ -91,12 +91,7 @@ def get_graph(source_nodes, root_node, options):
   
     g.chain([central_cube,pull_q, echo] )
 
-  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
-  latency_measure_op.instantiate_on(root_node)
-  echo_op = jsapi.Echo(g);
-  echo_op.set_cfg("file_out", options.latencylog)
-  echo_op.instantiate_on(root_node)
-  g.chain([central_cube, latency_measure_op, echo_op])
+  add_latency_measure(g, central_cube, root_node, tti=4, hti=5, options.latencylog)
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)

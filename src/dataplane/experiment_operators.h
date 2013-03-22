@@ -259,7 +259,7 @@ class AvgCongestLogger: public DataPlaneOperator {
  public:
 
   AvgCongestLogger(): report_interval(2000),last_bytes(0),tuples_in_interval(0), field(-1),
-      count_tally(0) {}
+      count_tally(0), hist_field(-1), hist_size_total(0) {}
   virtual void process(boost::shared_ptr<Tuple> t); 
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
@@ -281,7 +281,8 @@ class AvgCongestLogger: public DataPlaneOperator {
   unsigned tuples_in_interval;
   int field;
   uint64_t count_tally;
-
+  int hist_field;
+  uint64_t hist_size_total;
 GENERIC_CLNAME
 };  
 

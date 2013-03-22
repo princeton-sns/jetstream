@@ -50,6 +50,7 @@ def parse_infile(infile):
   f.close()
   return ret
 
+<<<<<<< HEAD
 def plot_cdf(data):
   latency_to_count_before = defaultdict(int)
   latency_to_count_after = defaultdict(int)
@@ -114,6 +115,16 @@ def plot_cdf(data):
   
 
 
+=======
+
+def quantile(values, total, q):
+  running_tally = 0
+  for k,v in sorted(values.items()):
+    running_tally += v
+    if running_tally > total * q:
+      return k
+  return INFINITY
+>>>>>>> 26c0862a507307630418d379390d4761c9f920f5
 
 
 def plot_overall_latencies(data):
@@ -132,11 +143,18 @@ def plot_overall_latencies(data):
   before_total = sum(latency_to_count_before.values())
   after_total = sum(latency_to_count_after.values())
   print "Total of %d tuples before DB and %d after" %  (before_total,after_total )
+  print "Median latency before is %d ms" % quantile(latency_to_count_before, before_total, 0.5)
+  print "Median latency after is %d ms" % quantile(latency_to_count_after, after_total, 0.5)
+
+  print "95th percentile latency before is %d ms" % quantile(latency_to_count_before, before_total, 0.90)
+  print "95th percentile latency after is %d ms" % quantile(latency_to_count_after, after_total, 0.90)
+
   
   before_vals = [100.0 * x /before_total for _,x in  sorted(latency_to_count_before.items())]
   after_vals = [100.0 * x /after_total for _,x in sorted(latency_to_count_after.items()) ]
   MAX_Y = int(max ( max(before_vals), max(after_vals)))
-  MAX_X = max( latency_to_count_after.keys())
+  MAX_X = quantile(latency_to_count_after, after_total, 0.99)* 1.2
+  MAX_X = min(  MAX_X, max(latency_to_count_after.values()))
   MIN_X = min( 0,  min (latency_to_count_after.keys() ), min(latency_to_count_before.keys() ) ) 
   
   print "latencies range from %d to %d" % (MIN_X, MAX_X)
@@ -144,17 +162,16 @@ def plot_overall_latencies(data):
   fig = plt.figure(figsize=(9,5))
   ax = fig.add_subplot(111)
 
-  width = (MAX_X+(-MIN_X))/100.0
+  width = (MAX_X+(-MIN_X))/100.0 /2
   fig.subplots_adjust(bottom=0.14)
   fig.subplots_adjust(left=0.1)
 
   plt.ylim( (0, 1.2 *  MAX_Y) )    
-  plt.xlim( ( MIN_X * 1.2 - 1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
+  plt.xlim( (-1, MAX_X * 1.2) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
 
-  before_bars = ax.bar(latency_to_count_before.keys(), before_vals, width, color='r', linewidth = 0)    
-  
-  bar_positions = [width + x for x in sorted(latency_to_count_after.keys())]
-  after_bars = ax.bar(bar_positions, after_vals, width, color='y', linewidth = 0)    
+  before_bars = ax.plot(sorted(latency_to_count_before.keys()), before_vals, 'r.-', lw = 2)      
+  bar_positions = [x for x in sorted(latency_to_count_after.keys())]
+  after_bars = ax.plot(bar_positions, after_vals, "k*--")    
   
   ax.legend( (before_bars[0], after_bars[0]), ('Before DB', 'After DB') )
   plt.ylabel('Fraction of Tuples', fontsize=24)

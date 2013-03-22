@@ -106,6 +106,8 @@ def smooth_bw(time_to_bw):
     smoothed = sum( last_bytes[-10:])
     b = len(last_bytes[-10:])
     res[tm-offset] = ((smoothed) / b, 0)
+    if tm - offset > 7 * 60:
+      break
   return res,offset
 
 def plot_bw(time_to_bw, ax, leg_artists):
@@ -114,15 +116,16 @@ def plot_bw(time_to_bw, ax, leg_artists):
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
 #    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
     time_data.append( datetime.datetime.fromtimestamp(tm))
-    bw.append( 8 * bytes)
+    bw.append( 8 * bytes/ 1000)
 
   MAX_Y = max(bw)
   
   ax.set_ylim( 0, 1.2 *  MAX_Y)  
+  
   plt.tick_params(axis='both', which='major', labelsize=16)
   bw_line, = ax.plot_date(time_data, bw, "b.-", label="BW") 
   ax.set_xlabel('Time', fontsize=22)  
-  ax.set_ylabel('Bandwidth (bits/sec)', fontsize=22)
+  ax.set_ylabel('Bandwidth (kbits/sec)', fontsize=22)
   leg_artists.append( bw_line )
 
 
