@@ -57,7 +57,10 @@ def get_graph(source_nodes, root_node, options):
     g.chain([congest_logger, central_cube] )
 
     add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog, interval=options.latency_interval_ms)
-
+  else:
+    ground = jsapi.Ground(g)
+    g.chain([congest_logger, ground])
+    
 
   for node, i in numbered(source_nodes):
     sender = jsapi.RandHist(g)

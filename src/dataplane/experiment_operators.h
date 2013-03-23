@@ -21,10 +21,21 @@ namespace jetstream {
 class DummyReceiver: public DataPlaneOperator {
  public:
   std::vector< boost::shared_ptr<Tuple> > tuples;
+  bool store;
+
   virtual void process(boost::shared_ptr<Tuple> t) {
-    tuples.push_back(t);
+    if(store)
+      tuples.push_back(t);
   }
-  
+ 
+  virtual operator_err_t configure (std::map<std::string, std::string> &){
+    store = true;
+    if (config["no_store"].length() > 0)
+      store=false;
+    return NO_ERR;
+  }
+
+
   virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
 
   

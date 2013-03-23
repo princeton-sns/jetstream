@@ -70,7 +70,7 @@ message CubeSchema {
  //un-needed; this is present in the CubeMeta
 
   message Dimension {
-    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; TIME_HIERARCHY = 5; TIME_CONTAINMENT=6; }
+    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; TIME_HIERARCHY = 5; TIME_CONTAINMENT=6; URL=7; }
     required string name = 1;
     required DimensionType type = 2;
     repeated int32 tuple_indexes = 3;

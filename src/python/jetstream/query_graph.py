@@ -342,6 +342,11 @@ def NoOp(graph):
    cfg = {}
    return graph.add_operator(OpType.EXTEND, cfg)
 
+def Ground(graph):
+  cfg = {"no_store": "true"}
+  return graph.add_operator(OpType.DUMMY_RECEIVER, cfg)
+
+
 class TimeSubscriber(Operator):
   def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = 0):
     super(TimeSubscriber,self).__init__(graph,OpType.TIME_SUBSCRIBE, {}, 0)

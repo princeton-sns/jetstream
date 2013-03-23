@@ -31,6 +31,7 @@ class OpType (object):
   RATIO_FILTER = "RatioFilter"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
+  DUMMY_RECEIVER = "DummyReceiver"
   SEND_K = "SendK"
   RATE_RECEIVER = "RateRecordReceiver"
   ECHO = "EchoOperator"
@@ -322,6 +323,8 @@ SCHEMAS[OpType.RAND_HIST] = lambda schema,cfg: [('T', 'timestamp'), ('I', 'dummy
 SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
+
+SCHEMA[OpType.DUMMY_RECEIVER] = lambda schema,cfg: None
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
 SCHEMAS[OpType.URLToDomain] = validate_URLToDomain
