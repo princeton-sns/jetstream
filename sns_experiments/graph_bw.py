@@ -41,6 +41,8 @@ def main():
   leg_artists = []
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
+  deg_label = "Degradation ratio" if PLOT_LAT else "'Avg window size (secs)'"
+  EXP_MINUTES = 25 if PLOT_LAT else 7
   
   for infile in args:
  
@@ -48,7 +50,7 @@ def main():
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, 12 * 60)
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
@@ -62,7 +64,7 @@ def main():
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
     level_transitions = to_line(level_transitions, offset, MAX_T)
-    plot_degradation(level_transitions, ax, leg_artists)
+    plot_degradation(level_transitions, ax, leg_artists, deg_label)
 
   finish_plots(figure, ax, leg_artists, options.outfile, ["Bandwidth", "Degradation"])
   
@@ -85,9 +87,10 @@ def parse_log(infile, PLOT_LAT):
         ts = long(fields[-9])
         window = long(float(fields[-6]))
         bw_sec = float(fields[-4])
+        tuples_sec = float(fields[-2])
         if not PLOT_LAT:
           level_transitions.append (  (ts, window) )
-        time_to_bw[ts] = (bw_sec, 0)
+        time_to_bw[ts] = (bw_sec, tuples_sec)
       except Exception as e:
         print str(e),ln
         sys.exit(0)
@@ -181,7 +184,7 @@ def to_line(level_transitions, min_time, max_time):
   revised.append ( (max_time, last_level))
   return revised
   
-def plot_degradation(level_transitions, old_ax, leg_artists):
+def plot_degradation(level_transitions, old_ax, leg_artists, deg_label):
 
   ax = old_ax.twinx()
   time_data = [datetime.datetime.fromtimestamp(t) for t,l in level_transitions]
@@ -190,7 +193,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
   ax.set_ylim( 0, 30)  
  
-  ax.set_ylabel('Avg window size (secs)', fontsize=22)
+  ax.set_ylabel(deg_label, fontsize=22)
   leg_artists.append( deg_line )
 #  print level_transitions  
 
@@ -201,7 +204,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time): 
     print "offset is ",offset   
     lat_series = get_latencies_over_time(options.latency, offset, min_time, max_time)
-    lat_series = smooth_seq(lat_series, 0, 60 * 60, window=2)
+    lat_series = smooth_seq(lat_series, 0, 60 * 60, window=10)
     print lat_series[0:10]
     
     figure, ax = plt.subplots()
@@ -223,7 +226,7 @@ def quantile(values, total, q):
 
 
 
-def get_latencies_over_time(infile, offset, min_time, max_time):
+def get_latencies_over_time(infile, offset, min_time, max_time, QUANTILE = 0.5):
   f = open(infile, 'r')
   ret = defaultdict( dict ) # label --> bucket --> count
   for ln in f:
@@ -238,7 +241,7 @@ def get_latencies_over_time(infile, offset, min_time, max_time):
     bucket = int(bucket)
     count = int(count)
     
-    if 'before' in label:
+    if 'after' in label:
       continue
       
     l = label.split(" ")[3].split(",")[0]
@@ -255,7 +258,7 @@ def get_latencies_over_time(infile, offset, min_time, max_time):
     t = l/1000 - offset
     if t < min_time or t > max_time:
       continue
-    q = quantile(buckets, sum(buckets.values()), 0.5)
+    q = quantile(buckets, sum(buckets.values()), QUANTILE) 
     ts_to_quant.append (   (t, q))
   
   return ts_to_quant
@@ -278,6 +281,7 @@ def plot_latencies(lat_series, old_ax, leg_artists):
 def finish_plots(figure, ax, leg_artists, outname, label_strings):
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.18)  
+  figure.subplots_adjust(right=0.9)  
   labels = ax.get_xticklabels() 
   for label in labels: 
       label.set_rotation(30) 
