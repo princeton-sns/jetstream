@@ -58,7 +58,9 @@ def get_graph(source_nodes, root_node, options):
 
     add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog, interval=options.latency_interval_ms)
   else:
+    print "No Cube"
     ground = jsapi.Ground(g)
+    ground.instantiate_on(root_node)
     g.chain([congest_logger, ground])
     
 
