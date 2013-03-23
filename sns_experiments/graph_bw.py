@@ -41,6 +41,8 @@ def main():
   leg_artists = []
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
+  deg_label = "Degradation ratio" if PLOT_LAT else "'Avg window size (secs)'"
+  EXP_MINUTES = 25 if PLOT_LAT else 7
   
   for infile in args:
  
@@ -48,7 +50,7 @@ def main():
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, 12 * 60)
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
@@ -62,7 +64,7 @@ def main():
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
     level_transitions = to_line(level_transitions, offset, MAX_T)
-    plot_degradation(level_transitions, ax, leg_artists)
+    plot_degradation(level_transitions, ax, leg_artists, deg_label)
 
   finish_plots(figure, ax, leg_artists, options.outfile, ["Bandwidth", "Degradation"])
   
@@ -181,7 +183,7 @@ def to_line(level_transitions, min_time, max_time):
   revised.append ( (max_time, last_level))
   return revised
   
-def plot_degradation(level_transitions, old_ax, leg_artists):
+def plot_degradation(level_transitions, old_ax, leg_artists, deg_label):
 
   ax = old_ax.twinx()
   time_data = [datetime.datetime.fromtimestamp(t) for t,l in level_transitions]
@@ -190,7 +192,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
   ax.set_ylim( 0, 30)  
  
-  ax.set_ylabel('Avg window size (secs)', fontsize=22)
+  ax.set_ylabel(deg_label, fontsize=22)
   leg_artists.append( deg_line )
 #  print level_transitions  
 
@@ -278,6 +280,7 @@ def plot_latencies(lat_series, old_ax, leg_artists):
 def finish_plots(figure, ax, leg_artists, outname, label_strings):
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.18)  
+  figure.subplots_adjust(right=0.9)  
   labels = ax.get_xticklabels() 
   for label in labels: 
       label.set_rotation(30) 
