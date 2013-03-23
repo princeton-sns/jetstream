@@ -119,7 +119,8 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
    if(!hash_fn.get())
     hash_fn.reset(new boost::hash<std::string>());
 
-  processCongestMon->report_insert(t.get(), 1);
+  if(config.cube_max_stage > 4)
+    processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
   tmpostr->clear();
   get_dimension_key(*t, current_levels, *tmpostr);
