@@ -28,7 +28,7 @@ class DummyReceiver: public DataPlaneOperator {
       tuples.push_back(t);
   }
  
-  virtual operator_err_t configure (std::map<std::string, std::string> &){
+  virtual operator_err_t configure (std::map<std::string, std::string> & config){
     store = true;
     if (config["no_store"].length() > 0)
       store=false;
