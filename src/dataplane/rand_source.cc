@@ -282,6 +282,10 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
   if ((config["unique_vals"].length() > 0)  && !(stringstream(config["unique_vals"]) >> unique_vals)) {
     return operator_err_t("'unique_vals' param should be a number, but '" + config["unique_vals"] + "' is not.");
   }
+  
+  if ((config["hist_size"].length() > 0)  && !(stringstream(config["hist_size"]) >> hist_size)) {
+    return operator_err_t("'hist_size' param should be a number, but '" + config["hist_size"] + "' is not.");
+  }
 
   schedule = false;
   if (config["rate"].length() == 0) {
