@@ -356,7 +356,7 @@ RandHistOperator::emit_1() {
     emit(t);
   }
   if ( ++window % batches_per_window == 0)
-    end_of_window(wait_per_batch);
+    end_of_window(wait_per_batch * batches_per_window);
 
   js_usleep( 1000 * wait_per_batch);
   
