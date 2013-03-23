@@ -46,25 +46,28 @@ def main():
  
     time_to_bw, time_to_tuples, level_transitions = parse_log(infile, PLOT_LAT)
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
-    time_to_bw,offset = smooth_bw(time_to_bw)
-    print "bw range is", min(time_to_bw.keys()), " - ", max(time_to_bw.keys())
+    offset = get_offset(time_to_bw)
+    bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
+    bw_seq = smooth_seq(bw_seq, offset, 7 * 60)
+    print "bw_seq", bw_seq[0:10]
+    print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
-    plot_bw(time_to_bw, ax, leg_artists) 
+    plot_bw(bw_seq, ax, leg_artists) 
 
     if ALIGN:
-      MAX_T = min(7 * 60, max(time_to_bw.keys()))
+      MAX_T = min(7 * 60, bw_seq[-1][0])
     else:
-      MAX_T = max(time_to_bw.keys())
+      MAX_T = max(bw_seq[-1][0])
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
     level_transitions = to_line(level_transitions, offset, MAX_T)
     plot_degradation(level_transitions, ax, leg_artists)
 
-  finish_plots(figure, ax, leg_artists, options.outfile)
+  finish_plots(figure, ax, leg_artists, options.outfile, ["Bandwidth", "Degradation"])
   
   if options.latency:
-    do_latency_bw_plot(time_to_bw, offset, options)
+    do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
     
     
 
@@ -111,28 +114,29 @@ def parse_log(infile, PLOT_LAT):
     return time_to_bw,time_to_tuples,level_transitions
 
 
-def smooth_bw(time_to_bw):
-  last_bytes = []
-  res = {}
-  offset = 0
+def get_offset(time_to_bw):
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
-    if offset == 0:
       if bytes > 0:
-        offset = tm - 10
-      else:
-        continue
-    last_bytes.append(bytes)
-    smoothed = sum( last_bytes[-10:])
-    b = len(last_bytes[-10:])
-    res[tm-offset] = ((smoothed) / b, 0)
-    if tm - offset > 7 * 60:
+        return tm - 10  
+  return 0        
+        
+def smooth_seq(my_seq, offset, max_len, window=10):
+  val_list = []
+  res = []
+  for tm, val in my_seq:
+    val_list.append(val)
+    smoothed = sum( val_list[-window:])
+    b = len(val_list[-window:])
+    v = (tm-offset, smoothed / b) 
+    res.append(  v)
+    if tm - offset > max_len:
       break
-  return res,offset
+  return res
 
-def plot_bw(time_to_bw, ax, leg_artists):
+def plot_bw(bw_seq, ax, leg_artists):
   time_data = []
   bw = []
-  for tm, (bytes,tuples) in sorted(time_to_bw.items()):
+  for tm, bytes, in bw_seq:
 #    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
     time_data.append( datetime.datetime.fromtimestamp(tm))
     bw.append( 8 * bytes/ 1000)
@@ -194,9 +198,10 @@ def plot_degradation(level_transitions, old_ax, leg_artists):
 
     
 
-def do_latency_bw_plot(time_to_bw, offset, options): 
+def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time): 
     print "offset is ",offset   
-    lat_series = get_latencies_over_time(options.latency, offset)
+    lat_series = get_latencies_over_time(options.latency, offset, min_time, max_time)
+    lat_series = smooth_seq(lat_series, 0, 60 * 60, window=2)
     print lat_series[0:10]
     
     figure, ax = plt.subplots()
@@ -204,7 +209,7 @@ def do_latency_bw_plot(time_to_bw, offset, options):
 
     plot_bw(time_to_bw, ax, leg_artists) 
     plot_latencies(lat_series, ax, leg_artists)
-    finish_plots(figure, ax, leg_artists, options.outfile + "_latencies")
+    finish_plots(figure, ax, leg_artists, options.outfile + "_latencies", ["Bandwidth", "Latency"])
 
 
 
@@ -218,7 +223,7 @@ def quantile(values, total, q):
 
 
 
-def get_latencies_over_time(infile, offset):
+def get_latencies_over_time(infile, offset, min_time, max_time):
   f = open(infile, 'r')
   ret = defaultdict( dict ) # label --> bucket --> count
   for ln in f:
@@ -247,8 +252,11 @@ def get_latencies_over_time(infile, offset):
   
   ts_to_quant = []
   for l, buckets in sorted(ret.items()):
-    q = quantile(buckets, sum(buckets.values()), 0.9)
-    ts_to_quant.append (   (l/1000 - offset, q))
+    t = l/1000 - offset
+    if t < min_time or t > max_time:
+      continue
+    q = quantile(buckets, sum(buckets.values()), 0.5)
+    ts_to_quant.append (   (t, q))
   
   return ts_to_quant
   
@@ -267,14 +275,14 @@ def plot_latencies(lat_series, old_ax, leg_artists):
   
 
 
-def finish_plots(figure, ax, leg_artists, outname):
+def finish_plots(figure, ax, leg_artists, outname, label_strings):
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.18)  
   labels = ax.get_xticklabels() 
   for label in labels: 
       label.set_rotation(30) 
       #"Src Records",   
-  plt.legend(leg_artists, ["Bandwidth", "Degradation"]);
+  plt.legend(leg_artists, label_strings);
   plt.tick_params(axis='both', which='major', labelsize=16)
   
   if OUT_TO_FILE:
