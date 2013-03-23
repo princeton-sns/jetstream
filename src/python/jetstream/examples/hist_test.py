@@ -23,6 +23,7 @@ def main():
   parser.add_option("--unique_vals", dest="unique_vals", default = "100")
   parser.add_option("--hist_size", dest="hist_size", default = "200")
   parser.add_option("--latency_interval_ms", dest="latency_interval_ms", default = "5000")
+  parser.add_option("--no_cube", dest="no_cube", action="store_true", default=False)
 
 
   (options, args) = parser.parse_args()
@@ -45,17 +46,17 @@ def get_graph(source_nodes, root_node, options):
 
 #  timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
 #  timestamp_cube_op.instantiate_on(root_node)
-  
-  central_cube = g.add_cube("global_hists")
-  central_cube.instantiate_on(root_node)
-  central_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
-  central_cube.add_dim("dummydim", Element.INT32, 1)
-  central_cube.add_agg("the_hist", jsapi.Cube.AggType.HISTO, 2)
 
-  
-  g.chain([congest_logger, central_cube] )
+  if not options.no_cube:
+    central_cube = g.add_cube("global_hists")
+    central_cube.instantiate_on(root_node)
+    central_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+    central_cube.add_dim("dummydim", Element.INT32, 1)
+    central_cube.add_agg("the_hist", jsapi.Cube.AggType.HISTO, 2)
 
-  add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog, interval=options.latency_interval_ms)
+    g.chain([congest_logger, central_cube] )
+
+    add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog, interval=options.latency_interval_ms)
 
 
   for node, i in numbered(source_nodes):
