@@ -87,9 +87,10 @@ def parse_log(infile, PLOT_LAT):
         ts = long(fields[-9])
         window = long(float(fields[-6]))
         bw_sec = float(fields[-4])
+        tuples_sec = float(fields[-2])
         if not PLOT_LAT:
           level_transitions.append (  (ts, window) )
-        time_to_bw[ts] = (bw_sec, 0)
+        time_to_bw[ts] = (bw_sec, tuples_sec)
       except Exception as e:
         print str(e),ln
         sys.exit(0)
@@ -203,7 +204,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists, deg_label):
 def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time): 
     print "offset is ",offset   
     lat_series = get_latencies_over_time(options.latency, offset, min_time, max_time)
-    lat_series = smooth_seq(lat_series, 0, 60 * 60, window=2)
+    lat_series = smooth_seq(lat_series, 0, 60 * 60, window=10)
     print lat_series[0:10]
     
     figure, ax = plt.subplots()
@@ -225,7 +226,7 @@ def quantile(values, total, q):
 
 
 
-def get_latencies_over_time(infile, offset, min_time, max_time):
+def get_latencies_over_time(infile, offset, min_time, max_time, QUANTILE = 0.5):
   f = open(infile, 'r')
   ret = defaultdict( dict ) # label --> bucket --> count
   for ln in f:
@@ -240,7 +241,7 @@ def get_latencies_over_time(infile, offset, min_time, max_time):
     bucket = int(bucket)
     count = int(count)
     
-    if 'before' in label:
+    if 'after' in label:
       continue
       
     l = label.split(" ")[3].split(",")[0]
@@ -257,7 +258,7 @@ def get_latencies_over_time(infile, offset, min_time, max_time):
     t = l/1000 - offset
     if t < min_time or t > max_time:
       continue
-    q = quantile(buckets, sum(buckets.values()), 0.5)
+    q = quantile(buckets, sum(buckets.values()), QUANTILE) 
     ts_to_quant.append (   (t, q))
   
   return ts_to_quant
