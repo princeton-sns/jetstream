@@ -7,7 +7,7 @@
 #include "mysql/dimension_time_containment.h"
 #include "mysql/dimension_int.h"
 #include "mysql/dimension_string.h"
-#include "mysql/dimension_url.h"
+//#include "mysql/dimension_url.h"
 #include "mysql/dimension_double.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -57,12 +57,12 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
       boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionString>();
       obj->init(_schema);
       return obj;
-    }
+    }/*
     else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_URL) {
       boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionUrl>();
       obj->init(_schema);
       return obj;
-    }
+    }*/
     else
     {
       LOG(FATAL) <<"Unknown dimension type";
