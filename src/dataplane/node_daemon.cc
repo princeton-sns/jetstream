@@ -57,6 +57,8 @@ parse_config (program_options::variables_map *inputopts,
      "Maximum batch on mysql inserts (as power of 2)")
     ("cube_mysql_query_batch_pw2", value<u_int16_t>(),
      "Maximum batch on mysql union selects (as power of 2)")
+    ("cube_max_stage", value<u_int16_t>(),
+     "Maximum stage of processing")
     ;
 
 
@@ -142,6 +144,10 @@ parse_config (program_options::variables_map *inputopts,
     config.cube_mysql_insert_batch_pw2 = input_opts["cube_mysql_insert_batch_pw2"].as<u_int16_t>();
   if (input_opts.count("cube_mysql_query_batch_pw2"))
     config.cube_mysql_query_batch_pw2 = input_opts["cube_mysql_query_batch_pw2"].as<u_int16_t>();
+  if (input_opts.count("cube_max_stage"))
+    config.cube_max_stage = input_opts["cube_max_stage"].as<u_int16_t>();
+
+
 
   //if (input_opts.count("dataplane_port"))
   //  config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();

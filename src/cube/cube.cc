@@ -108,6 +108,9 @@ const std::string jetstream::DataCube::my_tyepename("data cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
 //  LOG(INFO) << "processing" << fmt(*t);
+
+   if(config.cube_max_stage < 1)
+     return;
    static boost::thread_specific_ptr<std::ostringstream> tmpostr;
    static boost::thread_specific_ptr<boost::hash<std::string> > hash_fn;
 
@@ -122,11 +125,17 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   get_dimension_key(*t, current_levels, *tmpostr);
   DimensionKey key = tmpostr->str();
   size_t kh = (*hash_fn)(key);
+  if(config.cube_max_stage < 2)
+     return;
   processors[kh % processors.size()]->assign(t, key, current_levels);
 }
 
 void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, 
     boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc) {
+  if(config.cube_max_stage < 3)
+     return;
+
+
   bool in_batch = false;
 
   VLOG(2) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
