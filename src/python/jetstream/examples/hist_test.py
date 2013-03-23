@@ -65,7 +65,7 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("schedule_increment", options.schedule_increment);
     sender.set_cfg("unique_vals", options.unique_vals);
     sender.set_cfg("hist_size", options.hist_size);
-    sender.set_cfg("wait_per_batch", 4);
+    sender.set_cfg("wait_per_batch", 4000);
     sender.set_cfg("batches_per_window", 1);
     sender.instantiate_on(node)
     

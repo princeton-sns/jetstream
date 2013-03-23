@@ -508,7 +508,7 @@ AvgCongestLogger::report() {
       last_bytes = bytes_total;
       
       string maybe_h_stats = "";
-      if (hist_field >= 0)
+      if (hist_field >= 0 && tuples_in_interval > 0)
         maybe_h_stats = " avg hist size " + boost::lexical_cast<string>( hist_size_total / tuples_in_interval );
       
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
