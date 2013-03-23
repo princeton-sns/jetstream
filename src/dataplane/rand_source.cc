@@ -343,7 +343,7 @@ RandHistOperator::emit_1() {
   for (int i = 0; i < 22; ++i)
     lh.add_item(i*i, i + 10);
 
-  unsigned tuples_per_batch = tuples_per_sec * wait_per_batch;
+  unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
   while (tuples_sent++ < tuples_per_batch) {
     shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);

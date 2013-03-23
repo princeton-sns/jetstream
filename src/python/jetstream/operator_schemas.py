@@ -324,7 +324,7 @@ SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
 
-SCHEMA[OpType.DUMMY_RECEIVER] = lambda schema,cfg: None
+SCHEMAS[OpType.DUMMY_RECEIVER] = lambda schema,cfg: None
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]
 SCHEMAS[OpType.URLToDomain] = validate_URLToDomain
