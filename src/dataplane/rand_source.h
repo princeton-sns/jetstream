@@ -106,7 +106,7 @@ class RandHistOperator: public ThreadedSource {
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  RandHistOperator(): hist_size(200), wait_per_batch(1000),window(0), batches_per_window(1)
+  RandHistOperator(): hist_size(200), wait_per_batch(1000),window(0), batches_per_window(1),
     next_version_number(0), last_schedule_update(0) {}
 
   virtual bool emit_1();
