@@ -65,6 +65,8 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("schedule_increment", options.schedule_increment);
     sender.set_cfg("unique_vals", options.unique_vals);
     sender.set_cfg("hist_size", options.hist_size);
+    sender.set_cfg("wait_per_batch", 1);
+    sender.set_cfg("batches_per_window", 5);
     sender.instantiate_on(node)
     
     degrade = jsapi.DegradeSummary(g, 2)

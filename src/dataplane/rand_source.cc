@@ -287,6 +287,16 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("'hist_size' param should be a number, but '" + config["hist_size"] + "' is not.");
   }
 
+  if ((config["wait_per_batch"].length() > 0)  && !(stringstream(config["wait_per_batch"]) >> wait_per_batch)) {
+    return operator_err_t("'wait_per_batch' param should be a number, but '" + config["wait_per_batch"] + "' is not.");
+  }
+
+  if ((config["batches_per_window"].length() > 0)  && !(stringstream(config["batches_per_window"]) >> batches_per_window)) {
+    return operator_err_t("'batches_per_window' param should be a number, but '" + config["batches_per_window"] + "' is not.");
+  }
+  
+  
+
   schedule = false;
   if (config["rate"].length() == 0) {
     schedule = true;
@@ -345,7 +355,8 @@ RandHistOperator::emit_1() {
 
     emit(t);
   }
-  end_of_window(wait_per_batch);
+  if ( ++window % batches_per_window == 0)
+    end_of_window(wait_per_batch);
 
   js_usleep( 1000 * wait_per_batch);
   

@@ -48,14 +48,14 @@ def main():
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, 7 * 60)
+    bw_seq = smooth_seq(bw_seq, offset, 12 * 60)
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
     plot_bw(bw_seq, ax, leg_artists) 
 
     if ALIGN:
-      MAX_T = min(7 * 60, bw_seq[-1][0])
+      MAX_T = bw_seq[-1][0]
     else:
       MAX_T = max(bw_seq[-1][0])
       if len(time_to_tuples) > 0:
