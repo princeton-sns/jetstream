@@ -141,9 +141,9 @@ def deploy_or_dummy(options, server, g):
   print "Job has %d cubes and %d operators." % (cubes, ops)
 
 
-def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog):
+def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog, interval=100):
   #time tuple-index and host tuple-index, 
-  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, tti, hti, interval_ms=100)
+  latency_measure_op = jsapi.LatencyMeasureSubscriber(g, tti, hti, interval_ms=interval)
   latency_measure_op.instantiate_on(root_node)
   echo_op = jsapi.Echo(g);
   echo_op.set_cfg("file_out", latencylog)

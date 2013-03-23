@@ -22,6 +22,7 @@ def main():
   parser.add_option("--schedule_increment", dest="schedule_increment", default = "10")
   parser.add_option("--unique_vals", dest="unique_vals", default = "100")
   parser.add_option("--hist_size", dest="hist_size", default = "200")
+  parser.add_option("--latency_interval_ms", dest="latency_interval_ms", default = "5000")
 
 
   (options, args) = parser.parse_args()
@@ -54,7 +55,7 @@ def get_graph(source_nodes, root_node, options):
   
   g.chain([congest_logger, central_cube] )
 
-  add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog)
+  add_latency_measure(g, central_cube, root_node, tti=3, hti=4, latencylog= options.latencylog, interval=options.latency_interval_ms)
 
 
   for node, i in numbered(source_nodes):
