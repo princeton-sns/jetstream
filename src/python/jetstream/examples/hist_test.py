@@ -20,6 +20,7 @@ def main():
   parser.add_option("--schedule_start", dest="schedule_start", default = "400")
   parser.add_option("--schedule_wait", dest="schedule_wait", default = "20000")
   parser.add_option("--schedule_increment", dest="schedule_increment", default = "10")
+  parser.add_option("--unique_vals", dest="unique_vals", default = "100")
 
 
   (options, args) = parser.parse_args()
@@ -60,6 +61,7 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("schedule_start", options.schedule_start);
     sender.set_cfg("schedule_wait", options.schedule_wait);
     sender.set_cfg("schedule_increment", options.schedule_increment);
+    sender.set_cfg("unique_vals", options.unique_vals);
     sender.instantiate_on(node)
     
     degrade = jsapi.DegradeSummary(g, 2)

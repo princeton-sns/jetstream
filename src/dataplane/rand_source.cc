@@ -278,6 +278,11 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
   }
 
+  unique_vals = 100;
+  if ((config["unique_vals"].length() > 0)  && !(stringstream(config["unique_vals"]) >> unique_vals)) {
+    return operator_err_t("'unique_vals' param should be a number, but '" + config["unique_vals"] + "' is not.");
+  }
+
   schedule = false;
   if (config["rate"].length() == 0) {
     schedule = true;
@@ -309,7 +314,6 @@ bool
 RandHistOperator::emit_1() {
 
 
-  int dim_vals = 10;
   time_t now = time(NULL);
 
   unsigned tuples_sent = 0;
@@ -328,7 +332,7 @@ RandHistOperator::emit_1() {
   while (tuples_sent++ < tuples_per_sec) {
     shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
-    extend_tuple(*t, int32_t(tuples_sent % dim_vals));
+    extend_tuple(*t, int32_t(tuples_sent % unique_vals));
     JSSummary * s = t->add_e()->mutable_summary();
     
     lh.serialize_to(*s);

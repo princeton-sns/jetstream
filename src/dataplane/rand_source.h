@@ -100,6 +100,7 @@ class RandHistOperator: public ThreadedSource {
   unsigned schedule_increment;
   unsigned schedule_wait; 
   msec_t last_schedule_update;
+  unsigned unique_vals;
   
 
  public:
