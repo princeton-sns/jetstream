@@ -40,6 +40,26 @@ LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
 }
 
 jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+  
+  process_c(update);
+
+  return SEND;
+}
+
+void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
+    boost::shared_ptr<jetstream::Tuple> const &new_value) {
+  lock_guard<boost::mutex> critical_section (lock);
+  string hostname = update->e(hostname_tuple_index).s_val();
+  map<int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
+  map<int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
+  double tuple_time_ms = update->e(time_tuple_index).d_val();
+
+  make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_after_ms);
+}
+
+
+void
+LatencyMeasureSubscriber::process_c(boost::shared_ptr<const Tuple> update) {
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
   map<int, unsigned int> &bucket_map_rt = stats_before_rt[hostname];
@@ -49,29 +69,8 @@ jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(bo
   if(bucket_map_rt.empty()) {
     start_time_ms = get_usec()/1000;
   }
-
   make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_before_ms);
-
-  return SEND;
-}
-
-void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
-    boost::shared_ptr<jetstream::Tuple> const &new_value) {
-  process(update);
-}
-
-
-void
-LatencyMeasureSubscriber::process(boost::shared_ptr<Tuple> update) {
-
-  lock_guard<boost::mutex> critical_section (lock);
-  string hostname = update->e(hostname_tuple_index).s_val();
-  map<int, unsigned int> &bucket_map_rt = stats_after_rt[hostname];
-  map<int, unsigned int> &bucket_map_skew = stats_after_skew[hostname];
-  double tuple_time_ms = update->e(time_tuple_index).d_val();
-
-  make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_after_ms);
-
+  
 }
 
 void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
