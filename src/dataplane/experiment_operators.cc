@@ -464,20 +464,23 @@ AvgCongestLogger::start() {
 
 void
 AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
-  boost::lock_guard<boost::mutex> lock (mutex);
-  tuples_in_interval ++;
-  if (field >= 0) {
-    LOG_IF(FATAL, t->e_size() <= field) << "no such field " << field<< ". Got "
-      << fmt(*t) << ".";
-    count_tally += t->e(field).i_val();
-  }
-
-  if (hist_field >= 0) {
-    LOG_IF(FATAL, t->e_size() <= hist_field) << "no such field " << hist_field<< ". Got "
-      << fmt(*t) << ".";
-    hist_size_total += t->e(hist_field).summary().histo().bucket_vals_size();
-  }
   
+  {
+    boost::lock_guard<boost::mutex> lock (mutex);
+    tuples_in_interval ++;
+    if (field >= 0) {
+      LOG_IF(FATAL, t->e_size() <= field) << "no such field " << field<< ". Got "
+        << fmt(*t) << ".";
+      count_tally += t->e(field).i_val();
+    }
+
+    if (hist_field >= 0) {
+      LOG_IF(FATAL, t->e_size() <= hist_field) << "no such field " << hist_field<< ". Got "
+        << fmt(*t) << ".";
+      hist_size_total += t->e(hist_field).summary().histo().bucket_vals_size();
+    }
+    //release lock here
+  }
   
   emit(t);
 }
