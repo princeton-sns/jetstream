@@ -38,6 +38,7 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual void process(boost::shared_ptr<Tuple> t) {
       process_c(t);
+      emit(t);
     }
     void process_c(boost::shared_ptr<const Tuple>);
 
