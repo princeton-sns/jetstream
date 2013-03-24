@@ -33,16 +33,18 @@ def main():
                   help="output file name", default="bw_over_time_e1")
   parser.add_option("-l", "--latency", dest="latency",
                   help="latency file name")
-
+  parser.add_option("-b", "--baseline", dest="baseline",
+                  help="baseline file name")
+  
   (options, args) = parser.parse_args()
-
 
 
   leg_artists = []
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
-  deg_label = "Degradation ratio" if PLOT_LAT else "'Avg window size (secs)'"
+  deg_label = "Degradation ratio" if PLOT_LAT else "Avg window size (secs)"
   EXP_MINUTES = 25 if PLOT_LAT else 7
+  
   
   for infile in args:
  
@@ -54,7 +56,7 @@ def main():
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
-    plot_bw(bw_seq, ax, leg_artists) 
+    plot_bw(bw_seq, ax, leg_artists, "b.-") 
 
     if ALIGN:
       MAX_T = bw_seq[-1][0]
@@ -64,9 +66,18 @@ def main():
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
     level_transitions = to_line(level_transitions, offset, MAX_T)
-    plot_degradation(level_transitions, ax, leg_artists, deg_label)
+    plot_degradation(level_transitions, ax, leg_artists, deg_label, "k-")
 
-  finish_plots(figure, ax, leg_artists, options.outfile, ["Bandwidth", "Degradation"])
+  if options.baseline is not None:
+    time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
+    offset = get_offset(time_to_bw)
+    bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
+    plot_bw(bw_seq, ax, leg_artists, "b--")   
+
+
+  finish_plots(figure, ax, leg_artists, options.outfile,  \
+      ["Bandwidth", "Degradation", "Bandwidth (no degradation)"])
   
   if options.latency:
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
@@ -136,7 +147,7 @@ def smooth_seq(my_seq, offset, max_len, window=10):
       break
   return res
 
-def plot_bw(bw_seq, ax, leg_artists):
+def plot_bw(bw_seq, ax, leg_artists, line_fmt):
   time_data = []
   bw = []
   for tm, bytes, in bw_seq:
@@ -146,10 +157,10 @@ def plot_bw(bw_seq, ax, leg_artists):
 
   MAX_Y = max(bw)
   
-  ax.set_ylim( 0, 1.2 *  MAX_Y)  
+  ax.set_ylim( 0, 1.3 *  MAX_Y)  
   
   plt.tick_params(axis='both', which='major', labelsize=16)
-  bw_line, = ax.plot_date(time_data, bw, "b.-", label="BW") 
+  bw_line, = ax.plot_date(time_data, bw, line_fmt, label="BW") 
   ax.set_xlabel('Time', fontsize=22)  
   ax.set_ylabel('Bandwidth (kbits/sec)', fontsize=22)
   leg_artists.append( bw_line )
@@ -184,12 +195,12 @@ def to_line(level_transitions, min_time, max_time):
   revised.append ( (max_time, last_level))
   return revised
   
-def plot_degradation(level_transitions, old_ax, leg_artists, deg_label):
+def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt="k-"):
 
   ax = old_ax.twinx()
   time_data = [datetime.datetime.fromtimestamp(t) for t,l in level_transitions]
   lev_data = [l for t,l in level_transitions]
-  deg_line, = ax.plot_date(time_data, lev_data, "k-") 
+  deg_line, = ax.plot_date(time_data, lev_data, line_fmt) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
   ax.set_ylim( 0, 30)  
  
@@ -263,12 +274,12 @@ def get_latencies_over_time(infile, offset, min_time, max_time, QUANTILE = 0.5):
   
   return ts_to_quant
   
-def plot_latencies(lat_series, old_ax, leg_artists):
+def plot_latencies(lat_series, old_ax, leg_artists, line_fmt="k-"):
   print "plotting latency data"
   ax = old_ax.twinx()
   time_data = [datetime.datetime.fromtimestamp(t) for t,l in lat_series]
   latency_data = [l for t,l in lat_series]
-  line, = ax.plot_date(time_data, latency_data, "k-") 
+  line, = ax.plot_date(time_data, latency_data, line_fmt) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
   ax.set_ylim( 0, max(latency_data) *1.2)  
  

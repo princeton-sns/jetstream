@@ -26,7 +26,7 @@ def main():
 #  print data
 
   plot_cdf(data)
-
+#  plot_overall_latencies(data)
 
 def parse_infile(infile):
   f = open(infile, 'r')
@@ -92,7 +92,7 @@ def plot_cdf(data):
 
   plt.ylim((0, 100)) 
   
-  min_bucket =  min([bucket for bucket, cum in zip(sorted(latency_to_count_after.keys()), after_vals_cum) if cum > 99])
+  min_bucket =  min([bucket for bucket, cum in zip(sorted(latency_to_count_after.keys()), after_vals_cum) if cum > 99.8])
   print "min bucket is %d" % min_bucket
   plt.xlim( (0, min_bucket) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
   ax.grid(True)
@@ -102,14 +102,15 @@ def plot_cdf(data):
   before_plot = ax.plot(sorted(latency_to_count_before.keys()), before_vals_cum, color='r')    
   after_plot = ax.plot(sorted(latency_to_count_after.keys()), after_vals_cum, color='y')    
   
-  ax.legend( (before_plot[0], after_plot[0]), ('Before DB', 'After DB') )
+  ax.legend( (before_plot[0], after_plot[0]), ('Before DB', 'After DB'),\
+   loc="upper left" )
   plt.ylabel('CDF of Tuples', fontsize=24)
   plt.xlabel('Latency (MS)', fontsize=24)
   plt.tick_params(axis='both', which='major', labelsize=16)
 
 
   if OUT_TO_FILE:
-      plt.savefig("latency_distrib.pdf")
+      plt.savefig("latency_distrib_cdf.pdf")
       plt.close(fig)  
 
 def quantile(values, total, q):
