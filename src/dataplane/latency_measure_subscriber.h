@@ -24,6 +24,8 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
 
+    virtual void start();
+
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
 

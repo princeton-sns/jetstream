@@ -12,7 +12,7 @@ using namespace boost;
 
 
 void
-ThreadedSubscriber::start() {
+LatencyMeasureSubscriber::start() {
   //overwrite to handle n-cube case
   if (!has_cube()) {
     running = true;
