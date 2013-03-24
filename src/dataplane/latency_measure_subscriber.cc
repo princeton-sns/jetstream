@@ -11,6 +11,22 @@ using namespace jetstream;
 using namespace boost;
 
 
+void
+ThreadedSubscriber::start() {
+  //overwrite to handle n-cube case
+  if (!has_cube()) {
+    running = true;
+    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+    return;
+  }
+
+  running = true;
+  querier.set_cube(cube);
+  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+}
+
+
+
 operator_err_t
 LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
 
