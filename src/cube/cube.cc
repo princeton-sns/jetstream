@@ -117,8 +117,10 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
    if (!tmpostr.get())
     tmpostr.reset(new std::ostringstream());
    if(!hash_fn.get())
-    hash_fn.reset(new boost::hash<std::string>());
-
+   {
+     LOG(INFO) << "Using thread in process thread_id is: " << boost::this_thread::get_id();
+     hash_fn.reset(new boost::hash<std::string>());
+   }
   if(config.cube_max_stage > 4)
     processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
