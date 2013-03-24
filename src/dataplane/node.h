@@ -28,6 +28,7 @@ class Node {
  private:
   NodeConfig config;
   boost::shared_ptr<boost::asio::io_service> iosrv;
+  boost::asio::io_service::work iosrv_work; 
   boost::shared_ptr<ConnectionManager> connMgr;
   LivenessManager livenessMgr;
   NodeWebInterface  webInterface;

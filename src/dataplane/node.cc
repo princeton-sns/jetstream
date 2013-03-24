@@ -19,6 +19,7 @@ bool PRINT_STATS = false;
 Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   : config (conf),
     iosrv (new asio::io_service()),
+    iosrv_work(*iosrv),
     connMgr (new ConnectionManager(iosrv)),
     livenessMgr (iosrv, config),
     webInterface (conf.dataplane_ep.first, conf.webinterface_port, *this),
@@ -31,7 +32,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   LOG(INFO) << "creating node" << endl;
 
   // Set up the network connection
-  asio::io_service::work work(*iosrv);
+  //asio::io_service::work work(*iosrv);
 
   if (conf.heartbeat_time > 0) {
     // XXX Can't dynamically modify heartbeat_time. Pass pointer to config?
