@@ -20,7 +20,7 @@ SeqToRatio::process(boost::shared_ptr<Tuple> t) {
   else if ( cur_url != t->e(url_field).s_val()) {
     if (targ_el) {
       Element * ratio = targ_el->add_e();
-      ratio->set_d_val( numeric(targ_el, total_field) / total_val);
+      ratio->set_d_val(jetstream::numeric(targ_el, total_field) / total_val);
       emit(targ_el);
     }
     // else shouldn't happen; there should have been at least match
@@ -28,7 +28,7 @@ SeqToRatio::process(boost::shared_ptr<Tuple> t) {
     total_val = 0;
   }  
 
-  total_val += numeric(t, total_field);
+  total_val += jetstream::numeric(t, total_field);
   int response_code = t->e(respcode_field).i_val();
 
   if (response_code == 200 || !targ_el) {

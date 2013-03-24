@@ -709,7 +709,7 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
 
 void
 GreaterThan::process (boost::shared_ptr<Tuple> t) {
-  double val = numeric(t, field_id);
+  double val = jetstream::numeric(t, field_id);
   if (val > bound)
     emit(t);
 }
@@ -749,8 +749,8 @@ IEqualityFilter::configure (std::map<std::string,std::string> &config) {
 
 void
 RatioFilter::process (boost::shared_ptr<Tuple> t) {
-  double denom = numeric(t, denom_field_id);
-  double numer = numeric(t, numer_field_id);
+  double denom = jetstream::numeric(t, denom_field_id);
+  double numer = jetstream::numeric(t, numer_field_id);
   
 //  cout << "ratio was " << (numer/denom) << endl;
   if ( denom == 0 ||  numer / denom > bound)
