@@ -36,6 +36,7 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual void operator()();  // A thread that will loop
 
+    virtual void process(boost::shared_ptr<Tuple>);
 
   protected:
     unsigned int time_tuple_index;

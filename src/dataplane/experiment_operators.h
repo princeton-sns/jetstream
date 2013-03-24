@@ -29,7 +29,6 @@ class DummyReceiver: public DataPlaneOperator {
   }
  
   virtual operator_err_t configure (std::map<std::string, std::string> & config){
-    store = true;
     if (config["no_store"].length() > 0)
       store=false;
     return NO_ERR;
@@ -49,6 +48,7 @@ class DummyReceiver: public DataPlaneOperator {
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   
   virtual ~DummyReceiver() {}
+  DummyReceiver(): store(true) {}
 
 
 GENERIC_CLNAME

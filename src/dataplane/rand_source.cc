@@ -169,8 +169,8 @@ RandSourceOperator::emit_1()  {
     t->set_version(next_version_number++);
     emit(t);
   }
-  js_usleep( 1000 * wait_per_batch);
   end_of_window(wait_per_batch);
+  js_usleep( 1000 * wait_per_batch);
 
   return false; //keep running indefinitely
 }

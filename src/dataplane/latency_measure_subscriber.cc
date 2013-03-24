@@ -57,6 +57,12 @@ jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(bo
 
 void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
     boost::shared_ptr<jetstream::Tuple> const &new_value) {
+  process(update);
+}
+
+
+void
+LatencyMeasureSubscriber::process(boost::shared_ptr<Tuple> update) {
 
   lock_guard<boost::mutex> critical_section (lock);
   string hostname = update->e(hostname_tuple_index).s_val();
@@ -65,6 +71,7 @@ void LatencyMeasureSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> c
   double tuple_time_ms = update->e(time_tuple_index).d_val();
 
   make_stats(tuple_time_ms, bucket_map_rt, bucket_map_skew, max_seen_tuple_after_ms);
+
 }
 
 void  LatencyMeasureSubscriber::post_update(boost::shared_ptr<jetstream::Tuple> const &update,

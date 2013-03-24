@@ -170,10 +170,11 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
   
   unsigned int total = op.emitted_count();
   cout << "source stopped after emitting " << total << endl;
+  EXPECT_EQ(total, extend->emitted_count());
 
   EXPECT_EQ(total, receiver->tuples.size());
   time_t now = time(NULL);
-  for (unsigned int i = 0; i < total; ++i){
+  for (unsigned int i = 0; i < receiver->tuples.size(); ++i){
     boost::shared_ptr<Tuple> t = receiver->tuples[i];
     t->mutable_e(1)->set_t_val(now);
     eval->process(t);
