@@ -120,9 +120,15 @@ def parse_log(infile, PLOT_LAT):
 #       fields = ln.split(" ")
 #       ts, count = long(fields[-6]), int(fields[-3])     
 #       time_to_tuples.append (  (ts, count) )
-       
-  BASE_H = level_transitions[0][1]
-  level_transitions = [(ts, BASE_H * 1000 /l) for (ts,l) in level_transitions]
+
+  if PLOT_LAT:  #really means "we are doing hist experiment
+    BASE_H = level_transitions[0][1]
+#    level_transitions = [(ts, (BASE_H - l) * 1000  ) for (ts,l) in level_transitions]
+    level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
+  else:
+    level_transitions = [(ts, l / 1000 ) for (ts,l) in level_transitions]
+  
+
   f.close()
   if len(hist_sizes) > 0:
     return time_to_bw,time_to_tuples, hist_sizes
@@ -184,16 +190,16 @@ def  plot_src_tuples(time_to_count, ax, leg_artists):
   
 
 def to_line(level_transitions, min_time, max_time):
-  last_level = 1
+  last_level = level_transitions[0][1]
   revised = [(0, last_level)]
   for  (t, lev) in level_transitions:
     if t - min_time > max_time:
       break
-    lev = float(lev) / 1000
+    lev = float(lev)
     revised.append ( (t-1 - min_time, last_level))
     revised.append ( (t - min_time, lev ))
     last_level = lev 
-  print "would be appending",(max_time, last_level), " to " ,revised[-1]
+#  print "would be appending",(max_time, last_level), " to " ,revised[-1]
   revised.append ( (max_time, last_level))
   return revised
   
@@ -204,7 +210,7 @@ def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt
   lev_data = [l for t,l in level_transitions]
   deg_line, = ax.plot_date(time_data, lev_data, line_fmt) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
-  ax.set_ylim( 0, 30)  
+  ax.set_ylim( 0, max(lev_data) * 2)  
  
   ax.set_ylabel(deg_label, fontsize=22)
   leg_artists.append( deg_line )

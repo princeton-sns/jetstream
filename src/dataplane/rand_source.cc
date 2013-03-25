@@ -331,8 +331,8 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 bool
 RandHistOperator::emit_1() {
 
-
-  time_t now = time(NULL);
+  msec_t start_t = get_msec();
+  time_t now = start_t / 1000 ;
 
   unsigned tuples_sent = 0;
 
@@ -361,15 +361,18 @@ RandHistOperator::emit_1() {
 
     emit(t);
   }
+  msec_t end_t = get_msec();
+  msec_t running_time = (end_t+10) - start_t;
+  if (running_time > wait_per_batch / 2) {
+    LOG_FIRST_N(WARNING, 10) << "Took " << running_time << " to send; exceeds half of wait-per-batch";
+  }
+  if (running_time > wait_per_batch)
+    LOG(FATAL) << "Generation took way to long "<< running_time << " should be under "<< wait_per_batch;
+
   if ( ++window % batches_per_window == 0)
     end_of_window(wait_per_batch * batches_per_window);
 
-  msec_t taken_msec = (get_msec()+10)-start_msec;
-  if (taken_msec > wait_per_batch)
-    LOG(FATAL) << "Generation took way to long "<< taken_msec << " should be under "<< wait_per_batch; 
-  msec_t wait_msec = wait_per_batch - taken_msec;
-  js_usleep( 1000 * wait_msec);
-  
+  js_usleep( 1000 * (wait_per_batch - running_time) );
 
   return false; //keep running indefinitely
 }
