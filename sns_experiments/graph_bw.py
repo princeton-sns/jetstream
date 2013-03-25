@@ -13,6 +13,7 @@ from optparse import OptionParser
 
 OUT_TO_FILE = True
 ALIGN = True
+SAMPLE = True
 
 import matplotlib
 if OUT_TO_FILE:
@@ -107,8 +108,14 @@ def parse_log(infile, PLOT_LAT):
         print str(e),ln
         sys.exit(0)
     if 'avg hist size' in ln:
-        h_size = int(ln.split(" ")[-1])
-        level_transitions.append (  (ts, h_size) )
+        if not SAMPLE:
+          h_size = int(ln.split(" ")[-5])
+          level_transitions.append (  (ts, h_size) )
+        else:
+          h_size = float(ln.split(" ")[-1])
+          level_transitions.append (  (ts, h_size) )
+
+
         
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
@@ -124,7 +131,10 @@ def parse_log(infile, PLOT_LAT):
   if PLOT_LAT:  #really means "we are doing hist experiment
     BASE_H = level_transitions[0][1]
 #    level_transitions = [(ts, (BASE_H - l) * 1000  ) for (ts,l) in level_transitions]
-    level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
+    if not SAMPLE:
+      level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
+    #else
+      #level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
   else:
     level_transitions = [(ts, l / 1000 ) for (ts,l) in level_transitions]
   
