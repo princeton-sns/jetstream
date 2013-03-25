@@ -170,7 +170,7 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
   
   unsigned int total = op.emitted_count();
   cout << "source stopped after emitting " << total << endl;
-  EXPECT_EQ(total, extend->emitted_count());
+  EXPECT_EQ(total, (unsigned int)extend->emitted_count());
 
   EXPECT_EQ(total, receiver->tuples.size());
   time_t now = time(NULL);

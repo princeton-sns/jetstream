@@ -348,6 +348,7 @@ RandHistOperator::emit_1() {
     lh.add_item(i*i, i + 10);
 
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
+  msec_t start_msec = get_msec();
   while (tuples_sent++ < tuples_per_batch) {
     shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
@@ -363,7 +364,11 @@ RandHistOperator::emit_1() {
   if ( ++window % batches_per_window == 0)
     end_of_window(wait_per_batch * batches_per_window);
 
-  js_usleep( 1000 * wait_per_batch);
+  msec_t taken_msec = (get_msec()+10)-start_msec;
+  if (taken_msec > wait_per_batch)
+    LOG(FATAL) << "Generation took way to long "<< taken_msec << " should be under "<< wait_per_batch; 
+  msec_t wait_msec = wait_per_batch - taken_msec;
+  js_usleep( 1000 * wait_msec);
   
 
   return false; //keep running indefinitely
