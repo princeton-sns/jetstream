@@ -283,6 +283,8 @@ class AvgCongestLogger: public DataPlaneOperator {
 
  private:
   std::map<operator_id_t, unsigned> window_for;
+  std::map<operator_id_t, double> sample_lev_for;
+
   boost::mutex mutex;
   volatile bool running;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
