@@ -362,6 +362,9 @@ RandHistOperator::emit_1() {
   }
   msec_t end_t = get_msec();
   msec_t running_time = end_t - start_t;
+  if (running_time > wait_per_batch / 2) {
+    LOG_FIRST_N(WARNING, 10) << "Took " << running_time << " to send; exceeds half of wait-per-batch";
+  }
   if ( ++window % batches_per_window == 0)
     end_of_window(wait_per_batch * batches_per_window);
 
