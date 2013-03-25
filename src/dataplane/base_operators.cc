@@ -521,7 +521,7 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
   istringstream(config["fraction"]) >> frac_to_drop;
   threshold = frac_to_drop * numeric_limits<uint32_t>::max();
 
-  if( !istringstream(config["hash_field"]) >> hash_field) {
+  if( !(stringstream(config["hash_field"]) >> hash_field)) {
     return operator_err_t("hash_field must be an int");
   }
   if(config["hash_type"].length() < 1) {
