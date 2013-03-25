@@ -366,7 +366,10 @@ RandHistOperator::generate() {
     }
 
     if(queue.size() > 10*tuples_per_batch)
-      js_usleep(1000000);
+    {
+       tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
+       js_usleep(1000000);
+    }
   }
 }
 
