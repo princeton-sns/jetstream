@@ -19,11 +19,15 @@ def main():
   parser.add_option("-r", "--rate", dest="rate",help="the rate to use per source (instead of rate schedule)")
   parser.add_option("--schedule_start", dest="schedule_start", default = "400")
   parser.add_option("--schedule_wait", dest="schedule_wait", default = "20000")
+  parser.add_option("--schedule_max", dest="schedule_max", default = "10000")
   parser.add_option("--schedule_increment", dest="schedule_increment", default = "10")
   parser.add_option("--unique_vals", dest="unique_vals", default = "100")
   parser.add_option("--hist_size", dest="hist_size", default = "200")
   parser.add_option("--latency_interval_ms", dest="latency_interval_ms", default = "5000")
   parser.add_option("--no_cube", dest="no_cube", action="store_true", default=False)
+  parser.add_option("--degradation_step_count", dest="degradation_step_count", default="10")
+  parser.add_option("--degradation_min_ratio", dest="degradation_min_ratio", default="0.1")
+
 
 
   (options, args) = parser.parse_args()
@@ -70,6 +74,7 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("schedule_start", options.schedule_start);
     sender.set_cfg("schedule_wait", options.schedule_wait);
     sender.set_cfg("schedule_increment", options.schedule_increment);
+    sender.set_cfg("schedule_max", options.schedule_max);
     sender.set_cfg("unique_vals", options.unique_vals);
     sender.set_cfg("hist_size", options.hist_size);
     sender.set_cfg("wait_per_batch", 4000);
@@ -77,6 +82,8 @@ def get_graph(source_nodes, root_node, options):
     sender.instantiate_on(node)
     
     degrade = jsapi.DegradeSummary(g, 2)
+    degrade.set_cfg("step_count", options.degradation_step_count);
+    degrade.set_cfg("min_ratio", options.degradation_min_ratio);
     degrade.instantiate_on(node)
     
     timestamp_op= jsapi.TimestampOperator(g, "ms")

@@ -101,6 +101,7 @@ class RandHistOperator: public ThreadedSource {
   bool schedule;
   unsigned schedule_increment;
   unsigned schedule_wait; 
+  unsigned schedule_max; 
   msec_t last_schedule_update;
   unsigned unique_vals;
 
