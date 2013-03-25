@@ -385,10 +385,16 @@ RandHistOperator::emit_1() {
   }
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
   while (tuples_sent++ < tuples_per_batch) {
-    boost::unique_lock<boost::mutex> lock(internals);
-    shared_ptr<Tuple> t = queue.front();
-    queue.pop();
-    emit(t);
+    while(queue.size()<1)
+    {
+      js_usleep(100);
+    }
+    {
+      boost::unique_lock<boost::mutex> lock(internals);
+      shared_ptr<Tuple> t = queue.front();
+      queue.pop();
+      emit(t);
+    }
   }
   msec_t end_t = get_msec();
   msec_t running_time = (end_t+10) - start_t;
