@@ -43,7 +43,7 @@ def main():
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
   deg_label = "Degradation ratio" if PLOT_LAT else "Avg window size (secs)"
-  EXP_MINUTES = 25 if PLOT_LAT else 7
+  EXP_MINUTES = 40 if PLOT_LAT else 7
   
   
   for infile in args:
@@ -52,7 +52,7 @@ def main():
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 20)
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
@@ -85,6 +85,7 @@ def main():
     
 
 USE_BW_REP = False
+BASE_H = 1000
 def parse_log(infile, PLOT_LAT):
   time_to_bw = {}
   level_transitions = []
@@ -107,7 +108,7 @@ def parse_log(infile, PLOT_LAT):
         sys.exit(0)
     if 'avg hist size' in ln:
         h_size = int(ln.split(" ")[-1])
-        level_transitions.append (  (ts, 200000 / h_size) )
+        level_transitions.append (  (ts, BASE_H * 1000 / h_size) )
         
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
@@ -221,7 +222,7 @@ def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time):
     figure, ax = plt.subplots()
     leg_artists = []
 
-    plot_bw(time_to_bw, ax, leg_artists) 
+    plot_bw(time_to_bw, ax, leg_artists, "b.-") 
     plot_latencies(lat_series, ax, leg_artists)
     finish_plots(figure, ax, leg_artists, options.outfile + "_latencies", ["Bandwidth", "Latency"])
 

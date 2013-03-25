@@ -107,8 +107,9 @@ def plot_error(all_data):
     plt.axis([0, max(x_vals) + 10, 0, 2 * maxy])
     plt.ylabel("Relative Error", fontsize=18) 
     plt.xlabel("Summary size kb", fontsize=18)   
-
-    for (summary_name,y_vals_map),symb in zip(y_vals_for.items(), symbols):
+    summaries_in_order = ["sketch", "sample", "histogram"]
+    for summary_name,symb in zip(summaries_in_order, symbols):
+      y_vals_map = y_vals_for[summary_name]
       y_vals = [y_vals_map[x] for x in x_vals]
       y_errs = [ [y_errbars_for[summary_name][x][min_or_max] for x in x_vals] for min_or_max in [0,1]] # for min/max errs
 #      y_errs = [y_errbars_for[summary_name][x] for x in x_vals]
