@@ -327,8 +327,8 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 bool
 RandHistOperator::emit_1() {
 
-
-  time_t now = time(NULL);
+  msec_t start_t = get_msec();
+  time_t now = start_t / 1000 ;
 
   unsigned tuples_sent = 0;
 
@@ -356,10 +356,12 @@ RandHistOperator::emit_1() {
 
     emit(t);
   }
+  msec_t end_t = get_msec();
+  msec_t running_time = end_t - start_t;
   if ( ++window % batches_per_window == 0)
     end_of_window(wait_per_batch * batches_per_window);
 
-  js_usleep( 1000 * wait_per_batch);
+  js_usleep( 1000 * (wait_per_batch - running_time) );
   
 
   return false; //keep running indefinitely
