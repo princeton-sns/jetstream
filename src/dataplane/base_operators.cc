@@ -484,7 +484,7 @@ HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
     case 'I': {
       int val = e.i_val();
       hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
-      LOG_FIRST_N(INFO, 20)<< "Sanity check val "<< val << " hash " << hashval << " threshold " << boost::interprocess::ipcdetail::atomic_read32(&threshold) << " tuple " << fmt(*t);
+      //LOG_FIRST_N(INFO, 20)<< "Sanity check val "<< val << " hash " << hashval << " threshold " << boost::interprocess::ipcdetail::atomic_read32(&threshold) << " tuple " << fmt(*t);
       break;
     }
     case 'D': {
