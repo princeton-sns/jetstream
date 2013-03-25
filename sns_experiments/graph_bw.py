@@ -120,9 +120,10 @@ def parse_log(infile, PLOT_LAT):
 #       fields = ln.split(" ")
 #       ts, count = long(fields[-6]), int(fields[-3])     
 #       time_to_tuples.append (  (ts, count) )
-       
-  BASE_H = level_transitions[0][1]
-  level_transitions = [(ts, BASE_H * 1000 /l) for (ts,l) in level_transitions]
+
+  if PLOT_LAT:  #really means "we are doing hist experiment
+    BASE_H = level_transitions[0][1]
+    level_transitions = [(ts, BASE_H * 1000 /l) for (ts,l) in level_transitions]
   f.close()
   if len(hist_sizes) > 0:
     return time_to_bw,time_to_tuples, hist_sizes
