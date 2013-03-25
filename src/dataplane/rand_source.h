@@ -9,6 +9,7 @@
 // #include <boost/thread/thread.hpp>
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/shared_ptr.hpp>
 #include <glog/logging.h>
 
 namespace jetstream {
@@ -90,7 +91,12 @@ class RandHistOperator: public ThreadedSource {
  private:
 //  const static int DEFAULT_BATCH_SIZE = 50;
 //  int BATCH_SIZE;
- 
+
+
+  mutable boost::mutex internals;
+  std::queue<boost::shared_ptr<Tuple> > queue;
+
+
   int hist_size;
   unsigned tuples_per_sec;
   unsigned wait_per_batch;
@@ -109,6 +115,9 @@ class RandHistOperator: public ThreadedSource {
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   RandHistOperator(): hist_size(200), wait_per_batch(1000),window(0), batches_per_window(1),
     next_version_number(0), last_schedule_update(0) {}
+
+  void generate();
+  virtual void start();
 
   virtual bool emit_1();
 

@@ -328,36 +328,66 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 */
 }
 
+void
+RandHistOperator::start() {
+  ThreadedSource::start();
+  //boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&RandHistOperator::generate, this)));
+  new boost::thread(boost::bind(&RandHistOperator::generate, this));
+  new boost::thread(boost::bind(&RandHistOperator::generate, this));
+  new boost::thread(boost::bind(&RandHistOperator::generate, this));
+
+}
+
+void
+RandHistOperator::generate() {
+
+  LogHistogram lh(hist_size);
+  for (int i = 0; i < 22; ++i)
+    lh.add_item(i*i, i + 10);
+  msec_t start_t = get_msec();
+  time_t now = start_t / 1000 ;
+
+  unsigned counter;
+  unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
+  while(running)
+  {
+    counter++;
+    shared_ptr<Tuple> t(new Tuple);
+    extend_tuple_time(*t, now);
+    extend_tuple(*t, int32_t(counter % unique_vals));
+    JSSummary * s = t->add_e()->mutable_summary();
+    
+    lh.serialize_to(*s);
+
+    {
+      boost::unique_lock<boost::mutex> lock(internals);
+      t->set_version(next_version_number++);
+      queue.push(t);
+    }
+
+    if(queue.size() > 10*tuples_per_batch)
+      js_usleep(1000000);
+  }
+}
+
 bool
 RandHistOperator::emit_1() {
 
   msec_t start_t = get_msec();
-  time_t now = start_t / 1000 ;
 
   unsigned tuples_sent = 0;
 
-  LogHistogram lh(hist_size);
-  
   msec_t now_msec = get_msec();
   if(schedule && now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < schedule_max){
     last_schedule_update = now_msec;
     tuples_per_sec += schedule_increment;
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
   }
-  for (int i = 0; i < 22; ++i)
-    lh.add_item(i*i, i + 10);
-
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
   while (tuples_sent++ < tuples_per_batch) {
-    shared_ptr<Tuple> t(new Tuple);
-    extend_tuple_time(*t, now);
-    extend_tuple(*t, int32_t(tuples_sent % unique_vals));
-    JSSummary * s = t->add_e()->mutable_summary();
-    
-    lh.serialize_to(*s);
-
-    t->set_version(next_version_number++);
-
+    boost::unique_lock<boost::mutex> lock(internals);
+    shared_ptr<Tuple> t = queue.front();
+    queue.pop();
     emit(t);
   }
   msec_t end_t = get_msec();
