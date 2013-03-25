@@ -82,19 +82,18 @@ VariableSamplingOperator::meta_from_upstream( const DataplaneMessage & msg,
   if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
 //    boost::lock_guard<boost::mutex> lock (mutex);
     int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
-        if (delta != 0) {
-      DataplaneMessage new_marker;
-      new_marker.CopyFrom(msg);
-      new_marker.set_filter_level(  steps[cur_step]);
+    if (delta != 0) {
   //    congest_policy->set_effect_delay(id(), msg.window_length_ms() * 2);
       cur_step += delta;
-      send_meta_downstream(new_marker);
       uint32_t thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
       atomic_write32(&threshold, thresh);
       LOG(INFO) << "hash-filtering will let through " <<
          100 * steps[cur_step] << "% of data";
-
     }
+    DataplaneMessage new_marker;
+    new_marker.CopyFrom(msg);
+    new_marker.set_filter_level(  steps[cur_step]);    
+    send_meta_downstream(new_marker);
   } else
     DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
   
