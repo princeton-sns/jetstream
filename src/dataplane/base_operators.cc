@@ -528,7 +528,7 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
     return operator_err_t("hash_type must be defined");
   } else
     hash_type = config["hash_type"][0];
-    LOG(INFO) << "Configured hashSample field " << hash_field <<" type "<< hash_type;
+    LOG(INFO) << "Configured hashSample field " << hash_field <<" ("<< config["hash_field"] <<") type "<< hash_type;
     return NO_ERR;
 }
 
