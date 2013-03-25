@@ -449,6 +449,9 @@ AvgCongestLogger::meta_from_upstream(const DataplaneMessage & msg, const operato
   if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
     boost::lock_guard<boost::mutex> lock (mutex);
     window_for[pred] = msg.window_length_ms();
+    
+    if (msg.has_filter_level())
+      sample_lev_for[pred] = msg.filter_level();
   }
   DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
 }
@@ -514,10 +517,21 @@ AvgCongestLogger::report() {
       if (hist_field >= 0 && tuples_in_interval > 0)
         maybe_h_stats = " avg hist size " + boost::lexical_cast<string>( hist_size_total / tuples_in_interval );
       
+      string maybe_sample_stats = "";
+      double total_sample_ratios = 0;
+      map<operator_id_t, double>::iterator sample_it = sample_lev_for.begin();
+      for ( ; sample_it != sample_lev_for.end(); ++sample_it) {
+        total_sample_ratios += sample_it->second;
+      }
+      
+      if (total_sample_ratios > 0)
+        maybe_sample_stats = " avg sample freq " +
+          boost::lexical_cast<string>(   total_sample_ratios / sample_lev_for.size() );
+      
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
       LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
-        << " Lifetime total count=" << count_tally << maybe_h_stats;
+        << " Lifetime total count=" << count_tally << maybe_h_stats << maybe_sample_stats;
       tuples_in_interval = 0;
       hist_size_total = 0;
       

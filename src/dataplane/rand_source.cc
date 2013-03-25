@@ -347,7 +347,7 @@ RandHistOperator::generate() {
   msec_t start_t = get_msec();
   time_t now = start_t / 1000 ;
 
-  unsigned counter;
+  unsigned counter = 0;
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
   while(running)
   {
