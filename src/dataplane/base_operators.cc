@@ -480,12 +480,11 @@ HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
 
   uint32_t hashval = 0;
   const Element& e = t->e(hash_field);
-  LOG_FIRST_N(INFO, 20)<< "Sanity check in HASH SAMPLE type "<< hash_type;
   switch(hash_type) {
     case 'I': {
       int val = e.i_val();
       hashval = jenkins_one_at_a_time_hash((char *) &val, sizeof(val));
-      LOG_FIRST_N(INFO, 20)<< "Sanity check val "<< val << " hash " << hashval << " threshold " << boost::interprocess::ipcdetail::atomic_read32(&threshold);
+      LOG_FIRST_N(INFO, 20)<< "Sanity check val "<< val << " hash " << hashval << " threshold " << boost::interprocess::ipcdetail::atomic_read32(&threshold) << " tuple " << t;
       break;
     }
     case 'D': {
