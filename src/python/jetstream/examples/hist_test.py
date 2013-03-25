@@ -27,6 +27,7 @@ def main():
   parser.add_option("--no_cube", dest="no_cube", action="store_true", default=False)
   parser.add_option("--degradation_step_count", dest="degradation_step_count", default="10")
   parser.add_option("--degradation_min_ratio", dest="degradation_min_ratio", default="0.1")
+  parser.add_option("--sample", dest="sample", action="store_true", default = False)
 
 
 
@@ -80,11 +81,16 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("wait_per_batch", 4000);
     sender.set_cfg("batches_per_window", 1);
     sender.instantiate_on(node)
-    
-    degrade = jsapi.DegradeSummary(g, 2)
-    degrade.set_cfg("step_count", options.degradation_step_count);
-    degrade.set_cfg("min_ratio", options.degradation_min_ratio);
-    degrade.instantiate_on(node)
+   
+    if not options.sample:
+      degrade = jsapi.DegradeSummary(g, 2)
+      degrade.set_cfg("step_count", options.degradation_step_count);
+      degrade.set_cfg("min_ratio", options.degradation_min_ratio);
+      degrade.instantiate_on(node)
+    else:
+      degrade = jsapi.VariableSampling(g, field=1, type='I')
+      degrade.instantiate_on(node)
+
     
     timestamp_op= jsapi.TimestampOperator(g, "ms")
     hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker

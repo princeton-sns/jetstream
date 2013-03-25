@@ -387,6 +387,7 @@ RandHistOperator::emit_1() {
   while (tuples_sent++ < tuples_per_batch) {
     while(queue.size()<1)
     {
+      LOG(INFO) << "Waiting on tuples";
       js_usleep(100);
     }
     {
