@@ -108,7 +108,7 @@ def parse_log(infile, PLOT_LAT):
         sys.exit(0)
     if 'avg hist size' in ln:
         h_size = int(ln.split(" ")[-1])
-        level_transitions.append (  (ts, BASE_H * 1000 / h_size) )
+        level_transitions.append (  (ts, h_size) )
         
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
@@ -121,7 +121,8 @@ def parse_log(infile, PLOT_LAT):
 #       ts, count = long(fields[-6]), int(fields[-3])     
 #       time_to_tuples.append (  (ts, count) )
        
-
+  BASE_H = level_transitions[0][1]
+  level_transitions = [(ts, BASE_H * 1000 /l) for (ts,l) in level_transitions]
   f.close()
   if len(hist_sizes) > 0:
     return time_to_bw,time_to_tuples, hist_sizes
