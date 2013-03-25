@@ -309,6 +309,10 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     if ((config["schedule_wait"].length() > 0)  && !(stringstream(config["schedule_wait"]) >> schedule_wait)) {
       return operator_err_t("'schedule_wait' param should be a number, but '" + config["schedule_wait"] + "' is not.");
     }
+    schedule_max = 10000;
+    if ((config["schedule_max"].length() > 0)  && !(stringstream(config["schedule_max"]) >> schedule_max)) {
+      return operator_err_t("'schedule_max' param should be a number, but '" + config["schedule_max"] + "' is not.");
+    }
     if ((config["schedule_start"].length() > 0)  && !(stringstream(config["schedule_start"]) >> tuples_per_sec)) {
       return operator_err_t("'schedule_start' param should be a number, but '" + config["schedule_start"] + "' is not.");
     }
@@ -335,7 +339,7 @@ RandHistOperator::emit_1() {
   LogHistogram lh(hist_size);
   
   msec_t now_msec = get_msec();
-  if(schedule && now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < 10000){
+  if(schedule && now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < schedule_max){
     last_schedule_update = now_msec;
     tuples_per_sec += schedule_increment;
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;

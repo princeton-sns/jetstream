@@ -163,8 +163,15 @@ DegradeSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
 
+
   unsigned step_count = 10;
+  if ((config["step_count"].length() > 0)  && !(stringstream(config["step_count"]) >> step_count)) {
+      return operator_err_t("'step_count' param should be a number, but '" + config["step_count"] + "' is not.");
+  }
   double min_ratio = 0.1;
+  if ((config["min_ratio"].length() > 0)  && !(stringstream(config["min_ratio"]) >> min_ratio)) {
+      return operator_err_t("'min_ratio' param should be a number, but '" + config["min_ratio"] + "' is not.");
+  }
 
   double step =  (1.0 - min_ratio) / (step_count -1);
   double ratio = min_ratio;
