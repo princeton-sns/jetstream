@@ -104,7 +104,7 @@ def get_graph(source_nodes, root_node, options):
     hostname_extend_op.instantiate_on(node)
   
 
-    if not options.no_degrade:
+    if not options.no_degrade and not options.degrade_at_source:
       g.chain( [sender, degrade, timestamp_op, hostname_extend_op, congest_logger])
     else:
       g.chain( [sender, timestamp_op, hostname_extend_op, congest_logger])
