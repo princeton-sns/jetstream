@@ -88,6 +88,7 @@ def main():
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     plot_bw(bw_seq, ax, leg_artists, "b--")   
+    LEGEND_LABELS.append("Bandwidth (no degradation)")    
     leg_artists.reverse()
     LEGEND_LABELS.reverse()
   finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS)
@@ -185,7 +186,7 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt):
 
   MAX_Y = max(bw)
   
-  ax.set_ylim( 0, 1.3 *  MAX_Y)  
+  ax.set_ylim( 0, 1.35 *  MAX_Y)  
   
   plt.tick_params(axis='both', which='major', labelsize=16)
   bw_line, = ax.plot_date(time_data, bw, line_fmt, label="BW") 
