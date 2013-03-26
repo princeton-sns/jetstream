@@ -88,16 +88,15 @@ def get_graph(source_nodes, root_node, options):
     sender.instantiate_on(node)
    
     if not options.no_degrade and not options.degrade_at_source:
-      if not options.sample:
+      if options.sample:
+        degrade = jsapi.VariableSampling(g, field=1, type='I')
+        degrade.set_cfg("debug_stage", options.sample_debug_stage)
+        degrade.instantiate_on(node)
+      else:
         degrade = jsapi.DegradeSummary(g, 2)
         degrade.set_cfg("step_count", options.degradation_step_count);
         degrade.set_cfg("min_ratio", options.degradation_min_ratio);
         degrade.instantiate_on(node)
-      else:
-        degrade = jsapi.VariableSampling(g, field=1, type='I')
-        degrade.set_cfg("debug_stage", options.sample_debug_stage)
-        degrade.instantiate_on(node)
-
     
     timestamp_op= jsapi.TimestampOperator(g, "ms")
     hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker
