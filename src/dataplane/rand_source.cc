@@ -434,8 +434,8 @@ void
 RandHistOperator::adapt() {
   if (levels.size() > 1) {
     int delta = congest_policy->get_step(id(), levels.data(), levels.size(), cur_level);
-    LOG(INFO)  << "Rand-hist source adjusting itself";
     cur_level += delta;
+    LOG(INFO)  << "Rand-hist source adjusting itself cur_level="<< cur_level<< " delta="<<delta;
   }
 }
 
