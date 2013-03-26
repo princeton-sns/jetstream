@@ -477,6 +477,11 @@ SampleOperator::configure (std::map<std::string,std::string> &config) {
 
 void
 HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
+  if(debug_stage < 2)
+  {
+    emit(t);
+    return;
+  }
 
   uint32_t hashval = 0;
   const Element& e = t->e(hash_field);
@@ -524,6 +529,11 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
   if( !(stringstream(config["hash_field"]) >> hash_field)) {
     return operator_err_t("hash_field must be an int");
   }
+
+  if((config["debug_stage"].length() > 0) && !(stringstream(config["debug_stage"]) >> debug_stage)) {
+    return operator_err_t("debug_stage must be an int");
+  }
+
   if(config["hash_type"].length() < 1) {
     return operator_err_t("hash_type must be defined");
   } else

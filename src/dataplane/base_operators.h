@@ -212,13 +212,14 @@ class HashSampleOperator: public DataPlaneOperator {
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
   
-  HashSampleOperator(): hash_field(0), hash_type(' ') {}
+  HashSampleOperator(): hash_field(0), hash_type(' '), debug_stage(100) {}
   
   virtual ~HashSampleOperator() {}
   
  private:
   int hash_field;
   char hash_type;
+  unsigned int debug_stage;
 
 GENERIC_CLNAME
 };
