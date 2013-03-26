@@ -318,6 +318,16 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     }
 
   }
+
+  unsigned num_levels = 1;
+  if ((config["levels"].length() > 0)  && !(stringstream(config["levels"]) >> num_levels)) {
+    return operator_err_t("'levels' param should be a number, but '" + config["levels"] + "' is not.");
+  }
+  for (unsigned i = 0; i < num_levels; ++i)
+    levels.push_back(  double(i+1) / (num_levels)  );
+  cur_level = num_levels - 1;
+  
+
   
   return NO_ERR;
  
@@ -341,7 +351,7 @@ RandHistOperator::start() {
 void
 RandHistOperator::generate() {
 
-  LogHistogram lh(hist_size);
+  LogHistogram lh(hist_size  * (levels[cur_level]));
   for (int i = 0; i < 22; ++i)
     lh.add_item(i*i, i + 10);
   msec_t start_t = get_msec();
@@ -413,9 +423,21 @@ RandHistOperator::emit_1() {
 
   js_usleep( 1000 * (wait_per_batch - running_time) );
 
+
+  if ( levels.size() > 1)
+    adapt();
+
   return false; //keep running indefinitely
 }
 
+void
+RandHistOperator::adapt() {
+  if (levels.size() > 1) {
+    int delta = congest_policy->get_step(id(), levels.data(), levels.size(), cur_level);
+    LOG(INFO)  << "Rand-hist source adjusting itself";
+    cur_level += delta;
+  }
+}
 
 
 const string RandSourceOperator::my_type_name("Random source");

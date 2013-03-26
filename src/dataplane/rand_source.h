@@ -103,6 +103,9 @@ class RandHistOperator: public ThreadedSource {
   unsigned window;
   unsigned batches_per_window;
   int next_version_number;
+
+  unsigned cur_level;
+  std::vector<double> levels;
   
   bool schedule;
   unsigned schedule_increment;
@@ -120,11 +123,10 @@ class RandHistOperator: public ThreadedSource {
   virtual void start();
 
   virtual bool emit_1();
+  
+  void adapt();
 
  protected:
-
-  std::vector<double> rand_data;
-  std::vector<std::string> rand_labels;
 
 
 GENERIC_CLNAME
