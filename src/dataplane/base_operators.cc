@@ -478,7 +478,8 @@ SampleOperator::configure (std::map<std::string,std::string> &config) {
 void
 HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
   if(debug_stage < 2)
-  {
+  { 
+    boost::interprocess::ipcdetail::atomic_read32(&threshold)
     emit(t);
     return;
   }
