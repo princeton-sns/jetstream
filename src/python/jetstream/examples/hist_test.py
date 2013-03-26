@@ -30,6 +30,7 @@ def main():
   parser.add_option("--sample", dest="sample", action="store_true", default = False)
   parser.add_option("--sample_debug_stage", dest="sample_debug_stage", default = "100")
   parser.add_option("--no_degrade", dest="no_degrade", action="store_true", default = False)
+  parser.add_option("--degrade_at_source", dest="degrade_at_source", action="store_true", default = False)
 
 
 
@@ -82,9 +83,11 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("hist_size", options.hist_size);
     sender.set_cfg("wait_per_batch", 4000);
     sender.set_cfg("batches_per_window", 1);
+    if options.degrade_at_source:
+      sender.set_cfg("levels", options.degradation_step_count);
     sender.instantiate_on(node)
    
-    if not options.no_degrade:
+    if not options.no_degrade and not options.degrade_at_source:
       if not options.sample:
         degrade = jsapi.DegradeSummary(g, 2)
         degrade.set_cfg("step_count", options.degradation_step_count);
