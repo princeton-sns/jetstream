@@ -13,7 +13,7 @@ from optparse import OptionParser
 
 OUT_TO_FILE = True
 ALIGN = True
-SAMPLE = True
+SAMPLE = False
 
 import matplotlib
 if OUT_TO_FILE:
@@ -36,6 +36,10 @@ def main():
                   help="latency file name")
   parser.add_option("-b", "--baseline", dest="baseline",
                   help="baseline file name")
+  parser.add_option("-s", "--srcbw", dest="plot_srcbw", action="store_true", 
+        default=False, help="plot source bw")
+  
+  
   
   (options, args) = parser.parse_args()
 
@@ -66,8 +70,17 @@ def main():
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
-    level_transitions = to_line(level_transitions, offset, MAX_T)
-    plot_degradation(level_transitions, ax, leg_artists, deg_label, "k-")
+    lin_level_transitions = to_line(level_transitions, offset, MAX_T)
+    plot_degradation(lin_level_transitions, ax, leg_artists, deg_label, "k-")
+
+
+  LEGEND_LABELS =  ["Bandwidth", "Degradation"]
+  if options.plot_srcbw:
+    src_bw = get_src_bw(bw_seq, level_transitions, offset)
+    plot_bw(src_bw, ax, leg_artists, "b--")   
+    LEGEND_LABELS.append("Bandwidth (no degradation)")
+    leg_artists.reverse()
+    LEGEND_LABELS.reverse()    
 
   if options.baseline is not None:
     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
@@ -75,10 +88,10 @@ def main():
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     plot_bw(bw_seq, ax, leg_artists, "b--")   
+    leg_artists.reverse()
+    LEGEND_LABELS.reverse()
+  finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS)
 
-  leg_artists.reverse()
-  finish_plots(figure, ax, leg_artists, options.outfile,  \
-      ["Bandwidth (no degradation)", "Degradation", "Bandwidth"])
   
   if options.latency:
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
@@ -108,10 +121,10 @@ def parse_log(infile, PLOT_LAT):
         print str(e),ln
         sys.exit(0)
     if 'avg hist size' in ln:
-        if not SAMPLE:
-          h_size = int(ln.split(" ")[-5])
-          level_transitions.append (  (ts, h_size) )
-        else:
+#        if not SAMPLE:
+#          h_size = int(ln.split(" ")[-5])
+#          level_transitions.append (  (ts, h_size) )
+#        else:
           h_size = float(ln.split(" ")[-1])
           level_transitions.append (  (ts, h_size) )
 
@@ -130,11 +143,8 @@ def parse_log(infile, PLOT_LAT):
 
   if PLOT_LAT:  #really means "we are doing hist experiment
     BASE_H = level_transitions[0][1]
-#    level_transitions = [(ts, (BASE_H - l) * 1000  ) for (ts,l) in level_transitions]
     if not SAMPLE:
-      level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
-    #else
-      #level_transitions = [(ts,  (float(BASE_H)  / l) ) for (ts,l) in level_transitions]
+      level_transitions = [(ts,  l / float(BASE_H)) for (ts,l) in level_transitions]
   else:
     level_transitions = [(ts, l / 1000 ) for (ts,l) in level_transitions]
   
@@ -305,7 +315,14 @@ def plot_latencies(lat_series, old_ax, leg_artists, line_fmt="k-"):
   leg_artists.append( line )
   
   
-
+def get_src_bw(bw_seq, level_transitions, offset):
+  res = []
+  print "For source bw, have bw seq len %i and levels %i" % \
+      (len(bw_seq), len(level_transitions))
+  for (tm, b), (_, ratio) in zip(bw_seq, level_transitions):
+    res.append( (tm,  b / ratio) )
+  
+  return res
 
 def finish_plots(figure, ax, leg_artists, outname, label_strings):
   figure.subplots_adjust(left=0.15)
@@ -321,6 +338,8 @@ def finish_plots(figure, ax, leg_artists, outname, label_strings):
   if OUT_TO_FILE:
       plt.savefig(outname + ".pdf")
       plt.close(figure)  
+
+
 
 # 
 #     if USE_BW_REP and 'BWReporter' in ln:
