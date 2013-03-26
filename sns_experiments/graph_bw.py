@@ -76,9 +76,9 @@ def main():
     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     plot_bw(bw_seq, ax, leg_artists, "b--")   
 
-
+  leg_artists.reverse()
   finish_plots(figure, ax, leg_artists, options.outfile,  \
-      ["Bandwidth", "Degradation", "Bandwidth (no degradation)"])
+      ["Bandwidth (no degradation)", "Degradation", "Bandwidth"])
   
   if options.latency:
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
@@ -149,7 +149,7 @@ def parse_log(infile, PLOT_LAT):
 def get_offset(time_to_bw):
   for tm, (bytes,tuples) in sorted(time_to_bw.items()):
       if bytes > 0:
-        return tm - 10  
+        return tm - 10
   return 0        
         
 def smooth_seq(my_seq, offset, max_len, window=10):
@@ -170,8 +170,8 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt):
   bw = []
   for tm, bytes, in bw_seq:
 #    print "%s: %d bytes, %d tuples" % (time.ctime(tm), bytes, tuples)
-    time_data.append( datetime.datetime.fromtimestamp(tm))
-    bw.append( 8 * bytes/ 1000)
+    time_data.append( datetime.datetime.fromtimestamp(tm + 60 * 60 * 5))
+    bw.append( 8 * bytes/ 1000 / 1000)
 
   MAX_Y = max(bw)
   
@@ -180,7 +180,7 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt):
   plt.tick_params(axis='both', which='major', labelsize=16)
   bw_line, = ax.plot_date(time_data, bw, line_fmt, label="BW") 
   ax.set_xlabel('Time', fontsize=22)  
-  ax.set_ylabel('Bandwidth (kbits/sec)', fontsize=22)
+  ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=22)
   leg_artists.append( bw_line )
 
 
@@ -188,7 +188,7 @@ def  plot_src_tuples(time_to_count, ax, leg_artists):
 #  print time_to_count
   
   counts = [y for (_,y) in time_to_count]
-  times = [datetime.datetime.fromtimestamp(t) for (t,_) in time_to_count]
+  times = [datetime.datetime.fromtimestamp(t + 60 * 60 * 5) for (t,_) in time_to_count]
   MAX_Y = max(counts)
   
   ax.set_ylim( 0, 1.2 *  MAX_Y)  
@@ -216,7 +216,7 @@ def to_line(level_transitions, min_time, max_time):
 def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt="k-"):
 
   ax = old_ax.twinx()
-  time_data = [datetime.datetime.fromtimestamp(t) for t,l in level_transitions]
+  time_data = [datetime.datetime.fromtimestamp(t + 60 * 60 * 5) for t,l in level_transitions]
   lev_data = [l for t,l in level_transitions]
   deg_line, = ax.plot_date(time_data, lev_data, line_fmt) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
