@@ -316,6 +316,9 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     if ((config["schedule_start"].length() > 0)  && !(stringstream(config["schedule_start"]) >> tuples_per_sec)) {
       return operator_err_t("'schedule_start' param should be a number, but '" + config["schedule_start"] + "' is not.");
     }
+    if ((config["window_fudge_factor"].length() > 0)  && !(stringstream(config["window_fudge_factor"]) >> window_fudge_factor)) {
+      return operator_err_t("'window_fudge_factor' param should be a number, but '" + config["window_fudge_factor"] + "' is not.");
+    }
 
   }
 
@@ -351,9 +354,9 @@ RandHistOperator::start() {
 void
 RandHistOperator::generate() {
 
-  LogHistogram lh(hist_size  * (levels[cur_level]));
-  for (int i = 0; i < 22; ++i)
-    lh.add_item(i*i, i + 10);
+  unsigned int level = 9999999;
+  LogHistogram * lh = NULL;
+
   msec_t start_t = get_msec();
   time_t now = start_t / 1000 ;
 
@@ -361,13 +364,23 @@ RandHistOperator::generate() {
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
   while(running)
   {
+    if(level != cur_level)
+    {
+      level = cur_level;
+      if (lh != NULL)
+        delete lh;
+      LogHistogram * lh = new LogHistogram(hist_size * (levels[level]));
+      for (int i = 0; i < 22; ++i)
+        lh->add_item(i*i, i + 10);
+    }
+
     counter++;
     shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
     extend_tuple(*t, int32_t(counter % unique_vals));
     JSSummary * s = t->add_e()->mutable_summary();
     
-    lh.serialize_to(*s);
+    lh->serialize_to(*s);
 
     {
       boost::unique_lock<boost::mutex> lock(internals);
@@ -375,12 +388,14 @@ RandHistOperator::generate() {
       queue.push(t);
     }
 
-    if(queue.size() > 10*tuples_per_batch)
+    if(queue.size() > 2*tuples_per_batch)
     {
        tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
-       js_usleep(1000000);
+       js_usleep(100000);
     }
   }
+  if(lh != NULL)
+    delete lh;
 }
 
 bool
@@ -419,7 +434,7 @@ RandHistOperator::emit_1() {
     LOG(FATAL) << "Generation took way to long "<< running_time << " should be under "<< wait_per_batch;
 
   if ( ++window % batches_per_window == 0)
-    end_of_window(wait_per_batch * batches_per_window);
+    end_of_window((wait_per_batch * batches_per_window)-window_fudge_factor);
 
   js_usleep( 1000 * (wait_per_batch - running_time) );
 

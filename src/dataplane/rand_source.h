@@ -114,10 +114,12 @@ class RandHistOperator: public ThreadedSource {
   msec_t last_schedule_update;
   unsigned unique_vals;
 
+  unsigned window_fudge_factor;
+
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   RandHistOperator(): hist_size(200), wait_per_batch(1000),window(0), batches_per_window(1),
-    next_version_number(0), last_schedule_update(0) {}
+    next_version_number(0), last_schedule_update(0), window_fudge_factor(0) {}
 
   void generate();
   virtual void start();

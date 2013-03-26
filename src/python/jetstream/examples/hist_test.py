@@ -31,6 +31,7 @@ def main():
   parser.add_option("--sample_debug_stage", dest="sample_debug_stage", default = "100")
   parser.add_option("--no_degrade", dest="no_degrade", action="store_true", default = False)
   parser.add_option("--degrade_at_source", dest="degrade_at_source", action="store_true", default = False)
+  parser.add_option("--window_fudge_factor", dest="window_fudge_factor", default = "0")
 
 
 
@@ -81,6 +82,7 @@ def get_graph(source_nodes, root_node, options):
     sender.set_cfg("schedule_max", options.schedule_max);
     sender.set_cfg("unique_vals", options.unique_vals);
     sender.set_cfg("hist_size", options.hist_size);
+    sender.set_cfg("window_fudge_factor", options.window_fudge_factor);
     sender.set_cfg("wait_per_batch", 4000);
     sender.set_cfg("batches_per_window", 1);
     if options.degrade_at_source:
