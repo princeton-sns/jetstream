@@ -92,7 +92,7 @@ def get_graph(source_nodes, root_node, options):
         degrade.instantiate_on(node)
       else:
         degrade = jsapi.VariableSampling(g, field=1, type='I')
-        degrade.set_cfg("debug_stage", options.debug_stage)
+        degrade.set_cfg("debug_stage", options.sample_debug_stage)
         degrade.instantiate_on(node)
 
     
