@@ -134,7 +134,10 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
   }
   shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
+  {
+    LOG(INFO) << "Send queue " << sendQueue.size();
     sendStrand.post(bind(&ConnectedSocket::perform_send, shared_from_this(), msg));
+  }
   return msg->nbytes;
 }
 
