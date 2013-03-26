@@ -121,10 +121,10 @@ def parse_log(infile, PLOT_LAT):
         print str(e),ln
         sys.exit(0)
     if 'avg hist size' in ln:
-#        if not SAMPLE:
-#          h_size = int(ln.split(" ")[-5])
-#          level_transitions.append (  (ts, h_size) )
-#        else:
+        if not SAMPLE:
+          h_size = int(ln.split(" ")[-5])
+          level_transitions.append (  (ts, h_size) )
+        else:
           h_size = float(ln.split(" ")[-1])
           level_transitions.append (  (ts, h_size) )
 
