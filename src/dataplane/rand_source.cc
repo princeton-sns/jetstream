@@ -369,7 +369,7 @@ RandHistOperator::generate() {
       level = cur_level;
       if (lh != NULL)
         delete lh;
-      LogHistogram * lh = new LogHistogram(hist_size * (levels[level]));
+      lh = new LogHistogram(hist_size * (levels[level]));
       for (int i = 0; i < 22; ++i)
         lh->add_item(i*i, i + 10);
     }
