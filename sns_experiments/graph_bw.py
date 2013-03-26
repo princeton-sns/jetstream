@@ -13,7 +13,7 @@ from optparse import OptionParser
 
 OUT_TO_FILE = True
 ALIGN = True
-SAMPLE = False
+SAMPLE = True
 
 import matplotlib
 if OUT_TO_FILE:
@@ -27,7 +27,7 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
 def main():
-
+  global EXP_MINUTES
   parser = OptionParser()
 
   parser.add_option("-o", "--output", dest="outfile",
@@ -305,7 +305,7 @@ def get_latencies_over_time(infile, offset, min_time, max_time, QUANTILE = 0.5):
 def plot_latencies(lat_series, old_ax, leg_artists, line_fmt="k-"):
   print "plotting latency data"
   ax = old_ax.twinx()
-  time_data = [datetime.datetime.fromtimestamp(t) for t,l in lat_series]
+  time_data = [datetime.datetime.fromtimestamp(t +60 * 60 * 5) for t,l in lat_series]
   latency_data = [l for t,l in lat_series]
   line, = ax.plot_date(time_data, latency_data, line_fmt) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
@@ -322,6 +322,7 @@ def get_src_bw(bw_seq, level_transitions, offset):
   for (tm, b), (_, ratio) in zip(bw_seq, level_transitions):
     res.append( (tm,  b / ratio) )
   
+  res = smooth_seq(res, 0, EXP_MINUTES * 60, window = 10)
   return res
 
 def finish_plots(figure, ax, leg_artists, outname, label_strings):
