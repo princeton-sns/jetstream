@@ -41,6 +41,7 @@ def main():
                   help="baseline file name")
   parser.add_option("-s", "--srcbw", dest="plot_srcbw", action="store_true", 
         default=False, help="plot source bw")
+  parser.add_option("-t", "--sampled_run", dest="sampled_run", help="sample run file")
   
   
   
@@ -78,8 +79,12 @@ def main():
     plot_bw(bw_seq, ax, leg_artists, "b.-") 
 
 
-  LEGEND_LABELS =  ["Degradation"]
-  LEGEND_LABELS.append("Receive rate")
+  LEGEND_LABELS =  ["Window size"]
+  if options.sampled_run:
+    LEGEND_LABELS.append("Receive rate (time coarsening)")
+  else:
+    LEGEND_LABELS.append("Receive rate")
+
   if options.plot_srcbw:
     src_bw = get_src_bw(bw_seq, level_transitions, offset)
     plot_bw(src_bw, ax, leg_artists, "r--")
@@ -91,16 +96,40 @@ def main():
   
   #leg_artists.reverse()
   #LEGEND_LABELS.reverse()    
+  if options.sampled_run:
+    time_to_bw, time_to_tuples, level_transitions = parse_log(options.sampled_run, PLOT_LAT)
+    offset = get_offset(time_to_bw)
+    bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 20)
 
+    if ALIGN:
+      MAX_T = bw_seq[-1][0]
+    else:
+      MAX_T = max(bw_seq[-1][0])
+      if len(time_to_tuples) > 0:
+        MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
+
+    #lin_level_transitions = to_line(level_transitions, offset, MAX_T)
+    #plot_degradation(lin_level_transitions, ax, leg_artists, deg_label, "k-")
+
+    plot_bw(bw_seq, ax, leg_artists, "rx-", False) 
+    LEGEND_LABELS.append("Receive rate (hash sampling)")
+    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
+    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
+  
   if options.baseline is not None:
     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
     plot_bw(bw_seq, ax, leg_artists, "b--")   
-    LEGEND_LABELS.append("Bandwidth (no degradation)")    
+    LEGEND_LABELS.append("Receive rate (no degradation)")    
     leg_artists.reverse()
     LEGEND_LABELS.reverse()
+
+ 
+
+
 
 
   ax.tick_params(axis='x', which='major', pad=10) #controlls the x 
@@ -196,7 +225,7 @@ def get_x_from_time(t):
     return t
 
 
-def plot_bw(bw_seq, ax, leg_artists, line_fmt):
+def plot_bw(bw_seq, ax, leg_artists, line_fmt, setlim=True):
   time_data = []
   bw = []
   for tm, bytes, in bw_seq:
@@ -204,9 +233,9 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt):
     time_data.append(get_x_from_time(tm))
     bw.append( 8 * bytes/ 1000 / 1000)
 
-  MAX_Y = max(bw)
-  
-  ax.set_ylim( 0, 1.35 *  MAX_Y)  
+  if setlim:
+    MAX_Y = max(bw)
+    ax.set_ylim( 0, 1.35 *  MAX_Y)  
   
   plt.tick_params(axis='both', which='major', labelsize=16)
   if DATE:
