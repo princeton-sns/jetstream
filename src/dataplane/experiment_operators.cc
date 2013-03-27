@@ -452,6 +452,9 @@ AvgCongestLogger::meta_from_upstream(const DataplaneMessage & msg, const operato
     
     if (msg.has_filter_level())
       sample_lev_for[pred] = msg.filter_level();
+    
+    if (msg.tput_r2_threshold())
+      err_bound += msg.tput_r2_threshold();
   }
   DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
 }
@@ -532,6 +535,11 @@ AvgCongestLogger::report() {
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
       LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
         << " Lifetime total count=" << count_tally << maybe_h_stats << maybe_sample_stats;
+      
+      
+      LOG(INFO) << "Filter-error bound: " << err_bound;
+      err_bound = 0;
+      
       tuples_in_interval = 0;
       hist_size_total = 0;
       

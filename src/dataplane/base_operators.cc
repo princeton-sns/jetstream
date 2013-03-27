@@ -788,6 +788,13 @@ RatioFilter::configure (std::map<std::string,std::string> &config) {
 operator_err_t
 WindowLenFilter::configure (std::map<std::string,std::string> &config) {
   bound = UINT_MAX;
+  err_bound_lev = 0;
+  
+  if ( config["err_field"].size() > 0 &&  !(istringstream(config["err_field"]) >> err_field)) {
+    return operator_err_t("must specify err_field as int; got " + config["err_field"] +  " instead");
+  }
+  
+  
   return NO_ERR;
 }
 
@@ -796,6 +803,9 @@ void
 WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
   if ( k_in_win++ < bound) {
     emit(t);
+  } else {
+    if (err_field > -1 && err_bound_lev == 0 )
+      err_bound_lev = numeric(t, err_field);
   }
 }
 
@@ -826,10 +836,15 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
 
     LOG_IF(INFO,delta != 0) << "Changing local thresh. New thresh is " << bound
      << " and last-window had " << k_in_win;
+    DataplaneMessage newmsg;
+    newmsg.CopyFrom(msg);
+    newmsg.set_tput_r2_threshold(err_bound_lev);
+    send_meta_downstream(newmsg);
     k_in_win = 0;
-    
-  }
-  DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
+    err_bound_lev = 0;
+
+  } else
+    DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
 }
 
 

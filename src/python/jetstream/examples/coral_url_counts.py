@@ -173,6 +173,7 @@ def get_graph(source_nodes, root_node, options):
       g.add_policy( [pull_from_local, v] )
     elif LOCAL_THRESH:
       v = jsapi.WindowLenFilter(g)
+      v.set_cfg("err_field", 3)
 #      print "connecting ", 
       lastOp = g.connect(lastOp, v)
       g.add_policy( [pull_from_local, v] )    

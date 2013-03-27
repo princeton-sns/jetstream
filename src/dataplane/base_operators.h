@@ -327,8 +327,10 @@ public:
 private:
   unsigned k_in_win;
   unsigned bound;
-  unsigned level;
-  std::vector<double> steps;
+  int err_bound_lev;
+  int err_field;
+//  unsigned level;
+ // std::vector<double> steps;
   boost::shared_ptr<CongestionPolicy> congest_policy;
 
 GENERIC_CLNAME
