@@ -163,7 +163,12 @@ servers=[
 "node48.washington.vicci.org",
 "node49.washington.vicci.org",
 "node50.washington.vicci.org",
-
+#gt nodes
+"node51.gt.vicci.org",
+"node52.gt.vicci.org",
+"node55.gt.vicci.org",
+"node62.gt.vicci.org",
+"node64.gt.vicci.org",
 
 
 ]

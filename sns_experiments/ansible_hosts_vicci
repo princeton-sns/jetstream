@@ -156,6 +156,11 @@ node49.washington.vicci.org public_ip=128.95.1.154 server_index=
 node50.washington.vicci.org public_ip=128.95.1.155 server_index=
 
 [new]
+node51.gt.vicci.org public_ip=130.207.98.60 server_index=
+node52.gt.vicci.org public_ip=130.207.98.61 server_index=
+node55.gt.vicci.org public_ip=130.207.98.64 server_index=
+node62.gt.vicci.org public_ip=130.207.98.71 server_index=
+node64.gt.vicci.org public_ip=130.207.98.73 server_index=
 
 [down]
 node12.princeton.vicci.org
