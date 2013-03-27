@@ -789,8 +789,8 @@ operator_err_t
 WindowLenFilter::configure (std::map<std::string,std::string> &config) {
   bound = UINT_MAX;
   err_bound_lev = 0;
-  
-  if ( config["err_field"].size() > 0 &&  !(istringstream(config["err_field"]) >> err_field)) {
+  err_field = -1;
+  if ( config["err_field"].length() > 0 &&  !(istringstream(config["err_field"]) >> err_field)) {
     return operator_err_t("must specify err_field as int; got " + config["err_field"] +  " instead");
   }
   
@@ -804,7 +804,7 @@ WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
   if ( k_in_win++ < bound) {
     emit(t);
   } else {
-    if (err_field > -1 && err_bound_lev == 0 )
+    if ( (err_field > -1) && (err_bound_lev == 0) )
       err_bound_lev = numeric(t, err_field);
   }
 }
