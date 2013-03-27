@@ -88,6 +88,7 @@ def get_graph(source_nodes, root_node, options):
     pull_q.set_cfg("rollup_levels", "6,0,1")  # every five seconds to match subscription. Roll up counts.
     pull_q.set_cfg("simulation_rate", 1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+
   
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
@@ -153,7 +154,7 @@ def get_graph(source_nodes, root_node, options):
       pull_from_local.set_cfg("ts_field", 0)
       pull_from_local.set_cfg("start_ts", start_ts)
       pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
-      pull_from_local.set_cfg("sort_column", "-count")
+      pull_from_local.set_cfg("sort_order", "-count")
       
 
     pull_from_local.instantiate_on(node)

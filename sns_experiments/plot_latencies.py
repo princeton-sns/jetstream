@@ -100,12 +100,13 @@ def plot_cdf(data):
   print after_vals_cum
   print sorted(latency_to_count_after.keys())
   before_plot = ax.plot(sorted(latency_to_count_before.keys()), before_vals_cum, color='r')    
-  after_plot = ax.plot(sorted(latency_to_count_after.keys()), after_vals_cum, color='y')    
+  after_plot = ax.plot(sorted(latency_to_count_after.keys()), after_vals_cum, 'b--',
+  linewidth=2)    
   
   ax.legend( (before_plot[0], after_plot[0]), ('Before DB', 'After DB'),\
-   loc="lower right" )
+   loc="lower right" , fontsize=20)
   plt.ylabel('CDF of Tuples', fontsize=24)
-  plt.xlabel('Latency (MS)', fontsize=24)
+  plt.xlabel('Propagation Latency (msecs)', fontsize=24)
   plt.tick_params(axis='both', which='major', labelsize=16)
 
 
