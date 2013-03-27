@@ -804,8 +804,10 @@ WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
   if ( k_in_win++ < bound) {
     emit(t);
   } else {
-    if ( (err_field > -1) && (err_bound_lev == 0) )
+    if ( (err_field > -1) && (err_bound_lev == 0) ) {
       err_bound_lev = numeric(t, err_field);
+      LOG(INFO) << "------- Local cutoff: "<<err_bound_lev << "-------";
+    }
   }
 }
 
