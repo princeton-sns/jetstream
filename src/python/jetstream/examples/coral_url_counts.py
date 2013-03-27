@@ -153,6 +153,8 @@ def get_graph(source_nodes, root_node, options):
       pull_from_local.set_cfg("ts_field", 0)
       pull_from_local.set_cfg("start_ts", start_ts)
       pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
+      pull_from_local.set_cfg("sort_column", "-count")
+      
 
     pull_from_local.instantiate_on(node)
 
