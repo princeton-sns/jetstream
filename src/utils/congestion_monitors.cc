@@ -83,7 +83,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
     last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
 //    window_start_time = 0;
-    LOG(INFO) << "End of window@ " << (now/1000) << " Capacity ratio at " << name() << " is now "
+    LOG_EVERY_N(INFO, 20) << "End of window@ " << (now/1000) << " Capacity ratio at " << name() << " is now "
       << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
       << window_availtime_ms  <<" and window size was " << window_data_ms
       <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, last_ratio);

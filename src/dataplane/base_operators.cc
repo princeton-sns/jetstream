@@ -799,7 +799,7 @@ WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
   }
 }
 
-static const int LEVELS = 100;
+static const int LEVELS = 20;
 
 void
 WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
@@ -821,8 +821,11 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
     bounds[LEVELS-1] = UINT_MAX;
     
     unsigned delta = congest_policy->get_step(id(), ratios.data(), ratios.size(), cur_level);
-    bound = bounds[cur_level + delta];
     
+    bound = bounds[cur_level + delta];
+
+    LOG_IF(INFO,delta != 0) << "Changing local thresh. New thresh is " << bound
+     << " and last-window had " << k_in_win;
     k_in_win = 0;
     
   }

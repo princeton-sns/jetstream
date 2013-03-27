@@ -21,6 +21,8 @@ def main():
   action="store_true", default=False)
   parser.add_option("--hash_sample", dest="hash_sample",
   action="store_true", default=False)
+  parser.add_option("--local_thresh", dest="local_thresh",
+  action="store_true", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -67,6 +69,7 @@ def get_graph(source_nodes, root_node, options):
   ECHO_RESULTS = not options.no_echo
   MULTIROUND = options.multiround
   HASH_SAMPLE = options.hash_sample
+  LOCAL_THRESH = options.local_thresh
 
   if not LOADING and not ANALYZE:
     print "can't do neither load nor analysis"
@@ -91,7 +94,7 @@ def get_graph(source_nodes, root_node, options):
   
     g.chain([central_cube,pull_q, echo] )
 
-  add_latency_measure(g, central_cube, root_node, tti=4, hti=5, options.latencylog)
+  add_latency_measure(g, central_cube, root_node, tti=4, hti=5, latencylog=options.latencylog)
 
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
@@ -166,6 +169,11 @@ def get_graph(source_nodes, root_node, options):
 #      print "connecting ", 
       lastOp = g.connect(lastOp, v)
       g.add_policy( [pull_from_local, v] )
+    elif LOCAL_THRESH:
+      v = jsapi.WindowLenFilter(g)
+#      print "connecting ", 
+      lastOp = g.connect(lastOp, v)
+      g.add_policy( [pull_from_local, v] )    
     g.chain( [lastOp,timestamp_op, hostname_extend_op])
     #output: 0=>time, 1=>response_code, 2=> url 3=> count, 4=> timestamp at source, 5=> hostname
 
