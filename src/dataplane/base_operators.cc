@@ -785,6 +785,45 @@ RatioFilter::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+operator_err_t
+WindowLenFilter::configure (std::map<std::string,std::string> &config) {
+  bound = UINT_MAX;
+  return NO_ERR;
+}
+
+
+void
+WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
+  if ( k_in_win++ < bound) {
+    emit(t);
+  }
+}
+
+static const int LEVELS = 100;
+
+void
+WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+//    boost::lock_guard<boost::mutex> lock (mutex);
+    vector<double> ratios;
+    vector<unsigned> bounds;
+    unsigned cur_level = LEVELS / 2;
+//    double fract_of_max = double(k_in_win) / bound;
+//    if (fract_of_theoretical < )
+    for( int i = 0; i < LEVELS; ++i) {
+      bounds.push_back(<#const value_type &__x#>)
+    }
+    
+    unsigned delta = congest_policy->get_step(id(), ratios.data(), ratios.size(), cur_level);
+    bound = bounds[cur_level + delta];
+    
+    k_in_win = 0;
+    
+  }
+  DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
+}
+
+
 
 const string FileRead::my_type_name("FileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
@@ -803,6 +842,7 @@ const string URLToDomain::my_type_name("URL to Domain");
 const string GreaterThan::my_type_name("Numeric Filter");
 const string IEqualityFilter::my_type_name("Numeric Equality");
 const string RatioFilter::my_type_name("Ratio Filter");
+const string WindowLenFilter::my_type_name("Window cutoff");
 
 
 }

@@ -497,6 +497,10 @@ def MultiRoundCoord(graph):
    return graph.add_operator(OpType.TPUT_CONTROLLER, {})
 
 
+def WindowLenFilter(graph):
+   return graph.add_operator(OpType.WINDOW_CUTOFF, {})
+
+
 def FilterSubscriber(graph, cube_field=None, level_in_field=None):
    cfg = {}
    if level_in_field is not None:

@@ -85,6 +85,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(GreaterThan);
   REGISTER_OP(IEqualityFilter);
   REGISTER_OP(RatioFilter);
+  REGISTER_OP(WindowLenFilter);
 
   //operators on quantiles
   REGISTER_OP(QuantileOperator);

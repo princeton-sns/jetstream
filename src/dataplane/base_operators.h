@@ -312,6 +312,29 @@ private:
 GENERIC_CLNAME
 };
 
+
+class WindowLenFilter: public DataPlaneOperator {
+
+public:
+  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+    congest_policy = p;
+  }
+  
+private:
+  unsigned k_in_win;
+  unsigned bound;
+  unsigned level;
+  std::vector<double> steps;
+  boost::shared_ptr<CongestionPolicy> congest_policy;
+
+GENERIC_CLNAME
+};
+
+
 /**
  Rearranges the order of elements in a tuple
 

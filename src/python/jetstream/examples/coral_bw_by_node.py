@@ -121,7 +121,7 @@ def get_graph(source_nodes, root_node, options):
       sys.exit(0)
       intermed_id = n_to_intermediate[node]
       my_root = intermed_cubes[intermed_id]
-    connect_to_root(g, local_cube, node, my_root, start_ts)
+    connect_to_root(g, local_cube, node, my_root, start_ts, ANALYZE)
   return g
 
 
@@ -147,9 +147,10 @@ def  get_intermediates(source_nodes):
   return n_to_intermediate, intermediates
 
 
-def connect_to_root(g, local_cube, node, root_op, start_ts):
-    
-    pull_from_local = jsapi.TimeSubscriber(g, {}, 1000)
+def connect_to_root(g, local_cube, node, root_op, start_ts, ANALYZE=False):    
+      
+    query_rate = 1000 if ANALYZE else 3600 * 1000
+    pull_from_local = jsapi.TimeSubscriber(g, {}, query_rate)
       
     pull_from_local.instantiate_on(node)
     pull_from_local.set_cfg("simulation_rate", 1)

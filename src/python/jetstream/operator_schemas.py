@@ -29,6 +29,7 @@ class OpType (object):
   EQUALS_FILTER = "IEqualityFilter"
   GT_FILTER = "GreaterThan"
   RATIO_FILTER = "RatioFilter"
+  WINDOW_CUTOFF = "WindowLenFilter"
 
   NO_OP = "ExtendOperator"  # ExtendOperator without config == NoOp
   DUMMY_RECEIVER = "DummyReceiver"
@@ -344,7 +345,7 @@ SCHEMAS[OpType.TPUT_CONTROLLER] = validate_Tput_Control
 SCHEMAS[OpType.TPUT_WORKER] = lambda schema,cfg: schema
 
 SCHEMAS[OpType.SEQ_TO_RATIO] = validate_SeqToRatio
-
+SCHEMAS[OpType.WINDOW_CUTOFF] = lambda schema,cfg: schema
 
 
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
