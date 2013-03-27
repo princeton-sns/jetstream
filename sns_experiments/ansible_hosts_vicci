@@ -3,9 +3,11 @@ node1.mpisws.vicci.org public_ip=141.39.220.11 server_index=0
 node17.gt.vicci.org public_ip=130.207.98.26 server_index=1
 node12.mpisws.vicci.org public_ip=141.39.220.22 server_index=2
 #node12.gt.vicci.org public_ip=130.207.98.21 server_index=3
+node51.gt.vicci.org public_ip=130.207.98.60 server_index=3
 #node13.mpisws.vicci.org public_ip=141.39.220.23 server_index=4
 node5.mpisws.vicci.org public_ip=141.39.220.15 server_index=4
 #node19.gt.vicci.org public_ip=130.207.98.28 server_index=5
+node52.gt.vicci.org public_ip=130.207.98.61 server_index=5
 #node49.mpisws.vicci.org public_ip=141.39.220.59 server_index=6
 node21.mpisws.vicci.org public_ip=141.39.220.31 server_index=6
 node20.gt.vicci.org public_ip=130.207.98.29 server_index=7
@@ -13,6 +15,7 @@ node9.mpisws.vicci.org public_ip=141.39.220.19 server_index=8
 node30.gt.vicci.org public_ip=130.207.98.39 server_index=9
 node15.mpisws.vicci.org public_ip=141.39.220.25 server_index=10
 #node28.gt.vicci.org public_ip=130.207.98.37 server_index=11
+node55.gt.vicci.org public_ip=130.207.98.64 server_index=11
 node39.mpisws.vicci.org public_ip=141.39.220.49 server_index=12
 node22.gt.vicci.org public_ip=130.207.98.31 server_index=13
 node33.mpisws.vicci.org public_ip=141.39.220.43 server_index=14
@@ -21,10 +24,12 @@ node22.mpisws.vicci.org public_ip=141.39.220.32 server_index=16
 node14.gt.vicci.org public_ip=130.207.98.23 server_index=17
 node36.mpisws.vicci.org public_ip=141.39.220.46 server_index=18
 #node29.gt.vicci.org public_ip=130.207.98.38 server_index=19
+node62.gt.vicci.org public_ip=130.207.98.71 server_index=19
 node31.mpisws.vicci.org public_ip=141.39.220.41 server_index=20
 node10.gt.vicci.org public_ip=130.207.98.19 server_index=21
 node10.mpisws.vicci.org public_ip=141.39.220.20 server_index=22
 #node35.gt.vicci.org public_ip=130.207.98.44 server_index=23
+node64.gt.vicci.org public_ip=130.207.98.73 server_index=23
 node14.mpisws.vicci.org public_ip=141.39.220.24 server_index=24
 node37.gt.vicci.org public_ip=130.207.98.46 server_index=25
 node11.mpisws.vicci.org public_ip=141.39.220.21 server_index=26
@@ -156,11 +161,11 @@ node49.washington.vicci.org public_ip=128.95.1.154 server_index=
 node50.washington.vicci.org public_ip=128.95.1.155 server_index=
 
 [new]
-node51.gt.vicci.org public_ip=130.207.98.60 server_index=
-node52.gt.vicci.org public_ip=130.207.98.61 server_index=
-node55.gt.vicci.org public_ip=130.207.98.64 server_index=
-node62.gt.vicci.org public_ip=130.207.98.71 server_index=
-node64.gt.vicci.org public_ip=130.207.98.73 server_index=
+node51.gt.vicci.org public_ip=130.207.98.60 server_index=3
+node52.gt.vicci.org public_ip=130.207.98.61 server_index=5
+node55.gt.vicci.org public_ip=130.207.98.64 server_index=11
+node62.gt.vicci.org public_ip=130.207.98.71 server_index=19
+node64.gt.vicci.org public_ip=130.207.98.73 server_index=23
 
 [down]
 node12.princeton.vicci.org
