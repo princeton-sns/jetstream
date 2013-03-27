@@ -793,7 +793,7 @@ WindowLenFilter::configure (std::map<std::string,std::string> &config) {
   if ( config["err_field"].length() > 0 &&  !(istringstream(config["err_field"]) >> err_field)) {
     return operator_err_t("must specify err_field as int; got " + config["err_field"] +  " instead");
   }
-  
+  LOG(INFO) << "assuming sort was based on field " << err_field;
   
   return NO_ERR;
 }
@@ -801,6 +801,8 @@ WindowLenFilter::configure (std::map<std::string,std::string> &config) {
 
 void
 WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
+   boost::lock_guard<boost::mutex> lock (mutex);
+
   if ( k_in_win++ < bound) {
     emit(t);
   } else {
@@ -816,7 +818,7 @@ static const int LEVELS = 20;
 void
 WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
   if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
-//    boost::lock_guard<boost::mutex> lock (mutex);
+    boost::lock_guard<boost::mutex> lock (mutex);
     vector<double> ratios;
     vector<unsigned> bounds;
     unsigned cur_level = LEVELS-1;
@@ -837,7 +839,8 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
     bound = bounds[cur_level + delta];
 
     LOG_IF(INFO,delta != 0) << "Changing local thresh. New thresh is " << bound
-     << " and last-window had " << k_in_win << " error is " << err_bound_lev;
+     << " and last-window had " << k_in_win;
+    LOG(INFO) << "thresholding error is " << err_bound_lev;
     DataplaneMessage newmsg;
     newmsg.CopyFrom(msg);
     newmsg.set_tput_r2_threshold(err_bound_lev);

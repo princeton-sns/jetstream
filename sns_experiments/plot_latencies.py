@@ -92,7 +92,7 @@ def plot_cdf(data):
 
   plt.ylim((0, 100)) 
   
-  min_bucket =  min([bucket for bucket, cum in zip(sorted(latency_to_count_after.keys()), after_vals_cum) if cum > 99.8])
+  min_bucket =  min([bucket for bucket, cum in zip(sorted(latency_to_count_after.keys()), after_vals_cum) if cum > 99])
   print "min bucket is %d" % min_bucket
   plt.xlim( (0, min_bucket) )   # ( -MAX_X * 1.2, MAX_X * 1.2) 
   ax.grid(True)
@@ -103,7 +103,7 @@ def plot_cdf(data):
   after_plot = ax.plot(sorted(latency_to_count_after.keys()), after_vals_cum, color='y')    
   
   ax.legend( (before_plot[0], after_plot[0]), ('Before DB', 'After DB'),\
-   loc="upper left" )
+   loc="lower right" )
   plt.ylabel('CDF of Tuples', fontsize=24)
   plt.xlabel('Latency (MS)', fontsize=24)
   plt.tick_params(axis='both', which='major', labelsize=16)
