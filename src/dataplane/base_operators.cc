@@ -807,12 +807,18 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
 //    boost::lock_guard<boost::mutex> lock (mutex);
     vector<double> ratios;
     vector<unsigned> bounds;
-    unsigned cur_level = LEVELS / 2;
+    unsigned cur_level = LEVELS-1;
 //    double fract_of_max = double(k_in_win) / bound;
 //    if (fract_of_theoretical < )
+    
     for( int i = 0; i < LEVELS; ++i) {
-      bounds.push_back(<#const value_type &__x#>)
+      unsigned bnd = k_in_win * double(i+1) / LEVELS;
+      bounds.push_back( bnd );
+      ratios.push_back( double(i+1) / LEVELS );
+      if ( (cur_level == LEVELS-1) && bnd >= bound)
+        cur_level = i;
     }
+    bounds[LEVELS-1] = UINT_MAX;
     
     unsigned delta = congest_policy->get_step(id(), ratios.data(), ratios.size(), cur_level);
     bound = bounds[cur_level + delta];
