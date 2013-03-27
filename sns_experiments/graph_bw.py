@@ -24,7 +24,7 @@ import numpy as np
 
 #    matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
-
+#matplotlib.rcParams['font.size'] = 10
 
 
 def main():
@@ -64,7 +64,6 @@ def main():
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
-    plot_bw(bw_seq, ax, leg_artists, "b.-") 
 
     if ALIGN:
       MAX_T = bw_seq[-1][0]
@@ -76,14 +75,22 @@ def main():
     lin_level_transitions = to_line(level_transitions, offset, MAX_T)
     plot_degradation(lin_level_transitions, ax, leg_artists, deg_label, "k-")
 
+    plot_bw(bw_seq, ax, leg_artists, "b.-") 
 
-  LEGEND_LABELS =  ["Bandwidth Used", "Degradation"]
+
+  LEGEND_LABELS =  ["Degradation"]
+  LEGEND_LABELS.append("Receive rate")
   if options.plot_srcbw:
     src_bw = get_src_bw(bw_seq, level_transitions, offset)
-    plot_bw(src_bw, ax, leg_artists, "r--")   
-    LEGEND_LABELS.append("Source Bandwidth")
-    leg_artists.reverse()
-    LEGEND_LABELS.reverse()    
+    plot_bw(src_bw, ax, leg_artists, "r--")
+    plt.setp(leg_artists[-1], linewidth=2)
+    LEGEND_LABELS.append("Generation rate")
+    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
+    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
+    
+  
+  #leg_artists.reverse()
+  #LEGEND_LABELS.reverse()    
 
   if options.baseline is not None:
     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
@@ -93,7 +100,10 @@ def main():
     plot_bw(bw_seq, ax, leg_artists, "b--")   
     leg_artists.reverse()
     LEGEND_LABELS.reverse()
-  finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS)
+
+
+  ax.tick_params(axis='x', which='major', pad=10) #controlls the x 
+  finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
 
   
   if options.latency:
@@ -202,7 +212,7 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt):
     bw_line, = ax.plot_date(time_data, bw, line_fmt, label="BW") 
   else:
     bw_line, = ax.plot(time_data, bw, line_fmt, label="BW") 
-  ax.set_xlabel('Experiment Time(s)', fontsize=22)  
+  ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=22)
   leg_artists.append( bw_line )
 
@@ -254,6 +264,9 @@ def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt
   ax.set_ylim( 0, max(lev_data) * 2)  
  
   ax.set_ylabel(deg_label, fontsize=22)
+  for tick in ax.yaxis.get_major_ticks():
+    tick.label.set_fontsize(16) 
+  ax.tick_params(axis='both', which='major', labelsize=16)
   leg_artists.append( deg_line )
 #  print level_transitions  
 
@@ -272,13 +285,15 @@ def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time):
 
     #plot_bw(time_to_bw, ax, leg_artists, "b.-") 
     plot_latencies(lat_series, ax, leg_artists)
+    plt.setp(leg_artists[-1], linewidth=2)
     
     if options.latency_no_degradation:
       lat_series_no_deg = get_latencies_over_time(options.latency_no_degradation, None, None, None)
       lat_series_no_deg = smooth_seq(lat_series_no_deg, 0, 60 * 60, window=10)
       plot_latencies(lat_series_no_deg, ax, leg_artists, "r--")
+      plt.setp(leg_artists[-1], linewidth=2)
     
-    finish_plots(figure, ax, leg_artists, options.outfile + "_latencies", ["With Degradation", "Without Degradation"])
+    finish_plots(figure, ax, leg_artists, options.outfile + "_latencies", ["With degradation", "Without degradation"])
 
 
 
@@ -347,7 +362,7 @@ def plot_latencies(lat_series, old_ax, leg_artists, line_fmt="k-"):
   ##ax.set_ylim( 0, max(latency_data) *1.2)  
   ax.set_ylim( 0, 5000)  
  
-  ax.set_xlabel('Experiment Time(s)', fontsize=22)  
+  ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel('Avg latency (msecs)', fontsize=22)
   leg_artists.append( line )
   
@@ -362,7 +377,7 @@ def get_src_bw(bw_seq, level_transitions, offset):
   res = smooth_seq(res, 0, EXP_MINUTES * 60, window = 10)
   return res
 
-def finish_plots(figure, ax, leg_artists, outname, label_strings):
+def finish_plots(figure, ax, leg_artists, outname, label_strings, legend_loc=1):
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.18)  
   figure.subplots_adjust(right=0.9)  
@@ -370,8 +385,9 @@ def finish_plots(figure, ax, leg_artists, outname, label_strings):
   #for label in labels: 
   #    label.set_rotation(30) 
       #"Src Records",   
-  plt.legend(leg_artists, label_strings, loc=2, frameon=False);
-  plt.tick_params(axis='both', which='major', labelsize=16)
+  plt.legend(leg_artists, label_strings, loc=legend_loc, frameon=False);
+  ax.tick_params(axis='both', which='major', labelsize=14) #controlls the x and left y
+  plt.tick_params(axis='both', which='major', labelsize=14) #controlls the right y (twinx)
   
   if OUT_TO_FILE:
       plt.savefig(outname + ".pdf")
