@@ -65,12 +65,6 @@ def main():
   deg_label = "Degradation ratio" if PLOT_LAT else "Avg window size (secs)"
 
   
-  if options.plot_srcbw:
-    src_bw = get_src_bw(bw_seq, level_transitions, offset)
-    plot_bw(src_bw, ax, leg_artists, "r--")
-    plt.setp(leg_artists[-1], linewidth=2)
-    LEGEND_LABELS.append("Generation rate")  
-  
   
   if PLOT_LAT:
     exp_list = "Bandwidth"
@@ -109,6 +103,13 @@ def main():
     is_first = False
     LEGEND_LABELS.append(label)
 
+
+  if options.plot_srcbw:
+    src_bw = get_src_bw(bw_seq, level_transitions, offset)
+    plot_bw(src_bw, ax, leg_artists, "r--")
+    plt.setp(leg_artists[-1], linewidth=2)
+    LEGEND_LABELS.append("Generation rate")  
+  
   
   if PLOT_LAT:
     #TODO draw bw-degradation plot here
