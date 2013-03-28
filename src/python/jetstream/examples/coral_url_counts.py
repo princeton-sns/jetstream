@@ -157,7 +157,6 @@ def get_graph(source_nodes, root_node, options):
       pull_from_local.set_cfg("window_offset", 2000) #but trailing by a few
       pull_from_local.set_cfg("sort_order", "-count")
       
-
     pull_from_local.instantiate_on(node)
 
     local_cube.instantiate_on(node)

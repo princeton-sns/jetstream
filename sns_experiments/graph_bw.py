@@ -110,34 +110,12 @@ def main():
     LEGEND_LABELS.append(label)
 
   
-  #leg_artists.reverse()
-  #LEGEND_LABELS.reverse()    
-  if options.sampled_run:
-    time_to_bw, time_to_tuples, _ = parse_log(options.sampled_run, PLOT_LAT)
-    offset = get_offset(time_to_bw)
-    bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 20)
-
-    if ALIGN:
-      MAX_T = bw_seq[-1][0]
-    else:
-      MAX_T = bw_seq[-1][0]
-      if len(time_to_tuples) > 0:
-        MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
-
-#    err_terms = [(tm-offset, err) for (tm, err) in time_to_tuples]
-
-    plot_bw(bw_seq, ax, leg_artists, "rx-", False) 
-    LEGEND_LABELS.append("Receive rate (hash sampling)")
-    print "errors look like: ",err_terms[0:10]
-    
-    plot_degradation(err_terms, ax, leg_artists, "% relative error", "k-")
-    LEGEND_LABELS.append("Relative error")   
-    ax.set_xlim( 0, 60 * EXP_MINUTES)  
-
-  
   if PLOT_LAT:
     #TODO draw bw-degradation plot here
+    ax.set_xlim( 0, 60 * EXP_MINUTES)      
+  
+    ax.tick_params(axis='x', which='major', pad=10) #controls the x   
+    finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
 
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
   else:
