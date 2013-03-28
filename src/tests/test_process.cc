@@ -321,13 +321,13 @@ void run_set(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, s
 }
 
 TEST_F(ProcessTest, DISABLED_Bench) {
-  run_test(sc, true, 1000000, 4, 4, false, false, true, true, false); //innodb
-  run_test(sc, true, 1000000, 4, 4, false, false, true, false, false); //innodb
-  run_test(sc, true, 1000000, 4, 4, false, false, false, true, true); //memory
-  run_test(sc, true, 1000000, 4, 4, false, false, false, false, true); //memory
-  run_test(sc, true, 1000000, 4, 4, false, false, false, true, false); //myisam
-  run_test(sc, true, 1000000, 4, 4, false, false, false, false, false); //myisam
-  run_test(sc, false, 1000000, 4, 4, false, false, false, false, false); //nodb
+  run_set(sc, true, 1000000, 4, 4, false, false, true, true, false); //innodb
+  run_set(sc, true, 1000000, 4, 4, false, false, true, false, false); //innodb
+  run_set(sc, true, 1000000, 4, 4, false, false, false, true, true); //memory
+  run_set(sc, true, 1000000, 4, 4, false, false, false, false, true); //memory
+  run_set(sc, true, 1000000, 4, 4, false, false, false, true, false); //myisam
+  run_set(sc, true, 1000000, 4, 4, false, false, false, false, false); //myisam
+  run_set(sc, false, 1000000, 4, 4, false, false, false, false, false); //nodb
 
 }
 
