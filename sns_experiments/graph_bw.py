@@ -72,8 +72,10 @@ def main():
     LEGEND_LABELS.append("Generation rate")  
   
   
-
-  exp_list = ["Receive rate (no degradation)", "Receive rate Max window 5",\
+  if PLOT_LAT:
+    exp_list = "Bandwidth"
+  else:
+    exp_list = ["Receive rate (no degradation)", "Receive rate Max window 5",\
      "Receive rate Max window 10", "Receive rate Window 5 + Threshold"]
   fmts = [ "b--", "b.-", "k.", "rx-"]
   is_first = True
