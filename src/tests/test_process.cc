@@ -42,7 +42,8 @@ class TestTupleGenerator {
   
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
+        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.com", 200, 50, 1);
+        //create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
         
 	//the following performs poorly because of the uniqueness in the index structure
 	//create_tuple(*t, 1, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
@@ -207,10 +208,18 @@ void make_tuples(std::vector< boost::shared_ptr<jetstream::Tuple> > & vector, un
   }
 }*/
 
-void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true, bool subscriber = false) {
+
+ 
+
+
+
+double run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true, bool subscriber = false, bool cube_mysql_innodb = false,  bool cube_mysql_transactions = false, bool cube_mysql_engine_memory = false) {
   NodeConfig conf;
   conf.cube_processor_threads = num_process_threads;
   conf.cube_mysql_transactions = true;
+  conf.cube_mysql_innodb = cube_mysql_innodb;
+  conf.cube_mysql_transactions = cube_mysql_transactions;
+  conf.cube_mysql_engine_memory =cube_mysql_engine_memory;
   
   LOG(INFO) << "Running Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads ;
 
@@ -267,15 +276,58 @@ void run_test(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, 
     waits ++;
     int waiting = procMon->queue_length() + (flushMon->queue_length()/10);
     js_usleep(waiting);
-    LOG(INFO) << "Waiting "<< waiting <<" on completeness. outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
+    //LOG(INFO) << "Waiting "<< waiting <<" on completeness. outstanding process " << procMon->queue_length() <<" outstanding flush " << flushMon->queue_length();
   }
 
-  LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits << "; start" << start << "; now "<< get_msec();
+  //LOG(INFO) << "Outstanding " << procMon->queue_length() <<"; waits "<< waits << "; start" << start << "; now "<< get_msec();
 
   unsigned int diff =  (get_msec() - start);
   double rate = (double) num_tuples/diff;
 
   LOG(INFO) << "Finished Test " << (use_db? "with db": "withOUT DB") << " num_tuples: "<< num_tuples << " num insert threads: "<< num_tuple_insert_threads<< " num process threads: "<< num_process_threads << " Overlap "<< overlap <<". The time it took was: " << diff <<" ms. Rate = " << rate <<" tuples/ms";
+
+  return rate;
+}
+
+void run_set(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, size_t num_tuple_insert_threads, size_t num_process_threads, bool overlap = true, bool subscriber = false, bool cube_mysql_innodb = false, bool cube_mysql_transactions = false, bool cube_mysql_engine_memory = false) {
+
+  double res[5];
+  double sum = 0;
+  int i;
+  for(i=0 ;i<5;i++)
+  {
+    res[i] = run_test(sc, use_db, num_tuples,  num_tuple_insert_threads, num_process_threads, overlap, subscriber, cube_mysql_innodb, cube_mysql_transactions, cube_mysql_engine_memory);
+    sum += res[i];
+  }
+
+  double mean = sum/5;
+
+  double pow_sum;
+  for(i = 0; i < 5; i++)
+    pow_sum += pow(res[i]-mean, 2);
+
+  double stddev = sqrt(pow_sum/5);
+
+  string engine = "";
+  if(!use_db)
+    engine="NO-DB";
+  else if(cube_mysql_innodb)
+    engine = "INNODB";
+  else if (cube_mysql_engine_memory)
+    engine = "MEMORY";
+  else
+    engine = "MyISAM";
+  LOG(INFO) << "Stats: Engine "<< engine << " Transactions "<< cube_mysql_transactions << " Mean " << mean <<" Stddev " << stddev;
+}
+
+TEST_F(ProcessTest, DISABLED_Bench) {
+  run_set(sc, true, 1000000, 4, 4, false, false, true, true, false); //innodb
+  run_set(sc, true, 1000000, 4, 4, false, false, true, false, false); //innodb
+  run_set(sc, true, 1000000, 4, 4, false, false, false, true, true); //memory
+  run_set(sc, true, 1000000, 4, 4, false, false, false, false, true); //memory
+  run_set(sc, true, 1000000, 4, 4, false, false, false, true, false); //myisam
+  run_set(sc, true, 1000000, 4, 4, false, false, false, false, false); //myisam
+  run_set(sc, false, 1000000, 4, 4, false, false, false, false, false); //nodb
 
 }
 

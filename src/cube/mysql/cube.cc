@@ -182,6 +182,8 @@ string jetstream::cube::MysqlCube::create_sql(bool aggregate_table) const {
   sql += ") CHARACTER SET utf8";
   if(config.cube_mysql_innodb)
     sql += " ENGINE=InnoDB";
+  else if(config.cube_mysql_engine_memory)
+    sql += " ENGINE=MEMORY";
   else
     sql += " ENGINE=MyISAM";
 
