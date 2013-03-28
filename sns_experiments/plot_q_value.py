@@ -83,7 +83,7 @@ def plot_error(all_data):
     
     print "plotting %s..." % distrib_name
     ax = fig.add_subplot(111)
-    ax.set_yscale('symlog', linthreshy= 1e-8, linscaley = 1)
+    ax.set_yscale('symlog', linthreshy= 1e-5, linscaley = 1)
  
 #    ax.set_title('Accuracy finding %dth percentile of %s' % (int(100 * float(target_quant)), distrib_name))
 
@@ -118,7 +118,7 @@ def plot_error(all_data):
       plt.errorbar(x_vals, y_vals,  fmt=symb ,yerr=y_errs , label=summary_name)
  
       # can do plt.
-    ax.legend()
+    ax.legend(frameon=False)
     if OUT_TO_FILE:
       plt.savefig(distrib_name +"_accuracy.pdf")
       plt.close(fig)  
