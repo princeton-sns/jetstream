@@ -51,17 +51,39 @@ def main():
   leg_artists = []
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
-  deg_label = "Degradation ratio" if PLOT_LAT else "Avg window size (secs)"
   EXP_MINUTES = 40 if PLOT_LAT else 7
+  LEGEND_LABELS = []
+#   if options.baseline is not None:
+#     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
+#     offset = get_offset(time_to_bw)
+#     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
+#     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
+#     plot_bw(bw_seq, ax, leg_artists, "b--")   
+#     LEGEND_LABELS.append()    
+#  
+  
+  deg_label = "Degradation ratio" if PLOT_LAT else "Avg window size (secs)"
+
+  
+  if options.plot_srcbw:
+    src_bw = get_src_bw(bw_seq, level_transitions, offset)
+    plot_bw(src_bw, ax, leg_artists, "r--")
+    plt.setp(leg_artists[-1], linewidth=2)
+    LEGEND_LABELS.append("Generation rate")  
   
   
-  for infile in args:
+
+  exp_list = ["Receive rate (no degradation)", "Receive rate Max window 5",\
+     "Receive rate Max window 10", "Receive rate Window 5 + Threshold"]
+  fmts = [ "b--", "b.-", "k.", "rx-"]
+  is_first = True
+  for infile, label, line_fmt in zip(args, exp_list,fmts):
  
     time_to_bw, time_to_tuples, level_transitions = parse_log(infile, PLOT_LAT)
   #  plot_src_tuples(time_to_tuples, ax, leg_artists) 
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 20)
+    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 10)
     print "bw_seq", bw_seq[0:10]
     print "bw range is", bw_seq[0][0], " - ", bw_seq[-1][0]
   #  print "smoothed to",time_to_bw
@@ -73,31 +95,20 @@ def main():
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
+    err_terms = smooth_seq(time_to_tuples, offset, EXP_MINUTES * 60, window = 5)
+    max_err = max([e for _,e in err_terms]) if len(err_terms) > 0 else 0
+    print "For %s, max rel error is %f" % (label, max_err)
     lin_level_transitions = to_line(level_transitions, offset, MAX_T)
-    plot_degradation(lin_level_transitions, ax, leg_artists, deg_label, "k-")
 
-    plot_bw(bw_seq, ax, leg_artists, "b.-") 
+    plot_bw(bw_seq, ax, leg_artists,line_fmt, is_first) 
+    is_first = False
+    LEGEND_LABELS.append(label)
 
-
-  LEGEND_LABELS =  ["Window size"]
-  if options.sampled_run:
-    LEGEND_LABELS.append("Receive rate (time coarsening)")
-  else:
-    LEGEND_LABELS.append("Receive rate")
-
-  if options.plot_srcbw:
-    src_bw = get_src_bw(bw_seq, level_transitions, offset)
-    plot_bw(src_bw, ax, leg_artists, "r--")
-    plt.setp(leg_artists[-1], linewidth=2)
-    LEGEND_LABELS.append("Generation rate")
-    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
-    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
-    
   
   #leg_artists.reverse()
   #LEGEND_LABELS.reverse()    
   if options.sampled_run:
-    time_to_bw, time_to_tuples, level_transitions = parse_log(options.sampled_run, PLOT_LAT)
+    time_to_bw, time_to_tuples, _ = parse_log(options.sampled_run, PLOT_LAT)
     offset = get_offset(time_to_bw)
     bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
     bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60, window = 20)
@@ -110,33 +121,46 @@ def main():
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
 #    err_terms = [(tm-offset, err) for (tm, err) in time_to_tuples]
-    err_terms = smooth_seq(time_to_tuples, offset, EXP_MINUTES * 60, window = 5)
 
     plot_bw(bw_seq, ax, leg_artists, "rx-", False) 
     LEGEND_LABELS.append("Receive rate (hash sampling)")
     print "errors look like: ",err_terms[0:10]
+    
     plot_degradation(err_terms, ax, leg_artists, "% relative error", "k-")
     LEGEND_LABELS.append("Relative error")   
 #    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
 #    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
-  
-  if options.baseline is not None:
-    time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
-    offset = get_offset(time_to_bw)
-    bw_seq = [ (tm,bytes) for tm, (bytes,tuples) in sorted(time_to_bw.items()) ]
-    bw_seq = smooth_seq(bw_seq, offset, EXP_MINUTES * 60)
-    plot_bw(bw_seq, ax, leg_artists, "b--")   
-    LEGEND_LABELS.append("Receive rate (no degradation)")    
-    leg_artists.reverse()
-    LEGEND_LABELS.reverse()
-
-  ax.tick_params(axis='x', which='major', pad=10) #controlls the x 
-  finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
 
   
-  if options.latency:
+  if PLOT_LAT:
+    #TODO draw bw-degradation plot here
+
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
+  else:
+    ax.tick_params(axis='x', which='major', pad=10) #controls the x 
+  
+    finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
+
+
+    figure, ax = plt.subplots()
+    leg_artists = []
+    LEGEND_LABELS = ["Window size", "Relative error"]
+    ax.set_xlabel('Experiment time (sec)', fontsize=22)  
+    ax.set_ylabel('% relative error"', fontsize=22)
+    MAX_Y = max([e for t,e in err_terms])
+    ax.set_ylim( 0, 1.35 *  MAX_Y)  
+    print "Max relative error is %f" % MAX_Y
     
+    plot_degradation(err_terms, ax, leg_artists, "% relative error", "b-")
+    
+#    for explabel in exp_list[1:2]:
+#      lin_level_transitions = degradations[explabel]
+    ax2 = ax.twinx()
+    plot_degradation(lin_level_transitions, ax2, leg_artists, "Window size", "k-")
+    ax.tick_params(axis='x', which='major', pad=10) #controls the x 
+    finish_plots(figure, ax, leg_artists, options.outfile + "degs", LEGEND_LABELS, legend_loc=2)
+
+  
     
 
 USE_BW_REP = False
@@ -287,9 +311,8 @@ def to_line(level_transitions, min_time, max_time):
   revised.append ( (max_time, last_level))
   return revised
   
-def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt="k-"):
+def plot_degradation(level_transitions, ax, leg_artists, deg_label, line_fmt="k-"):
 
-  ax = old_ax.twinx()
   time_data = [get_x_from_time(t) for t,l in level_transitions]
   lev_data = [l for t,l in level_transitions]
   if DATE:
