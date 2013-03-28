@@ -105,17 +105,20 @@ def main():
     if ALIGN:
       MAX_T = bw_seq[-1][0]
     else:
-      MAX_T = max(bw_seq[-1][0])
+      MAX_T = bw_seq[-1][0]
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
-    #lin_level_transitions = to_line(level_transitions, offset, MAX_T)
-    #plot_degradation(lin_level_transitions, ax, leg_artists, deg_label, "k-")
+#    err_terms = [(tm-offset, err) for (tm, err) in time_to_tuples]
+    err_terms = smooth_seq(time_to_tuples, offset, EXP_MINUTES * 60, window = 5)
 
     plot_bw(bw_seq, ax, leg_artists, "rx-", False) 
     LEGEND_LABELS.append("Receive rate (hash sampling)")
-    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
-    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
+    print "errors look like: ",err_terms[0:10]
+    plot_degradation(err_terms, ax, leg_artists, "% relative error", "k-")
+    LEGEND_LABELS.append("Relative error")   
+#    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
+#    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
   
   if options.baseline is not None:
     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
@@ -126,11 +129,6 @@ def main():
     LEGEND_LABELS.append("Receive rate (no degradation)")    
     leg_artists.reverse()
     LEGEND_LABELS.reverse()
-
- 
-
-
-
 
   ax.tick_params(axis='x', which='major', pad=10) #controlls the x 
   finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
@@ -146,9 +144,11 @@ BASE_H = 1000
 def parse_log(infile, PLOT_LAT):
   time_to_bw = {}
   level_transitions = []
-  time_to_tuples = []
+  time_to_err = []
   f = open(infile, 'r')
   hist_sizes = []
+  last_count = 0
+  cur_count = 0
   for ln in f:
     if 'RootReport' in ln:
       try:
@@ -170,9 +170,15 @@ def parse_log(infile, PLOT_LAT):
         else:
           h_size = float(ln.split(" ")[-1])
           level_transitions.append (  (ts, h_size) )
-
-
-        
+    if 'total count=' in ln:
+      cnt = int(ln.split(" ")[-1].split("=")[-1])
+      cur_count = cnt - last_count
+      last_count = cnt
+    if 'Filter-error bound:' in ln:
+      bound = int(ln.split(" ")[-1])
+      err = float(bound) * 100 /  cur_count if cur_count > 0 else 0
+      time_to_err.append( (ts, err))
+      
 #      print zip(fields, range(0, 15))
 #      sys.exit(0)
 #     elif 'setting degradation level' in ln:
@@ -194,9 +200,9 @@ def parse_log(infile, PLOT_LAT):
 
   f.close()
   if len(hist_sizes) > 0:
-    return time_to_bw,time_to_tuples, hist_sizes
+    return time_to_bw,time_to_err, hist_sizes
   else:
-    return time_to_bw,time_to_tuples,level_transitions
+    return time_to_bw,time_to_err,level_transitions
 
 
 def get_offset(time_to_bw):
@@ -301,8 +307,6 @@ def plot_degradation(level_transitions, old_ax, leg_artists, deg_label, line_fmt
 #  print level_transitions  
 
 
-
-    
 
 def do_latency_bw_plot(time_to_bw, offset, options, min_time, max_time): 
     print "offset is ",offset, " min time ", min_time, "max_time ", max_time 
