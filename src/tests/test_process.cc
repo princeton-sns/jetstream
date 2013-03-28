@@ -42,7 +42,8 @@ class TestTupleGenerator {
   
       for(unsigned int i =0; i < num; i++) {
         t = boost::make_shared<jetstream::Tuple>();
-        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
+        create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.com", 200, 50, 1);
+        //create_tuple(*t, time_entered+time_offset+i, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
         
 	//the following performs poorly because of the uniqueness in the index structure
 	//create_tuple(*t, 1, "http:\\\\www.example.comsdgudaikgsduguyuyfuyyuufyhfuyufuyfufuyufuftutugfytdytdrsxdrtsdvudyugujsysauhvufgvuuysidhidhichgiagsig"+boost::lexical_cast<string>(time_entered+time_offset+i)+"sagiygdiagsyigyhjkhjgijyfgikjigiygiykjigkgiukgikgikgbihkgvbikgbhjhgjkgikjgijksdsdsdsdsgigguigiugigiugibjkdggkdgkdgdjdvgjdfjdhdjdgvjmdfjddjfdudyfuydsfufdsxfydjsfujfjsknk", 200, 50, 1);
