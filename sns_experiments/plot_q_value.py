@@ -106,7 +106,7 @@ def plot_error(all_data):
 
     plt.axis([0, max(x_vals) + 10, 0, 2 * maxy])
     plt.ylabel("Relative Error", fontsize=18) 
-    plt.xlabel("Summary size kb", fontsize=18)   
+    plt.xlabel("Summary size (Kb)", fontsize=18)   
     summaries_in_order = ["sketch", "sample", "histogram"]
     for summary_name,symb in zip(summaries_in_order, symbols):
       y_vals_map = y_vals_for[summary_name]

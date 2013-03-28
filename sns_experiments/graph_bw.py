@@ -51,7 +51,7 @@ def main():
   leg_artists = []
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
-  EXP_MINUTES = 40 if PLOT_LAT else 7
+  EXP_MINUTES = 40 if PLOT_LAT else 6
   LEGEND_LABELS = []
 #   if options.baseline is not None:
 #     time_to_bw, _, _ = parse_log(options.baseline, PLOT_LAT)
@@ -75,10 +75,11 @@ def main():
   if PLOT_LAT:
     exp_list = "Bandwidth"
   else:
-    exp_list = ["Receive rate (no degradation)", "Receive rate Max window 5",\
-     "Receive rate Max window 10", "Receive rate Window 5 + Threshold"]
-  fmts = [ "b--", "b.-", "k.", "rx-"]
+    exp_list = ["No degradation", "Max window 5",\
+     "Max window 10" , "Max window 5 + Threshold", "Max window 5 + Sampling"]
+  fmts = [ "b--", "b+-", "k-", "rx-", "g.-"]
   is_first = True
+  window_sizes = {}
   for infile, label, line_fmt in zip(args, exp_list,fmts):
  
     time_to_bw, time_to_tuples, level_transitions = parse_log(infile, PLOT_LAT)
@@ -97,11 +98,13 @@ def main():
       if len(time_to_tuples) > 0:
         MAX_T = max( MAX_T, max([t for (t,l) in time_to_tuples]))
 
-    err_terms = smooth_seq(time_to_tuples, offset, EXP_MINUTES * 60, window = 5)
-    max_err = max([e for _,e in err_terms]) if len(err_terms) > 0 else 0
+    e_terms = smooth_seq(time_to_tuples, offset, EXP_MINUTES * 60, window = 5)
+    max_err = max([e for _,e in e_terms]) if len(e_terms) > 0 else 0
     print "For %s, max rel error is %f" % (label, max_err)
+    if max_err > 0:
+      err_terms = e_terms
     lin_level_transitions = to_line(level_transitions, offset, MAX_T)
-
+    window_sizes[label] = lin_level_transitions
     plot_bw(bw_seq, ax, leg_artists,line_fmt, is_first) 
     is_first = False
     LEGEND_LABELS.append(label)
@@ -130,8 +133,7 @@ def main():
     
     plot_degradation(err_terms, ax, leg_artists, "% relative error", "k-")
     LEGEND_LABELS.append("Relative error")   
-#    leg_artists = [leg_artists[0], leg_artists[2], leg_artists[1]]
-#    LEGEND_LABELS = [LEGEND_LABELS[0], LEGEND_LABELS[2], LEGEND_LABELS[1]]
+    ax.set_xlim( 0, 60 * EXP_MINUTES)  
 
   
   if PLOT_LAT:
@@ -139,27 +141,32 @@ def main():
 
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
   else:
-    ax.tick_params(axis='x', which='major', pad=10) #controls the x 
+    ax.set_xlim( 0, 60 * EXP_MINUTES)      
   
+    ax.tick_params(axis='x', which='major', pad=10) #controls the x   
     finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
-
 
     figure, ax = plt.subplots()
     leg_artists = []
-    LEGEND_LABELS = ["Window size", "Relative error"]
+    LEGEND_LABELS = ["Rel. error (threshholding)", "Window size (max 5)", "Window size (max 10)"]
     ax.set_xlabel('Experiment time (sec)', fontsize=22)  
-    ax.set_ylabel('% relative error"', fontsize=22)
+    ax.set_ylabel('% Relative error"', fontsize=22)
     MAX_Y = max([e for t,e in err_terms])
-    ax.set_ylim( 0, 1.35 *  MAX_Y)  
+    ax.set_ylim( 0, 1.25 *  MAX_Y)  
     print "Max relative error is %f" % MAX_Y
     
-    plot_degradation(err_terms, ax, leg_artists, "% relative error", "b-")
-    
-#    for explabel in exp_list[1:2]:
-#      lin_level_transitions = degradations[explabel]
+    plot_degradation(err_terms, ax, leg_artists, "% Relative error", "bx-")
+
     ax2 = ax.twinx()
-    plot_degradation(lin_level_transitions, ax2, leg_artists, "Window size", "k-")
+#    for explabel,linefmt in zip(exp_list[1:3], ["k-", 'k--']):
+    lin_level_transitions = window_sizes[exp_list[1]]
+    plot_degradation(lin_level_transitions, ax2, leg_artists, "Window size (secs)", "k-", lw=1)
+    plot_degradation(window_sizes[exp_list[2]], ax2, leg_artists, "Window size (secs)", "k--", lw=2)
+
     ax.tick_params(axis='x', which='major', pad=10) #controls the x 
+    ax.set_xlim( 0, 60 * EXP_MINUTES)  
+    LEGEND_LABELS =   [LEGEND_LABELS[x] for x in [2,1,0]]
+    leg_artists= [leg_artists[x] for x in [2,1,0]]
     finish_plots(figure, ax, leg_artists, options.outfile + "degs", LEGEND_LABELS, legend_loc=2)
 
   
@@ -197,7 +204,8 @@ def parse_log(infile, PLOT_LAT):
           h_size = float(ln.split(" ")[-1])
           level_transitions.append (  (ts, h_size) )
     if 'total count=' in ln:
-      cnt = int(ln.split(" ")[-1].split("=")[-1])
+      m = re.search("count=([0-9]+)",ln)
+      cnt = int(m.group(1))
       cur_count = cnt - last_count
       last_count = cnt
     if 'Filter-error bound:' in ln:
@@ -267,7 +275,7 @@ def plot_bw(bw_seq, ax, leg_artists, line_fmt, setlim=True):
 
   if setlim:
     MAX_Y = max(bw)
-    ax.set_ylim( 0, 1.35 *  MAX_Y)  
+    ax.set_ylim( 0, 1.25 *  MAX_Y)  
   
   plt.tick_params(axis='both', which='major', labelsize=16)
   if DATE:
@@ -313,16 +321,16 @@ def to_line(level_transitions, min_time, max_time):
   revised.append ( (max_time, last_level))
   return revised
   
-def plot_degradation(level_transitions, ax, leg_artists, deg_label, line_fmt="k-"):
+def plot_degradation(level_transitions, ax, leg_artists, deg_label, line_fmt="k-", lw = 1):
 
   time_data = [get_x_from_time(t) for t,l in level_transitions]
   lev_data = [l for t,l in level_transitions]
   if DATE:
     deg_line, = ax.plot_date(time_data, lev_data, line_fmt) 
   else:
-    deg_line, = ax.plot(time_data, lev_data, line_fmt) 
+    deg_line, = ax.plot(time_data, lev_data, line_fmt, linewidth = lw) 
 #  ax.set_ylim( 0, 1.2 *  max(lev_data))    
-  ax.set_ylim( 0, max(lev_data) * 2)  
+  ax.set_ylim( 0, max(lev_data) * 1.4)  
  
   ax.set_ylabel(deg_label, fontsize=22)
   for tick in ax.yaxis.get_major_ticks():
@@ -444,7 +452,7 @@ def finish_plots(figure, ax, leg_artists, outname, label_strings, legend_loc=1):
   #for label in labels: 
   #    label.set_rotation(30) 
       #"Src Records",   
-  plt.legend(leg_artists, label_strings, loc=legend_loc, frameon=False);
+  plt.legend(leg_artists, label_strings, loc=legend_loc, frameon=False, ncol=2);
   ax.tick_params(axis='both', which='major', labelsize=14) #controlls the x and left y
   plt.tick_params(axis='both', which='major', labelsize=14) #controlls the right y (twinx)
   
