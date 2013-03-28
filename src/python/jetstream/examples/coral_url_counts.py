@@ -23,6 +23,7 @@ def main():
   action="store_true", default=False)
   parser.add_option("--local_thresh", dest="local_thresh",
   action="store_true", default=False)
+  parser.add_option("--steps", dest="steps", default="11")
 
   (options, args) = parser.parse_args()
 
@@ -169,6 +170,7 @@ def get_graph(source_nodes, root_node, options):
     lastOp = g.chain([local_cube, pull_from_local])
     if HASH_SAMPLE:
       v = jsapi.VariableSampling(g, field=2, type='S')
+      v.set_cfg("steps", options.steps)
 #      print "connecting ", 
       lastOp = g.connect(lastOp, v)
       g.add_policy( [pull_from_local, v] )

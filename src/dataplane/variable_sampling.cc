@@ -44,11 +44,22 @@ PeriodicCongestionReporter::report_congestion() {
   
 }
 
+operator_err_t
+VariableSamplingOperator::configure(std::map<std::string,std::string> &config) {
+  if((config["steps"].length() > 0) && !(stringstream(config["steps"]) >> num_steps)) {
+    return operator_err_t("steps must be an int");
+  }
+  LOG(INFO) << "Configured VariableSamplingOperator. num_steps="<<num_steps;
+  return HashSampleOperator::configure(config);
+}
+
+
 void
 VariableSamplingOperator::start() {
-  for( unsigned i =0; i < STEPS ; ++i) {
-    steps.push_back( double(i) / (STEPS - 1) );
-  }
+    for( unsigned i =0; i < num_steps ; ++i) {
+      steps.push_back( double(i) / (num_steps - 1) );
+    }
+    cur_step = num_steps-1;
 //  reporter.set_dest(get_dest());
 //  reporter.start(get_timer());
     cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);

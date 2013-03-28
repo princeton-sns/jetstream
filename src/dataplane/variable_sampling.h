@@ -51,15 +51,17 @@ public:
 };
 
 class VariableSamplingOperator: public HashSampleOperator {
-  const static unsigned STEPS = 11;
   private:
 //    PeriodicCongestionReporter reporter;
 //    boost::shared_ptr<CongestionMonitor> downstream_congestion;
 
   public:
   
-    VariableSamplingOperator():cur_step(STEPS-1) {}
+    VariableSamplingOperator(): num_steps(11){}
   
+  
+    virtual operator_err_t configure(std::map<std::string,std::string> &config);
+    
     virtual void start();
   
     virtual void stop() {
@@ -78,6 +80,7 @@ class VariableSamplingOperator: public HashSampleOperator {
   boost::mutex mutex; 
   unsigned cur_step;
   std::vector<double> steps;
+  unsigned num_steps;
   boost::shared_ptr<CongestionPolicy> congest_policy;
 
 
