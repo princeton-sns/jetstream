@@ -25,3 +25,11 @@ On SNS: Make sure permissions are
 
 5) mysql5 -u root
 create database test_cube
+
+
+
+To restart DB:
+
+sudo /opt/local/share/mysql5/mysql/mysql.server stop
+sudo cp src/mysql_udfs/merge/libjsmysqludfs_merge.dylib /opt/local/lib/mysql5/mysql/plugin
+sudo /opt/local/share/mysql5/mysql/mysql.server start

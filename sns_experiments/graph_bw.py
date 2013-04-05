@@ -49,6 +49,7 @@ def main():
 
 
   leg_artists = []
+  
   figure, ax = plt.subplots()
   PLOT_LAT = options.latency is not None
   EXP_MINUTES = 40 if PLOT_LAT else 6
