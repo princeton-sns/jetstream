@@ -1,17 +1,16 @@
 #ifndef DIMENSION_TIME_CONT_Q8TYGR7Q
 #define DIMENSION_TIME_CONT_Q8TYGR7Q
 
+
 #include "dimension_flat.h"
 #include <time.h>
 #include <stdlib.h>
 #include <limits.h>
 
+#include "time_containment_levels.h"
+
 namespace jetstream {
 namespace cube {
-
-const unsigned int  DTC_SECS_PER_LEVEL[] = {INT_MAX, 3600, 1800, 600, 300, 60, 30, 10, 5, 1};
-const unsigned int DTC_LEVEL_COUNT = sizeof(DTC_SECS_PER_LEVEL)/sizeof(unsigned int);
-
 
 class MysqlDimensionTimeContainment : public MysqlDimension {
   public:

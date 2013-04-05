@@ -107,6 +107,10 @@ include_directories (SYSTEM ${GTEST_INCLUDE_DIR})
 #  Google's glog logger
 find_library(GLOG_LIB glog) #glog has no dependencies and so this is safe. --ASR
 
+# SQL connectors
+include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/include/mysql5-connector-cpp)
+
+
 #######################################################
 # Set library locations and sources
 

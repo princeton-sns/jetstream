@@ -6,13 +6,12 @@
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/bind/apply.hpp>
+//#include <boost/bind/apply.hpp>
 #include <boost/bind/protect.hpp>
 
 namespace jetstream {
 using boost::bind;
-using boost::thread;
-using boost::thread_group;
+//using boost::thread_group;
 using boost::asio::io_service;
 using boost::shared_ptr;
 using boost::make_shared;
@@ -34,7 +33,8 @@ class CountingExecutor {
 
     void start_threads(size_t n) {
       for (size_t i = 0; i < n; i++) {
-        pool.create_thread(bind(&io_service::run, service));
+        auto t = bind(&io_service::run, service);
+        pool.create_thread(t);
       }
     }
 
@@ -83,7 +83,7 @@ class CountingExecutor {
       --outstanding;
     }
     
-    thread_group pool;
+    boost::thread_group pool;
     shared_ptr<io_service> service;
     io_service::work work;
     boost::detail::atomic_count outstanding;

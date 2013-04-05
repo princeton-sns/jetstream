@@ -2,6 +2,8 @@
 #define JetStream_net_congest_mon_h
 
 #include "congestion_monitor.h"
+#include <boost/thread/mutex.hpp>
+
 
 namespace  jetstream {
 

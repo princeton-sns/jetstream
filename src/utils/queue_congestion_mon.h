@@ -4,6 +4,8 @@
 #include <boost/shared_ptr.hpp>
 #include "net_congest_mon.h"
 #include <boost/interprocess/detail/atomic.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include <math.h>
 
 namespace jetstream {

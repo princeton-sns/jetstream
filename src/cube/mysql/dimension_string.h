@@ -1,8 +1,8 @@
 #ifndef DIMENSION_STRING_Q8TYGR7Q
 #define DIMENSION_STRING_Q8TYGR7Q
 
+#include "mysql_driver.h"
 #include "dimension_flat.h"
-#include "mysql_connection.h"
 
 namespace jetstream {
 namespace cube {

@@ -1,5 +1,8 @@
-#include "dimension_string.h"
+
+#include "mysql_connection.h"
+
 #include "mysql_cube.h"
+#include "dimension_string.h"
 
 
 using namespace std;

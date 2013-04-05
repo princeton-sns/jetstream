@@ -2,7 +2,6 @@
 #define JetStream_congestion_monitor_h
 
 #include <boost/shared_ptr.hpp>
-#include <boost/thread.hpp>
 #include "js_utils.h"
 
 namespace jetstream {

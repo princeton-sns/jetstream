@@ -1,7 +1,8 @@
 ###### The MYSQL prototype cubes
 if(APPLE)
-find_library(MYSQL_CONN mysqlcppconn-static)
+find_library(MYSQL_CONN mysqlcppconn-static HINTS /opt/loca/lib /opt/local/lib/mysql5-connector-cpp)  
 find_library(MYSQL_CLI mysql5/mysql/libmysqlclient_r.dylib)
+include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/include/mysql5-connector-cpp)
 set(MYSQL_LIBS ${MYSQL_CONN}  ${MYSQL_CLI})
 else()
 find_library(MYSQL_CONN NAMES mysqlcppconn HINTS /usr/lib64/ /usr/lib/ /opt/local/lib/)

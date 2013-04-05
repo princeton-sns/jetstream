@@ -302,7 +302,7 @@ void run_set(jetstream::CubeSchema * sc, bool use_db, unsigned int num_tuples, s
 
   double mean = sum/5;
 
-  double pow_sum;
+  double pow_sum = 0.0;
   for(i = 0; i < 5; i++)
     pow_sum += pow(res[i]-mean, 2);
 
