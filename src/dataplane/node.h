@@ -119,6 +119,10 @@ class Node {
   boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
     return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
   }
+  
+  boost::shared_ptr<boost::asio::strand> get_new_strand() {
+    return boost::shared_ptr<boost::asio::strand>(new boost::asio::strand(*iosrv));
+  }
 
   Counter bytes_in, bytes_out;
 

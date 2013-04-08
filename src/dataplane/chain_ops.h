@@ -1,0 +1,103 @@
+#ifndef __JetStream__chain_ops__
+#define __JetStream__chain_ops__
+
+#include "operator_chain.h"
+#include "congest_policy.h"
+#include <iostream>
+#include <fstream>
+#include "js_utils.h"
+
+namespace jetstream {
+
+
+class TimerSource: public COperator {
+ public:
+//  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void start();
+  virtual void stop();
+
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+    congest_policy = p;
+  }
+  
+//  void end_of_window(msec_t duration);
+  
+  bool isRunning() {
+    return running;
+  }
+  
+  virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
+  
+  virtual void add_chain(OperatorChain * c) {chain = c;}
+  
+ protected:
+  TimerSource(): running(false),send_now(false),exit_at_end(true),ADAPT(true){}
+  
+  virtual bool emit_data() = 0; //returns true to stop sending; else false
+  
+  void emit_wrapper();
+
+  boost::shared_ptr<CongestionPolicy> congest_policy;
+  volatile bool running;
+  volatile bool send_now, exit_at_end;
+  OperatorChain * chain;
+  boost::shared_ptr<boost::asio::strand> st;
+  
+  bool ADAPT;
+  boost::shared_ptr<boost::asio::deadline_timer> timer;
+//  boost::asio::deadline_timer timer;
+
+};
+
+class CFileRead: public TimerSource {
+ public:
+
+  CFileRead():lineno(0) {}
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual bool emit_data();  
+
+  virtual std::string long_description();
+
+ protected:
+  std::string f_name; //name of file to read
+  bool skip_empty; // option: skip empty lines
+  std::ifstream in_file;
+  unsigned lineno;
+
+GENERIC_CLNAME
+};
+
+class CDummyReceiver: public COperator {
+ public:
+  std::vector< boost::shared_ptr<Tuple> > tuples;
+  bool store;
+
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > &,
+                       DataplaneMessage&);
+ 
+  virtual operator_err_t configure (std::map<std::string, std::string> & config){
+    if (config["no_store"].length() > 0)
+      store=false;
+    return C_NO_ERR;
+  }
+
+//  virtual void process_delta (OperatorChain * chain, Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
+  virtual std::string long_description() {
+      std::ostringstream buf;
+      buf << tuples.size() << " stored tuples.";
+      return buf.str();
+  }
+  
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
+  CDummyReceiver(): store(true) {}
+
+GENERIC_CLNAME
+};
+
+
+}
+
+#endif /* defined(__JetStream__chain_ops__) */

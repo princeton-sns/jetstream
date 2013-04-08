@@ -33,8 +33,7 @@ class CountingExecutor {
 
     void start_threads(size_t n) {
       for (size_t i = 0; i < n; i++) {
-        auto t = bind(&io_service::run, service);
-        pool.create_thread(t);
+        pool.create_thread(bind(&io_service::run, service));
       }
     }
 
