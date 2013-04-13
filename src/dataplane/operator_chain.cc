@@ -27,7 +27,10 @@ void
 OperatorChain::start() {
 
   running = true;
-  for (int i = 0; i < ops.size(); ++i) {
+  if (ops.size() > 0 && ops[0])
+    ops[0]->start();
+  
+  for (int i = 1; i < ops.size(); ++i) {
     ops[i]->start();
   }
 //  loopThread = boost::shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
@@ -52,13 +55,17 @@ OperatorChain::stop() {
 void
 OperatorChain::stop_async(close_cb_t cb) {
   if (!strand) {
-    LOG(INFO) << "Can't stop, chain was never started";
+    LOG(WARNING) << "Can't stop, chain was never started";
   } else
     strand->wrap(boost::bind(&OperatorChain::do_stop, this, cb));
 }
 
 void
 OperatorChain::do_stop(close_cb_t cb) {
+
+  if (ops.size() > 0 && ops[0])
+    ops[0]->stop();
+
   for (int i = 0; i < ops.size(); ++i) {
     ops[i]->stop();
   }

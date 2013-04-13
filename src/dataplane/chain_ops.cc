@@ -1,6 +1,7 @@
 #include "chain_ops.h"
 #include <algorithm>
 #include "node.h"
+#include "base_operators.h"
 
 using namespace ::std;
 using namespace boost;
@@ -131,8 +132,70 @@ CDummyReceiver::process( OperatorChain * chain,
 
 
 
+void
+CExtendOperator::mutate_tuple (Tuple& t) {
+  for (u_int i = 0; i < new_data.size(); ++i) {
+    Element * e = t.add_e();
+    e->CopyFrom(new_data[i]);
+  }
+}
+
+/*
+void
+CExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+  mutate_tuple(oldV);
+  mutate_tuple(*newV);
+  emit(oldV, newV);
+} */
+
+
+operator_err_t
+CExtendOperator::configure (std::map<std::string,std::string> &config) {
+
+  string field_types = boost::to_upper_copy(config["types"]);
+  static boost::regex re("[SDI]+");
+
+  if (!regex_match(field_types, re)) {
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
+    //should return failure here?
+  }
+
+  string first_key = "0";
+  string last_key = ":";
+  map<string, string>::iterator it = config.find(first_key);
+  map<string, string>::iterator end = config.upper_bound(last_key);
+
+  u_int i;
+  for (i = 0;  i < field_types.size() && it != end; ++i, ++it) {
+    string s = it->second;
+    Element e;
+    if (s == "${HOSTNAME}") {
+      assert(field_types[i] == 'S');
+      e.set_s_val( boost::asio::ip::host_name());
+    }
+    else {
+      parse_with_types(&e, s, field_types[i]);
+    }
+    new_data.push_back(e);
+  }
+  if (i < field_types.size()) {
+    LOG(WARNING) << "too many type specifiers for operator";
+    return operator_err_t("too many type specifiers for operator");
+  }
+  if ( it != end ) {
+    LOG(WARNING) << "not enough type specifiers for operator";
+    return operator_err_t("not enough type specifiers for operator");
+  }
+  return NO_ERR;
+}
+
+
+
+
 const string CFileRead::my_type_name("CFileRead operator");
 const string CDummyReceiver::my_type_name("CDummyReceiver operator");
+const string CExtendOperator::my_type_name("Extend operator");
 
 
 }

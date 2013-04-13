@@ -97,3 +97,47 @@ TEST_F(COperatorTest, FileRead) {
   ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
   ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
 }
+
+
+TEST(COperator, CExtendOperator) {
+
+  shared_ptr<CExtendOperator>  ex_1(new CExtendOperator);
+  shared_ptr<CExtendOperator> ex_host(new CExtendOperator);
+  shared_ptr<CDummyReceiver> rec(new CDummyReceiver);
+
+  operator_config_t cfg;
+  cfg["types"] = "i";
+  cfg["0"] = "1";
+  ex_1->configure(cfg);
+
+  cfg["types"] = "s";
+  cfg["0"] = "${HOSTNAME}";
+  ex_host->configure(cfg);
+
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 2);
+  vector< boost::shared_ptr<Tuple> > v;
+  v.push_back(t);
+  OperatorChain chain;
+  
+  boost::shared_ptr<COperator> no_op;
+  chain.add_operator(no_op);
+  chain.add_operator(ex_1);
+  chain.add_operator(ex_host);
+  chain.add_operator(rec);
+  DataplaneMessage no_meta;
+  chain.process(v, no_meta);
+
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ(3, result->e_size());
+  ASSERT_EQ(2, result->e(0).i_val()); //should preserve existing element[s]
+  ASSERT_EQ(1, result->e(1).i_val()); //should preserve existing element[s]
+  ASSERT_GT(result->e(2).s_val().length(), 2U);
+  ASSERT_EQ( boost::asio::ip::host_name(), result->e(2).s_val());
+  //  cout << "host name is "<< result->e(2).s_val() << endl;
+  cout << "done" << endl;
+
+}
+

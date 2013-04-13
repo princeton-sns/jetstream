@@ -303,6 +303,9 @@ TEST(Operator,ParseOperator) {
   ASSERT_EQ(string("foo"), result->e(0).s_val());
   ASSERT_EQ(7, result->e(1).i_val());
 }
+/* 
+
+MOOTED BY REFACTORING
 
 TEST(Operator, ExtendOperator) {
 
@@ -338,7 +341,7 @@ TEST(Operator, ExtendOperator) {
   cout << "done" << endl;
 
 }
-
+*/
 
 TEST(Operator, SampleOperator) {
 

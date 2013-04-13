@@ -98,6 +98,37 @@ GENERIC_CLNAME
 };
 
 
+/**
+ * Adds constant data to a tuple.
+ *   Values should be named "0"..."9".
+ *    If you need to add more than ten values, use two ExtendOperators!
+ * Values should be parallel to a field, named types, with same syntax as
+ * for the GenericParse operator.
+ *  The value ${HOSTNAME} is special; it will be replaced with the host name at 
+ * configuration time. 
+ 
+*/
+class CExtendOperator: public COperator {
+ public:
+  std::vector< Element > new_data;
+
+  void mutate_tuple(Tuple& t);
+
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > & tuples,
+                       DataplaneMessage& m) {
+    for (int i = 0; i < tuples.size(); ++i)
+      mutate_tuple(*(tuples[i]));
+  }
+  
+//  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+  
+GENERIC_CLNAME
+};
+
+
 }
 
 #endif /* defined(__JetStream__chain_ops__) */

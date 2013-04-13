@@ -70,7 +70,8 @@ public:
   const std::string& chain_name();
   void upwards_metadata(DataplaneMessage&);
   void add_operator(boost::shared_ptr<COperator> op) {
-    op->add_chain(this);
+    if(op)
+      op->add_chain(this);
     ops.push_back(op);
   }
 
