@@ -15,6 +15,7 @@
 #include "queue_congestion_mon.h"
 #include "window_congest_mon.h"
 #include "counter.h"
+#include "operator_chain.h"
 
 #undef ACK_EACH_PACKET
 #define ACK_WINDOW_END 1
@@ -37,7 +38,7 @@ class BWReporter {
 };
 
 
-class RemoteDestAdaptor : public TupleReceiver {
+class RemoteDestAdaptor : public TupleReceiver, public ChainMember {
   friend class DataplaneConnManager;
 
   const static size_t SIZE_TO_SEND = 4096;
@@ -91,6 +92,9 @@ class RemoteDestAdaptor : public TupleReceiver {
 
   virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
   virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
+  virtual bool is_source() {return false;}
+  
   
   virtual void no_more_tuples();
 
@@ -117,7 +121,7 @@ class RemoteDestAdaptor : public TupleReceiver {
 };
   
 
-class IncomingConnectionState: public TupleSender {
+class IncomingConnectionState: public TupleSender, public ChainMember {
   boost::shared_ptr<ClientConnection> conn;
   boost::shared_ptr<CongestionMonitor> mon;
   boost::asio::io_service & iosrv;
@@ -138,6 +142,11 @@ public:
       dest = d;
       mon = dest->congestion_monitor();
   }
+  
+  
+  virtual bool is_source() {return true;}
+  virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) {}
+
   
   void close_async() {
     timer.cancel();

@@ -133,6 +133,17 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   processors[kh % processors.size()]->assign(t, key, current_levels);
 }
 
+
+void
+DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > & tuples, DataplaneMessage&) {
+  for(int i =0; i < tuples.size(); ++i) {
+    if (tuples[i])
+      process(tuples[i]);
+  }
+
+}
+
+
 void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, 
     boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc) {
   if(config.cube_max_stage < 3)

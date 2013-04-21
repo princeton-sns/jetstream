@@ -23,24 +23,35 @@ typedef boost::function<void ()> close_cb_t;
    virtual const std::string& typename_as_str() {return my_type_name;}
 
 
+class ChainMember {
 
-class COperator {
+  public:
+   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
+   virtual ~ChainMember() {}
+   virtual bool is_source() = 0;
+//   virtual std::string id_as_str() = 0;
+
+};
+
+
+
+class COperator: public ChainMember {
 
  public:
    virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
-//   virtual std::string id_as_str() = 0;
    virtual ~COperator() {}
    virtual operator_err_t configure(std::map<std::string,std::string> &config) = 0;
    virtual void start() {}
    virtual void stop() {} //called only on strand
+   virtual bool is_source() {return false;}
+
 
   virtual void add_chain(OperatorChain *) {}
   void set_node (Node * n) { node = n; }
 
  protected:
 
-    Node * node;
-   
+    Node * node;   
 };
 
 

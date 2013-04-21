@@ -24,6 +24,7 @@ typedef std::string DimensionKey;
 }
 
 #include "tuple_batch.h"
+#include "operator_chain.h"
 
 namespace jetstream {
 
@@ -80,7 +81,7 @@ class ProcessCallable {
 
 
 
-class DataCube : public TupleReceiver {
+class DataCube : public TupleReceiver, public ChainMember {
   public:
     typedef jetstream::DimensionKey DimensionKey;
     friend class ProcessCallable;
@@ -103,6 +104,9 @@ class DataCube : public TupleReceiver {
     virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t src) {
       process(t);
     }
+    virtual void process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
+    virtual bool is_source() {return false;}
+
 
     void wait_for_commits();
 

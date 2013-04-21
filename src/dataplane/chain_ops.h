@@ -36,6 +36,8 @@ class TimerSource: public COperator {
   virtual bool emit_data() = 0; //returns true to stop sending; else false
   
   void emit_wrapper();
+  virtual bool is_source() {return true;}
+
 
   boost::shared_ptr<CongestionPolicy> congest_policy;
   volatile bool running;

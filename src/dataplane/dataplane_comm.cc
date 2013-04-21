@@ -482,6 +482,48 @@ RemoteDestAdaptor::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, co
 }
 
 
+void
+RemoteDestAdaptor::process ( OperatorChain * chain,
+                             std::vector<boost::shared_ptr<Tuple> > & tuples,
+                             DataplaneMessage& msg) {
+  if (!wait_for_chain_ready()) {
+    LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
+		 << ". Aborting data message send. Should queue/retry instead?";
+    return;
+  }
+
+  {
+    unique_lock<boost::mutex> lock(mutex); //lock around buffers
+    out_buffer_msg.set_type(DataplaneMessage::DATA);
+
+    bool buffer_was_empty = (this_buf_size == 0);
+    
+    for(int i = 0; i < tuples.size(); ++i) {
+      boost::shared_ptr<Tuple> t = tuples[i];
+      if (!t)
+        continue;
+      size_t sz = t->ByteSize();
+      reporter.sending_a_tuple(sz);
+      remote_processing->report_insert(0, sz);
+      this_buf_size += sz;
+      out_buffer_msg.add_data()->MergeFrom(*t);
+    }
+    
+    if (msg.has_type() || this_buf_size > SIZE_TO_SEND) {
+      do_send_unlocked();
+      operator_id_t dummy;
+      meta_from_upstream(msg, dummy);
+    } else {
+      if (buffer_was_empty) {
+        timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
+        timer.async_wait(boost::bind(&RemoteDestAdaptor::force_send, this));
+      }
+    }
+  }
+
+}
+
+
 
 void
 RemoteDestAdaptor::force_send() {
