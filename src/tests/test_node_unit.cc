@@ -48,7 +48,7 @@ TEST(Node, OperatorCreateDestroy)
   operator_id_t id(1,2);
   operator_config_t oper_cfg;
   node.create_operator("test",id, oper_cfg);
-  shared_ptr<DataPlaneOperator> op = node.get_operator(id);
+  shared_ptr<COperator> op = node.get_operator(id);
   ASSERT_TRUE(op != NULL);
   ASSERT_EQ(node.get_operator( id ), op);
   

@@ -11,6 +11,7 @@
 #include "summary_operators.h"
 #include "sosp_operators.h"
 
+#include "chain_ops.h"
 
 #include <iostream>
 #include <dlfcn.h>
@@ -64,11 +65,17 @@ bool jetstream::DataPlaneOperatorLoader::unload(string name)
 
 #define REGISTER_OP(x) if (name.compare(#x) == 0) return new x()
 
-jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
+typedef jetstream::COperator *maker_t();
+
+jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
+  REGISTER_OP(CFileRead);
+  REGISTER_OP(CDummyReceiver);
+  REGISTER_OP(CExtendOperator);
   
     // These are base operators in base_operators
+    /*
   REGISTER_OP(FileRead);
   REGISTER_OP(StringGrep);
   REGISTER_OP(GenericParse);
@@ -125,7 +132,7 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
   REGISTER_OP(MultiRoundCoordinator);
   
   REGISTER_OP(SeqToRatio);
-  
+  */
   if(cache.count(name) < 1)
   {
     bool loaded = load(name);
@@ -140,6 +147,6 @@ jetstream::DataPlaneOperator *jetstream::DataPlaneOperatorLoader::newOp(string n
     return NULL;
   }
 
-  jetstream::DataPlaneOperator *dop = mkr();
+  jetstream::COperator *dop = mkr();
   return dop;
 }

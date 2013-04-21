@@ -18,10 +18,10 @@ typedef boost::function<void (boost::shared_ptr<ClientConnection>,
 typedef boost::function<void (boost::shared_ptr<ConnectedSocket>,
 			      const boost::system::error_code &) > cb_connsock_t;
 
-typedef boost::function<void (const jetstream::DataplaneMessage &msg,
+typedef boost::function<void (jetstream::DataplaneMessage &msg,
 			      const boost::system::error_code &) > cb_data_protomsg_t;
 
-typedef boost::function<void (const jetstream::ControlMessage &msg,
+typedef boost::function<void (jetstream::ControlMessage &msg,
 			      const boost::system::error_code &) > cb_control_protomsg_t;
 
 

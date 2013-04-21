@@ -113,7 +113,7 @@ TEST(Backfill, IntoCube) {
   extend_tuple(*t2, 3);
   extend_tuple(*t2, 4);
   operator_id_t no_oper_id(0,0);
-  cube->process_delta(*t, t2, no_oper_id);
+  cube->process_delta(*t, t2);
 
   cube->wait_for_commits();
   t_out = get_tuple(cube);

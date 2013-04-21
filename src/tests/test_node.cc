@@ -7,9 +7,10 @@
 
 #include "js_utils.h"
 #include "node.h"
-#include "base_operators.h"
+#include "chain_ops.h"
+//#include "base_operators.h"
 #include "simple_net.h"
-#include "experiment_operators.h"
+//#include "experiment_operators.h"
 #include "dataplane_comm.h"
 
 using namespace std;
@@ -65,14 +66,14 @@ TEST(Node, HandleAlter_2_Ops)
     ASSERT_EQ(r.type(), ControlMessage::ALTER_RESPONSE);
     
     operator_id_t id2(i,2);
-    shared_ptr<DataPlaneOperator> op = node.get_operator( id2 );
+    shared_ptr<COperator> op = node.get_operator( id2 );
     ASSERT_TRUE(op != NULL);
     
     id2 = operator_id_t(i,3);
-    shared_ptr<DataPlaneOperator> dest = node.get_operator( id2 );
+    shared_ptr<COperator> dest = node.get_operator( id2 );
     ASSERT_TRUE(dest != NULL);
     
-    DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+    CDummyReceiver * rec = reinterpret_cast<CDummyReceiver*>(dest.get());
     int tries = 0;
     while (rec->tuples.size() < 5 && tries++ < 50)
       js_usleep( 100 * 1000);
@@ -231,7 +232,7 @@ TEST_F(NodeNetTest, NetStartStop)
   
 }
 
-shared_ptr<DataPlaneOperator> 
+shared_ptr<COperator>
 add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
 {
   AlterTopo topo;
@@ -240,14 +241,15 @@ add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
 
   add_operator_to_alter(topo, dest_id, name);
   n.handle_alter(topo, r);
-  shared_ptr<DataPlaneOperator> dest = n.get_operator( dest_id );
+  shared_ptr<COperator> dest = n.get_operator( dest_id );
   EXPECT_TRUE( dest != NULL );
   return dest;
 }
 
-shared_ptr<DataPlaneOperator> 
+shared_ptr<CDummyReceiver>
 add_dummy_receiver(Node& n, operator_id_t dest_id) {
-  return  add_operator_to_node(n, dest_id, "DummyReceiver");
+  shared_ptr<COperator> d = add_operator_to_node(n, dest_id, "CDummyReceiver");
+  return dynamic_pointer_cast<CDummyReceiver>(d);
 }
 
 
@@ -261,7 +263,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
   ASSERT_EQ(h->heartbeat().cpuload_pct(), 0);
 
   operator_id_t dest_id(17,3);
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n, dest_id);
+  shared_ptr<COperator> dest = add_dummy_receiver(*n, dest_id);
 
   //At this point we have a receiver ready to go. Next: connect to it
   
@@ -303,7 +305,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
 
   //TODO better way to wait here?
   
-  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
+  CDummyReceiver * rec = reinterpret_cast<CDummyReceiver*>(dest.get());
   int tries = 0;
   while (rec->tuples.size() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -359,7 +361,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   // Create the receiver
   operator_id_t dest_id(17,3);
 
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*n, dest_id);
+  shared_ptr<CDummyReceiver> dest = add_dummy_receiver(*n, dest_id);
 
   
   shared_ptr<DataplaneMessage> resp = data_conn.get_data_msg();
@@ -385,14 +387,12 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   ASSERT_EQ(data_msg.ByteSize(), resp->bytes_processed());
 #endif
   
-  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
-
   //TODO better way to wait here?
   int tries = 0;
-  while (rec->tuples.size() == 0 && tries++ < 20)
+  while (dest->tuples.size() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   
-  ASSERT_EQ(rec->tuples.size(), (unsigned int) 1);
+  ASSERT_EQ(dest->tuples.size(), (unsigned int) 1);
   
   DataplaneMessage echo;
   echo.set_type(DataplaneMessage::TS_ECHO);
@@ -498,17 +498,14 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 
-  shared_ptr<DataPlaneOperator> dest = add_dummy_receiver(*nodes[0], dest_id);
+  shared_ptr<CDummyReceiver> dest = add_dummy_receiver(*nodes[0], dest_id);
   cout << "created receiver" << endl;
-
-  // Wait for the chain to be ready and the sending operator's data to flow through.   
-  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   
   u_int k;
   stringstream(kStr) >> k;
   
   tries = 0;
-  while (rec->tuples.size() < k && tries++ < 5)
+  while (dest->tuples.size() < k && tries++ < 5)
     boost::this_thread::sleep(boost::posix_time::seconds(1));
   
   if(tries >= 20) {
@@ -516,10 +513,11 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
   }
   
   // EXPECT_* records the failure but allows the cleanup code below to execute
-  EXPECT_EQ(k, rec->tuples.size());
+  EXPECT_EQ(k, dest->tuples.size());
 
 }
 
+/*
 TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
 
   //create dest and congestion monitor
@@ -543,7 +541,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
   EXPECT_EQ(2U, nodes[0]->operator_count());
     //TODO check for OK here
   
-  shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
+  shared_ptr<CDummyReceiver> dest = boost::dynamic_pointer_cast<CDummyReceiver>(
             nodes[0]->get_operator( dest_id ));
   shared_ptr<MockCongestion> congest_op = boost::dynamic_pointer_cast<MockCongestion>(
             nodes[0]->get_operator( congest_op_id ));
@@ -600,7 +598,7 @@ TEST_F(NodeTwoNodesTest, RemoteCongestionSignal) {
 
   ASSERT_EQ(2 * k, dest->tuples.size());
 }
-
+*/
 
 void stop_test(int i, boost::shared_ptr<Node>* nodes) {
   operator_id_t dest_id(1,1), src_op_id(1,2);
@@ -612,12 +610,12 @@ void stop_test(int i, boost::shared_ptr<Node>* nodes) {
     AlterTopo dest_topo;
     dest_topo.set_computationid(dest_id.computation_id);
 
-    add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
+    add_operator_to_alter(dest_topo, dest_id, "CDummyReceiver");
     nodes[0]->handle_alter(dest_topo, response);
     EXPECT_FALSE(response.has_error_msg());
   }
   
-  shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
+  shared_ptr<CDummyReceiver> dest = boost::dynamic_pointer_cast<CDummyReceiver>(
             nodes[0]->get_operator( dest_id ));
 
   {

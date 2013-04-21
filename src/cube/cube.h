@@ -81,7 +81,7 @@ class ProcessCallable {
 
 
 
-class DataCube : public TupleReceiver, public ChainMember {
+class DataCube : public ChainMember {
   public:
     typedef jetstream::DimensionKey DimensionKey;
     friend class ProcessCallable;
@@ -101,9 +101,8 @@ class DataCube : public TupleReceiver, public ChainMember {
      */
 
     virtual void process(boost::shared_ptr<Tuple> t);
-    virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t src) {
-      process(t);
-    }
+    virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV) = 0;
+
     virtual void process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
     virtual bool is_source() {return false;}
 

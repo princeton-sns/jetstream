@@ -178,14 +178,14 @@ class DataCubeImpl : public DataCube {
       }
     } //end method
   
-    virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+    virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV) {
       
       Tuple& newVref = *newV;
       for (unsigned i = 0; i < aggregates.size(); ++i) {
         aggregates[i]->update_from_delta(newVref, oldV);
       }
       
-      process(newV, pred);
+      process(newV);
     }
 
   

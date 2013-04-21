@@ -174,9 +174,6 @@ private:
   GENERIC_CLNAME
 };
 
-typedef DataPlaneOperator *maker_t();
-
-
 /* Group together the code for cleaning up operators. Could potentially fold this
 back into Node
 */

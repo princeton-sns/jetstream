@@ -125,13 +125,13 @@ Node::stop ()
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter = operators.begin();
+  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter = operators.begin();
 
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
   while (iter != operators.end()) {
-    shared_ptr<DataPlaneOperator> op = iter->second;
+    shared_ptr<COperator> op = iter->second;
     assert (op);
     LOG(INFO) << " stopping " << iter->first << " (" << op->typename_as_str() << ")";
     iter++;
@@ -289,6 +289,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
     {
+/* FIXME CHAINS
       const Edge& e = msg.chain_link();
       operator_id_t srcOpID = operator_id_t(e.computation(), e.src());
       //TODO can sanity-check that e is for us here.
@@ -323,7 +324,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         LOG(INFO) << "Chain request for " << dest_as_str<< " that isn't ready yet";
         
         dataConnMgr.pending_connection(c, dest_as_str, srcOpID);
-      }      
+      }     */
     }
     break;
   default:
@@ -348,6 +349,8 @@ void
 Node::establish_congest_policies( const AlterTopo & topo,
                                   ControlMessage & resp,
                                   const vector<operator_id_t>& toStart) {
+      /*
+  
   map<operator_id_t, bool> operators_with_policies;
   for (int i =0; i < topo.congest_policies_size(); ++ i) {
 //    establish_policies(topo.congest_policies(i));
@@ -375,7 +378,7 @@ Node::establish_congest_policies( const AlterTopo & topo,
   for (unsigned int i = 0; i < toStart.size(); ++i) {
     if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
       boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
-      boost::shared_ptr<DataPlaneOperator> op = get_operator(toStart[i]);
+      boost::shared_ptr<COperator> op = get_operator(toStart[i]);
       if (!op) {
         LOG(ERROR) << "Can't add policy to " << toStart[i] << "; no such operator.";
         continue;
@@ -383,7 +386,6 @@ Node::establish_congest_policies( const AlterTopo & topo,
       policy->add_operator(toStart[i]);
       policy->set_congest_monitor( op->congestion_monitor() );
       op->set_congestion_policy(policy);
-
       string monitor_name = "undefined";
       if( op->congestion_monitor()) {
         monitor_name = "defined";
@@ -391,7 +393,8 @@ Node::establish_congest_policies( const AlterTopo & topo,
       LOG(INFO) << "added default congestion policy for " << toStart[i]<<
         ". Monitor is " << monitor_name;
     }
-  }
+
+  }*/
 }
 
 void
@@ -491,7 +494,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     // TODO: Should we log whether the stop happened correctly?
   }
 
-  
+  /*
   // add edges
   for (int i=0; i < topo.edges_size(); ++i) {
     const Edge &edge = topo.edges(i);
@@ -567,7 +570,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
         c->add_subscriber(destOperator);
       }
     }
-  }
+  } */
 
   establish_congest_policies(topo, response, operators_to_start);
   
@@ -576,17 +579,17 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   vector<operator_id_t >::iterator iter;
   for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
-    shared_ptr<DataPlaneOperator> op = get_operator(name);
+    shared_ptr<COperator> op = get_operator(name);
     LOG_IF(FATAL, !op) << "operator " << name << " vanished before start";
     op->start();
-    dataConnMgr.created_operator(op);
+//    dataConnMgr.created_operator(op);
   }
   
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
     shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
     assert (c);
-    dataConnMgr.created_operator(c); //unblock connections into cubes
+//    dataConnMgr.created_operator(c); //unblock connections into cubes
   }
 }
 
@@ -610,20 +613,21 @@ Node::stop_computation(int32_t compID) {
   {
     unique_lock<boost::recursive_mutex> lock(operatorTableLock);
     
-    std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+    std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
     for ( iter = operators.begin(); iter != operators.end(); ) {
       operator_id_t op_id = iter->first;
-      boost::shared_ptr<DataPlaneOperator>  op = iter->second;
+      boost::shared_ptr<COperator>  op = iter->second;
        //need to advance iterator BEFORE stop, since iterator to removed element is invalid
       iter ++;
-      
+    
       if (op_id.computation_id == compID) {
       
         stopped_ops.push_back(op_id.task_id);
+  /*   FIXME CHAINS        
         // The actual stop. 
         operator_cleanup.stop_on_strand(op);
         operators.erase(op_id);
-        operator_cleanup.cleanup(op);      
+        operator_cleanup.cleanup(op);     */ 
       }
     }
   }
@@ -632,16 +636,16 @@ Node::stop_computation(int32_t compID) {
   return stopped_ops ;
 }
 
-boost::shared_ptr<DataPlaneOperator> 
+boost::shared_ptr<COperator> 
 Node::get_operator (operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
   iter = operators.find(name);
   if (iter != operators.end())
     return iter->second;
   else {
-    boost::shared_ptr<DataPlaneOperator> x;
+    boost::shared_ptr<COperator> x;
     return x; 
   }
 }
@@ -656,7 +660,7 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
     return operator_err_t("operator already exists");
   }
 
-  shared_ptr<DataPlaneOperator> d (operator_loader.newOp(op_typename));
+  shared_ptr<COperator> d (operator_loader.newOp(op_typename));
   if (d == NULL) {
     LOG(WARNING) <<" failed to create operator object. Type was "<<op_typename <<endl;
     return operator_err_t("Loader failed to create operator of type " + op_typename);
@@ -674,20 +678,21 @@ Node::create_operator (string op_typename, operator_id_t name, map<string,string
 
 bool 
 Node::stop_operator(operator_id_t name) {
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
   iter = operators.find(name);
   
   if (iter != operators.end())  { //operator still around
-    shared_ptr<DataPlaneOperator> op = iter->second;
+  /*   FIXME CHAINS
+    shared_ptr<COperator> op = iter->second;
     operator_cleanup.stop_on_strand(op);
     
     int delCount = operators.erase(name);
     LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
     
     operator_cleanup.cleanup(op); //will do the work on a strand
-  
+  */
     return true;
 // TODO: should unload code at some point. Presumably when no more operators
 // of that type are running? Can we push that into operatorloader?
@@ -703,10 +708,10 @@ Node::make_op_list() {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
   ostringstream s;
-  std::map<operator_id_t, shared_ptr<DataPlaneOperator> >::iterator iter;
+  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
   for ( iter = operators.begin(); iter != operators.end(); ++iter) {
     operator_id_t op_id = iter->first;
-    boost::shared_ptr<DataPlaneOperator>  op = iter->second;
+    boost::shared_ptr<COperator>  op = iter->second;
     if (op)
       s << "\t" << op_id << " " << op->typename_as_str() << endl;
     else

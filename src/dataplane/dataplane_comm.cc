@@ -8,17 +8,18 @@ using namespace boost::asio::ip;
 
 #undef REPORT_BW
 
+
 void
 IncomingConnectionState::no_more_tuples() {
   if (!dest)
     return;
   DataplaneMessage teardown;
   teardown.set_type(DataplaneMessage::NO_MORE_DATA);
-  dest->meta_from_upstream(teardown, remote_op);
+  dest->meta_from_upstream(teardown);
 }
 
 void
-IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
+IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
                                    const boost::system::error_code &error) {
   if (error) {
     if (error != boost::system::errc::operation_canceled) 
@@ -33,30 +34,36 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   if (!dest)
     LOG(FATAL) << "got data but no operator to receive it";
 
+  vector< shared_ptr<Tuple> > data;
+  for(int i=0; i < msg.data_size(); ++i) {
+    shared_ptr<Tuple> d (new Tuple);
+    d->MergeFrom (msg.data(i));
+    assert (d->e_size() > 0);
+    data.push_back(d);
+
+  }
+
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
+/* FIXME CHAINS
       if (mon->is_congested()) {
         VLOG(1) << "reporting downstream congestion at " << dest->id_as_str();
         report_congestion_upstream(mon->capacity_ratio());
         register_congestion_recheck();
-      }
+      }*/
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      for(int i=0; i < msg.data_size(); ++i) {
-        shared_ptr<Tuple> data (new Tuple);
-        data->MergeFrom (msg.data(i));
-        assert (data->e_size() > 0);
 
-        dest->process(data, remote_op);
-      }
+      dest->process(data, msg);
       
+      /* FIXME CHAINS
       for (int i = 0; i < msg.old_val_size(); ++i) {
         shared_ptr<Tuple> new_data (new Tuple);
         new_data->MergeFrom (msg.new_val(i));
         Tuple old_data;
         old_data.MergeFrom(msg.old_val(i));
         dest->process_delta(old_data, new_data, remote_op);      
-      }
+      }*/
 #ifdef ACK_EACH_PACKET
       DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
@@ -69,7 +76,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
   case DataplaneMessage::NO_MORE_DATA:
     {
       LOG(INFO) << "got no-more-data signal from " << conn->get_remote_endpoint()
-                << ", will tear down connection into " << dest->id_as_str();
+                << ", will tear down connection into " << dest->chain_name();
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
 
     }
@@ -84,7 +91,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 
   case DataplaneMessage::END_OF_WINDOW:
     {
-      dest->meta_from_upstream(msg, remote_op); //note that msg is a const param; can't mutate
+      dest->meta_from_upstream(msg); //note that msg is a const param; can't mutate
 #ifdef ACK_WINDOW_END
       LOG_EVERY_N(INFO, 40) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
        << " and window size was " << msg.window_length_ms();
@@ -107,7 +114,7 @@ IncomingConnectionState::got_data_cb (const DataplaneMessage &msg,
 //  case DataplaneMessage::CONGEST_STATUS:
 //  case DataplaneMessage::END_OF_WINDOW:
     {
-      dest->meta_from_upstream(msg, remote_op);
+      dest->meta_from_upstream(msg);
     }
     break;
 
@@ -126,7 +133,7 @@ IncomingConnectionState::report_congestion_upstream(double level) {
   msg.set_type(DataplaneMessage::CONGEST_STATUS);
   msg.set_congestion_level(level);
 
-  VLOG(1) << "Reporting congestion at " << dest->id_as_str()<< ": " << level;
+  VLOG(1) << "Reporting congestion at " << dest->chain_name()<< ": " << level;
   boost::system::error_code error;
   conn->send_msg(msg, error);
   if (error) {
@@ -149,6 +156,7 @@ IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& 
   if (error == boost::asio::error::operation_aborted)
     return;
 
+/* FIXME CHAINS
   VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
   double level = mon->capacity_ratio();
   if (conn->is_connected()) {
@@ -157,11 +165,11 @@ IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& 
 //    report_congestion_upstream(0);
 //  else
     register_congestion_recheck();
-  }
+  }*/
 }
 
 
-
+/*
 void
 IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
   if (conn->is_connected()) {
@@ -174,11 +182,11 @@ IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
     }
   }
-}
+}*/
 
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
-                                         shared_ptr<TupleReceiver> dest,
+                                         shared_ptr<OperatorChain> dest,
                                          operator_id_t srcOpID) {
   
   boost::shared_ptr<IncomingConnectionState> incomingConn;
@@ -188,13 +196,12 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
     if (liveConns.find(c->get_remote_endpoint()) != liveConns.end()) {
       //TODO this can probably happen if the previous connection died. Can we check for that?
       LOG(FATAL) << "Trying to connect remote conn from "<< c->get_remote_endpoint()
-                 << " to " << dest->id_as_str() << "but there already is a connection";
+                 << " to " << dest->chain_name() << "but there already is a connection";
     }
     incomingConn = boost::shared_ptr<IncomingConnectionState> (
           new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
-    dest->add_pred(incomingConn);
-    
+//    dest->add_pred(incomingConn);
   }
   
   boost::system::error_code error;
@@ -203,7 +210,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
 
   DataplaneMessage response;
   if (!error) {
-    LOG(INFO) << "Created dataplane connection into " << dest->id_as_str();
+    LOG(INFO) << "Created dataplane connection into " << dest->chain_name();
     response.set_type(DataplaneMessage::CHAIN_READY);
     // XXX This should include an Edge
   }
@@ -232,11 +239,11 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 
 // Called whenever an operator is created.
 void
-DataplaneConnManager::created_operator (shared_ptr<TupleReceiver> dest) {
+DataplaneConnManager::created_operator (shared_ptr<OperatorChain> dest) {
 
   {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
-    string op_id = dest->id_as_str();
+    string op_id = dest->member(0)->id_as_str();
     map<string, vector<PendingConn> >::iterator pending_conn = pendingConns.find(op_id);
     if (pending_conn != pendingConns.end()) {
       vector< PendingConn > & conns = pending_conn->second;
@@ -278,11 +285,9 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       ConnectionManager &cm,
                                       boost::asio::io_service & io,
                                       const Edge &e,
-                                      msec_t wait,
-                                      boost::shared_ptr<TupleSender> p)
+                                      msec_t wait)
   : mgr(dcm), chainIsReady(false), this_buf_size(0),
     timer(io), wait_for_conn(wait) {
-  pred = p;
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
   
@@ -382,7 +387,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     case DataplaneMessage::TPUT_ROUND_3:
     case DataplaneMessage::SET_BACKOFF:
     {
-      pred->meta_from_downstream(msg);
+//      pred->meta_from_downstream(msg);
       break;
     }
 
@@ -409,7 +414,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     conn->recv_data_msg(bind(&RemoteDestAdaptor::conn_ready_cb,
           this, _1, _2), err);
   } else {
-    pred->chain_is_broken();
+//    pred->chain_is_broken();
   }
 
 }
@@ -511,8 +516,7 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
     
     if (msg.has_type() || this_buf_size > SIZE_TO_SEND) {
       do_send_unlocked();
-      operator_id_t dummy;
-      meta_from_upstream(msg, dummy);
+      meta_from_upstream(msg); 
     } else {
       if (buffer_was_empty) {
         timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
@@ -545,12 +549,13 @@ RemoteDestAdaptor::do_send_unlocked() {
   
   if (err != 0) {
     //send failed
-    LOG(WARNING) << "Send failed; tearing down chain; local end is " << pred->id_as_str();
-    pred->chain_is_broken();
+    LOG(WARNING) << "Send failed; tearing down chain"; //; local end is " << pred->id_as_str();
+//    pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   }
   
 }
+
 
 void
 RemoteDestAdaptor::no_more_tuples () {
@@ -577,9 +582,8 @@ RemoteDestAdaptor::no_more_tuples () {
 //  mgr.deferred_cleanup(remoteAddr); //do this synchronously
 }
 
-
 void
-RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in, const operator_id_t pred) {
+RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
 		 << ". Aborting meta message send. Should queue/retry instead?";
@@ -622,7 +626,7 @@ bool
 RemoteDestAdaptor::wait_for_chain_ready() {
   unique_lock<boost::mutex> lock(mutex); // wraps mutex in an RIAA pattern
   while (!chainIsReady) {
-    LOG(INFO) <<  pred->id_as_str() <<  " trying to send data to "<< dest_as_str << " on "
+    LOG(INFO) <<  /*pred->id_as_str() << */ " trying to send data to "<< dest_as_str << " on "
 		 << remoteAddr << " through closed conn. Should block";
     
     system_time wait_until = get_system_time()+ posix_time::milliseconds(wait_for_conn);

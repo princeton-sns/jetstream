@@ -42,15 +42,11 @@ class Node {
   
   boost::condition_variable startStopCond;
   OperatorCleanup operator_cleanup;
-            
-  // I don't think we need this
-  //  std::vector<boost::shared_ptr<ClientConnection> > peers;  
-  // perhaps we should keep a map from dest to socket instead?
                                                     
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
-  std::map<operator_id_t, boost::shared_ptr<jetstream::DataPlaneOperator> > operators;
+  std::map<operator_id_t, boost::shared_ptr<jetstream::COperator> > operators;
 
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
                              boost::system::error_code error);
@@ -91,12 +87,15 @@ class Node {
     startStopCond.wait(lock);
   }
 
-  boost::shared_ptr<DataPlaneOperator> get_operator (operator_id_t name);
+  boost::shared_ptr<COperator> get_operator (operator_id_t name);
   
   operator_err_t
     create_operator (std::string op_typename, operator_id_t, operator_config_t) ;
-    
+
   bool stop_operator (operator_id_t name);
+
+    //Helper methods for handling incoming commands
+  void handle_alter (const AlterTopo& t, ControlMessage& response);
   
   std::vector<int32_t> stop_computation(int32_t compID);
   
@@ -114,7 +113,6 @@ class Node {
   const boost::asio::ip::tcp::endpoint & get_listening_endpoint () const
   { return listeningSock->get_local_endpoint(); }
 
-  void handle_alter (const AlterTopo& t, ControlMessage& response);
 
   boost::shared_ptr<boost::asio::deadline_timer> get_timer() {
     return boost::shared_ptr<boost::asio::deadline_timer>(new boost::asio::deadline_timer(*iosrv));
@@ -130,9 +128,6 @@ class Node {
 //TODO include private copy-constructor and operator= here?
 
 };
-
-//const int HB_INTERVAL = 5; //seconds
-
 }
 
 

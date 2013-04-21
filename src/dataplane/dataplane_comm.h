@@ -38,7 +38,7 @@ class BWReporter {
 };
 
 
-class RemoteDestAdaptor : public TupleReceiver, public ChainMember {
+class RemoteDestAdaptor : public ChainMember {
   friend class DataplaneConnManager;
 
   const static size_t SIZE_TO_SEND = 4096;
@@ -84,7 +84,7 @@ class RemoteDestAdaptor : public TupleReceiver, public ChainMember {
 
   RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
                        boost::asio::io_service & iosrv, const jetstream::Edge&,
-                     msec_t wait_for_conn, boost::shared_ptr<TupleSender>);
+                     msec_t wait_for_conn);
   virtual ~RemoteDestAdaptor() {
     timer.cancel();
     LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
@@ -98,7 +98,7 @@ class RemoteDestAdaptor : public TupleReceiver, public ChainMember {
   
   virtual void no_more_tuples();
 
-  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+  virtual void meta_from_upstream(const DataplaneMessage & msg);
 
   
   virtual const std::string& typename_as_str() {return generic_name;};
@@ -121,26 +121,27 @@ class RemoteDestAdaptor : public TupleReceiver, public ChainMember {
 };
   
 
-class IncomingConnectionState: public TupleSender, public ChainMember {
+class IncomingConnectionState: public ChainMember {
   boost::shared_ptr<ClientConnection> conn;
-  boost::shared_ptr<CongestionMonitor> mon;
+//  boost::shared_ptr<CongestionMonitor> mon; FIXME CHAINS
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
   boost::asio::deadline_timer timer;
   operator_id_t remote_op;
+  boost::shared_ptr<OperatorChain> dest;
 
 public:
-  void got_data_cb (const DataplaneMessage &msg,
+  void got_data_cb (DataplaneMessage &msg,
                     const boost::system::error_code &error);
   
   IncomingConnectionState(boost::shared_ptr<ClientConnection> c,
-                          boost::shared_ptr<TupleReceiver> d,
+                          boost::shared_ptr<OperatorChain> d,
                           boost::asio::io_service & i,
                           DataplaneConnManager& m,
                           operator_id_t srcOpID):
       conn(c), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
       dest = d;
-      mon = dest->congestion_monitor();
+//      mon = dest->congestion_monitor();
   }
   
   
@@ -174,7 +175,7 @@ public:
     timer.cancel();
   }
   
-  virtual void meta_from_downstream(const DataplaneMessage & msg);
+//  virtual void meta_from_downstream(const DataplaneMessage & msg);
   
   virtual void chain_is_broken() {
     LOG(INFO) << "closing down incoming socket due to chain-broken ahead";
@@ -238,7 +239,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
  
     // called to attach incoming connection c to existing operator dest
   void enable_connection (boost::shared_ptr<ClientConnection> c,
-                          boost::shared_ptr<TupleReceiver> dest,
+                          boost::shared_ptr<OperatorChain> dest,
                           operator_id_t srcOpID);
                      
 
@@ -248,7 +249,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
                           operator_id_t srcOpID);
 
     // called when an operator is created
-  void created_operator (boost::shared_ptr<TupleReceiver> dest);
+  void created_operator (boost::shared_ptr<OperatorChain> dest);
                          
   void close();
     

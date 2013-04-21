@@ -8,6 +8,7 @@
 
 #include "js_utils.h"
 #include "dataplaneoperator.h"
+#include "operator_chain.h"
 #include "jetstream_types.pb.h"
 
 namespace jetstream {
@@ -97,7 +98,7 @@ class DataPlaneOperatorLoader {
    *
    * @return new instance of the operator
    */
-  DataPlaneOperator *newOp(std::string name);
+  COperator *newOp(std::string name);
 };
 }
 

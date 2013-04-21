@@ -147,16 +147,16 @@ NodeWebInterface::make_base_page(ostream &buf) {
   buf << "<p>Operators:</p>" << endl<<"<ol>"<<endl;
 
 //TODO lock around access to node structures?
-  map<operator_id_t,shared_ptr<DataPlaneOperator> >::iterator oper_it;
+  map<operator_id_t,shared_ptr<COperator> >::iterator oper_it;
   for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
     const operator_id_t& o_id = oper_it->first;
-    shared_ptr<DataPlaneOperator> op = oper_it->second;
+    shared_ptr<COperator> op = oper_it->second;
     buf << "<li><b>"<< op->typename_as_str() << " " << op->long_description() << " " << o_id << "</b> " << endl;
-    if (op->get_dest())
-      buf << "Connected to "<< op->get_dest()->id_as_str();
-    else
+//    if (op->get_dest())
+//      buf << "Connected to "<< op->get_dest()->id_as_str();
+//    else
       buf << "(no destination)";
-    buf << "<br>\n" << op->emitted_count() << " tuples emitted.<br>"<<endl;
+//    buf << "<br>\n" << op->emitted_count() << " tuples emitted.<br>"<<endl;
     buf << "</li>";
   }
   
