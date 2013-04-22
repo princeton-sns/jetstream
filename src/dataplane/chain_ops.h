@@ -31,6 +31,7 @@ class TimerSource: public COperator {
   virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
   
   virtual void add_chain(boost::shared_ptr<OperatorChain> c) {chain = c;}
+  virtual ~TimerSource() { stop(); }
   
  protected:
   TimerSource(): running(false),send_now(false),exit_at_end(true),ADAPT(true){}

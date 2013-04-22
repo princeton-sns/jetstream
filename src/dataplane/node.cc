@@ -719,9 +719,9 @@ Node::stop_computation(int32_t compID) {
         stopped_ops.push_back(op_id.task_id);
   /*   FIXME CHAINS        
         // The actual stop. 
-        operator_cleanup.stop_on_strand(op);
+        operator_cleanup.stop_on_strand(op); */
         operators.erase(op_id);
-        operator_cleanup.cleanup(op);     */ 
+//        operator_cleanup.cleanup(op);   
       }
     }
   }
@@ -781,12 +781,12 @@ Node::stop_operator(operator_id_t name) {
   /*   FIXME CHAINS
     shared_ptr<COperator> op = iter->second;
     operator_cleanup.stop_on_strand(op);
-    
+    */
     int delCount = operators.erase(name);
     LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
     
-    operator_cleanup.cleanup(op); //will do the work on a strand
-  */
+//    operator_cleanup.cleanup(op); //will do the work on a strand
+  
     return true;
 // TODO: should unload code at some point. Presumably when no more operators
 // of that type are running? Can we push that into operatorloader?

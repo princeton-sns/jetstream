@@ -35,6 +35,9 @@ TimerSource::emit_wrapper() {
     if (!stop) {
       timer->expires_from_now(boost::posix_time::seconds(1));
       timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
+    } else {
+      LOG(INFO)<< "EOF; should tear down";
+    
     }
   }
 }
@@ -42,8 +45,11 @@ TimerSource::emit_wrapper() {
 
 void
 TimerSource::stop() {
+  bool was_running = running;
   running = false;
-  timer->cancel();
+  if (was_running) {
+    timer->cancel();
+  }
 }
 
 
