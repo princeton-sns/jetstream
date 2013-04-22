@@ -48,8 +48,8 @@ TEST_F(COperatorTest, FileRead) {
   
   shared_ptr<CDummyReceiver> rec(new CDummyReceiver);
   
-  chain.add_operator(reader);
-  chain.add_operator(rec);
+  chain.add_member(reader);
+  chain.add_member(rec);
   
   chain.start();
   
@@ -82,8 +82,8 @@ TEST_F(COperatorTest, FileRead) {
   
   
   OperatorChain chain2;
-  chain2.add_operator(reader2);
-  chain2.add_operator(rec);
+  chain2.add_member(reader2);
+  chain2.add_member(rec);
   
   chain2.start();
   boost::this_thread::sleep(boost::posix_time::milliseconds(200));
@@ -121,10 +121,10 @@ TEST(COperator, CExtendOperator) {
   OperatorChain chain;
   
   boost::shared_ptr<COperator> no_op;
-  chain.add_operator(no_op);
-  chain.add_operator(ex_1);
-  chain.add_operator(ex_host);
-  chain.add_operator(rec);
+  chain.add_member(no_op);
+  chain.add_member(ex_1);
+  chain.add_member(ex_host);
+  chain.add_member(rec);
   DataplaneMessage no_meta;
   chain.process(v, no_meta);
 

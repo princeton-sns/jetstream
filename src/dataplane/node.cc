@@ -455,8 +455,9 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     }
   }
   
+  //Invariant: if we got here, all operators started OK.
   
-  VLOG(1) << "before starting creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
+  VLOG(1) << "before creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
   
   // Create cubes
   for (int i=0; i < topo.tocreate_size(); ++i) {
@@ -473,7 +474,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
       respTopo->add_cubestostop(task.name());
     }
   }
-  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
+//  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
 
   // Stop operators if requested
   for (int i=0; i < topo.tasktostop_size(); ++i) {
@@ -573,9 +574,11 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   } */
 
   establish_congest_policies(topo, response, operators_to_start);
+  create_chains(topo, response, operators_to_start);
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
+/*
   vector<operator_id_t >::iterator iter;
   for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
@@ -583,7 +586,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     LOG_IF(FATAL, !op) << "operator " << name << " vanished before start";
     op->start();
 //    dataConnMgr.created_operator(op);
-  }
+  }*/
   
   for (int i=0; i < topo.tocreate_size(); ++i) {
     const CubeMeta &task = topo.tocreate(i);
@@ -591,6 +594,97 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     assert (c);
 //    dataConnMgr.created_operator(c); //unblock connections into cubes
   }
+}
+
+
+void
+Node::create_chains( const AlterTopo & topo,
+                     ControlMessage & response,
+                     const std::vector<operator_id_t>& toStart) {
+  std::map<operator_id_t, const Edge *> op_to_outedge;
+  std::map<operator_id_t, operator_id_t> op_to_pred;
+  for (int i=0; i < topo.edges_size(); ++i) {
+    const Edge &edge = topo.edges(i);
+    
+    if (edge.has_src()) {
+      operator_id_t src (edge.computation(), edge.src());
+      shared_ptr<COperator> srcOperator = get_operator(src);
+      
+      if (!srcOperator) {
+        LOG(WARNING) << "unknown source operator " << src<< " for edge.";
+        
+        Error * err_msg = response.mutable_error_msg();
+        err_msg->set_msg("unknown source operator " + src.to_string());
+        return;
+      }
+
+      op_to_outedge[src] = &edge;
+      
+      if (edge.has_dest()) {
+        operator_id_t dest (edge.computation(), edge.dest());
+        shared_ptr<COperator> destOperator = get_operator(dest);
+        if (!destOperator) {
+          LOG(WARNING) << "Edge from " << src<< " to unknown dest " << dest;
+          Error * err_msg = response.mutable_error_msg();
+          err_msg->set_msg("unknown dest operator " + dest.to_string());
+          return;
+        }
+
+        op_to_pred[dest] = src;
+      }
+    } else {
+      LOG_IF(FATAL, !edge.has_src_cube() && ~edge.has_dest()) << "edges without src op must connect "
+      << " cubes to operators. Instead, got " << edge.Utf8DebugString();
+      LOG(FATAL) << "don't yet support edges into cubes";
+    }
+  }
+  
+  int chain_count = 0;
+  LOG(INFO) << "building chains";
+  for (int i = 0; i < toStart.size(); ++i) {
+    if ( op_to_pred.count(toStart[i]) == 0) {
+      chain_count += 1;
+      boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+      shared_ptr<COperator> chainOp = get_operator(toStart[i]);
+      bool is_startable = chainOp->is_source();
+      operator_id_t op_id = toStart[i];
+      
+      shared_ptr<ChainMember> nextMember = chainOp;
+
+      bool hit_end = false;
+      do {
+        chain->add_member(nextMember);
+        nextMember->add_chain(chain);
+        
+        const Edge* next_e = op_to_outedge[op_id];
+        
+        if (!next_e || !dynamic_cast<COperator*>(nextMember.get())) //hit a non-operator
+          break;
+        
+        if (next_e->has_dest_addr()) {
+          shared_ptr<RemoteDestAdaptor> xceiver(
+            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, *next_e, config.data_conn_wait) );
+          dataConnMgr.register_new_adaptor(xceiver);
+          nextMember = xceiver;
+        } else if (next_e->has_dest()) {
+          op_id = operator_id_t(next_e->computation(), next_e->dest());
+          nextMember  = get_operator(op_id);
+        } else if (next_e->has_dest_cube()) {
+          nextMember = get_cube(next_e->dest_cube());
+        } else {
+          LOG(FATAL) << "no idea what dest is; " << next_e->Utf8DebugString();
+        }
+      } while ( !hit_end );
+
+      if (is_startable)
+        chain->start();
+      else {
+        LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
+        sourcelessChain[ toStart[i] ] = chain;
+      }
+    }
+  }
+  LOG(INFO) << chain_count << " chains built";
 }
 
 void
@@ -632,7 +726,7 @@ Node::stop_computation(int32_t compID) {
     }
   }
   LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " <<
-    compID << " , leaving " << operators.size()<<":" << make_op_list();
+    compID << " , leaving " << operators.size()<<":\n" << make_op_list();
   return stopped_ops ;
 }
 

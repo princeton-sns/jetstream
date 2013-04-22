@@ -27,13 +27,15 @@ void
 OperatorChain::start() {
 
   running = true;
-  if (ops.size() > 0 && ops[0])
-    ops[0]->start();
-  
-  for (int i = 1; i < ops.size(); ++i) {
-    ops[i]->start();
+  if (ops.size() > 0 && ops[0]) {
+    boost::shared_ptr<COperator> first_op = boost::dynamic_pointer_cast<COperator>(ops[0]);
+    LOG(INFO) << "Starting head-of-chain; " << first_op->id_as_str();
+    first_op->start();
   }
-//  loopThread = boost::shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  
+//  for (int i = 1; i < ops.size(); ++i) {
+//    ops[i]->start();
+//  }
 }
 
 
@@ -62,13 +64,13 @@ OperatorChain::stop_async(close_cb_t cb) {
 
 void
 OperatorChain::do_stop(close_cb_t cb) {
-
+/*
   if (ops.size() > 0 && ops[0])
     ops[0]->stop();
 
   for (int i = 0; i < ops.size(); ++i) {
     ops[i]->stop();
-  }
+  }*/
   LOG(INFO) << " called stop everywhere; invoking cb";
   cb();
 }
@@ -79,7 +81,7 @@ void
 OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, DataplaneMessage& maybe_meta) {
 
    for (int i = 1; i < ops.size(); ++i) {
-     COperator * op = ops[i].get();
+     ChainMember * op = ops[i].get();
      op->process(this, data_buf, maybe_meta);
    }
 }

@@ -47,6 +47,10 @@ class Node {
 
   DataPlaneOperatorLoader operator_loader;  
   std::map<operator_id_t, boost::shared_ptr<jetstream::COperator> > operators;
+  std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > sourcelessChain;
+//  std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > sourcelessChains;
+
+
 
   void controller_connected (boost::shared_ptr<ClientConnection> conn,
                              boost::system::error_code error);
@@ -72,6 +76,10 @@ class Node {
   void establish_congest_policies( const AlterTopo & topo,
                                    ControlMessage & resp,
                                    const std::vector<operator_id_t>& toStart);
+
+  void create_chains ( const AlterTopo & topo,
+                       ControlMessage & resp,
+                       const std::vector<operator_id_t>& toStart);
 
   void log_statistics();
   

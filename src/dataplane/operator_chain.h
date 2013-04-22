@@ -31,14 +31,12 @@ class ChainMember {
    virtual ~ChainMember() {}
    virtual bool is_source() = 0;
    virtual std::string id_as_str() = 0;
-
+   virtual void add_chain(boost::shared_ptr<OperatorChain>) {}
 };
 
 
 
 class COperator: public ChainMember {
-
-
 
  public:
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
@@ -54,7 +52,6 @@ class COperator: public ChainMember {
   virtual std::string long_description() {return "";}
 
 
-  virtual void add_chain(OperatorChain *) {}
   void set_node (Node * n) { node = n; }
 
  protected:
@@ -67,7 +64,7 @@ class OperatorChain {
 
 protected:
 //  CSrcOperator * chain_head;
-  std::vector< boost::shared_ptr<COperator> > ops;
+  std::vector< boost::shared_ptr<ChainMember> > ops;
   volatile bool running;
   std::string cached_chain_name;
 
@@ -94,13 +91,11 @@ public:
 
   const std::string& chain_name();
   void upwards_metadata(DataplaneMessage&);
-  void add_operator(boost::shared_ptr<COperator> op) {
-    if(op)
-      op->add_chain(this);
+  void add_member(boost::shared_ptr<ChainMember> op) {
     ops.push_back(op);
   }
   
-  boost::shared_ptr<COperator> member(unsigned i) const {
+  boost::shared_ptr<ChainMember> member(unsigned i) const {
     return ops[i];
   }
 

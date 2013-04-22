@@ -20,6 +20,8 @@ class TimerSource: public COperator {
     congest_policy = p;
   }
   
+  virtual bool is_source() {return true;}  
+  
 //  void end_of_window(msec_t duration);
   
   bool isRunning() {
@@ -28,7 +30,7 @@ class TimerSource: public COperator {
   
   virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
   
-  virtual void add_chain(OperatorChain * c) {chain = c;}
+  virtual void add_chain(boost::shared_ptr<OperatorChain> c) {chain = c;}
   
  protected:
   TimerSource(): running(false),send_now(false),exit_at_end(true),ADAPT(true){}
@@ -36,19 +38,16 @@ class TimerSource: public COperator {
   virtual bool emit_data() = 0; //returns true to stop sending; else false
   
   void emit_wrapper();
-  virtual bool is_source() {return true;}
 
 
   boost::shared_ptr<CongestionPolicy> congest_policy;
   volatile bool running;
   volatile bool send_now, exit_at_end;
-  OperatorChain * chain;
+  boost::shared_ptr<OperatorChain> chain;
   boost::shared_ptr<boost::asio::strand> st;
   
   bool ADAPT;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
-//  boost::asio::deadline_timer timer;
-
 };
 
 class CFileRead: public TimerSource {

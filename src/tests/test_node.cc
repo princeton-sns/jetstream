@@ -31,7 +31,7 @@ void add_pair_to_topo(AlterTopo& topo, int compID) {
   TaskID* id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(2);
-  task->set_op_typename("FileRead");
+  task->set_op_typename("CFileRead");
   TaskMeta_DictEntry* op_cfg = task->add_config();
   op_cfg->set_opt_name("file");
   op_cfg->set_val("src/tests/data/base_operators_data.txt");
@@ -40,7 +40,7 @@ void add_pair_to_topo(AlterTopo& topo, int compID) {
   id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(3);
-  task->set_op_typename("DummyReceiver");
+  task->set_op_typename("CDummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);
@@ -58,6 +58,7 @@ TEST(Node, HandleAlter_2_Ops)
 
   node.start();
   for (int i =0; i < 4; ++i) {
+    LOG(INFO) << "run number " << i;
     AlterTopo topo;
     add_pair_to_topo(topo, i);
     
