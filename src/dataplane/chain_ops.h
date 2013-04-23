@@ -36,7 +36,7 @@ class TimerSource: public COperator {
  protected:
   TimerSource(): running(false),send_now(false),exit_at_end(true),ADAPT(true){}
   
-  virtual bool emit_data() = 0; //returns true to stop sending; else false
+  virtual int emit_data() = 0; //returns delay (in ms) for next send. negative means to stop sending.
   
   void emit_wrapper();
 
@@ -56,7 +56,7 @@ class CFileRead: public TimerSource {
 
   CFileRead():lineno(0) {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual bool emit_data();  
+  virtual int emit_data();
 
   virtual std::string long_description();
 
@@ -129,6 +129,25 @@ class CExtendOperator: public COperator {
   
 GENERIC_CLNAME
 };
+
+
+/***
+ * Operator for emitting a specified number of generic tuples.
+ */
+class SendK: public TimerSource {
+ public:
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  void reset() { n = 1; }
+
+ protected:
+  virtual int emit_data();
+  boost::shared_ptr<Tuple> t;
+  u_int64_t k, n;  // Number of tuples to send and number sent, respectively
+  
+
+
+GENERIC_CLNAME
+};  
 
 
 }

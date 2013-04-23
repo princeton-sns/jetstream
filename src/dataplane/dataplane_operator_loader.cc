@@ -101,9 +101,9 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(DegradeSummary);
 
       // Experimental purposes 
-  REGISTER_OP(DummyReceiver);
+  REGISTER_OP(DummyReceiver); */
   REGISTER_OP(SendK);
-  REGISTER_OP(ContinuousSendK);
+/*  REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
   REGISTER_OP(SerDeOverhead);
   REGISTER_OP(EchoOperator);

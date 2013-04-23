@@ -27,40 +27,6 @@ DummyReceiver::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const 
 }
 
 
-
-operator_err_t
-SendK::configure (std::map<std::string,std::string> &config) {
-  if (config["k"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["k"]) >> k)) {
-      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.") ;
-    }
-  } else {
-    // Send one tuple by default
-    k = 1;
-  }
-  send_now = config["send_now"].length() > 0;
-  exit_at_end = config["exit_at_end"].length() == 0 || config["exit_at_end"] != "false";
-  
-  n = 1; // number sent
-  
-  return NO_ERR;
-}
-
-
-bool
-SendK::emit_1() {
-  t = boost::shared_ptr<Tuple>(new Tuple);
-  t->add_e()->set_s_val("foo");
-  t->set_version(n);
-
-  emit(t);
-//  cout << "sendk. N=" << n<< " and k = " << k<<endl;
-  return (++n > k);
-  
-}
-
 operator_err_t
 ContinuousSendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {
@@ -567,7 +533,6 @@ AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
 
 
 const string DummyReceiver::my_type_name("DummyReceiver operator");
-const string SendK::my_type_name("SendK operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");
 const string SerDeOverhead::my_type_name("Dummy serializer");

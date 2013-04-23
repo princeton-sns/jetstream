@@ -37,7 +37,7 @@ TEST_F(COperatorTest, FileRead) {
   // constants describing the test data file
   enum {TEST_DATA_N_LINES = 19, TEST_DATA_N_EMPTY = 1};
 
-  OperatorChain chain;
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
   shared_ptr<CFileRead> reader(new CFileRead);
   map<string,string> config;
   config["file"] =  "src/tests/data/base_operators_data.txt";
@@ -45,13 +45,14 @@ TEST_F(COperatorTest, FileRead) {
   config["exit_at_end"] = "true";
   reader->configure(config);
   reader->set_node(node.get());
+  reader->add_chain(chain);
   
   shared_ptr<CDummyReceiver> rec(new CDummyReceiver);
   
-  chain.add_member(reader);
-  chain.add_member(rec);
+  chain->add_member(reader);
+  chain->add_member(rec);
   
-  chain.start();
+  chain->start();
   
   // Wait for reader to process entire file (alternatively, call stop() after a
   // while)
@@ -63,7 +64,7 @@ TEST_F(COperatorTest, FileRead) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
   ASSERT_GT (20, waits);*/
-  chain.stop();
+  chain->stop();
 
   ASSERT_GT(rec->tuples.size(), (size_t)4);
   ASSERT_EQ((size_t) TEST_DATA_N_LINES + 1, rec->tuples.size()); // file read adds blank line at end of file
@@ -81,14 +82,16 @@ TEST_F(COperatorTest, FileRead) {
   reader2->set_node(node.get());
   
   
-  OperatorChain chain2;
-  chain2.add_member(reader2);
-  chain2.add_member(rec);
+  boost::shared_ptr<OperatorChain> chain2(new OperatorChain);
+  chain2->add_member(reader2);
+  chain2->add_member(rec);
+  reader2->add_chain(chain2);
   
-  chain2.start();
+  
+  chain2->start();
   boost::this_thread::sleep(boost::posix_time::milliseconds(200));
 
-  chain2.stop();
+  chain2->stop();
 
 
   ASSERT_EQ((size_t) TEST_DATA_N_LINES - TEST_DATA_N_EMPTY, rec->tuples.size());
@@ -118,15 +121,15 @@ TEST(COperator, CExtendOperator) {
   extend_tuple(*t, 2);
   vector< boost::shared_ptr<Tuple> > v;
   v.push_back(t);
-  OperatorChain chain;
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
   
   boost::shared_ptr<COperator> no_op;
-  chain.add_member(no_op);
-  chain.add_member(ex_1);
-  chain.add_member(ex_host);
-  chain.add_member(rec);
+  chain->add_member(no_op);
+  chain->add_member(ex_1);
+  chain->add_member(ex_host);
+  chain->add_member(rec);
   DataplaneMessage no_meta;
-  chain.process(v, no_meta);
+  chain->process(v, no_meta);
 
   ASSERT_EQ((size_t)1, rec->tuples.size());
 

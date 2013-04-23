@@ -3,6 +3,7 @@
 
 #include "js_utils.h"
 #include "experiment_operators.h"
+#include "chain_ops.h"
 
 #include "queue_congestion_mon.h"
 #include "variable_sampling.h"

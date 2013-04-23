@@ -867,6 +867,7 @@ TEST(Cube,Attach) {
   NodeConfig cfg;
   boost::system::error_code error;
   Node node(cfg, error);
+  node.start();
   ASSERT_TRUE(error == 0);
 
   AlterTopo topo;

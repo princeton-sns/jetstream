@@ -91,23 +91,6 @@ GENERIC_CLNAME
 
 
 
-/***
- * Operator for emitting a specified number of generic tuples.
- */
-class SendK: public ThreadedSource {
- public:
-  virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  void reset() { n = 1; }
-
- protected:
-  virtual bool emit_1();
-  boost::shared_ptr<Tuple> t;
-  u_int64_t k, n;  // Number of tuples to send and number sent, respectively
-  
-
-
-GENERIC_CLNAME
-};  
 
 
 /***
