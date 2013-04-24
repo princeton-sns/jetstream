@@ -76,7 +76,7 @@ class TestTupleCoralGenerator {
         cfg_sum_dl_time["field"] = "14"; //dl_time
         configure_operator(summary_dl_time_op, cfg_sum_dl_time);
 
-        shared_ptr<CDummyReceiver> receive(new CDummyReceiver);
+        shared_ptr<DummyReceiver> receive(new DummyReceiver);
 
 
         boost::shared_ptr<OperatorChain> chain(new OperatorChain);
@@ -152,7 +152,7 @@ class TestCSVGenerator {
         configure_operator(fr_op, cfg);
 
         boost::shared_ptr<OperatorChain> chain(new OperatorChain);
-        shared_ptr<CDummyReceiver> receive(new CDummyReceiver);
+        shared_ptr<DummyReceiver> receive(new DummyReceiver);
         chain->add_member(fr_op);
         chain->add_member(receive);
         
