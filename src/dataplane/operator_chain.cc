@@ -18,7 +18,14 @@ const string&
 OperatorChain::chain_name() {
 
   if (cached_chain_name.size() == 0) {
-    cached_chain_name = "UNDEF";
+    ostringstream buf;
+//    for (int i= 0; i < ops.size(); ++i)
+    if (ops[0])
+      buf << "chain starting at " << ops[0]->id_as_str();
+    else
+      buf << "Empty chain";
+    
+    cached_chain_name = buf.str();
   }
   return cached_chain_name;
 }
@@ -88,5 +95,11 @@ OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, Datapl
    }
 }
 
+void
+OperatorChain::clone_from(boost::shared_ptr<OperatorChain> source) {
+  for (int i = 0; i < source->ops.size(); ++i) {
+    ops.push_back(source->ops[i]);
+  }
+}
 
 }

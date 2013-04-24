@@ -16,33 +16,29 @@ namespace jetstream {
 
 
 void
-QuantileOperator::process(boost::shared_ptr<Tuple> t) {
+QuantileOperator::process_one(boost::shared_ptr<Tuple> & t) {
+  int q_result;
   if (t->e(field).has_summary()) {
     const JSSummary& s= t->e(field).summary();
-    QuantileEstimation * est;
     if (s.has_histo()) {
-      est = new LogHistogram(s.histo());
+      LogHistogram est(s.histo());
+      q_result = est.quantile(q);
     } else if (s.has_sample()) {
-      est = new ReservoirSample(s.sample());
+      ReservoirSample est(s.sample());
+      q_result = est.quantile(q);
     } else if (s.has_sketch()) {
-      est = new CMMultiSketch(s.sketch());
+      CMMultiSketch est(s.sketch());
+      q_result = est.quantile(q);
     } else if (s.items_size() > 0) {
       JSSummary *ms= t->mutable_e(field)->mutable_summary();
       std::sort(ms->mutable_items()->begin(), ms->mutable_items()->end());
-      int q_result = s.items(s.items_size()*q);
-      t->mutable_e(field)->set_i_val(q_result);
-      t->mutable_e(field)->clear_summary();
-      emit(t);
-      return;
+      q_result = s.items(s.items_size()*q);
     }
     else {
       LOG(FATAL) << " got a summary with no specific summary in it";
     }
-    int q_result = est->quantile(q);
     t->mutable_e(field)->set_i_val(q_result);
     t->mutable_e(field)->clear_summary();
-    delete est;
-    emit(t);
   } else {
     LOG(FATAL) << "no summary in field " << field << " of "<< fmt(*t);
   }
@@ -56,11 +52,13 @@ operator_err_t QuantileOperator::configure(std::map<std::string,std::string> &co
 
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  return NO_ERR;
+  return C_NO_ERR;
 }
 
 
-void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
+void
+SummaryToCount::process_one (boost::shared_ptr<Tuple>& t) {
+
   if (t->e(field).has_summary()) {
     const JSSummary& s= t->e(field).summary();
     QuantileEstimation * est;
@@ -72,7 +70,6 @@ void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
       est = new CMMultiSketch(s.sketch());
     } else if (s.items_size() > 0) {
       t->add_e()->set_i_val(s.items_size());
-      emit(t);
       return;
     } else {
       LOG(FATAL) << " got a summary with no specific summary in it";
@@ -82,8 +79,6 @@ void SummaryToCount::process(boost::shared_ptr<Tuple> t) {
  //   LOG(INFO) <<  *((LogHistogram*)(est));
 
     t->add_e()->set_i_val(result);
-    delete est;
-    emit(t);
   } else
     LOG(FATAL) << "no summary in field " << field << " of "<< fmt(*t);
 }
@@ -92,19 +87,23 @@ operator_err_t
 SummaryToCount::configure(std::map<std::string,std::string> &config) {
   if(config["field"].length() == 0 || !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  return NO_ERR;
+  return C_NO_ERR;
 }
 
 
 void
-ToSummary::process(boost::shared_ptr<Tuple> t) {
-  if ( (  unsigned(t->e_size()) <= field) || !t->e(field).has_i_val())
-    return;
+ToSummary::process_one (boost::shared_ptr<Tuple>& t) {
 
-  int i = t->e(field).i_val();
-  if ( i >= 0) {
+  
+  if ( (  unsigned(t->e_size()) <= field) || !t->e(field).has_i_val()) {
+    t.reset();
+    return;
+  }
+
+  int ival = t->e(field).i_val();
+  if ( ival >= 0) {
     JSSummary * s = t->mutable_e(field)->mutable_summary();
-    s->add_items(i);
+    s->add_items(ival);
     t->mutable_e(field)->clear_i_val();
     s->set_future_hist_size(s_size);
     /*LogHistogram l(s_size);
@@ -112,7 +111,6 @@ ToSummary::process(boost::shared_ptr<Tuple> t) {
     JSSummary * s = t->mutable_e(field)->mutable_summary();
     l.serialize_to(*s);
     t->mutable_e(field)->clear_i_val();*/
-    emit(t);
   }
 }
 
@@ -122,7 +120,7 @@ operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["size"]) >> s_size))
     return operator_err_t("must specify a summary size; got " + config["size"]);
 
-  return NO_ERR;
+  return C_NO_ERR;
 }
 
 
@@ -133,27 +131,22 @@ DegradeSummary::start() {
 }
 
 void
-DegradeSummary::process(boost::shared_ptr<Tuple> t) {
+DegradeSummary::process_one(boost::shared_ptr<Tuple> & t) {
 
   cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
 
   if (t->e(field).has_summary()) {
     const JSSummary& s= t->e(field).summary();
-    QuantileEstimation * est;
     if (s.has_histo()) {
       LogHistogram old_h(s.histo());
       LogHistogram* newH = new LogHistogram( unsigned(old_h.bucket_count() * steps[cur_step]));
 //      cout << "step " << cur_step << ". old size: " << old_h.bucket_count() << ", new size: " << newH->bucket_count() << endl;
       newH->merge_in(old_h);
-      est = newH;
+      t->mutable_e(field)->clear_summary();
+      newH->serialize_to(  *(t->mutable_e(field)->mutable_summary()) );
     } else {
       LOG(FATAL) << " got a summary I don't know how to degrade";
     }
-
-    t->mutable_e(field)->clear_summary();
-    est->serialize_to(  *(t->mutable_e(field)->mutable_summary()) );
-    delete est;
-    emit(t);
   } else
     LOG(FATAL) << "no summary in field " << field << " of "<< fmt(*t);
 }
@@ -182,7 +175,7 @@ DegradeSummary::configure(std::map<std::string,std::string> &config) {
   steps.push_back(1.0);
   cur_step = step_count -1;
 //  cout << "steps:" << steps[0] << "," << steps[1] << "..." << steps[8]<< "," << steps[9] << endl;
-  return NO_ERR;
+  return C_NO_ERR;
 }
 
 

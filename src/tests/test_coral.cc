@@ -7,7 +7,9 @@
 #include "base_subscribers.h"
 #include "cube_iterator_impl.h"
 
+#include "chain_ops.h"
 #include "base_operators.h"
+
 #include "experiment_operators.h"
 #include "summary_operators.h"
 #include "quantile_est.h"
@@ -25,7 +27,7 @@ class TestTupleCoralGenerator {
 
   public:
 
-    void configure_operator(shared_ptr<DataPlaneOperator> d,  operator_config_t cfg)
+    void configure_operator(shared_ptr<COperator> d,  operator_config_t cfg)
     {
         operator_err_t err = d->configure(cfg);
         if (err != NO_ERR) {
@@ -39,7 +41,7 @@ class TestTupleCoralGenerator {
       //int time_entered = 1;
       //boost::shared_ptr<jetstream::Tuple> t;
   
-        shared_ptr<FileRead> fr_op(new FileRead);
+        shared_ptr<CFileRead> fr_op(new CFileRead);
         shared_ptr<CSVParse> csvp_op(new CSVParseStrTk);
         shared_ptr<ExperimentTimeRewrite> tr_op(new ExperimentTimeRewrite);
         
@@ -74,19 +76,22 @@ class TestTupleCoralGenerator {
         cfg_sum_dl_time["field"] = "14"; //dl_time
         configure_operator(summary_dl_time_op, cfg_sum_dl_time);
 
+        shared_ptr<CDummyReceiver> receive(new CDummyReceiver);
 
-        fr_op->set_dest(csvp_op);
-        csvp_op->set_dest(tr_op);
-        tr_op->set_dest(summary_nbytes_op);
-        summary_nbytes_op->set_dest(summary_dl_time_op);
 
-        //summary_dl_time_op->set_dest(cube);
-        shared_ptr<DummyReceiver> receive(new DummyReceiver);
-        summary_dl_time_op->set_dest(receive);
+        boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+        chain->add_member(fr_op);
+        chain->add_member(csvp_op);
+        chain->add_member(tr_op);
+        chain->add_member(summary_nbytes_op);
+        chain->add_member(summary_dl_time_op);
+        chain->add_member(receive);
+        fr_op->add_chain(chain);
 
+//      LOG(FATAL) << "Ari doesn't understand this code and isn't able to fix it up"
       while(tuples.size() < num) {
         receive->tuples.clear();
-        fr_op->emit_1();
+        fr_op->emit_data();
 
         tuples.insert(tuples.end(), receive->tuples.begin(), receive->tuples.end());
         
@@ -129,7 +134,7 @@ class TestCSVGenerator {
 
   public:
 
-    void configure_operator(shared_ptr<DataPlaneOperator> d,  operator_config_t cfg)
+    void configure_operator(shared_ptr<COperator> d,  operator_config_t cfg)
     {
         operator_err_t err = d->configure(cfg);
         if (err != NO_ERR) {
@@ -139,18 +144,20 @@ class TestCSVGenerator {
 
     TestCSVGenerator(size_t num) {
 
-        shared_ptr<FileRead> fr_op(new FileRead);
+        shared_ptr<CFileRead> fr_op(new CFileRead);
         operator_config_t cfg;
         cfg["file"] = CORAL_FILE;
         cfg["skip_empty"] = "true";
 
         configure_operator(fr_op, cfg);
-        
-        shared_ptr<DummyReceiver> receive(new DummyReceiver);
-        fr_op->set_dest(receive);
+
+        boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+        shared_ptr<CDummyReceiver> receive(new CDummyReceiver);
+        chain->add_member(fr_op);
+        chain->add_member(receive);
         
         while(tuples.size() < num) {
-          fr_op->emit_1();
+          fr_op->emit_data();
           tuples.insert(tuples.end(), receive->tuples.begin(), receive->tuples.end());
       }
       LOG(INFO) << "Read " << tuples.size() <<" tuples.";
@@ -168,14 +175,13 @@ class TestCSVGenerator {
 
       configure_operator(csvp_op, cfg);
 
-      shared_ptr<DummyReceiver> receive(new DummyReceiver);
-      csvp_op->set_dest(receive);
-      for(std::vector< boost::shared_ptr<jetstream::Tuple> >::const_iterator it = tuples.begin(); it != tuples.end(); ++it) {
+      for(std::vector< boost::shared_ptr<jetstream::Tuple> >::iterator it = tuples.begin(); it != tuples.end(); ++it) {
         //LOG(INFO) <<"Inserting: "<< fmt(*(*it));
-        csvp_op->process(*it);
+        shared_ptr<Tuple> t = *it;
+        csvp_op->process_one(t);
         ++i;
 
-        LOG_EVERY_N(INFO, 10000) << "CSV Parse at " << i <<"Tup " << fmt(*(receive->tuples[0]));
+        LOG_EVERY_N(INFO, 10000) << "CSV Parse at " << i <<"Tup " << fmt(*t);
       }
       LOG(INFO) << "Finished parsing: " << i << "tuples";
     }

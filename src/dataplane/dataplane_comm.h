@@ -249,7 +249,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
                           operator_id_t srcOpID);
 
     // called when an operator is created
-  void created_operator (boost::shared_ptr<OperatorChain> dest);
+  void created_chain (boost::shared_ptr<OperatorChain> dest);
                          
   void close();
     

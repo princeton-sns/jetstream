@@ -103,7 +103,7 @@ class SubscriberTest : public ::testing::Test {
   
   //add a subscriber of typename subscriberName;
   // returns a pointer to the dummy operator
-  shared_ptr<CDummyReceiver> start_time_subscriber (const string& subscriberName,
+  shared_ptr<DummyReceiver> start_time_subscriber (const string& subscriberName,
                                                    const Tuple& query_tuple,
                                                    const string& rollupLevels = "") {
   
@@ -136,7 +136,7 @@ class SubscriberTest : public ::testing::Test {
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     
     shared_ptr<COperator> dest = node->get_operator( operator_id_t(compID, 2));
-    shared_ptr<CDummyReceiver> rec = boost::static_pointer_cast<CDummyReceiver>(dest);
+    shared_ptr<DummyReceiver> rec = boost::dynamic_pointer_cast<DummyReceiver>(dest);
     return rec;
   }
   
@@ -179,7 +179,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   extend_tuple_time(query_tuple, 0); //just a placeholder
 
 
-  shared_ptr<CDummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple);
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple);
   cout << "subscriber started" << endl;
   
   tries = 0;
@@ -223,7 +223,7 @@ TEST_F(SubscriberTest,OneShot) {
   extend_tuple(query_tuple, "http://foo.com");
   query_tuple.add_e();  
 
-  shared_ptr<CDummyReceiver> rec = start_time_subscriber("OneShotSubscriber", query_tuple);
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("OneShotSubscriber", query_tuple);
   cout << "subscriber started" << endl;
   
   for (tries = 0; rec->tuples.size() < 4 && tries< 50; tries++)
@@ -257,7 +257,7 @@ TEST_F(SubscriberTest,TimeSubscriberRollup) {
   Tuple query_tuple;
   extend_tuple(query_tuple, "http://foo.com");
   query_tuple.add_e();  
-  shared_ptr<CDummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple, rollup_levels);
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("TimeBasedSubscriber", query_tuple, rollup_levels);
   cout << "subscriber started" << endl;
   
   tries = 0;
@@ -280,7 +280,7 @@ TEST_F(SubscriberTest,FilterSubscriber) {
   extend_tuple(query_tuple, "http://foo.com");
   query_tuple.add_e();  
 
-  shared_ptr<CDummyReceiver> rec = start_time_subscriber("FilterSubscriber", query_tuple);
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("FilterSubscriber", query_tuple);
 
   add_tuples(cube);
   for (int tries = 0; cube->num_leaf_cells() < 4 && tries< 50; tries++)
@@ -355,7 +355,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     node->handle_alter(topo, r);
     EXPECT_NE(r.type(), ControlMessage::ERROR);
     
-  shared_ptr<CDummyReceiver> receiver = boost::dynamic_pointer_cast<CDummyReceiver>(
+  shared_ptr<DummyReceiver> receiver = boost::dynamic_pointer_cast<DummyReceiver>(
   node->get_operator( operator_id_t(compID, 3)));
 
   shared_ptr<VariableCoarseningSubscriber> subscriber = boost::dynamic_pointer_cast<VariableCoarseningSubscriber>(

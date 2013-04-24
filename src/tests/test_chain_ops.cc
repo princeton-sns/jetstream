@@ -3,6 +3,7 @@
 
 #include "operator_chain.h"
 #include "chain_ops.h"
+#include "experiment_operators.h"
 #include "node.h"
 
 using namespace ::std;
@@ -47,7 +48,7 @@ TEST_F(COperatorTest, FileRead) {
   reader->set_node(node.get());
   reader->add_chain(chain);
   
-  shared_ptr<CDummyReceiver> rec(new CDummyReceiver);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
   
   chain->add_member(reader);
   chain->add_member(rec);
@@ -106,7 +107,7 @@ TEST(COperator, CExtendOperator) {
 
   shared_ptr<CExtendOperator>  ex_1(new CExtendOperator);
   shared_ptr<CExtendOperator> ex_host(new CExtendOperator);
-  shared_ptr<CDummyReceiver> rec(new CDummyReceiver);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
   operator_config_t cfg;
   cfg["types"] = "i";

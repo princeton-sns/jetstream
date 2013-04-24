@@ -127,7 +127,7 @@ CSVParse::configure(map<string,string> &config) {
 }
 
 void
-CSVParse::process(boost::shared_ptr<Tuple> t) {
+CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
   // FIXME assume we want to parse 0th element
   const Element& e = t->e(0);
 
@@ -153,7 +153,8 @@ CSVParse::process(boost::shared_ptr<Tuple> t) {
       i++;
     }
     if (!discard_off_size || (i == n_fields))
-      emit(t2);
+      t = t2;
+    
   } catch (boost::escaped_list_error err) {
     LOG_FIRST_N(WARNING, 20) << err.what() << " on " << e.s_val();
   }
@@ -168,7 +169,7 @@ CSVParse::long_description() {
 
 
 void
-CSVParseStrTk::process(boost::shared_ptr<Tuple> t) {
+CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
   // FIXME assume we want to parse 0th element
   const Element& e = t->e(0);
 
@@ -208,7 +209,7 @@ CSVParseStrTk::process(boost::shared_ptr<Tuple> t) {
     if (row.get<std::string>(row.size()-1).size() == 0)
       i--;
     if (!discard_off_size || (i == n_fields)) {
-      emit(t2);
+      t = t2;
     }
     else
     {
@@ -544,7 +545,7 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
 
 
 void
-TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
+TRoundingOperator::process_one (boost::shared_ptr<Tuple>& t) {
   if (in_type == T) {
     time_t old_val = t->e(fld_offset).t_val();
     t->mutable_e(fld_offset)->set_t_val((old_val / round_to) * round_to + add_offset);
@@ -561,8 +562,6 @@ TRoundingOperator::process (boost::shared_ptr<Tuple> t) {
     t->mutable_e(fld_offset)->clear_d_val();
     t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>(old_val / round_to) * round_to + add_offset);
   }
-
-  emit(t);
 }
 
 operator_err_t
@@ -699,7 +698,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
 
 
 void
-URLToDomain::process (boost::shared_ptr<Tuple> t) {
+URLToDomain::process_one (boost::shared_ptr<Tuple>& t) {
   string url = t->e(field_id).s_val();
   
   vector <string> chunks;
@@ -708,7 +707,6 @@ URLToDomain::process (boost::shared_ptr<Tuple> t) {
   if (chunks.size() >= 3) {
     t->mutable_e(field_id)->set_s_val(chunks[2]);
   } //else pass through unchanged
-  emit(t);
 }
 
 operator_err_t

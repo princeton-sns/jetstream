@@ -2,22 +2,20 @@
 #define JetStream_quantile_operators_h
 
 
-#include "dataplaneoperator.h"
+#include "operator_chain.h"
+#include "congest_policy.h"
 #include <vector>
-
-// #include <boost/thread/thread.hpp>
 
 
 namespace jetstream {
 
 
-
-class QuantileOperator: public DataPlaneOperator {
+class QuantileOperator: public CEachOperator {
  public:
   QuantileOperator(): q(0.5) {}
 
 
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple> & t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
  private:
@@ -28,12 +26,12 @@ GENERIC_CLNAME
 };  
 
 
-class SummaryToCount: public DataPlaneOperator {
+class SummaryToCount: public CEachOperator {
  public:
   SummaryToCount() {}
 
 
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple> & t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
  private:
@@ -42,12 +40,12 @@ class SummaryToCount: public DataPlaneOperator {
 GENERIC_CLNAME
 };  
 
-class ToSummary: public DataPlaneOperator {
+class ToSummary: public CEachOperator {
  public:
   ToSummary() {}
 
 
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple> & t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
  private:
@@ -58,14 +56,14 @@ GENERIC_CLNAME
 };  
 
 
-class DegradeSummary: public DataPlaneOperator {
+class DegradeSummary: public CEachOperator {
  public:
   DegradeSummary():cur_step(10) {}
 
   virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
     congest_policy = p;
   }
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple> & t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
   

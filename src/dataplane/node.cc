@@ -289,19 +289,28 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
     {
-/* FIXME CHAINS
+
       const Edge& e = msg.chain_link();
       operator_id_t srcOpID = operator_id_t(e.computation(), e.src());
       //TODO can sanity-check that e is for us here.
       std::string dest_as_str;
-      shared_ptr<TupleReceiver> dest;
+      shared_ptr<OperatorChain> new_chain;
       if (e.has_dest()) {
         operator_id_t dest_operator_id (e.computation(), e.dest());
         dest_as_str = dest_operator_id.to_string();
-        dest = get_operator(dest_operator_id);
+        if (sourcelessChain.count(dest_operator_id) > 0) {
+          new_chain = shared_ptr<OperatorChain>(new OperatorChain());
+          new_chain->add_member();
+          new_chain->clone_from(sourcelessChain[dest_operator_id]);
+        }
       } else if (e.has_dest_cube()) {
         dest_as_str = e.dest_cube();
-        dest = cubeMgr.get_cube(dest_as_str);
+        boost::shared_ptr<DataCube> dest = cubeMgr.get_cube(dest_as_str);
+        if (dest) {
+          new_chain = shared_ptr<OperatorChain>(new OperatorChain());
+          new_chain->add_member();
+          new_chain->add_member(dest);
+        }
       }  else {
         LOG(WARNING) << "Got remote chain connect without a dest operator or cube";
         DataplaneMessage response;
@@ -311,12 +320,12 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
       }
 
 // Operator exists so we can report "ready"
-      if (dest) { 
+      if (new_chain) { 
         // Note that it's important to put the connection into receive mode
         // before sending the READY.
         LOG(INFO) << "Chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
        
-        dataConnMgr.enable_connection(c, dest, srcOpID);
+        dataConnMgr.enable_connection(c, new_chain, srcOpID);
 
         //TODO do we log the error or ignore it?
       }
@@ -324,7 +333,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
         LOG(INFO) << "Chain request for " << dest_as_str<< " that isn't ready yet";
         
         dataConnMgr.pending_connection(c, dest_as_str, srcOpID);
-      }     */
+      }    
     }
     break;
   default:

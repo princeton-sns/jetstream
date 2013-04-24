@@ -11,7 +11,7 @@ using namespace ::std;
 using namespace boost;
 using namespace jetstream;
 
-
+/* FIXME CHAINS
 TEST(Backfill, OperatorChain) {
 
   ExtendOperator ex_1;
@@ -42,7 +42,7 @@ TEST(Backfill, OperatorChain) {
   ASSERT_EQ(2, rec->tuples[0]->e_size());
   ASSERT_EQ(5, rec->tuples[0]->e(0).i_val());
 }
-
+*/
 
 static shared_ptr<DataCube>
 make_cube(Node& node, std::string& src_cube_name) {

@@ -10,7 +10,7 @@
 #include "chain_ops.h"
 //#include "base_operators.h"
 #include "simple_net.h"
-//#include "experiment_operators.h"
+#include "experiment_operators.h"
 #include "dataplane_comm.h"
 
 using namespace std;
@@ -74,7 +74,7 @@ TEST(Node, HandleAlter_2_Ops)
     shared_ptr<COperator> dest = node.get_operator( id2 );
     ASSERT_TRUE(dest != NULL);
     
-    CDummyReceiver * rec = reinterpret_cast<CDummyReceiver*>(dest.get());
+    DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
     int tries = 0;
     while (rec->tuples.size() < 5 && tries++ < 50)
       js_usleep( 100 * 1000);
@@ -247,10 +247,10 @@ add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
   return dest;
 }
 
-shared_ptr<CDummyReceiver>
+shared_ptr<DummyReceiver>
 add_dummy_receiver(Node& n, operator_id_t dest_id) {
-  shared_ptr<COperator> d = add_operator_to_node(n, dest_id, "CDummyReceiver");
-  return dynamic_pointer_cast<CDummyReceiver>(d);
+  shared_ptr<COperator> d = add_operator_to_node(n, dest_id, "DummyReceiver");
+  return dynamic_pointer_cast<DummyReceiver>(d);
 }
 
 
@@ -306,7 +306,7 @@ TEST_F(NodeNetTest, ReceiveDataReady)
 
   //TODO better way to wait here?
   
-  CDummyReceiver * rec = reinterpret_cast<CDummyReceiver*>(dest.get());
+  DummyReceiver * rec = reinterpret_cast<DummyReceiver*>(dest.get());
   int tries = 0;
   while (rec->tuples.size() == 0 && tries++ < 20)
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -362,7 +362,7 @@ TEST_F(NodeNetTest, ReceiveDataNotYetReady)
   // Create the receiver
   operator_id_t dest_id(17,3);
 
-  shared_ptr<CDummyReceiver> dest = add_dummy_receiver(*n, dest_id);
+  shared_ptr<DummyReceiver> dest = add_dummy_receiver(*n, dest_id);
 
   
   shared_ptr<DataplaneMessage> resp = data_conn.get_data_msg();
@@ -499,7 +499,7 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
   // Create the receiver 
-  shared_ptr<CDummyReceiver> dest = add_dummy_receiver(*nodes[0], dest_id);
+  shared_ptr<DummyReceiver> dest = add_dummy_receiver(*nodes[0], dest_id);
   cout << "created receiver" << endl;
   
   u_int k;
@@ -611,12 +611,12 @@ void stop_test(int i, boost::shared_ptr<Node>* nodes) {
     AlterTopo dest_topo;
     dest_topo.set_computationid(dest_id.computation_id);
 
-    add_operator_to_alter(dest_topo, dest_id, "CDummyReceiver");
+    add_operator_to_alter(dest_topo, dest_id, "DummyReceiver");
     nodes[0]->handle_alter(dest_topo, response);
     EXPECT_FALSE(response.has_error_msg());
   }
   
-  shared_ptr<CDummyReceiver> dest = boost::dynamic_pointer_cast<CDummyReceiver>(
+  shared_ptr<DummyReceiver> dest = boost::dynamic_pointer_cast<DummyReceiver>(
             nodes[0]->get_operator( dest_id ));
 
   {

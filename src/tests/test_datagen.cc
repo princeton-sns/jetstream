@@ -21,7 +21,7 @@ const int compID = 4;
 TEST(Operator, RandGenHalf) {
 //  Node n;
   RandSourceOperator op;
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
   operator_config_t cfg;
   cfg["n"] = "2";
   cfg["k"] = "0";
@@ -65,7 +65,7 @@ TEST(Operator, RandGenHalf) {
 TEST(Operator, RandGenFull) {
 //  Node n;
   RandSourceOperator op;
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
   operator_config_t cfg;
   cfg["n"] = "1";
   cfg["k"] = "0";
@@ -138,7 +138,7 @@ TEST(Operator, GoodnessOfData) {
 shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
 
   shared_ptr<RandEvalOperator> eval(new RandEvalOperator);
-  shared_ptr<DummyReceiver> receiver(new DummyReceiver);
+  shared_ptr<xDummyReceiver> receiver(new xDummyReceiver);
 
   eval->configure(cfg);
 

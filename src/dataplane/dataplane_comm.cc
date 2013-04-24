@@ -239,7 +239,7 @@ DataplaneConnManager::pending_connection (shared_ptr<ClientConnection> c,
 
 // Called whenever an operator is created.
 void
-DataplaneConnManager::created_operator (shared_ptr<OperatorChain> dest) {
+DataplaneConnManager::created_chain (shared_ptr<OperatorChain> dest) {
 
   {
     lock_guard<boost::recursive_mutex> lock (incomingMapMutex);
@@ -247,8 +247,12 @@ DataplaneConnManager::created_operator (shared_ptr<OperatorChain> dest) {
     map<string, vector<PendingConn> >::iterator pending_conn = pendingConns.find(op_id);
     if (pending_conn != pendingConns.end()) {
       vector< PendingConn > & conns = pending_conn->second;
-      for (u_int i = 0; i < conns.size(); ++i)
-        enable_connection(conns[i].conn, dest, conns[i].src);
+      for (u_int i = 0; i < conns.size(); ++i) {
+        shared_ptr<OperatorChain> newchain = shared_ptr<OperatorChain>(new OperatorChain);
+        newchain->add_member();
+        newchain->clone_from(dest);
+        enable_connection(conns[i].conn, newchain, conns[i].src);
+      }
       pendingConns.erase(pending_conn);
     }
   }

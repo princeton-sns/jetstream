@@ -69,36 +69,6 @@ class CFileRead: public TimerSource {
 GENERIC_CLNAME
 };
 
-class CDummyReceiver: public COperator {
- public:
-  std::vector< boost::shared_ptr<Tuple> > tuples;
-  bool store;
-
-  virtual void process(OperatorChain * chain,
-                       std::vector<boost::shared_ptr<Tuple> > &,
-                       DataplaneMessage&);
- 
-  virtual operator_err_t configure (std::map<std::string, std::string> & config){
-    if (config["no_store"].length() > 0)
-      store=false;
-    return C_NO_ERR;
-  }
-
-//  virtual void process_delta (OperatorChain * chain, Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
-  
-  virtual std::string long_description() {
-      std::ostringstream buf;
-      buf << tuples.size() << " stored tuples.";
-      return buf.str();
-  }
-  
-  virtual void no_more_tuples() {} //don't exit at end; keep data available
-  
-  CDummyReceiver(): store(true) {}
-
-GENERIC_CLNAME
-};
-
 
 /**
  * Adds constant data to a tuple.
@@ -129,6 +99,7 @@ class CExtendOperator: public COperator {
   
 GENERIC_CLNAME
 };
+
 
 
 /***

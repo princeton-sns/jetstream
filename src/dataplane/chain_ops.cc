@@ -124,21 +124,6 @@ CFileRead::configure(map<string,string> &config) {
 }
 
 void
-CDummyReceiver::process( OperatorChain * chain,
-                         std::vector< boost::shared_ptr<Tuple> > & in_t,
-                         DataplaneMessage&) {
-  if(store) {
-    size_t cur_sz = tuples.size();
-    tuples.reserve(cur_sz + in_t.size());
-    for (int i = 0; i < in_t.size(); ++i)
-      tuples.push_back(in_t[i]);
-  }
-}
-
-
-
-
-void
 CExtendOperator::mutate_tuple (Tuple& t) {
   for (u_int i = 0; i < new_data.size(); ++i) {
     Element * e = t.add_e();
@@ -196,7 +181,16 @@ CExtendOperator::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-
+void
+CEachOperator::process ( OperatorChain * c,
+                          std::vector<boost::shared_ptr<Tuple> > & tuples,
+                          DataplaneMessage& msg) {
+  
+  for (int i =0 ; i < tuples.size(); ++i ) {
+    boost::shared_ptr<Tuple> t = tuples[i];
+    process_one(t);
+  }
+}
 
 
 operator_err_t
@@ -237,7 +231,6 @@ SendK::emit_data() {
 
 
 const string CFileRead::my_type_name("CFileRead operator");
-const string CDummyReceiver::my_type_name("CDummyReceiver operator");
 const string CExtendOperator::my_type_name("Extend operator");
 
 const string SendK::my_type_name("SendK operator");

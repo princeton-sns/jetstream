@@ -8,6 +8,7 @@
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "operator_chain.h"
 #include "dataplaneoperator.h"
 #include "threaded_source.h"
 #include "queue_congestion_mon.h"
@@ -17,8 +18,38 @@
 
 namespace jetstream {
 
+class DummyReceiver: public COperator {
+ public:
+  std::vector< boost::shared_ptr<Tuple> > tuples;
+  bool store;
 
-class DummyReceiver: public DataPlaneOperator {
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > &,
+                       DataplaneMessage&);
+ 
+  virtual operator_err_t configure (std::map<std::string, std::string> & config){
+    if (config["no_store"].length() > 0)
+      store=false;
+    return C_NO_ERR;
+  }
+
+//  virtual void process_delta (OperatorChain * chain, Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
+  virtual std::string long_description() {
+      std::ostringstream buf;
+      buf << tuples.size() << " stored tuples.";
+      return buf.str();
+  }
+  
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
+  DummyReceiver(): store(true) {}
+
+GENERIC_CLNAME
+};
+
+
+class xDummyReceiver: public DataPlaneOperator {
  public:
   std::vector< boost::shared_ptr<Tuple> > tuples;
   bool store;
@@ -46,8 +77,8 @@ class DummyReceiver: public DataPlaneOperator {
   
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   
-  virtual ~DummyReceiver() {}
-  DummyReceiver(): store(true) {}
+  virtual ~xDummyReceiver() {}
+  xDummyReceiver(): store(true) {}
 
 GENERIC_CLNAME
 };
@@ -208,11 +239,11 @@ GENERIC_CLNAME
 
 
 
-class ExperimentTimeRewrite: public DataPlaneOperator {
+class ExperimentTimeRewrite: public CEachOperator {
  public:
 
-  ExperimentTimeRewrite(): warp(0),first_tuple_t(0),delta(0),field(0) {}
-  virtual void process(boost::shared_ptr<Tuple> t);
+  ExperimentTimeRewrite(): warp(0),first_tuple_t(0),delta(0),field(0),emitted(0) {}
+  virtual void process_one(boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
  private:
@@ -221,6 +252,7 @@ class ExperimentTimeRewrite: public DataPlaneOperator {
   time_t delta; //offset from simulation to reality for first tuple
 //  unsigned t_count;
   unsigned field;
+  unsigned emitted;
   bool wait_for_catch_up;
 
 

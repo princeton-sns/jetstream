@@ -3,7 +3,7 @@
 
 #include "dataplaneoperator.h"
 #include "threaded_source.h"
-
+#include "operator_chain.h"
 
 #include <string>
 #include <iostream>
@@ -42,10 +42,11 @@ GENERIC_CLNAME
 };
 
 
-class CSVParse: public DataPlaneOperator {
+
+class CSVParse: public CEachOperator {
   public:
     virtual operator_err_t configure (std::map<std::string,std::string> &config);
-    virtual void process (boost::shared_ptr<Tuple> t);
+    virtual void process_one (boost::shared_ptr<Tuple>& t);
     virtual std::string long_description();
 
    protected:
@@ -61,7 +62,7 @@ class CSVParse: public DataPlaneOperator {
 
 class CSVParseStrTk: public CSVParse {
   public:
-    virtual void process (boost::shared_ptr<Tuple> t);
+    virtual void process_one (boost::shared_ptr<Tuple>& t);
    GENERIC_CLNAME
 };
 
@@ -225,7 +226,7 @@ GENERIC_CLNAME
 };
 
 //rounds time fields
-class TRoundingOperator: public DataPlaneOperator {
+class TRoundingOperator: public CEachOperator {
  public:
   enum InFormat {T, I, D};
   InFormat in_type;
@@ -233,7 +234,7 @@ class TRoundingOperator: public DataPlaneOperator {
   int round_to;
   int add_offset;
 // could in theory have a fixed offset, so you'd get  result = (original / round_to) * round_to + offset
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
 
@@ -264,10 +265,10 @@ GENERIC_CLNAME
 };
 
 
-class URLToDomain: public DataPlaneOperator {
+class URLToDomain: public CEachOperator {
 
 public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 private:
   unsigned field_id;

@@ -71,7 +71,6 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
   REGISTER_OP(CFileRead);
-  REGISTER_OP(CDummyReceiver);
   REGISTER_OP(CExtendOperator);
   
     // These are base operators in base_operators
@@ -85,15 +84,15 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(HashSampleOperator);
   REGISTER_OP(TRoundingOperator);
   REGISTER_OP(UnixOperator);
-  REGISTER_OP(TimestampOperator);
+  REGISTER_OP(TimestampOperator); */
   REGISTER_OP(CSVParse);
-  REGISTER_OP(CSVParseStrTk);
+  REGISTER_OP(CSVParseStrTk);  /*
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
   REGISTER_OP(IEqualityFilter);
   REGISTER_OP(RatioFilter);
   REGISTER_OP(WindowLenFilter);
-
+*/
   //operators on quantiles
   REGISTER_OP(QuantileOperator);
   REGISTER_OP(ToSummary);
@@ -101,7 +100,7 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(DegradeSummary);
 
       // Experimental purposes 
-  REGISTER_OP(DummyReceiver); */
+  REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
 /*  REGISTER_OP(ContinuousSendK);
   REGISTER_OP(RateRecordReceiver);
@@ -111,9 +110,9 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(RandEvalOperator);
   REGISTER_OP(RandHistOperator);
   REGISTER_OP(MockCongestion);
-  REGISTER_OP(FixedRateQueue);
+  REGISTER_OP(FixedRateQueue);*/
   REGISTER_OP(ExperimentTimeRewrite);
-  REGISTER_OP(CountLogger);
+/*  REGISTER_OP(CountLogger);
   REGISTER_OP(AvgCongestLogger);
   
     // Subscribers

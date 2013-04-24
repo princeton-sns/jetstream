@@ -13,7 +13,7 @@ using namespace boost::posix_time;
 
 namespace jetstream {
 
-
+/*
 void
 DummyReceiver::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
   for (unsigned i = 0; i < tuples.size(); ++i) {
@@ -23,8 +23,21 @@ DummyReceiver::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const 
       tuples[i] = newV;
     }
   }
+}*/
 
+
+void
+DummyReceiver::process( OperatorChain * chain,
+                         std::vector< boost::shared_ptr<Tuple> > & in_t,
+                         DataplaneMessage&) {
+  if(store) {
+    size_t cur_sz = tuples.size();
+    tuples.reserve(cur_sz + in_t.size());
+    for (int i = 0; i < in_t.size(); ++i)
+      tuples.push_back(in_t[i]);
+  }
 }
+
 
 
 operator_err_t
@@ -314,7 +327,7 @@ FixedRateQueue::process1() {
 
 
 void
-ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
+ExperimentTimeRewrite::process_one(boost::shared_ptr<Tuple>& t) {
 
   Element * e = t->mutable_e(field);
   double old_ts = 0;
@@ -329,8 +342,6 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
     return;
   }
 
-  int emitted = emitted_count();
-  
   if(first_tuple_t == 0) {
     first_tuple_t = old_ts;
     if (delta == 0)
@@ -338,7 +349,7 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
   }
   time_t new_t = (old_ts - first_tuple_t) / warp + delta;
   
-  if ( (emitted & 0xFFF) == 0 ) { // once every 256 tuples
+  if ( (emitted++ & 0xFFF) == 0 ) { // once every 256 tuples
     time_t now = time(0);
     if (new_t < now -1) {
       LOG(INFO) << "ExperimentTimeRewrite has fallen behind. Emitting " <<
@@ -350,9 +361,6 @@ ExperimentTimeRewrite::process(boost::shared_ptr<Tuple> t) {
     }
   }
   e->set_t_val( new_t);
-  
-  emit(t);
-
 }
   
 operator_err_t

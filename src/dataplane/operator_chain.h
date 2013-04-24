@@ -60,6 +60,18 @@ class COperator: public ChainMember {
 };
 
 
+
+class CEachOperator: public COperator {
+
+public:
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > &,
+                       DataplaneMessage&);
+  
+  virtual void process_one(boost::shared_ptr<Tuple> & t)  = 0;
+
+};
+
 class OperatorChain {
 
 protected:
@@ -84,16 +96,23 @@ public:
     process(dummy, m);
   }
 
+  void upwards_metadata(DataplaneMessage&);
 
   void stop();
   void stop_async(close_cb_t cb);
   void do_stop(close_cb_t);
 
-  const std::string& chain_name();
-  void upwards_metadata(DataplaneMessage&);
-  void add_member(boost::shared_ptr<ChainMember> op) {
+  const std::string& chain_name();  
+  
+    //These methods are for structural changes
+  
+  void add_member(boost::shared_ptr<ChainMember> op = boost::shared_ptr<ChainMember>() ) {
+    //default value is to push back a null pointer, just reserving a space
     ops.push_back(op);
   }
+
+  
+  void clone_from(boost::shared_ptr<OperatorChain>);
   
   boost::shared_ptr<ChainMember> member(unsigned i) const {
     return ops[i];

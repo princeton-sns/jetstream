@@ -258,7 +258,7 @@ TEST(Operator, ControllableConsistSampling) {
   int ROUNDS = 100, T_PER_ROUND = 100;
 
   VariableSamplingOperator op;
-  shared_ptr<DummyReceiver> receive(new DummyReceiver);
+  shared_ptr<xDummyReceiver> receive(new xDummyReceiver);
 
   operator_config_t cfg;
 //  cfg["fraction"] = "0.5";
