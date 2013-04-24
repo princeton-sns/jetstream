@@ -89,6 +89,10 @@ TEST(Operator, CSVParseOperator) {
     t->set_version(0);
     csvp2.process_one(t);
     
+    ASSERT_FALSE(t);
+
+    
+    t = boost::shared_ptr<Tuple>(new Tuple);
     t->add_e()->set_s_val("bar");
     t->add_e()->set_i_val(2); //too long
     t->add_e()->set_i_val(3);

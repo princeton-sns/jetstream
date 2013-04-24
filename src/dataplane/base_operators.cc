@@ -133,6 +133,7 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
 
   if (!e.has_s_val()) {
     LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
+    t.reset();
     return;
   }
   try {
@@ -154,6 +155,8 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
     }
     if (!discard_off_size || (i == n_fields))
       t = t2;
+    else
+      t.reset();
     
   } catch (boost::escaped_list_error err) {
     LOG_FIRST_N(WARNING, 20) << err.what() << " on " << e.s_val();
@@ -211,8 +214,8 @@ CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
     if (!discard_off_size || (i == n_fields)) {
       t = t2;
     }
-    else
-    {
+    else {
+      t.reset();
       //LOG(INFO)  << "Not Emitting "<< discard_off_size << " i " << i << " nf " << n_fields;
     }
   } catch (boost::escaped_list_error err) {
