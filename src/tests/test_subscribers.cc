@@ -291,15 +291,19 @@ TEST_F(SubscriberTest,FilterSubscriber) {
 
 TEST(LatencyMeasureSubscriber,TwoTuples) {
   const int NUM_TUPLES = 4;
-  LatencyMeasureSubscriber  sub;
+  shared_ptr<LatencyMeasureSubscriber> sub(new LatencyMeasureSubscriber);
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
-  sub.set_dest(rec);
+  shared_ptr<OperatorChain> chain(new OperatorChain);
+  chain->add_member(sub);
+  chain->add_member(rec);
+  sub->add_chain(chain);
+
   operator_config_t cfg;
   cfg["time_tuple_index"] = "0";
   cfg["hostname_tuple_index"] = "1";
   cfg["interval_ms"] = "500";
-  sub.configure(cfg);
-  sub.start();
+  sub->configure(cfg);
+  sub->start();
   
   msec_t cur_time = get_msec();
   
@@ -310,7 +314,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple(*t, double(cur_time + 100 * i));
     extend_tuple(*t, hostnames[i%2]);
-    sub.action_on_tuple(t);
+    sub->action_on_tuple(t);
     tuples[i] = t;
   }
   
@@ -318,7 +322,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
 
   boost::shared_ptr<Tuple> no_tuple;
   for(int i=0; i < NUM_TUPLES; ++i) {
-    sub.post_insert(tuples[i], no_tuple);
+    sub->post_insert(tuples[i], no_tuple);
   }
   js_usleep(1500 * 1000);
   
@@ -326,7 +330,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
   for (int i = 0; i < count; ++i) {
     cout << fmt( *(rec->tuples[i]) ) << endl;
   }
-  sub.stop();
+  sub->stop();
 }
 
 

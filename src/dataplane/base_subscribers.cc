@@ -50,19 +50,32 @@ OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
   return querier.configure(config, id());
 }
 
-
+const int TUPLES_PER_BUFFER = 1000;
 void
 OneShotSubscriber::operator()() {
 
   cube::CubeIterator it = querier.do_query();
 
+  vector< boost::shared_ptr<Tuple> > buffer;
+  buffer.reserve(TUPLES_PER_BUFFER);
+//  DataplaneMessage no_msg;
   while ( it != cube->end()) {
-    emit(*it);
+    buffer.push_back( *it);
     it++;
+    if (buffer.size() > TUPLES_PER_BUFFER) {
+      chain->process(buffer);
+      buffer.clear();
+    }
   }
 
-  no_more_tuples();
-  node->stop_operator(id());
+  if (buffer.size() > 0)
+    chain->process(buffer);
+
+
+  LOG(ERROR) << "Should stop subscriber here.";
+  // FIXME CHAINS
+//  no_more_tuples();
+//  node->stop_operator(id());
 }
 
 cube::Subscriber::Action
@@ -320,15 +333,21 @@ TimeBasedSubscriber::operator()() {
     }
 
     size_t elems = 0;
-
+    vector< shared_ptr<Tuple> > data_buf;
+    
     while ( it != cube->end()) {
-      emit(*it);
+      data_buf.push_back(*it);
       it++;
       elems ++;
+      if (data_buf.size() > TUPLES_PER_BUFFER) {
+        chain->process(data_buf);
+        data_buf.clear();
+      }
+      
     }
 
     end_msg.set_window_length_ms(windowSizeMs);
-    send_meta_downstream(end_msg);
+    chain->process(data_buf, end_msg);
 
     update_backfill_stats(elems);
     js_usleep(1000 * windowSizeMs);
@@ -344,15 +363,11 @@ TimeBasedSubscriber::operator()() {
     }
     // else leave next_window_start_time as 0; data is never backfill because we always send everything
 
-    if (!get_dest()) {
-      LOG(WARNING) << "Subscriber " << id() << " exiting because no successor.";
-      running = false;
-    }
   }
 
   no_more_tuples();
-  LOG(INFO) << "Subscriber " << id() << " exiting. Emitted " << emitted_count()
-            << ". Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
+  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
+            << "Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
 }
 
 
@@ -373,7 +388,8 @@ TimeBasedSubscriber::send_rollup_levels() {
   DataplaneMessage msg;
   msg.set_type(DataplaneMessage::ROLLUP_LEVELS);
   querier.set_rollup_levels(msg);
-  send_meta_downstream(msg);
+  LOG(WARNING) << "subscriber should indicate rollup levels"; // FIXME CHAINS
+//  send_meta_downstream(msg);
 }
 
 void

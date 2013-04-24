@@ -89,6 +89,12 @@ public:
   
   void start();
   void process(std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
+  void process(std::vector<boost::shared_ptr<Tuple> > & buf) {
+    DataplaneMessage no_msg;
+    process(buf, no_msg);
+  }
+
+
   void meta_from_upstream (DataplaneMessage& m) {
     std::vector<boost::shared_ptr<Tuple> > dummy;
 //    DataplaneMessage m2;

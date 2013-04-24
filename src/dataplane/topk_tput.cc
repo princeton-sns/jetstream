@@ -47,15 +47,6 @@ MultiRoundSender::post_update(boost::shared_ptr<jetstream::Tuple> const &update,
   ;
 }
 
-void
-MultiRoundSender::end_of_round(int round_no) {
-  VLOG(1) << "Completed TPUT round " << round_no << " on source side";
-
-  DataplaneMessage end_msg;
-  end_msg.set_tput_round(round_no);
-  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
-  send_meta_downstream(end_msg);
-}
 
 void
 MultiRoundSender::get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col) {
@@ -71,6 +62,11 @@ MultiRoundSender::get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, in
 
 void
 MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
+
+  DataplaneMessage round_end_marker;
+  vector<  boost::shared_ptr<Tuple> > data_buf;
+
+  round_end_marker.set_type(DataplaneMessage::END_OF_WINDOW);
 
   take_greatest = msg.tput_sort_key()[0] == '-';
 //  VLOG(1) << "TPUT got meta from downstream";
@@ -92,11 +88,12 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
         << cube->num_dimensions() << "dims";
     cube::CubeIterator it = cube->slice_and_rollup(rollup_levels, min, max, sort_order, msg.tput_k());
 //    LOG(INFO) << "round-1 slice query returned " << it.numCells() << " cells";
+
     while ( it != cube->end()) {
-      emit(*it);
+      data_buf.push_back(*it);
       it++;
     }
-    end_of_round(1);
+    round_end_marker.set_tput_round(1);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_2) {
 
@@ -108,22 +105,20 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
       it++;
     }
     boost::shared_ptr<Tuple> t = *it;
-
     if (take_greatest) {
       while ( it != cube->end() && get_rank_val(t, total_col) >= msg.tput_r2_threshold()) {
-        emit(t);
+        data_buf.push_back(t);
         it++;
         t = *it;
       }
     } else {
       while ( it != cube->end() && get_rank_val(t, total_col) <= msg.tput_r2_threshold()) {
-        emit(t);
+        data_buf.push_back(t);
         it++;
         t = *it;
       }
     }
-
-    end_of_round(2);
+    round_end_marker.set_tput_round(2);
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
 
@@ -144,7 +139,7 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
         if (time_col != -1)
           val->mutable_e(time_col)->set_t_val(my_min.e(time_col).t_val());
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *(val));
-        emit(val);
+        data_buf.push_back(val);
         emitted ++;
       } else if (v.numCells() == 0) {
         //this is not an error. Something might be a candidate but have no hits on this node.
@@ -155,13 +150,17 @@ MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
               " to " << fmt(my_max) << " ( got " << v.numCells() << ")";
       }
     }
+    
 //    LOG(INFO) << "end of tput for " << id() << "; emitted " << emitted << " tuples";
 //     << " based on " << msg.tput_r3_query_size() << " query terms";
-    end_of_round(3);
-    
+
+    round_end_marker.set_tput_round(3);
   } else {
-    DataPlaneOperator::meta_from_downstream(msg);
+//    DataPlaneOperator::meta_from_downstream(msg);
+    return; //no emit
   }
+  
+  chain->process(data_buf, round_end_marker);
 
 }
 

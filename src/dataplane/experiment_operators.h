@@ -66,7 +66,7 @@ class xDummyReceiver: public DataPlaneOperator {
   }
 
 
-  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {}
 
   
   virtual std::string long_description() {
@@ -79,6 +79,7 @@ class xDummyReceiver: public DataPlaneOperator {
   
   virtual ~xDummyReceiver() {}
   xDummyReceiver(): store(true) {}
+  
 
 GENERIC_CLNAME
 };

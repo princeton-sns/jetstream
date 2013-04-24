@@ -540,6 +540,8 @@ AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
 }
 
 
+const string xDummyReceiver::my_type_name("Legacy DummyReceiver");
+
 const string DummyReceiver::my_type_name("DummyReceiver operator");
 const string ContinuousSendK::my_type_name("ContinuousSendK operator");
 const string RateRecordReceiver::my_type_name("Rate recorder");

@@ -174,6 +174,8 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
 
     std::map<int, unsigned int>::iterator latency_it;
 
+    vector< boost::shared_ptr<jetstream::Tuple> > this_window_stats;
+
     for(latency_it = (*stats_it).second.begin(); latency_it != (*stats_it).second.end(); ++latency_it) {
       boost::shared_ptr<jetstream::Tuple> t(new Tuple);
       extend_tuple(*t, stats_it->first);  //the hostname
@@ -181,9 +183,9 @@ LatencyMeasureSubscriber::print_stats (std::map<std::string, std::map<int, unsig
       extend_tuple(*t, (int) latency_it->first);
       extend_tuple(*t, (int) latency_it->second);
 //      total += (*latency_it).second;
-      emit(t);
+      this_window_stats.push_back(t);
     }
-
+    chain->process(this_window_stats);
     /*
     line << "Total count: " << total <<endl;
     unsigned int med_total = 0;

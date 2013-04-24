@@ -38,8 +38,9 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual void operator()();  // A thread that will loop
 
-    virtual void process(boost::shared_ptr<Tuple> t) {
-      process_c(t);
+    virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > & batch, DataplaneMessage&){
+      for (int i =0; i < batch.size(); ++i)
+        process_c(batch[i]);
       //emit(t);
     }
     void process_c(boost::shared_ptr<const Tuple>);

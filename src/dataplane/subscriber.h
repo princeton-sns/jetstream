@@ -1,9 +1,9 @@
 #ifndef SUBSCRIBER_2FAEJ0UJ
 #define SUBSCRIBER_2FAEJ0UJ
 
-#include "dataplaneoperator.h"
 #include "js_counting_executor.h"
 #include "jetstream_types.pb.h"
+#include "operator_chain.h"
 
 namespace jetstream {
 
@@ -11,7 +11,7 @@ class DataCube;
 
 namespace cube {
 
-class Subscriber: public jetstream::DataPlaneOperator {
+class Subscriber: public jetstream::COperator {
   friend class jetstream::DataCube;
 
 //  friend DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub);
@@ -19,11 +19,12 @@ class Subscriber: public jetstream::DataPlaneOperator {
 
   protected:
     DataCube * cube;
+    boost::shared_ptr<OperatorChain> chain;
   
   public:
     enum Action {NO_SEND, SEND, SEND_NO_BATCH, SEND_UPDATE} ;
 
-    Subscriber (): DataPlaneOperator(), cube(NULL), exec(1) {};
+    Subscriber (): cube(NULL), exec(1) {};
     virtual ~Subscriber() {};
 
     //TODO
@@ -31,7 +32,7 @@ class Subscriber: public jetstream::DataPlaneOperator {
       return cube != NULL;
     };
 
-    virtual void process (boost::shared_ptr<jetstream::Tuple> t);
+    virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) = 0;
     virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
     virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
@@ -56,6 +57,10 @@ class Subscriber: public jetstream::DataPlaneOperator {
     size_t queue_length();
   
     virtual void no_more_tuples ();
+
+    virtual bool is_source() {return true;}
+
+    virtual void add_chain(boost::shared_ptr<OperatorChain> c) {chain = c;}
 
   
   private:

@@ -31,13 +31,17 @@ FilterSubscriber::post_insert ( boost::shared_ptr<jetstream::Tuple> const &updat
     if (filtered_val >= filter_bound) {
       boost::shared_ptr<jetstream::Tuple> new_update(new Tuple);
       new_update->CopyFrom(*update);
-      emit(new_update);
+      std::vector< shared_ptr<Tuple> > v;
+      v.push_back(new_update);
+      chain->process(v);
     }
   } else {
     boost::shared_ptr<jetstream::Tuple> new_update(new Tuple);
     new_update->CopyFrom(*update);
-    emit(new_update);  
-  }  
+    std::vector< shared_ptr<Tuple> > v;
+    v.push_back(new_update);
+    chain->process(v);
+  }
 }
 
 void
@@ -67,13 +71,18 @@ FilterSubscriber::configure(std::map<std::string,std::string> &config) {
 
 
 void
-FilterSubscriber::process(boost::shared_ptr<Tuple> t) {
+FilterSubscriber::process( OperatorChain * chain,
+                           std::vector<boost::shared_ptr<Tuple> > & tuples,
+                           DataplaneMessage& m) {
+  for (int i = 0; i < tuples.size(); ++i) {
+    boost::shared_ptr<Tuple> t = tuples[i];
 
-  if (t->e(level_in_field).has_i_val())
-    filter_bound = t->e(level_in_field).i_val();
-  else if (t->e(level_in_field).has_d_val())
-    filter_bound = t->e(level_in_field).d_val();
-  else {
-    LOG(FATAL) << "expected field " <<  level_in_field << " to be an int or double";
+    if (t->e(level_in_field).has_i_val())
+      filter_bound = t->e(level_in_field).i_val();
+    else if (t->e(level_in_field).has_d_val())
+      filter_bound = t->e(level_in_field).d_val();
+    else {
+      LOG(FATAL) << "expected field " <<  level_in_field << " to be an int or double";
+    }
   }
 }

@@ -23,7 +23,7 @@ class FilterSubscriber: public cube::Subscriber {
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-    virtual void process(boost::shared_ptr<Tuple> t);
+    virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
 
   
 

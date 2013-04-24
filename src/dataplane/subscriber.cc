@@ -6,8 +6,9 @@
 using namespace std;
 using namespace jetstream::cube;
 
-void Subscriber::process (boost::shared_ptr<jetstream::Tuple> t) {
-  LOG(FATAL)<<"Cube Subscriber should never process";
+void
+Subscriber::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) {
+  LOG(FATAL)<<"Cube Subscriber should never process"; 
 }
 
 const string Subscriber::my_type_name("Subscriber");
@@ -31,7 +32,8 @@ void Subscriber::no_more_tuples () {
   if(cube) {
     cube->remove_subscriber(id());
   }
-  DataPlaneOperator::no_more_tuples();
+  LOG(FATAL) << "Teardown isn't implemented yet";
+//  DataPlaneOperator::no_more_tuples();
 }
 
 namespace jetstream {
