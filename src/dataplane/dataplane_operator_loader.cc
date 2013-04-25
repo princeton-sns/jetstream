@@ -114,14 +114,14 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(ExperimentTimeRewrite);
 /*  REGISTER_OP(CountLogger);
   REGISTER_OP(AvgCongestLogger);
-  
+  */
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
   REGISTER_OP(LatencyMeasureSubscriber);
   REGISTER_OP(OneShotSubscriber);
   REGISTER_OP(VariableCoarseningSubscriber);
   REGISTER_OP(FilterSubscriber);
-  
+  /*
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
   REGISTER_OP(CongestionController);

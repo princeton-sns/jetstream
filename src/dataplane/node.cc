@@ -644,7 +644,31 @@ Node::create_chains( const AlterTopo & topo,
     } else {
       LOG_IF(FATAL, !edge.has_src_cube() && ~edge.has_dest()) << "edges without src op must connect "
       << " cubes to operators. Instead, got " << edge.Utf8DebugString();
-      LOG(FATAL) << "don't yet support edges into cubes";
+      
+      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
+      operator_id_t dest (edge.computation(), edge.dest());
+
+      shared_ptr<cube::Subscriber> destOperator =
+         boost::dynamic_pointer_cast<cube::Subscriber>(get_operator(dest));
+
+      ostringstream err_msg;
+      
+      if (!c) {
+        err_msg<< "Can't add edge from " << edge.src_cube() << " to "  << edge.dest() << ": no such cube";
+      } else if (!destOperator) {
+        err_msg << "Can't add edge from " << edge.src_cube() << " to " 
+            << edge.dest() << ": no such destination (or dest not a subscriber)";      
+      }
+      
+      string err_msg_str = err_msg.str();
+      if (err_msg_str.length() > 0) {
+        Error * err_fld = response.mutable_error_msg();
+        err_fld->set_msg(err_msg_str);
+        LOG(WARNING) << err_msg_str;
+      }
+      else {
+        c->add_subscriber(destOperator);
+      }
     }
   }
   
