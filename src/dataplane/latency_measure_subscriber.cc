@@ -16,13 +16,11 @@ LatencyMeasureSubscriber::start() {
   //overwrite to handle n-cube case
   if (!has_cube()) {
     running = true;
-    loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
     return;
   }
 
   running = true;
   querier.set_cube(cube);
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
 }
 
 
@@ -133,35 +131,31 @@ void LatencyMeasureSubscriber::make_stats (msec_t tuple_time_ms,
 }
 
 
-void
-LatencyMeasureSubscriber::operator()() {
-  while (running)  {
-    msec_t now = get_usec() / 1000;
-    string now_str = lexical_cast<string>(now);
+int
+LatencyMeasureSubscriber::emit_batch() {
+  msec_t now = get_usec() / 1000;
+  string now_str = lexical_cast<string>(now);
 
-    {
-      lock_guard<boost::mutex> critical_section (lock);
+  {
+    lock_guard<boost::mutex> critical_section (lock);
 
-      //    std::stringstream line;
-      //    line<<"Stats before entry into cube. Wrt real-time" << endl;
-      string s = string("before cube insert ");
-      s += now_str;
-      print_stats(stats_before_rt, s.c_str());
-      s = string("after cube insert ");
-      s += now_str;
-      print_stats(stats_after_rt, s.c_str());
+    //    std::stringstream line;
+    //    line<<"Stats before entry into cube. Wrt real-time" << endl;
+    string s = string("before cube insert ");
+    s += now_str;
+    print_stats(stats_before_rt, s.c_str());
+    s = string("after cube insert ");
+    s += now_str;
+    print_stats(stats_after_rt, s.c_str());
 
-      if(!cumulative) {
-        stats_before_rt.clear();
-        stats_after_rt.clear();
-        stats_before_skew.clear();
-        stats_after_skew.clear();
-      }
-    } //release lock
-    js_usleep(interval_ms*1000);
-  }
-
-  no_more_tuples();
+    if(!cumulative) {
+      stats_before_rt.clear();
+      stats_after_rt.clear();
+      stats_before_skew.clear();
+      stats_after_skew.clear();
+    }
+  } //release lock
+  return interval_ms;
 }
 
 void

@@ -33,16 +33,45 @@ namespace jetstream {
 
 
 void
-ThreadedSubscriber::start() {
+StrandedSubscriber::start() {
 
   if (!has_cube()) {
     LOG(ERROR) << "No cube for subscriber " << id() << " aborting";
     return;
   }
+  
+  int slice_fields = querier.min.e_size();
+  int cube_dims = cube->get_schema().dimensions_size();
+
+  if (slice_fields != cube_dims) {
+    LOG(FATAL) << id() << " trying to query " << cube_dims << " dimensions with tuple "
+               << fmt(querier.min) << " of length " << slice_fields;
+    return;
+  }
+
 
   running = true;
   querier.set_cube(cube);
-  loopThread = shared_ptr<boost::thread>(new boost::thread(boost::ref(*this)));
+  timer = node->get_timer();
+  st = node->get_new_strand();
+  chain->strand = st.get();
+  timer->expires_from_now(boost::posix_time::seconds(0));
+  timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));  
+}
+
+
+void
+StrandedSubscriber::emit_wrapper() {
+  if (running) {
+    int delay_to_next = emit_batch();
+    if (delay_to_next >= 0) {
+      timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
+      timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));
+    } else {
+      LOG(INFO)<< "Subscriber exiting; should tear down";
+    
+    }
+  }
 }
 
 operator_err_t
@@ -51,8 +80,8 @@ OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
 }
 
 const int TUPLES_PER_BUFFER = 1000;
-void
-OneShotSubscriber::operator()() {
+int
+OneShotSubscriber::emit_batch() {
 
   cube::CubeIterator it = querier.do_query();
 
@@ -73,6 +102,7 @@ OneShotSubscriber::operator()() {
 
 
   LOG(ERROR) << "Should stop subscriber here.";
+  return -1;
   // FIXME CHAINS
 //  no_more_tuples();
 //  node->stop_operator(id());
@@ -210,20 +240,20 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   }
 
 
-  simulation = false;
-  simulation_rate = -1;
+  int simulation_rate = -1;
 
   if (config.find("simulation_rate") != config.end()) {
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
 
     LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
     windowOffsetMs *= simulation_rate;
-    simulation = true;
+    tt = boost::shared_ptr<TimeTeller>(new TimeSimulator(start_ts, simulation_rate));
 
     VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
     VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
     VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
   }
+    tt = boost::shared_ptr<TimeTeller>(new TimeTeller);
 
   return NO_ERR;
 }
@@ -285,89 +315,68 @@ TimeBasedSubscriber::update_backfill_stats(int elems) {
 }
 
 
-void
-TimeBasedSubscriber::operator()() {
+int
+TimeBasedSubscriber::emit_batch() {
 
-  TimeTeller * ts;
 
-  if (simulation) {
-    ts = new TimeSimulator(start_ts, simulation_rate);
-  }
-  else
-    ts = new TimeTeller();
-
-  boost::shared_ptr<TimeTeller> tt(ts);
-
-  time_t newMax = tt->now() - get_window_offset_sec(); 
-
-  if (ts_field >= 0)
-    querier.max.mutable_e(ts_field)->set_t_val(newMax);
-
-  int slice_fields = querier.min.e_size();
-  int cube_dims = cube->get_schema().dimensions_size();
-
+/*
   if(ts_field >= 0)
     ts_input_tuple_index = cube->get_schema().dimensions(ts_field).tuple_indexes(0);
   else
     ts_input_tuple_index = ts_field;
+*/
 
-  if (slice_fields != cube_dims) {
-    LOG(FATAL) << id() << " trying to query " << cube_dims << " dimensions with tuple "
-               << fmt(querier.min) << " of length " << slice_fields;
+
+  respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
+
+
+  if (ts_field >= 0) {
+    time_t newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
+    querier.max.mutable_e(ts_field)->set_t_val(newMax);
+    VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
+      << "-" << ts_to_str(newMax);
   }
-
-  LOG(INFO) << id() << " is attached to " << cube->id_as_str();
 
   DataplaneMessage end_msg;
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
-  send_rollup_levels();
 
+  cube::CubeIterator it = querier.do_query();
 
-  while (running)  {
-
-    cube::CubeIterator it = querier.do_query();
-
-    if(it == cube->end()) {
-      VLOG(1) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time
-                <<" Cube monitor capacity ratio: " << cube->congestion_monitor()->capacity_ratio();
-    }
-
-    size_t elems = 0;
-    vector< shared_ptr<Tuple> > data_buf;
-    
-    while ( it != cube->end()) {
-      data_buf.push_back(*it);
-      it++;
-      elems ++;
-      if (data_buf.size() > TUPLES_PER_BUFFER) {
-        chain->process(data_buf);
-        data_buf.clear();
-      }
-      
-    }
-
-    end_msg.set_window_length_ms(windowSizeMs);
-    chain->process(data_buf, end_msg);
-
-    update_backfill_stats(elems);
-    js_usleep(1000 * windowSizeMs);
-    respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
-
-    if (ts_field >= 0) {
-      next_window_start_time = querier.max.e(ts_field).t_val() + 1;
-      querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time);
-      newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
-      querier.max.mutable_e(ts_field)->set_t_val(newMax);
-      VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
-        << "-" << ts_to_str(newMax);
-    }
-    // else leave next_window_start_time as 0; data is never backfill because we always send everything
-
+  if(it == cube->end()) {
+    VLOG(1) << id() << ": Nothing found in time subscriber query. Next window start time = "<< next_window_start_time
+              <<" Cube monitor capacity ratio: " << cube->congestion_monitor()->capacity_ratio();
   }
 
-  no_more_tuples();
-  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
-            << "Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
+  size_t elems = 0;
+  vector< shared_ptr<Tuple> > data_buf;
+  
+  while ( it != cube->end()) {
+    data_buf.push_back(*it);
+    it++;
+    elems ++;
+    if (data_buf.size() > TUPLES_PER_BUFFER) {
+      chain->process(data_buf);
+      data_buf.clear();
+    }
+    
+  }
+
+  end_msg.set_window_length_ms(windowSizeMs);
+  chain->process(data_buf, end_msg);
+
+  update_backfill_stats(elems);
+  
+  if (ts_field >= 0) {
+    next_window_start_time = querier.max.e(ts_field).t_val() + 1;
+    querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time);
+  }
+  
+  return windowSizeMs;
+
+
+//  no_more_tuples();
+//  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
+//            << "Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
 }
 
 

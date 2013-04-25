@@ -14,6 +14,7 @@
 #include "jetstream_types.pb.h"
 #include <glog/logging.h>
 #include "querier.h"
+#include "timeteller.h"
 
 
 namespace jetstream {
@@ -53,26 +54,29 @@ class QueueSubscriber: public Subscriber {
 } /* cube */
 
 
-class ThreadedSubscriber: public jetstream::cube::Subscriber {
+class StrandedSubscriber: public jetstream::cube::Subscriber {
   public:
-    ThreadedSubscriber():running(false) {}
+    StrandedSubscriber():running(false) {}
 
     virtual void start();
-    virtual void operator()() = 0;  // A thread that will loop while reading the file
     virtual void stop() {
       LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
         running = false;
-        loopThread->interrupt();
-        loopThread->join();
+//        loopThread->interrupt();
+//        loopThread->join();
       }
       VLOG(1) << id() <<  " joined with loop thread";
     }
-
+    void emit_wrapper();
+    virtual int emit_batch() = 0;
 
   protected:
     volatile bool running;
-    boost::shared_ptr<boost::thread> loopThread;
+    boost::shared_ptr<boost::asio::strand> st;
+    boost::shared_ptr<boost::asio::deadline_timer> timer;
+  
+//    boost::shared_ptr<boost::thread> loopThread;
     Querier querier;
 
 };
@@ -84,7 +88,7 @@ tuples matching those dimensions, with time since the last start point.
 
 This subscriber does no backfill.
 */
-class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
+class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
   private:
     static const int DEFAULT_WINDOW_OFFSET = 100; //ms
 
@@ -110,6 +114,8 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
     int backfill_old_window; 
     int regular_old_window; 
 
+    boost::shared_ptr<TimeTeller> tt;
+
     virtual void respond_to_congestion();
 
     void send_rollup_levels();
@@ -133,7 +139,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-    void operator()();  // A thread that will loop while reading the file
+    virtual int emit_batch();
 
     virtual std::string long_description();
 
@@ -147,8 +153,7 @@ class TimeBasedSubscriber: public jetstream::ThreadedSubscriber {
   
     void update_backfill_stats(int elems);
 
-    bool simulation;
-    int simulation_rate;
+//    int simulation_rate;
 
 GENERIC_CLNAME
 };
@@ -172,7 +177,7 @@ class VariableCoarseningSubscriber: public jetstream::TimeBasedSubscriber {
 GENERIC_CLNAME
 };
 
-class OneShotSubscriber : public jetstream::ThreadedSubscriber {
+class OneShotSubscriber : public jetstream::StrandedSubscriber {
   public:
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
       return  NO_SEND;
@@ -187,8 +192,7 @@ class OneShotSubscriber : public jetstream::ThreadedSubscriber {
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-    virtual void operator()();  // A thread that will loop while reading the file
-
+    virtual int emit_batch(); 
 
  protected:
 };

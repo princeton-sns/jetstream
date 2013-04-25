@@ -17,9 +17,9 @@ namespace jetstream {
 * These are time_tuple_index and hostname_tuple_index, respectively.
 *
 */
-class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
+class LatencyMeasureSubscriber: public jetstream::StrandedSubscriber {
   public:
-    LatencyMeasureSubscriber(): ThreadedSubscriber(){};
+    LatencyMeasureSubscriber(): StrandedSubscriber(){};
     virtual ~LatencyMeasureSubscriber() {};
 
     virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
@@ -36,7 +36,7 @@ class LatencyMeasureSubscriber: public jetstream::ThreadedSubscriber {
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-    virtual void operator()();  // A thread that will loop
+    virtual int emit_batch();  // A thread that will loop
 
     virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > & batch, DataplaneMessage&){
       for (int i =0; i < batch.size(); ++i)
