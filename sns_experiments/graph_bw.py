@@ -111,21 +111,15 @@ def main():
     plt.setp(leg_artists[-1], linewidth=2)
     LEGEND_LABELS.append("Generation rate")  
   
-  
+  ax.set_xlim( 0, 60 * EXP_MINUTES)      
+  ax.tick_params(axis='x', which='major', pad=10) #controls the x   
+  #ax.axhline(3.9, color="orange")
+  finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
+ 
+  #return; 
   if PLOT_LAT:
-    #TODO draw bw-degradation plot here
-    ax.set_xlim( 0, 60 * EXP_MINUTES)      
-  
-    ax.tick_params(axis='x', which='major', pad=10) #controls the x   
-    finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
-
     do_latency_bw_plot(bw_seq, offset, options, 0, MAX_T)
   else:
-    ax.set_xlim( 0, 60 * EXP_MINUTES)      
-  
-    ax.tick_params(axis='x', which='major', pad=10) #controls the x   
-    finish_plots(figure, ax, leg_artists, options.outfile, LEGEND_LABELS, legend_loc=2)
-
     figure, ax = plt.subplots()
     leg_artists = []
     LEGEND_LABELS = ["Rel. error (threshholding)", "Window size (max 5)", "Window size (max 10)"]
