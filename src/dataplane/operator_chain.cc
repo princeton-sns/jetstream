@@ -20,11 +20,17 @@ OperatorChain::chain_name() {
   if (cached_chain_name.size() == 0) {
     ostringstream buf;
 //    for (int i= 0; i < ops.size(); ++i)
-    if (ops[0])
-      buf << "chain starting at " << ops[0]->id_as_str();
-    else
-      buf << "Empty chain";
+    buf << ops.size() <<"-element ";
+    if (ops.size() ==0)
+      buf << "empty chain";
+    else {
+      buf << "chain starting at ";
     
+      if (ops[0])
+        buf << ops[0]->id_as_str();
+      else
+        buf << "null element";
+    }
     cached_chain_name = buf.str();
   }
   return cached_chain_name;

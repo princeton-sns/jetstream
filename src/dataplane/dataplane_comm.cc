@@ -201,7 +201,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
     incomingConn = boost::shared_ptr<IncomingConnectionState> (
           new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
-//    dest->add_pred(incomingConn);
+    dest->set_start(incomingConn);
   }
   
   boost::system::error_code error;
@@ -219,6 +219,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
   }
   
   c->send_msg(response, error);
+  LOG(INFO) << "chain-ready sent";
 }
                 
      
@@ -318,7 +319,8 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
     LOG(WARNING) << "Dataplane connection failed: " << error.message();
     return;
   }
-
+  
+  LOG(INFO) << "RDA to " << c->get_remote_endpoint() <<  " set up OK";
   conn = c;
   conn->set_counters(mgr.send_counter, mgr.recv_counter);
 
@@ -361,7 +363,7 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     //FIXME need to tear down?
     return;
   }
-
+  LOG(INFO) << "Conn-ready firing!";
   switch (msg.type ()) {
     case DataplaneMessage::CHAIN_READY:
     {

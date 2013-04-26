@@ -157,7 +157,7 @@ TEST(Node,DuplicateStart) {
   Node n2(cfg, err);
   n2.start();
 
-  cout << "duplicate start ok";
+  cout << "duplicate start ok" << endl;
   n.stop();
   n2.stop();
 }

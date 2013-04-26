@@ -79,7 +79,7 @@ class Node {
 
   void create_chains ( const AlterTopo & topo,
                        ControlMessage & resp,
-                       const std::vector<operator_id_t>& toStart);
+                       const std::vector<operator_id_t>& toStart) throw(operator_err_t);
 
   void log_statistics();
   

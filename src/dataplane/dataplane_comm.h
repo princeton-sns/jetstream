@@ -248,7 +248,8 @@ Internally, we identify endpoints by a string consisting of either an operator I
                           std::string future_op,
                           operator_id_t srcOpID);
 
-    // called when an operator is created
+    // called when a non-source operator chain is created.
+    // The argument is a sourceless chain
   void created_chain (boost::shared_ptr<OperatorChain> dest);
                          
   void close();

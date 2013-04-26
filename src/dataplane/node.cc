@@ -291,19 +291,21 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
     {
-
+//      LOG(INFO) << "handling chain-connect";
       const Edge& e = msg.chain_link();
       operator_id_t srcOpID = operator_id_t(e.computation(), e.src());
       //TODO can sanity-check that e is for us here.
       std::string dest_as_str;
       shared_ptr<OperatorChain> new_chain;
-      if (e.has_dest()) {
+      if (e.has_dest()) { //already exists
         operator_id_t dest_operator_id (e.computation(), e.dest());
         dest_as_str = dest_operator_id.to_string();
         if (sourcelessChain.count(dest_operator_id) > 0) {
           new_chain = shared_ptr<OperatorChain>(new OperatorChain());
           new_chain->add_member();
           new_chain->clone_from(sourcelessChain[dest_operator_id]);
+          LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
+          LOG(INFO) << new_chain->chain_name();
         }
       } else if (e.has_dest_cube()) {
         dest_as_str = e.dest_cube();
@@ -325,7 +327,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
       if (new_chain) { 
         // Note that it's important to put the connection into receive mode
         // before sending the READY.
-        LOG(INFO) << "Chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
+        LOG(INFO) << "On recipient, chain-connect request for " << dest_as_str << " from " << c->get_remote_endpoint();
        
         dataConnMgr.enable_connection(c, new_chain, srcOpID);
 
@@ -575,20 +577,23 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
 
+/* Starts now handled by chains code
   vector<operator_id_t >::iterator iter;
   for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
     shared_ptr<COperator> op = get_operator(name);
     LOG_IF(FATAL, !op) << "operator " << name << "vanished without exception thrown";
-      op->start();
+    op->start();
 //    dataConnMgr.created_operator(op);
-  }
+  } */
   
     for (int i=0; i < topo.tocreate_size(); ++i) {
       const CubeMeta &task = topo.tocreate(i);
       shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
       assert (c);
-  //    dataConnMgr.created_operator(c); //unblock connections into cubes
+      shared_ptr<OperatorChain> chain(new OperatorChain);
+      chain->add_member(c);
+      dataConnMgr.created_chain(chain);
     }
     
     
@@ -613,7 +618,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
 void
 Node::create_chains( const AlterTopo & topo,
                      ControlMessage & response,
-                     const std::vector<operator_id_t>& toStart) {
+                     const std::vector<operator_id_t>& toStart) throw(operator_err_t) {
   std::map<operator_id_t, const Edge *> op_to_outedge;
   std::map<operator_id_t, operator_id_t> op_to_pred;
   for (int i=0; i < topo.edges_size(); ++i) {
@@ -624,30 +629,23 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<COperator> srcOperator = get_operator(src);
       
       if (!srcOperator) {
-        LOG(WARNING) << "unknown source operator " << src<< " for edge.";
-        
-        Error * err_msg = response.mutable_error_msg();
-        err_msg->set_msg("unknown source operator " + src.to_string());
-        return;
+        throw operator_err_t("unknown source operator " + src.to_string() + " for edge.");
       }
 
       op_to_outedge[src] = &edge;
       
-      if (edge.has_dest()) {
+      if (edge.has_dest()  && !edge.has_dest_addr()) {
         operator_id_t dest (edge.computation(), edge.dest());
         shared_ptr<COperator> destOperator = get_operator(dest);
         if (!destOperator) {
-          LOG(WARNING) << "Edge from " << src<< " to unknown dest " << dest;
-          Error * err_msg = response.mutable_error_msg();
-          err_msg->set_msg("unknown dest operator " + dest.to_string());
-          return;
+          throw operator_err_t( "Edge from " + src.to_string() + " to unknown dest "+ dest.to_string());
         }
-
         op_to_pred[dest] = src;
       }
     } else {
-      LOG_IF(FATAL, !edge.has_src_cube() && ~edge.has_dest()) << "edges without src op must connect "
-      << " cubes to operators. Instead, got " << edge.Utf8DebugString();
+      if(!edge.has_src_cube() && ~edge.has_dest())
+        throw operator_err_t("edges without src op must connect cubes to operators. Instead, got "  +
+             edge.Utf8DebugString());
       
       shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
       operator_id_t dest (edge.computation(), edge.dest());
@@ -722,6 +720,7 @@ Node::create_chains( const AlterTopo & topo,
       } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
         sourcelessChain[ toStart[i] ] = chain;
+        dataConnMgr.created_chain(chain);
       }
     }
   }

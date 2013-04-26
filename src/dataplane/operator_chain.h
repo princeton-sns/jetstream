@@ -117,6 +117,14 @@ public:
     ops.push_back(op);
   }
 
+  unsigned members() const {
+    return ops.size();
+  }
+  
+  void set_start(boost::shared_ptr<ChainMember> op) {
+    LOG_IF(FATAL, ops[0] != 0) << "should only call set-start when there's no existing start";
+    ops[0] = op;
+  }
   
   void clone_from(boost::shared_ptr<OperatorChain>);
   

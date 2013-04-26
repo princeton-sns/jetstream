@@ -419,6 +419,7 @@ NodeTwoNodesTest::SetUp() {
   NodeConfig cfg;
   cfg.heartbeat_time = 2000;
   cfg.controllers.push_back(p);
+  cfg.thread_pool_size = 3;
   
   boost::system::error_code err;
 
@@ -497,6 +498,8 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
   int tries = 0;
   while (nodes[1]->operator_count() == 0 && tries++ < 20) //wait for alter to be processed
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+  boost::this_thread::sleep(boost::posix_time::milliseconds(400));
 
   // Create the receiver 
   shared_ptr<DummyReceiver> dest = add_dummy_receiver(*nodes[0], dest_id);
