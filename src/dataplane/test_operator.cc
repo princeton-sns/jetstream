@@ -29,6 +29,10 @@ class TestOperator: public jetstream::COperator {
   virtual const std::string& typename_as_str() {
       return tname;
   }
+
+  virtual bool is_source() {return true;}  
+  
+  
 };
 
 

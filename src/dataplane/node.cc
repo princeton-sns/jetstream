@@ -125,17 +125,19 @@ Node::stop ()
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   
-  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter = operators.begin();
+  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter = operators.begin();
 
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
   while (iter != operators.end()) {
-    shared_ptr<COperator> op = iter->second;
-    assert (op);
-    LOG(INFO) << " stopping " << iter->first << " (" << op->typename_as_str() << ")";
-    iter++;
-    op->stop(); //note that stop will sometimes remove the operator from the table so we advance iterator first;
+    shared_ptr<COperator> op = iter->second.lock();
+    operator_id_t id = iter->first;
+    iter++;//note that stop will sometimes remove the operator from the table so we advance iterator first;
+    if (op) {
+      LOG(INFO) << " stopping " << id << " (" << op->typename_as_str() << ")";
+      op->stop(); 
+    }
   }
   
   iosrv->stop();
@@ -422,47 +424,32 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
 
   LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
       << topo.tostart_size() << " operators." <<endl;
+  vector<operator_id_t > operator_ids_to_start;
 
+  try {
 
-  vector<operator_id_t > operators_to_start;
-  for (int i=0; i < topo.tostart_size(); ++i) {
-    const TaskMeta &task = topo.tostart(i);
-    operator_id_t id = unparse_id(task.id());
-    const string &cmd = task.op_typename();
-    map<string,string> config;
-    for (int j=0; j < task.config_size(); ++j) {
-      const TaskMeta_DictEntry &cfg_param = task.config(j);
-      config[cfg_param.opt_name()] = cfg_param.val();
-    }    
-    VLOG(1) << "calling create operator " << id;
+    vector<shared_ptr<COperator> > operators_to_start;
+//    vector <operator_id_t, shared_ptr<COperator> > ops_being_created;
+    for (int i=0; i < topo.tostart_size(); ++i) {
+      const TaskMeta &task = topo.tostart(i);
+      operator_id_t id = unparse_id(task.id());
+      const string &cmd = task.op_typename();
+      map<string,string> config;
+      for (int j=0; j < task.config_size(); ++j) {
+        const TaskMeta_DictEntry &cfg_param = task.config(j);
+        config[cfg_param.opt_name()] = cfg_param.val();
+      }    
+      VLOG(1) << "calling create operator " << id;
 
-    operator_err_t err = create_operator(cmd, id, config);
-    VLOG(1) << "create returned " << err;
-
-    if (err == NO_ERR) {
-      LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";
-
-          // Record the outcome of creating the operator in the response message
+      shared_ptr<COperator> op = create_operator(cmd, id, config);
+      operators_to_start.push_back( op);
+      operator_ids_to_start.push_back(id);
+      LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";      
       TaskMeta *started_task = respTopo->add_tostart();
       started_task->mutable_id()->CopyFrom(task.id());
       started_task->set_op_typename(task.op_typename());
-      operators_to_start.push_back(id);    
+      operators[id] = op;
     }
-    else {
-      LOG(WARNING) << "aborting creation of " << id << ": " + err;
-      respTopo->add_tasktostop()->CopyFrom(task.id());
-      
-      //teardown started operators
-      for (size_t j=0; j < operators_to_start.size(); ++j) {
-        //note we don't call stop(), since operators didn't start()
-        operators.erase(operators_to_start.at(j));
-      }
-      response.set_type(ControlMessage::ERROR);
-      Error * err_msg = response.mutable_error_msg();
-      err_msg->set_msg(err);
-      return;
-    }
-  }
   
   //Invariant: if we got here, all operators started OK.
   
@@ -489,7 +476,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   for (int i=0; i < topo.tasktostop_size(); ++i) {
     operator_id_t id = unparse_id(topo.tasktostop(i));
     LOG(INFO) << "Stopping " << id << " due to server request";
-    stop_operator(id);
+    unregister_operator(id);
     // TODO: Should we log whether the stop happened?
     respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
   }
@@ -582,27 +569,44 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     }
   } */
 
-  establish_congest_policies(topo, response, operators_to_start);
-  create_chains(topo, response, operators_to_start);
+  establish_congest_policies(topo, response, operator_ids_to_start);
+  create_chains(topo, response, operator_ids_to_start);
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
-/*
+
   vector<operator_id_t >::iterator iter;
-  for (iter = operators_to_start.begin(); iter != operators_to_start.end(); iter++) {
+  for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
     const operator_id_t& name = *iter;
     shared_ptr<COperator> op = get_operator(name);
-    LOG_IF(FATAL, !op) << "operator " << name << " vanished before start";
-    op->start();
+    LOG_IF(FATAL, !op) << "operator " << name << "vanished without exception thrown";
+      op->start();
 //    dataConnMgr.created_operator(op);
-  }*/
-  
-  for (int i=0; i < topo.tocreate_size(); ++i) {
-    const CubeMeta &task = topo.tocreate(i);
-    shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
-    assert (c);
-//    dataConnMgr.created_operator(c); //unblock connections into cubes
   }
+  
+    for (int i=0; i < topo.tocreate_size(); ++i) {
+      const CubeMeta &task = topo.tocreate(i);
+      shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
+      assert (c);
+  //    dataConnMgr.created_operator(c); //unblock connections into cubes
+    }
+    
+    
+  } catch(operator_err_t err) {
+    LOG(WARNING) << "aborting alter: " + err;
+
+    vector<operator_id_t >::iterator iter;
+    for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
+      const operator_id_t& name = *iter;
+      sourcelessChain.erase(name);
+      chainSources.erase(name);
+      operators.erase(name);
+    }
+    response.set_type(ControlMessage::ERROR);
+    Error * err_msg = response.mutable_error_msg();
+    err_msg->set_msg(err);
+  }
+
 }
 
 
@@ -679,6 +683,7 @@ Node::create_chains( const AlterTopo & topo,
       chain_count += 1;
       boost::shared_ptr<OperatorChain> chain(new OperatorChain);
       shared_ptr<COperator> chainOp = get_operator(toStart[i]);
+      LOG_IF(WARNING, !chainOp) << "operator " << toStart[i] << " not in table";
       bool is_startable = chainOp->is_source();
       operator_id_t op_id = toStart[i];
       
@@ -709,9 +714,12 @@ Node::create_chains( const AlterTopo & topo,
         }
       } while ( !hit_end );
 
-      if (is_startable)
+      if (is_startable) {
+        LOG(INFO) << "creating chain starting from " << toStart[i];
         chain->start();
-      else {
+        chainSources[toStart[i] ] = chainOp;
+        
+      } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
         sourcelessChain[ toStart[i] ] = chain;
       }
@@ -739,20 +747,21 @@ Node::stop_computation(int32_t compID) {
   vector<int32_t> stopped_ops;
   {
     unique_lock<boost::recursive_mutex> lock(operatorTableLock);
-    
-    std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
-    for ( iter = operators.begin(); iter != operators.end(); ) {
+    //FIXME CHAINS
+
+    std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator iter;
+    for ( iter = sourcelessChain.begin(); iter != sourcelessChain.end(); ) {
       operator_id_t op_id = iter->first;
-      boost::shared_ptr<COperator>  op = iter->second;
+      boost::shared_ptr<OperatorChain>  op = iter->second;
        //need to advance iterator BEFORE stop, since iterator to removed element is invalid
       iter ++;
     
       if (op_id.computation_id == compID) {
-      
+        op->stop();
         stopped_ops.push_back(op_id.task_id);
-  /*   FIXME CHAINS        
+  //   FIXME CHAINS        
         // The actual stop. 
-        operator_cleanup.stop_on_strand(op); */
+//        operator_cleanup.stop_on_strand(op);
         operators.erase(op_id);
 //        operator_cleanup.cleanup(op);   
       }
@@ -767,11 +776,11 @@ boost::shared_ptr<COperator>
 Node::get_operator (operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
-  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
+  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
   iter = operators.find(name);
-  if (iter != operators.end())
-    return iter->second;
-  else {
+  if (iter != operators.end()) {
+    return iter->second.lock();
+  } else {
     boost::shared_ptr<COperator> x;
     return x; 
   }
@@ -780,52 +789,36 @@ Node::get_operator (operator_id_t name) {
 /**
  Invoked in the strand from the control connection, so needs not be thread-safe
 */
-operator_err_t
+shared_ptr<COperator>
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
+throw(operator_err_t)
 {
   if (operators.count(name) > 0) {
-    return operator_err_t("operator already exists");
+    throw operator_err_t("operator "  + name.to_string() + "  already exists");
   }
 
   shared_ptr<COperator> d (operator_loader.newOp(op_typename));
   if (d == NULL) {
-    LOG(WARNING) <<" failed to create operator object. Type was "<<op_typename <<endl;
-    return operator_err_t("Loader failed to create operator of type " + op_typename);
+    throw operator_err_t("Loader failed to create operator of type " + op_typename);
   }
   
   d->id() = name;
   d->set_node(this);
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);
-  if (err == NO_ERR) {
-    operators[name] = d; //TODO check for name in use?
-  }
-  return err;
+  if (err != NO_ERR)
+    throw(err);
+  
+  LOG(INFO) << "operator create returning ok";
+  return d;
 }
 
 bool 
-Node::stop_operator(operator_id_t name) {
-  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
+Node::unregister_operator(operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
-  iter = operators.find(name);
-  
-  if (iter != operators.end())  { //operator still around
-  /*   FIXME CHAINS
-    shared_ptr<COperator> op = iter->second;
-    operator_cleanup.stop_on_strand(op);
-    */
-    int delCount = operators.erase(name);
-    LOG_IF(FATAL, delCount == 0) << "Couldn't find a " << name << " to erase from operators table";
-    
-//    operator_cleanup.cleanup(op); //will do the work on a strand
-  
-    return true;
-// TODO: should unload code at some point. Presumably when no more operators
-// of that type are running? Can we push that into operatorloader?
-
-  }
-  return false;
+  int delCount = operators.erase(name);
+  return delCount > 0;
 }
 
 
@@ -835,10 +828,10 @@ Node::make_op_list() {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
   ostringstream s;
-  std::map<operator_id_t, shared_ptr<COperator> >::iterator iter;
+  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
   for ( iter = operators.begin(); iter != operators.end(); ++iter) {
     operator_id_t op_id = iter->first;
-    boost::shared_ptr<COperator>  op = iter->second;
+    boost::shared_ptr<COperator>  op = iter->second.lock();
     if (op)
       s << "\t" << op_id << " " << op->typename_as_str() << endl;
     else

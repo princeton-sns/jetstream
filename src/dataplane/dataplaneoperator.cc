@@ -95,7 +95,7 @@ DataPlaneOperator::chain_is_broken () {
   }
     //note that we recurse before stopping. So the stops will happen front-to-back.
   if (node != NULL) {
-    node->stop_operator(operID); 
+//    node->stop_operator(operID);
   }
 }
 

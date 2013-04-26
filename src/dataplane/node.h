@@ -46,9 +46,9 @@ class Node {
   std::vector<boost::shared_ptr<boost::thread> > threads;
 
   DataPlaneOperatorLoader operator_loader;  
-  std::map<operator_id_t, boost::shared_ptr<jetstream::COperator> > operators;
+  std::map<operator_id_t, boost::weak_ptr<jetstream::COperator> > operators;
   std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > sourcelessChain;
-//  std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > sourcelessChains;
+  std::map<operator_id_t, boost::shared_ptr<jetstream::COperator> > chainSources;
 
 
 
@@ -97,10 +97,10 @@ class Node {
 
   boost::shared_ptr<COperator> get_operator (operator_id_t name);
   
-  operator_err_t
-    create_operator (std::string op_typename, operator_id_t, operator_config_t) ;
+  shared_ptr<COperator>
+    create_operator (std::string op_typename, operator_id_t, operator_config_t) throw(operator_err_t);
 
-  bool stop_operator (operator_id_t name);
+  bool unregister_operator (operator_id_t name);
 
     //Helper methods for handling incoming commands
   void handle_alter (const AlterTopo& t, ControlMessage& response);

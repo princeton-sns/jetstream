@@ -40,7 +40,7 @@ void add_pair_to_topo(AlterTopo& topo, int compID) {
   id = task->mutable_id();
   id->set_computationid(compID);
   id->set_task(3);
-  task->set_op_typename("CDummyReceiver");
+  task->set_op_typename("DummyReceiver");
   
   Edge * e = topo.add_edges();
   e->set_src(2);

@@ -47,15 +47,8 @@ TEST(Node, OperatorCreateDestroy)
 
   operator_id_t id(1,2);
   operator_config_t oper_cfg;
-  node.create_operator("test",id, oper_cfg);
-  shared_ptr<COperator> op = node.get_operator(id);
+  shared_ptr<COperator> op = node.create_operator("test",id, oper_cfg);
   ASSERT_TRUE(op != NULL);
-  ASSERT_EQ(node.get_operator( id ), op);
-  
-  bool stopped = node.stop_operator(id);
-  ASSERT_TRUE(stopped);
-  ASSERT_FALSE(node.get_operator( id ));
-  
 }
 
 TEST(Node, BadOperatorName) {
@@ -86,7 +79,7 @@ TEST(Node, BadOperatorName) {
   ControlMessage r;
   node.handle_alter(topo, r);
   ASSERT_EQ(r.type(), ControlMessage::ERROR);
-  ASSERT_EQ(node.operator_count(), 0U);  //all or none should start
+  ASSERT_EQ(0U, node.operator_count());  //all or none should start
 }
 
 
