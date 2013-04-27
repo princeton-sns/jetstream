@@ -193,6 +193,21 @@ CEachOperator::process ( OperatorChain * c,
 }
 
 
+void
+CFilterOperator::process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > & tuples,
+                       DataplaneMessage&) {
+  unsigned out_idx = 0;
+  for(unsigned i = 0; i < tuples.size(); ++i) {
+    if (should_emit(*tuples[i])) {
+      tuples[out_idx++] = tuples[i];
+    }
+  }
+  tuples.resize(out_idx);
+}
+  
+
+
 operator_err_t
 SendK::configure (std::map<std::string,std::string> &config) {
   if (config["k"].length() > 0) {

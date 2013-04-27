@@ -72,6 +72,18 @@ public:
 
 };
 
+class CFilterOperator: public COperator {
+
+public:
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > &,
+                       DataplaneMessage&);
+  
+  virtual bool should_emit(const Tuple& t)  = 0;
+
+};
+
+
 class OperatorChain {
 
 protected:

@@ -86,11 +86,11 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator); */
   REGISTER_OP(CSVParse);
-  REGISTER_OP(CSVParseStrTk);  /*
+  REGISTER_OP(CSVParseStrTk);
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
   REGISTER_OP(IEqualityFilter);
-  REGISTER_OP(RatioFilter);
+  /*  REGISTER_OP(RatioFilter);
   REGISTER_OP(WindowLenFilter);
 */
   //operators on quantiles
@@ -102,11 +102,11 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
       // Experimental purposes 
   REGISTER_OP(DummyReceiver);
   REGISTER_OP(SendK);
-/*  REGISTER_OP(ContinuousSendK);
-  REGISTER_OP(RateRecordReceiver);
+  REGISTER_OP(ContinuousSendK);
+//  REGISTER_OP(RateRecordReceiver);
   REGISTER_OP(SerDeOverhead);
   REGISTER_OP(EchoOperator);
-  REGISTER_OP(RandSourceOperator);
+/*  REGISTER_OP(RandSourceOperator);
   REGISTER_OP(RandEvalOperator);
   REGISTER_OP(RandHistOperator);
   REGISTER_OP(MockCongestion);

@@ -200,8 +200,8 @@ class OperatorCleanup {
 
 
 inline
-double numeric(boost::shared_ptr<Tuple> t, unsigned field) {
-  const Element & d = t->e(field);
+double numeric(const Tuple& t, unsigned field) {
+  const Element & d = t.e(field);
   return d.has_d_val() ? d.d_val() : d.i_val();
 }
 

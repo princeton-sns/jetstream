@@ -72,11 +72,11 @@ class CSVParseStrTk: public CSVParse {
  * containing a regular expression. Assumes each received tuple has a first element
  * that is a string, and re-emits the tuple if the string matches 'pattern'.
  */
-class StringGrep: public DataPlaneOperator {
+class StringGrep: public CFilterOperator {
  public:
   StringGrep() : fieldID (0) {}
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual std::string long_description();
 
  protected:
@@ -276,10 +276,10 @@ private:
 GENERIC_CLNAME
 };
 
-class GreaterThan: public DataPlaneOperator {
+class GreaterThan: public CFilterOperator {
   //passes tuples that are greater than the filter
 public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 private:
   unsigned field_id;
@@ -288,10 +288,10 @@ private:
 GENERIC_CLNAME
 };
 
-class IEqualityFilter: public DataPlaneOperator {
+class IEqualityFilter: public CFilterOperator {
 
 public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 private:
   unsigned field_id;

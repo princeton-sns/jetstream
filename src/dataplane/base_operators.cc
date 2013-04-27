@@ -240,32 +240,27 @@ StringGrep::configure(map<string,string> &config) {
 }
 
 
-void
-StringGrep::process (boost::shared_ptr<Tuple> t)
-{
-  assert(t);
+bool
+StringGrep::should_emit (const Tuple& t) {
   if (re.empty()) {
     LOG(WARNING) << "no pattern assigned; did you start the operators properly?";
-    return;
+    return false;
   }
 
-  if (t->e_size() == 0) {
+  if (t.e_size() == 0) {
     LOG(INFO) << "received empty tuple, ignoring" << endl;
-    return;
+    return false;
   }
 
-  Element* e = t->mutable_e(fieldID);
-  if (!e->has_s_val()) {
+  const Element& e = t.e(fieldID);
+  if (!e.has_s_val()) {
     LOG(WARNING) << "received tuple but element" << fieldID << " is not string, ignoring" << endl;
-    return;
+    return false;
   }
 
   boost::smatch matchResults;
-  bool found = boost::regex_search(e->s_val(), matchResults, re);
-  if (found) {
-    // The string element matches the pattern, so push it through
-    emit(t);
-  }
+  bool found = boost::regex_search(e.s_val(), matchResults, re);
+  return found;
 }
 
 
@@ -720,11 +715,10 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-void
-GreaterThan::process (boost::shared_ptr<Tuple> t) {
+bool
+GreaterThan::should_emit (const Tuple& t) {
   double val = jetstream::numeric(t, field_id);
-  if (val > bound)
-    emit(t);
+  return (val > bound);
 }
 
 operator_err_t
@@ -739,11 +733,10 @@ GreaterThan::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-void
-IEqualityFilter::process (boost::shared_ptr<Tuple> t) {
-  int val = t->e(field_id).i_val();
-  if (val == targ)
-    emit(t);
+bool
+IEqualityFilter::should_emit (const Tuple& t) {
+  int val = t.e(field_id).i_val();
+  return (val == targ);
 }
 
 operator_err_t
@@ -762,8 +755,8 @@ IEqualityFilter::configure (std::map<std::string,std::string> &config) {
 
 void
 RatioFilter::process (boost::shared_ptr<Tuple> t) {
-  double denom = jetstream::numeric(t, denom_field_id);
-  double numer = jetstream::numeric(t, numer_field_id);
+  double denom = jetstream::numeric(*t, denom_field_id);
+  double numer = jetstream::numeric(*t, numer_field_id);
   
 //  cout << "ratio was " << (numer/denom) << endl;
   if ( denom == 0 ||  numer / denom > bound)
@@ -808,7 +801,7 @@ WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
     emit(t);
   } else {
     if ( (err_field > -1) && (err_bound_lev == 0) ) {
-      err_bound_lev = jetstream::numeric(t, err_field);
+      err_bound_lev = jetstream::numeric(*t, err_field);
       LOG(INFO) << "------- Local cutoff: "<<err_bound_lev << "-------";
     }
   }

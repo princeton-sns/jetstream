@@ -3,13 +3,14 @@
  */
 
 #include "base_operators.h"
+#include "chain_ops.h"
 #include <map>
 #include <iostream>
 #include <boost/thread/thread.hpp>
 #include <boost/date_time.hpp>
 #include <boost/regex.hpp>
 #include <boost/numeric/conversion/cast.hpp>
-
+#include "node.h"
 #include <gtest/gtest.h>
 
 #include "experiment_operators.h"
@@ -17,6 +18,140 @@
 using namespace jetstream;
 using namespace boost;
 using namespace std;
+
+class COperatorTest : public ::testing::Test {
+public:
+
+  boost::shared_ptr<Node> node;
+  virtual void SetUp() {
+  
+    if (!node) {
+      NodeConfig cfg;
+      cfg.heartbeat_time = 2000;
+      boost::system::error_code err;
+      node = shared_ptr<Node>(new Node(cfg, err));
+    }
+    node->start();
+  }
+  
+  virtual void TearDown() {
+    node->stop();
+  }
+
+
+};
+
+
+TEST_F(COperatorTest, FileRead) {
+  // constants describing the test data file
+  enum {TEST_DATA_N_LINES = 19, TEST_DATA_N_EMPTY = 1};
+
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  shared_ptr<CFileRead> reader(new CFileRead);
+  map<string,string> config;
+  config["file"] =  "src/tests/data/base_operators_data.txt";
+  config["skip_empty"] = "false";
+  config["exit_at_end"] = "true";
+  reader->configure(config);
+  reader->set_node(node.get());
+  reader->add_chain(chain);
+  
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  
+  chain->add_member(reader);
+  chain->add_member(rec);
+  
+  chain->start();
+  
+  // Wait for reader to process entire file (alternatively, call stop() after a
+  // while)
+  boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+
+  /*
+  int waits = 0;
+  while (reader.isRunning() && waits++ < 20) {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+  }
+  ASSERT_GT (20, waits);*/
+  chain->stop();
+
+  ASSERT_GT(rec->tuples.size(), (size_t)4);
+  ASSERT_EQ((size_t) TEST_DATA_N_LINES + 1, rec->tuples.size()); // file read adds blank line at end of file
+  string s = rec->tuples[0]->e(0).s_val();
+  ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+  ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
+
+
+  // try again, with the option to skip 0-length lines turned on
+  rec->tuples.clear();
+
+  shared_ptr<CFileRead> reader2(new CFileRead);
+  config["skip_empty"] = "true";
+  reader2->configure(config);
+  reader2->set_node(node.get());
+  
+  
+  boost::shared_ptr<OperatorChain> chain2(new OperatorChain);
+  chain2->add_member(reader2);
+  chain2->add_member(rec);
+  reader2->add_chain(chain2);
+  
+  
+  chain2->start();
+  boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+
+  chain2->stop();
+
+
+  ASSERT_EQ((size_t) TEST_DATA_N_LINES - TEST_DATA_N_EMPTY, rec->tuples.size());
+  ASSERT_GT(rec->tuples.size(), (size_t)4);
+  s = rec->tuples[0]->e(0).s_val();
+  ASSERT_TRUE(s.length() > 0 && s.length() < 100); //check that output is a sane string
+  ASSERT_NE(s[s.length() -1], '\n'); //check that we prune \n.
+}
+
+
+TEST(COperator, CExtendOperator) {
+
+  shared_ptr<CExtendOperator>  ex_1(new CExtendOperator);
+  shared_ptr<CExtendOperator> ex_host(new CExtendOperator);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+
+  operator_config_t cfg;
+  cfg["types"] = "i";
+  cfg["0"] = "1";
+  ex_1->configure(cfg);
+
+  cfg["types"] = "s";
+  cfg["0"] = "${HOSTNAME}";
+  ex_host->configure(cfg);
+
+  boost::shared_ptr<Tuple> t(new Tuple);
+  extend_tuple(*t, 2);
+  vector< boost::shared_ptr<Tuple> > v;
+  v.push_back(t);
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  
+  boost::shared_ptr<COperator> no_op;
+  chain->add_member(no_op);
+  chain->add_member(ex_1);
+  chain->add_member(ex_host);
+  chain->add_member(rec);
+  DataplaneMessage no_meta;
+  chain->process(v, no_meta);
+
+  ASSERT_EQ((size_t)1, rec->tuples.size());
+
+  boost::shared_ptr<Tuple> result = rec->tuples[0];
+  ASSERT_EQ(3, result->e_size());
+  ASSERT_EQ(2, result->e(0).i_val()); //should preserve existing element[s]
+  ASSERT_EQ(1, result->e(1).i_val()); //should preserve existing element[s]
+  ASSERT_GT(result->e(2).s_val().length(), 2U);
+  ASSERT_EQ( boost::asio::ip::host_name(), result->e(2).s_val());
+  //  cout << "host name is "<< result->e(2).s_val() << endl;
+  cout << "done" << endl;
+}
+
 
 
 TEST(Operator, CSVParseOperator) {
@@ -143,7 +278,7 @@ TEST(Operator, GrepOperator)
 }
 */
 
-TEST(Operator, OperatorChain)
+TEST_F(COperatorTest, OperatorChain)
 {
   boost::regex re1, re2;
   // For convenience, use the same config table for multiple operators
@@ -151,17 +286,24 @@ TEST(Operator, OperatorChain)
 
   // Create a chain of operators that reads lines from a file, filters them, and
   // stores the results
-  FileRead reader;
+  shared_ptr<CFileRead> reader(new CFileRead);
   config["file"] = "src/tests/data/base_operators_data.txt";
-  reader.configure(config);
+  reader->configure(config);
   config.clear();
 
   shared_ptr<StringGrep> grepper1(new StringGrep);
   shared_ptr<StringGrep> grepper2(new StringGrep);
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
-  grepper2->set_dest(rec);
-  grepper1->set_dest(grepper2);
-  reader.set_dest(grepper1);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  
+  shared_ptr<OperatorChain> chain(new OperatorChain);
+  reader->set_node(node.get());
+  reader->add_chain(chain);
+  chain->add_member(reader);
+  chain->add_member(grepper1);
+  chain->add_member(grepper2);
+  chain->add_member(rec);
+
+
   config["pattern"] = "/usr";
   config["id"] = "0";
   re1.assign(config["pattern"]);
@@ -170,11 +312,13 @@ TEST(Operator, OperatorChain)
   config["pattern"] = "^((?!#).)*$";
   re2.assign(config["pattern"]);
   grepper1->configure(config);
-  reader.start();
+  chain->start();
   // Wait for reader to process entire file (alternatively, call stop() after a while)
-  while (reader.isRunning()) {
+  int i = 0;
+  while (reader->isRunning() && i++ < 20) {
     boost::this_thread::sleep(boost::posix_time::milliseconds(200));
   }
+  
 
   ASSERT_GT(rec->tuples.size(), (size_t)4);
   // Each string should match both grep patterns, since they are in series

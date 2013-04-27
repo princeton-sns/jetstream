@@ -8,9 +8,8 @@
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "operator_chain.h"
 #include "dataplaneoperator.h"
-#include "threaded_source.h"
+#include "chain_ops.h"
 #include "queue_congestion_mon.h"
 
 // #include <boost/thread/thread.hpp>
@@ -128,15 +127,14 @@ GENERIC_CLNAME
 /***
  * Operator for periodically emitting a specified number of generic tuples.
  */
-class ContinuousSendK: public ThreadedSource {
+class ContinuousSendK: public TimerSource {
  public:
   ContinuousSendK():num_sent(0) {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
 
  protected:
-  virtual bool emit_1() ;
-  boost::shared_ptr<Tuple> t;
+  virtual int emit_data() ;
   int32_t num_sent;
   u_long k;       // Number of tuples to send
   msec_t period;  // Time to wait before sending next k tuples  
@@ -145,20 +143,23 @@ GENERIC_CLNAME
 };  
 
 
-class SerDeOverhead: public DataPlaneOperator {
+class SerDeOverhead: public CEachOperator {
  public:
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple>& t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config) {
+    return NO_ERR;
+  }
 
 GENERIC_CLNAME
 };  
 
 
-class EchoOperator: public DataPlaneOperator {
+class EchoOperator: public CEachOperator {
  public:
   EchoOperator(): o(&std::cout) {}
 
 
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual ~EchoOperator();
 

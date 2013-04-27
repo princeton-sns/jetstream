@@ -64,23 +64,25 @@ ContinuousSendK::configure (std::map<std::string,std::string> &config) {
   }
   
 //  send_now = config["send_now"].length() > 0;
-  t = boost::shared_ptr<Tuple>(new Tuple);
-  t->set_version(num_sent);
-  t->add_e()->set_s_val("foo");  
+
   
   return NO_ERR;
 }
 
 
-bool
-ContinuousSendK::emit_1() {
+int
+ContinuousSendK::emit_data() {
 //  cout << " continuous-send is sending" << endl;
 
+  boost::shared_ptr<Tuple> t(new Tuple);
+  t->set_version(num_sent);
+  t->add_e()->set_s_val("foo");  
   t->set_version(num_sent++ );
-  emit(t);
-  boost::this_thread::sleep(boost::posix_time::milliseconds(period));
+  vector< shared_ptr<Tuple> > batch ;
+  batch.push_back(t);
+  chain->process(batch);
   
-  return false; //never break out of loop
+  return period; //never break out of loop
 }
 
 
@@ -158,7 +160,7 @@ RateRecordReceiver::operator()() {
 int BUFSZ = 10000;
 char* buf = new char [BUFSZ];
 void
-SerDeOverhead::process(boost::shared_ptr<Tuple> t) {
+SerDeOverhead::process_one(boost::shared_ptr<Tuple> & t) {
   int len = t->ByteSize();
   assert (len < BUFSZ);
 //  char* buf = new char[len];
@@ -166,15 +168,11 @@ SerDeOverhead::process(boost::shared_ptr<Tuple> t) {
   
   boost::shared_ptr<Tuple> t2 = boost::shared_ptr<Tuple>(new Tuple);
   t2->ParseFromArray(buf, len);
-  emit(t2);
 }
 
 void
-EchoOperator::process(boost::shared_ptr<Tuple> t) {
+EchoOperator::process_one(boost::shared_ptr<Tuple>& t) {
   (*o) << id() <<": " <<fmt(*t) << endl;
-
-  if (get_dest() != NULL)
-    emit(t);
 }
 
 
