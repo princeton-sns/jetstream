@@ -75,15 +75,15 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   
     // These are base operators in base_operators
     /*
-  REGISTER_OP(FileRead);
+  REGISTER_OP(FileRead); */
   REGISTER_OP(StringGrep);
-  REGISTER_OP(GenericParse);
+/*  REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
   REGISTER_OP(OrderingOperator);
   REGISTER_OP(SampleOperator);
-  REGISTER_OP(HashSampleOperator);
+  REGISTER_OP(HashSampleOperator); */
   REGISTER_OP(TRoundingOperator);
-  REGISTER_OP(UnixOperator);
+/*  REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator); */
   REGISTER_OP(CSVParse);
   REGISTER_OP(CSVParseStrTk);

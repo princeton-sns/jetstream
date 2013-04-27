@@ -237,7 +237,6 @@ TEST(Operator, CSVParseOperator) {
   }
 }
 
-/* FIXME CHAINS
 TEST(Operator, GrepOperator)
 {
   map<string,string> config;
@@ -248,35 +247,30 @@ TEST(Operator, GrepOperator)
   grepper.configure(config);
 
   {
-    boost::shared_ptr<Tuple> t(new Tuple);
-    t->add_e()->set_s_val("foo");
-    t->add_e()->set_s_val("/usr/bar"); //should match
-    t->set_version(0);
-    grepper.process_one(t);
+    Tuple t;
+    t.add_e()->set_s_val("foo");
+    t.add_e()->set_s_val("/usr/bar"); //should match
+    t.set_version(0);
+    ASSERT_EQ(true, grepper.should_emit(t));
   }
-
-  ASSERT_EQ((size_t)1, rec->tuples.size());
 
   {
-    boost::shared_ptr<Tuple> t(new Tuple);
-    t->add_e()->set_s_val("/user/foo");
-    t->add_e()->set_s_val("/var/bar"); //should NOT match
-    t->set_version(0);
-    grepper->process(t);
+    Tuple t;
+    t.add_e()->set_s_val("/user/foo");
+    t.add_e()->set_s_val("/var/bar"); //should NOT match
+    t.set_version(0);
+    ASSERT_FALSE(grepper.should_emit(t));
   }
-  ASSERT_EQ((size_t)1, rec->tuples.size());
 
   {
-    boost::shared_ptr<Tuple> t(new Tuple);
-    t->add_e()->set_s_val("foo");
-    t->add_e()->set_s_val("/var/usr/bar"); //should match
-    t->set_version(0);
-    grepper->process(t);
+    Tuple t;
+    t.add_e()->set_s_val("foo");
+    t.add_e()->set_s_val("/var/usr/bar"); //should match
+    t.set_version(0);
+    ASSERT_EQ(true, grepper.should_emit(t));
   }
-
-  ASSERT_EQ((size_t)2, rec->tuples.size());
 }
-*/
+
 
 TEST_F(COperatorTest, OperatorChain)
 {
