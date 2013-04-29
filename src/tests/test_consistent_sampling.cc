@@ -22,7 +22,7 @@ using namespace ::std;
 
 const int compID = 4;
 
-
+/*
 TEST(DISABLED_Sampling, TwoLocalChains) {
   const unsigned int CHAINS = 2;
   unsigned int K = 100;
@@ -207,8 +207,7 @@ TEST_F(NodeTwoNodesTest, DISABLED_LocalAndRemoteSampling) {
 
   int SECOND_HALF_WAIT = 5; //seconds
 
-/** Now we're adding a second source, without a bottleneck
-*/
+// Now we're adding a second source, without a bottleneck
   {
     AlterTopo topo;  
 
@@ -237,11 +236,10 @@ TEST_F(NodeTwoNodesTest, DISABLED_LocalAndRemoteSampling) {
   js_usleep(1000 * 1000 * SECOND_HALF_WAIT);
   
   int expected_tuples = SECOND_HALF_WAIT * 1000 * 2 / queueWait + dest_tuples_halfway;
-  /**
-    The rate-limited source [on node0] will send  1000/queueWait tuples per second.
-    The idea of the test is that the non-rate-limited source should be throttled
-    down to the same rate. Hence the definition of expected above.
-  */
+  //
+  //  The rate-limited source [on node0] will send  1000/queueWait tuples per second.
+  //  The idea of the test is that the non-rate-limited source should be throttled
+  //  down to the same rate. Hence the definition of expected above.
   int dest_tuples_end = dest->tuples.size();
   cout << "dest received " << dest_tuples_end << " tuples" <<
     " and expected "<< expected_tuples << endl;
@@ -252,7 +250,10 @@ TEST_F(NodeTwoNodesTest, DISABLED_LocalAndRemoteSampling) {
   cout << "-------------end of test-----------" << endl;
 }
 
+*/
 
+
+/*
 
 TEST(Operator, ControllableConsistSampling) {
   int ROUNDS = 100, T_PER_ROUND = 100;
@@ -298,7 +299,6 @@ TEST(Operator, ControllableConsistSampling) {
   ASSERT_GT(  0.6 * ROUNDS, rounds_with_data);
   ASSERT_LT(  0.4 * ROUNDS, rounds_with_data);
 
-  
-//  cout << fmt(*result) << endl;
-
 }
+
+*/

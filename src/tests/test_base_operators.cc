@@ -326,9 +326,7 @@ TEST_F(COperatorTest, OperatorChain)
 }
 
 TEST(Operator,ParseOperator) {
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
   GenericParse parse;
-  parse.set_dest(rec);
   operator_config_t cfg;
   cfg["pattern"] = "(\\w+) (\\d+)";
   cfg["field_to_parse"] = "1";
@@ -341,15 +339,12 @@ TEST(Operator,ParseOperator) {
   extend_tuple(*t, "foo 7");
   extend_tuple(*t, 1.2);
 
-  parse.process(t);
-  ASSERT_EQ(1, parse.emitted_count());
-  ASSERT_EQ((size_t)1, rec->tuples.size());
-  boost::shared_ptr<Tuple> result = rec->tuples[0];
-  ASSERT_EQ(4, result->e_size());
-  ASSERT_EQ(1, result->e(0).i_val());
-  ASSERT_EQ(string("foo"), result->e(1).s_val());
-  ASSERT_EQ(7, result->e(2).i_val());
-  ASSERT_EQ(1.2, result->e(3).d_val());
+  parse.process_one(t);
+  ASSERT_EQ(4, t->e_size());
+  ASSERT_EQ(1, t->e(0).i_val());
+  ASSERT_EQ(string("foo"), t->e(1).s_val());
+  ASSERT_EQ(7, t->e(2).i_val());
+  ASSERT_EQ(1.2, t->e(3).d_val());
 
   //  cout << "finished valid test; no"
 
@@ -363,8 +358,6 @@ TEST(Operator,ParseOperator) {
   // do almost exactly the first test again, but change "keep_unparsed" to
   // false, with correspondingly different asserts
   GenericParse parse3;
-  shared_ptr<xDummyReceiver> rec3(new xDummyReceiver);
-  parse3.set_dest(rec3);
   cfg["pattern"] = "(\\w+) (\\d+)";
   cfg["field_to_parse"] = "1";
   cfg["keep_unparsed"] = "False";
@@ -376,13 +369,10 @@ TEST(Operator,ParseOperator) {
   extend_tuple(*tt, "foo 7");
   extend_tuple(*tt, 1.2);
 
-  parse3.process(tt);
-  ASSERT_EQ(1, parse3.emitted_count());
-  ASSERT_EQ((size_t)1, rec3->tuples.size());
-  result = rec3->tuples[0];
-  ASSERT_EQ(2, result->e_size());
-  ASSERT_EQ(string("foo"), result->e(0).s_val());
-  ASSERT_EQ(7, result->e(1).i_val());
+  parse3.process_one(tt);
+  ASSERT_EQ(2, tt->e_size());
+  ASSERT_EQ(string("foo"), tt->e(0).s_val());
+  ASSERT_EQ(7, tt->e(1).i_val());
 }
 /* 
 
@@ -427,31 +417,29 @@ TEST(Operator, ExtendOperator) {
 TEST(Operator, SampleOperator) {
 
   SampleOperator op;
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
   operator_config_t cfg;
   cfg["fraction"] = "0.6";
   cfg["seed"] = "4";
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
-  op.set_dest(rec);
 
-  boost::shared_ptr<Tuple> t(new Tuple);
-  extend_tuple(*t, 2);
+  int recv_count = 0;
   for (int i = 0; i < 1000; ++i) {
-    op.process(t);
-    t->mutable_e(0)->set_i_val(i);
+    Tuple t;
+    extend_tuple(t, i);
+    if (op.should_emit(t))
+      recv_count ++;      
   }
-  ASSERT_GT((size_t)420, rec->tuples.size());
-  ASSERT_LT((size_t)380, rec->tuples.size());
+  ASSERT_GT((size_t)420, recv_count);
+  ASSERT_LT((size_t)380, recv_count);
 
-  cout << "done; " << rec->tuples.size() << " tuples received"<<endl;
+  cout << "done; " << recv_count << " tuples received"<<endl;
 }
 
 
 TEST(Operator, HashSampleOperator) {
   int ROUNDS = 100, T_PER_ROUND = 100;
   HashSampleOperator op;
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
   operator_config_t cfg;
   cfg["fraction"] = "0.5";
   cfg["hash_field"] = "0";
@@ -459,22 +447,21 @@ TEST(Operator, HashSampleOperator) {
 
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
-  op.set_dest(rec);
 
   int rounds_with_data = 0;
   for (int i=0; i < ROUNDS; ++i) {
 
-    boost::shared_ptr<Tuple> t(new Tuple);
-    extend_tuple(*t, i);
+    Tuple t;
+    extend_tuple(t, i);
 
-    int processed_before = rec->tuples.size();
+    int emitted_this_round = 0;
     for (int j = 0; j < T_PER_ROUND; ++j) {
-      op.process(t);
+      if(op.should_emit(t))
+        emitted_this_round += 1;
     }
-    int processed_in_round = rec->tuples.size() - processed_before;
-    if (processed_in_round > 0)
+    if (emitted_this_round > 0)
       rounds_with_data ++;
-    ASSERT_EQ(0, processed_in_round % T_PER_ROUND); //all or none
+    ASSERT_EQ(0, emitted_this_round % T_PER_ROUND); //all or none
   }
   cout << "done! " << rounds_with_data << " of " << ROUNDS << "values passed the hash" << endl;
   ASSERT_GT(  0.6 * ROUNDS, rounds_with_data);

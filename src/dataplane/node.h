@@ -6,7 +6,7 @@
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
-#include "dataplaneoperator.h"
+//#include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include "connection.h"
 #include "cube_manager.h"

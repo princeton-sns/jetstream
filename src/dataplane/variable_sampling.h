@@ -6,7 +6,7 @@
 
 namespace jetstream {
 
-
+/*
 class PeriodicCongestionReporter {
 
 private:
@@ -49,7 +49,7 @@ public:
 
 
 };
-
+*/
 class VariableSamplingOperator: public HashSampleOperator {
   private:
 //    PeriodicCongestionReporter reporter;
@@ -64,13 +64,8 @@ class VariableSamplingOperator: public HashSampleOperator {
     
     virtual void start();
   
-    virtual void stop() {
-//      reporter.stop();
-    }
-  
+    virtual void end_of_window( DataplaneMessage & msg);
     //needs to respond to congestion signals
-//    virtual void meta_from_downstream(const DataplaneMessage & msg);
-    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
     virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
       congest_policy = p;
@@ -89,7 +84,7 @@ GENERIC_CLNAME
 
 };
 
-
+/*
 class CongestionController: public DataPlaneOperator {
 
 private:
@@ -150,7 +145,7 @@ public:
 
 GENERIC_CLNAME
 };
-
+*/
 }
 
 #endif /* defined(__JetStream__variable_sampling__) */

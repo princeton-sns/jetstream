@@ -12,7 +12,7 @@ using namespace boost::interprocess::ipcdetail;
 namespace jetstream {
 
 
-
+/*
 void
 PeriodicCongestionReporter::start(boost::shared_ptr<boost::asio::deadline_timer> t) {  
   timer = t;
@@ -43,6 +43,7 @@ PeriodicCongestionReporter::report_congestion() {
   }
   
 }
+*/
 
 operator_err_t
 VariableSamplingOperator::configure(std::map<std::string,std::string> &config) {
@@ -87,31 +88,24 @@ VariableSamplingOperator::meta_from_downstream(const DataplaneMessage & msg) {
 
 */
 
+
 void
-VariableSamplingOperator::meta_from_upstream( const DataplaneMessage & msg,
-                                              const operator_id_t pred) {
-  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+VariableSamplingOperator::end_of_window( DataplaneMessage & msg){
 //    boost::lock_guard<boost::mutex> lock (mutex);
-    int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
-    if (delta != 0) {
-  //    congest_policy->set_effect_delay(id(), msg.window_length_ms() * 2);
-      cur_step += delta;
-      uint32_t thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
-      atomic_write32(&threshold, thresh);
-      LOG(INFO) << "hash-filtering will let through " <<
-         100 * steps[cur_step] << "% of data";
-    }
-    DataplaneMessage new_marker;
-    new_marker.CopyFrom(msg);
-    new_marker.set_filter_level(  steps[cur_step]);    
-    send_meta_downstream(new_marker);
-  } else
-    DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
-  
+  int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+  if (delta != 0) {
+//    congest_policy->set_effect_delay(id(), msg.window_length_ms() * 2);
+    cur_step += delta;
+    uint32_t thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
+    atomic_write32(&threshold, thresh);
+    LOG(INFO) << "hash-filtering will let through " <<
+       100 * steps[cur_step] << "% of data";
+  }
+  msg.set_filter_level(  steps[cur_step]);
   
 }
 
-
+/*
 
 void
 CongestionController::remove_pred (operator_id_t d) {
@@ -242,9 +236,9 @@ CongestionController::long_description() {
   o << "selectivity = " << targetSampleRate;
   return o.str();
 }
-
+*/
 
 const string VariableSamplingOperator::my_type_name("Variable sampling operator");
-const string CongestionController::my_type_name("Congestion controller");
+//const string CongestionController::my_type_name("Congestion controller");
 
 }

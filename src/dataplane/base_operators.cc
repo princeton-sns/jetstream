@@ -410,7 +410,7 @@ void parse_with_types(Element * e, const string& s, char typecode) {
 }
 
 void
-GenericParse::process(const boost::shared_ptr<Tuple> t) {
+GenericParse::process_one(boost::shared_ptr<Tuple>& t) {
   shared_ptr<Tuple> t2(new Tuple);
 
   if (keep_unparsed) {
@@ -461,15 +461,13 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
       e->CopyFrom(t->e(i));
     }
 
-  emit (t2);
+  t = t2;
 }
 
-void
-SampleOperator::process (boost::shared_ptr<Tuple> t) {
+bool
+SampleOperator::should_emit (const Tuple& t) {
   uint32_t v = gen();
-  if (v >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
-    emit(t);
-  }
+  return (v >= boost::interprocess::ipcdetail::atomic_read32(&threshold));
 }
 
 operator_err_t
@@ -485,16 +483,11 @@ SampleOperator::configure (std::map<std::string,std::string> &config) {
 
 
 
-void
-HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
-  if(debug_stage < 2)
-  { 
-    emit(t);
-    return;
-  }
+bool
+HashSampleOperator::should_emit (const Tuple& t) {
 
   uint32_t hashval = 0;
-  const Element& e = t->e(hash_field);
+  const Element& e = t.e(hash_field);
   switch(hash_type) {
     case 'I': {
       int val = e.i_val();
@@ -523,9 +516,7 @@ HashSampleOperator::process (boost::shared_ptr<Tuple> t) {
     default:
       LOG(FATAL) << "must specify hash field type; was " << hash_type;
   }
-  if (hashval >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
-    emit(t);
-  }
+  return (hashval >= boost::interprocess::ipcdetail::atomic_read32(&threshold));
 
 }
 
@@ -540,9 +531,9 @@ HashSampleOperator::configure (std::map<std::string,std::string> &config) {
     return operator_err_t("hash_field must be an int");
   }
 
-  if((config["debug_stage"].length() > 0) && !(stringstream(config["debug_stage"]) >> debug_stage)) {
-    return operator_err_t("debug_stage must be an int");
-  }
+//  if((config["debug_stage"].length() > 0) && !(stringstream(config["debug_stage"]) >> debug_stage)) {
+//    return operator_err_t("debug_stage must be an int");
+//  }
 
   if(config["hash_type"].length() < 1) {
     return operator_err_t("hash_type must be defined");
@@ -673,6 +664,8 @@ UnixOperator::emit_1() {
   return true; //we're done if we failed to read.
 }*/
 
+
+/*
 operator_err_t
 TimestampOperator::configure (std::map<std::string,std::string> &config) {
   if("s" == config["type"])
@@ -703,7 +696,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
   }
   emit(t);
 }
-
+*/
 
 
 void
@@ -764,14 +757,13 @@ IEqualityFilter::configure (std::map<std::string,std::string> &config) {
 
 
 
-void
-RatioFilter::process (boost::shared_ptr<Tuple> t) {
-  double denom = jetstream::numeric(*t, denom_field_id);
-  double numer = jetstream::numeric(*t, numer_field_id);
+bool
+RatioFilter::should_emit (const Tuple& t) {
+  double denom = jetstream::numeric(t, denom_field_id);
+  double numer = jetstream::numeric(t, numer_field_id);
   
 //  cout << "ratio was " << (numer/denom) << endl;
-  if ( denom == 0 ||  numer / denom > bound)
-    emit(t);
+  return ( denom == 0 ||  numer / denom > bound);
 }
 
 operator_err_t
@@ -804,25 +796,29 @@ WindowLenFilter::configure (std::map<std::string,std::string> &config) {
 }
 
 
-void
-WindowLenFilter::process (boost::shared_ptr<Tuple> t) {
-   boost::lock_guard<boost::mutex> lock (mutex);
-
-  if ( k_in_win++ < bound) {
-    emit(t);
-  } else {
-    if ( (err_field > -1) && (err_bound_lev == 0) ) {
-      err_bound_lev = jetstream::numeric(*t, err_field);
-      LOG(INFO) << "------- Local cutoff: "<<err_bound_lev << "-------";
-    }
-  }
-}
-
 static const int LEVELS = 20;
 
 void
-WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
-  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+WindowLenFilter::process (OperatorChain * chain,
+                          std::vector<boost::shared_ptr<Tuple> > & tuples,
+                          DataplaneMessage& window_marker) {
+  boost::lock_guard<boost::mutex> lock (mutex);
+
+  if ( k_in_win + tuples.size() > bound ) { //won't pass all tuples
+    unsigned tuples_to_pass = bound - k_in_win;
+    
+    if ( (err_field > -1) && (err_bound_lev == 0) ) {
+      err_bound_lev = jetstream::numeric(*tuples[tuples_to_pass], err_field);
+      LOG(INFO) << "------- Local cutoff: "<<err_bound_lev << "-------";
+    }
+    
+    tuples.resize(tuples_to_pass);  
+  }
+  k_in_win += tuples.size();
+  
+
+  
+  if ( window_marker.type() == DataplaneMessage::END_OF_WINDOW) {
     boost::lock_guard<boost::mutex> lock (mutex);
     vector<double> ratios;
     vector<unsigned> bounds;
@@ -846,15 +842,11 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
     LOG_IF(INFO,delta != 0) << "Changing local thresh. New thresh is " << bound
      << " and last-window had " << k_in_win;
     LOG(INFO) << "thresholding error is " << err_bound_lev;
-    DataplaneMessage newmsg;
-    newmsg.CopyFrom(msg);
-    newmsg.set_tput_r2_threshold(err_bound_lev);
-    send_meta_downstream(newmsg);
+    window_marker.set_tput_r2_threshold(err_bound_lev);
     k_in_win = 0;
     err_bound_lev = 0;
-
-  } else
-    DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
+  }
+  
 }
 
 
@@ -866,8 +858,8 @@ const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string CExtendOperator::my_type_name("Extend operator");
-const string TimestampOperator::my_type_name("Timestamp operator");
-const string OrderingOperator::my_type_name("Ordering operator");
+//const string TimestampOperator::my_type_name("Timestamp operator");
+//const string OrderingOperator::my_type_name("Ordering operator");
 
 const string SampleOperator::my_type_name("Sample operator");
 const string HashSampleOperator::my_type_name("Hash-sample operator");

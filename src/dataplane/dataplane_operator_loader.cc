@@ -79,9 +79,9 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(StringGrep);
 /*  REGISTER_OP(GenericParse);
   REGISTER_OP(ExtendOperator);
-  REGISTER_OP(OrderingOperator);
+  REGISTER_OP(OrderingOperator);  */
   REGISTER_OP(SampleOperator);
-  REGISTER_OP(HashSampleOperator); */
+  REGISTER_OP(HashSampleOperator);
   REGISTER_OP(TRoundingOperator);
 /*  REGISTER_OP(UnixOperator);
   REGISTER_OP(TimestampOperator); */
@@ -90,9 +90,9 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
   REGISTER_OP(IEqualityFilter);
-  /*  REGISTER_OP(RatioFilter);
+  /*  REGISTER_OP(RatioFilter);  */
   REGISTER_OP(WindowLenFilter);
-*/
+
   //operators on quantiles
   REGISTER_OP(QuantileOperator);
   REGISTER_OP(ToSummary);

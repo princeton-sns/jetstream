@@ -10,7 +10,6 @@
 
 
 #include "connection.h"
-#include "dataplaneoperator.h"
 #include "node_config.h"
 #include "queue_congestion_mon.h"
 #include "window_congest_mon.h"

@@ -1,8 +1,6 @@
 #ifndef JetStream_operators_h
 #define JetStream_operators_h
 
-#include "dataplaneoperator.h"
-//#include "threaded_source.h"
 #include "operator_chain.h"
 #include "chain_ops.h"
 
@@ -95,11 +93,11 @@ class StringGrep: public CFilterOperator {
  * Behavior is un-specified if the regex doesn't match.
  * NOTE THAT FIELDS ARE NUMBERED FROM ZERO
  */
-class GenericParse: public DataPlaneOperator {
+class GenericParse: public CEachOperator {
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual void process_one(boost::shared_ptr<Tuple>& t);
 
  protected:
   boost::regex re; // regexp pattern to match tuples against
@@ -144,7 +142,7 @@ class CExtendOperator: public COperator {
   
 GENERIC_CLNAME
 };
-
+/*
 
 class TimestampOperator: public DataPlaneOperator {
  public:
@@ -175,18 +173,18 @@ class OrderingOperator: public DataPlaneOperator {
   }
 
 GENERIC_CLNAME
-};
+};*/
 
 /***
  * Given a data stream, allows some fraction of data through.
  * Config options: seed [an int] and fraction [ a float], representing the fraction
  * to drop.  (So fraction == 0 means 'allow all')
  */
-class SampleOperator: public DataPlaneOperator {
+class SampleOperator: public CFilterOperator {
  public:
   boost::random::mt19937 gen;
   uint32_t threshold; //drop tuples if rand >= threshhold. So thresh = 0 means pass all
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 
   
@@ -202,22 +200,20 @@ GENERIC_CLNAME
  * Config options: seed [an int] and fraction [ a float], representing the fraction
  * to drop.  (So fraction == 0 means 'allow all')
  */
-class HashSampleOperator: public DataPlaneOperator {
+class HashSampleOperator: public CFilterOperator {
  public:
 //  boost::random::mt19937 gen;
   uint32_t threshold; //drop tuples if rand >= threshhold. So thresh = 0 means pass all
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
-
   
-  HashSampleOperator(): hash_field(0), hash_type(' '), debug_stage(100) {}
+  HashSampleOperator(): hash_field(0), hash_type(' ') {}
   
   virtual ~HashSampleOperator() {}
   
  private:
   int hash_field;
   char hash_type;
-  unsigned int debug_stage;
 
 GENERIC_CLNAME
 };
@@ -298,10 +294,10 @@ private:
 GENERIC_CLNAME
 };
 
-class RatioFilter: public DataPlaneOperator {
+class RatioFilter: public CFilterOperator {
 
 public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
 private:
   unsigned numer_field_id;
@@ -312,12 +308,13 @@ GENERIC_CLNAME
 };
 
 
-class WindowLenFilter: public DataPlaneOperator {
+class WindowLenFilter: public COperator {
 
 public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+//  virtual bool should_emit (const Tuple& t);
+  virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
-  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+//  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
     congest_policy = p;

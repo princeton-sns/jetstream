@@ -56,6 +56,7 @@ public:
                        DataplaneMessage&);
   
   virtual void process_one(boost::shared_ptr<Tuple> & t)  = 0;
+  
 
 };
 
@@ -67,6 +68,8 @@ public:
                        DataplaneMessage&);
   
   virtual bool should_emit(const Tuple& t)  = 0;
+
+  virtual void end_of_window( DataplaneMessage & msg) {};
 
 };
 

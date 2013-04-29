@@ -81,13 +81,18 @@ CEachOperator::process ( OperatorChain * c,
 void
 CFilterOperator::process(OperatorChain * chain,
                        std::vector<boost::shared_ptr<Tuple> > & tuples,
-                       DataplaneMessage&) {
+                       DataplaneMessage& msg) {
   unsigned out_idx = 0;
   for(unsigned i = 0; i < tuples.size(); ++i) {
     if (should_emit(*tuples[i])) {
       tuples[out_idx++] = tuples[i];
     }
   }
+  
+  if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
+    end_of_window(msg);
+  }
+  
   tuples.resize(out_idx);
 }
   

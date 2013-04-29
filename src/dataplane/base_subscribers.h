@@ -8,7 +8,6 @@
 
 
 #include "subscriber.h"
-#include "dataplaneoperator.h"
 #include "cube.h"
 
 #include "jetstream_types.pb.h"
