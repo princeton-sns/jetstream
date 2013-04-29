@@ -1,18 +1,14 @@
 #ifndef JetStream_topk_source_h
 #define JetStream_topk_source_h
 
-//#include "dataplaneoperator.h"
 #include "chain_ops.h"
-#include "experiment_operators.h"
 
 #include <string>
 #include <iostream>
-// #include <boost/thread/thread.hpp>
-#include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/shared_ptr.hpp>
-#include <glog/logging.h>
-#include "threaded_source.h"
+#include <queue>
+
 
 namespace jetstream {
 

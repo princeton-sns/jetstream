@@ -29,7 +29,7 @@ class DummyReceiver: public COperator {
   virtual operator_err_t configure (std::map<std::string, std::string> & config){
     if (config["no_store"].length() > 0)
       store=false;
-    return C_NO_ERR;
+    return NO_ERR;
   }
 
 //  virtual void process_delta (OperatorChain * chain, Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);

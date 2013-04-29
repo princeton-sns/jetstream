@@ -45,8 +45,7 @@ class QueueSubscriber: public Subscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
   virtual operator_err_t configure(std::map<std::string,std::string> &config)
-    {return C_NO_ERR;}
-
+    {return NO_ERR;}
 
 };
 

@@ -4,6 +4,8 @@
 #include "js_counting_executor.h"
 #include "jetstream_types.pb.h"
 #include "operator_chain.h"
+#include "chain_ops.h"
+
 
 namespace jetstream {
 

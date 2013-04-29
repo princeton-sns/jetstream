@@ -8,9 +8,11 @@
 
 #include <glog/logging.h>
 #include "operator_chain.h"
+#include "chain_ops.h"
 #include "js_utils.h"
 
 using namespace ::std;
+using namespace boost;
 
 namespace jetstream {
 
@@ -90,6 +92,16 @@ OperatorChain::do_stop(close_cb_t cb) {
 }
 
 
+void
+OperatorChain::unregister() {
+
+  shared_ptr<ChainMember> src = ops[0];
+  shared_ptr<COperator> src_op = dynamic_pointer_cast<COperator>(src);
+  if( src_op) {
+    src_op->unregister();
+  }
+}
+
 
 void
 OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, DataplaneMessage& maybe_meta) {
@@ -106,5 +118,7 @@ OperatorChain::clone_from(boost::shared_ptr<OperatorChain> source) {
     ops.push_back(source->ops[i]);
   }
 }
+
+
 
 }

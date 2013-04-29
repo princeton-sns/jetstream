@@ -1,11 +1,13 @@
 
+#include "chain_ops.h"
 #include "rand_source.h"
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
-#include <glog/logging.h>
 #include <time.h>
 #include <fstream>
+#include <glog/logging.h>
+
 #include "quantile_est.h"
 
 using namespace ::std;

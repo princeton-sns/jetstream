@@ -13,8 +13,6 @@ namespace jetstream {
 //class CSrcOperator;
 class OperatorChain;
 class Node;
-typedef std::string operator_err_t;
-const operator_err_t C_NO_ERR = "";
 typedef boost::function<void ()> close_cb_t;
 
 
@@ -36,54 +34,6 @@ class ChainMember {
   
 };
 
-
-
-class COperator: virtual public ChainMember {
-
- public:
-  virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
-  virtual ~COperator() {}
-  virtual operator_err_t configure(std::map<std::string,std::string> &config) = 0;
-  virtual void start() {}
-//  virtual void stop() {} //called only on strand
-  virtual bool is_source() {return false;}
-
-  operator_id_t & id() {return operID;}
-  virtual std::string id_as_str() { return operID.to_string(); }
-  virtual const std::string& typename_as_str() = 0; //return a name for the type  
-  virtual std::string long_description() {return "";}
-
-
-  void set_node (Node * n) { node = n; }
-
- protected:
-    operator_id_t operID; // note that id() returns a reference, letting us set this
-    Node * node;   
-};
-
-
-
-class CEachOperator: public COperator {
-
-public:
-  virtual void process(OperatorChain * chain,
-                       std::vector<boost::shared_ptr<Tuple> > &,
-                       DataplaneMessage&);
-  
-  virtual void process_one(boost::shared_ptr<Tuple> & t)  = 0;
-
-};
-
-class CFilterOperator: public COperator {
-
-public:
-  virtual void process(OperatorChain * chain,
-                       std::vector<boost::shared_ptr<Tuple> > &,
-                       DataplaneMessage&);
-  
-  virtual bool should_emit(const Tuple& t)  = 0;
-
-};
 
 class OperatorChain {
 
@@ -120,6 +70,8 @@ public:
   void stop();
   void stop_async(close_cb_t cb);
   void do_stop(close_cb_t);
+
+  void unregister();
 
   const std::string& chain_name();  
   

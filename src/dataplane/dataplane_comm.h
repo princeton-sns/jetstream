@@ -55,6 +55,7 @@ class RemoteDestAdaptor : public ChainMember {
   boost::mutex mutex;
   volatile bool chainIsReady;
   volatile size_t this_buf_size;
+  volatile bool is_stopping;
 //  bool stopping;
   std::string dest_as_str;  //either operator ID or cube
   std::string remoteAddr;
@@ -62,6 +63,8 @@ class RemoteDestAdaptor : public ChainMember {
   DataplaneMessage out_buffer_msg;
   boost::asio::deadline_timer timer;
   BWReporter reporter;
+  std::vector<boost::shared_ptr<OperatorChain> > chains;
+  
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
@@ -90,7 +93,7 @@ class RemoteDestAdaptor : public ChainMember {
     LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
  }
 
-  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
+//  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
   virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
   virtual bool is_source() {return false;}
@@ -100,6 +103,11 @@ class RemoteDestAdaptor : public ChainMember {
 
   virtual void meta_from_upstream(const DataplaneMessage & msg);
 
+  virtual void add_chain(boost::shared_ptr<OperatorChain> c) {
+    chains.push_back(c);
+  }
+  
+  void connection_broken(); //called on a broken connection; does teardown.
   
   virtual const std::string& typename_as_str() {return generic_name;};
   virtual std::string long_description();

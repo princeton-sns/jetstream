@@ -96,7 +96,7 @@ CFileRead::configure(map<string,string> &config) {
   // values?
   istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
 
-  return C_NO_ERR;
+  return NO_ERR;
 }
 
 void

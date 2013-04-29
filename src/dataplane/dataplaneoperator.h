@@ -75,10 +75,13 @@ protected:
 
 };
 
+#ifndef OP_TYPES
+#define OP_TYPES
 typedef std::map<std::string,std::string> operator_config_t;
 
 typedef std::string operator_err_t;
 const operator_err_t NO_ERR = "";
+#endif
 
 class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSender {
   friend class OperatorCleanup;

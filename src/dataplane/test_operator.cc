@@ -1,4 +1,4 @@
-#include "operator_chain.h"
+#include "chain_ops.h"
 #include <iostream>
 
 #include <gtest/gtest.h>
@@ -18,7 +18,7 @@ static std::string tname("Test operator");
 class TestOperator: public jetstream::COperator {
 
  public:
-  virtual operator_err_t configure(std::map<std::string, std::string> &) {return C_NO_ERR;}
+  virtual operator_err_t configure(std::map<std::string, std::string> &) {return NO_ERR;}
   
   virtual void start() {
     cout << "test operator started" << endl;

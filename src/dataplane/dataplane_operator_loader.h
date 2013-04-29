@@ -7,8 +7,9 @@
 #include <string>
 
 #include "js_utils.h"
-#include "dataplaneoperator.h"
 #include "operator_chain.h"
+#include "chain_ops.h"
+
 #include "jetstream_types.pb.h"
 
 namespace jetstream {

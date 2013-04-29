@@ -3,6 +3,7 @@
 
 
 #include "operator_chain.h"
+#include "chain_ops.h"
 #include "congest_policy.h"
 #include <vector>
 

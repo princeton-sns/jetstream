@@ -52,7 +52,7 @@ operator_err_t QuantileOperator::configure(std::map<std::string,std::string> &co
 
   if( !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  return C_NO_ERR;
+  return NO_ERR;
 }
 
 
@@ -87,7 +87,7 @@ operator_err_t
 SummaryToCount::configure(std::map<std::string,std::string> &config) {
   if(config["field"].length() == 0 || !(istringstream(config["field"]) >> field))
     return operator_err_t("must specify a field; got " + config["field"]);
-  return C_NO_ERR;
+  return NO_ERR;
 }
 
 
@@ -120,7 +120,7 @@ operator_err_t ToSummary::configure(std::map<std::string,std::string> &config) {
   if( !(istringstream(config["size"]) >> s_size))
     return operator_err_t("must specify a summary size; got " + config["size"]);
 
-  return C_NO_ERR;
+  return NO_ERR;
 }
 
 
@@ -175,7 +175,7 @@ DegradeSummary::configure(std::map<std::string,std::string> &config) {
   steps.push_back(1.0);
   cur_step = step_count -1;
 //  cout << "steps:" << steps[0] << "," << steps[1] << "..." << steps[8]<< "," << steps[9] << endl;
-  return C_NO_ERR;
+  return NO_ERR;
 }
 
 

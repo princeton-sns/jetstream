@@ -291,7 +291,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       boost::asio::io_service & io,
                                       const Edge &e,
                                       msec_t wait)
-  : mgr(dcm), chainIsReady(false), this_buf_size(0),
+  : mgr(dcm), chainIsReady(false), this_buf_size(0), is_stopping(false), 
     timer(io), wait_for_conn(wait) {
   remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
@@ -425,39 +425,6 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
 
 }
 
-  
-void
-RemoteDestAdaptor::process (boost::shared_ptr<Tuple> t, const operator_id_t src) {
-  if (!wait_for_chain_ready()) {
-    LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
-		 << ". Aborting data message send. Should queue/retry instead?";
-    return;
-  }
-
-  {
-    size_t sz = t->ByteSize();
-    reporter.sending_a_tuple(sz);
-    remote_processing->report_insert(0, sz);
-
-    unique_lock<boost::mutex> lock(mutex); //lock around buffers
-    out_buffer_msg.set_type(DataplaneMessage::DATA);
-    
-    bool buffer_was_empty = (this_buf_size == 0);
-    this_buf_size += sz;
-    out_buffer_msg.add_data()->MergeFrom(*t);
-    
-    
-    if (this_buf_size < SIZE_TO_SEND) {
-      if (buffer_was_empty) {
-        timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
-        timer.async_wait(boost::bind(&RemoteDestAdaptor::force_send, this));
-      }
-      return;
-    } else
-      do_send_unlocked();
-  }
-}
-
 
 void
 RemoteDestAdaptor::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
@@ -497,6 +464,9 @@ void
 RemoteDestAdaptor::process ( OperatorChain * chain,
                              std::vector<boost::shared_ptr<Tuple> > & tuples,
                              DataplaneMessage& msg) {
+  
+  if (is_stopping)
+    return;
   if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to " << dest_as_str
 		 << ". Aborting data message send. Should queue/retry instead?";
@@ -556,12 +526,23 @@ RemoteDestAdaptor::do_send_unlocked() {
   if (err != 0) {
     //send failed
     LOG(WARNING) << "Send failed; tearing down chain"; //; local end is " << pred->id_as_str();
+    connection_broken();
 //    pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   }
   
 }
 
+void
+RemoteDestAdaptor::connection_broken () {
+  is_stopping = true;
+  for(int i = 0; i < chains.size(); ++i) {
+    chains[i]->stop();
+    chains[i]->unregister();
+  }
+  chains.clear();
+  mgr.cleanup(dest_as_str);
+}
 
 void
 RemoteDestAdaptor::no_more_tuples () {

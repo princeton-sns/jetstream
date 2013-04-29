@@ -9,6 +9,12 @@ using namespace boost;
 namespace jetstream {
 
 
+void
+COperator::unregister() {
+  if (node)
+    node->unregister_operator(id());
+}
+
 
 void
 TimerSource::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > & d, DataplaneMessage&) {
@@ -122,6 +128,8 @@ SendK::emit_data() {
 //  cout << "sendk. N=" << n<< " and k = " << k<<endl;
   return (++n < k) ? 0 : -1;
 }
+
+
 
 const string SendK::my_type_name("SendK operator");
 
