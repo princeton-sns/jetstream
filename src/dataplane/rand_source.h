@@ -1,7 +1,8 @@
 #ifndef JetStream_topk_source_h
 #define JetStream_topk_source_h
 
-#include "dataplaneoperator.h"
+//#include "dataplaneoperator.h"
+#include "chain_ops.h"
 #include "experiment_operators.h"
 
 #include <string>
@@ -19,7 +20,7 @@ extern double s_rand_data[];
 extern std::string s_rand_labels[];
 //extern int s_rand_data_len;
 
-class RandSourceOperator: public ThreadedSource {
+class RandSourceOperator: public TimerSource {
  private:
   const static int DEFAULT_BATCH_SIZE = 500;
   int BATCH_SIZE;
@@ -40,7 +41,7 @@ class RandSourceOperator: public ThreadedSource {
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   RandSourceOperator(): next_version_number(0) {}
 
-  virtual bool emit_1();
+  virtual int emit_data();
 
  protected:
 
@@ -55,9 +56,9 @@ GENERIC_CLNAME
 /**
   Inputs should be "(string, time range, count)" with optional other fields after, not examined
 */
-class RandEvalOperator: public DataPlaneOperator {
+class RandEvalOperator: public CEachOperator {
  public:
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
   double cur_deviation() {return max_rel_deviation;} // a number between 0 and 1; 0 represents the biggest distortion, 1 means no distortion
   long data_in_last_window() {return total_last_window;}
 
@@ -88,7 +89,7 @@ size_t fillin_s(std::vector<double>&, std::vector<std::string>&);
 size_t fillin_zipf(std::vector<double>&, std::vector<std::string>&, int len);
 
 
-class RandHistOperator: public ThreadedSource {
+class RandHistOperator: public TimerSource {
  private:
 //  const static int DEFAULT_BATCH_SIZE = 50;
 //  int BATCH_SIZE;
@@ -101,7 +102,7 @@ class RandHistOperator: public ThreadedSource {
   int hist_size;
   unsigned tuples_per_sec;
   unsigned wait_per_batch;
-  unsigned window;
+  unsigned batch;
   unsigned batches_per_window;
   int next_version_number;
 
@@ -119,13 +120,13 @@ class RandHistOperator: public ThreadedSource {
 
  public:
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  RandHistOperator(): hist_size(200), wait_per_batch(1000),window(0), batches_per_window(1),
+  RandHistOperator(): hist_size(200), wait_per_batch(1000),batch(0), batches_per_window(1),
     next_version_number(0), last_schedule_update(0), window_fudge_factor(0) {}
 
   void generate();
   virtual void start();
 
-  virtual bool emit_1();
+  virtual int emit_data();
   
   void adapt();
 

@@ -28,8 +28,63 @@ using namespace boost;
 namespace jetstream {
 
 
+
+const int LINES_PER_EMIT = 20;
+
+int
+CFileRead::emit_data() {
+
+  if (!in_file.is_open()) {
+    in_file.open (f_name.c_str());
+    if (in_file.fail()) {
+      LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
+      return -1; //stop
+    }
+  }
+  
+  vector<shared_ptr<Tuple> > tuples;
+  tuples.reserve(LINES_PER_EMIT);
+  DataplaneMessage no_meta;
+//  LOG(INFO) << "starting loop, " << tuples.size() << " tuples";
+  
+  for (int i = 0; i < LINES_PER_EMIT; ++i) {
+    // ios::good checks for failures in addition to eof
+    if (!in_file.good()) {
+      cout << "hit eof, stopping" << endl;
+      break;
+    }
+    string line;
+
+    getline(in_file, line);
+    if (skip_empty && line.length() == 0) {
+      continue;
+    }
+    shared_ptr<Tuple> t( new Tuple);
+    Element * e = t->add_e();
+    e->set_s_val(line);
+    t->set_version(lineno++);
+    tuples.push_back(t);
+  }
+
+
+  LOG(INFO) << "Calling chain::process, " << tuples.size() << " tuples";
+  chain->process(tuples, no_meta);
+  LOG(INFO) << "Returned from chain::process";
+  
+  return in_file.good() ? 1000 : -1;
+}
+
+
+std::string
+CFileRead::long_description() {
+  std::ostringstream buf;
+  buf << "reading" << f_name;
+  return buf.str();
+}
+
+
 operator_err_t
-FileRead::configure(map<string,string> &config) {
+CFileRead::configure(map<string,string> &config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
     LOG(WARNING) << "no file to read, bailing" << endl;
@@ -41,53 +96,67 @@ FileRead::configure(map<string,string> &config) {
   // values?
   istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
 
-  return NO_ERR;
+  return C_NO_ERR;
 }
 
 void
-FileRead::process(boost::shared_ptr<Tuple> t) {
-  LOG(WARNING) << "Should not send data to a FileRead";
-}
-
-const int LINES_PER_EMIT = 20;
-bool
-FileRead::emit_1() {
-
-  if (!in_file.is_open()) {
-    in_file.open (f_name.c_str());
-    if (in_file.fail()) {
-      LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
-      return true; //stop
-    }
+CExtendOperator::mutate_tuple (Tuple& t) {
+  for (u_int i = 0; i < new_data.size(); ++i) {
+    Element * e = t.add_e();
+    e->CopyFrom(new_data[i]);
   }
-  
-  for (int i = 0; i < LINES_PER_EMIT; ++i) {
-    // ios::good checks for failures in addition to eof
-    if (!in_file.good()) {
-      cout << "hit eof, stopping" << endl;
-      return true;
-    }
-    string line;
+}
 
-    getline(in_file, line);
-    if (skip_empty && line.length() == 0) {
-        return false;
-    }
-    shared_ptr<Tuple> t( new Tuple);
-    Element * e = t->add_e();
-    e->set_s_val(line);
-    t->set_version(lineno++);
-    emit(t);
+/*
+void
+CExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+  mutate_tuple(oldV);
+  mutate_tuple(*newV);
+  emit(oldV, newV);
+} */
+
+
+operator_err_t
+CExtendOperator::configure (std::map<std::string,std::string> &config) {
+
+  string field_types = boost::to_upper_copy(config["types"]);
+  static boost::regex re("[SDI]+");
+
+  if (!regex_match(field_types, re)) {
+    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
+    return operator_err_t("Invalid types for regex fields; got " + field_types);
+    //should return failure here?
   }
-  return false;
+
+  string first_key = "0";
+  string last_key = ":";
+  map<string, string>::iterator it = config.find(first_key);
+  map<string, string>::iterator end = config.upper_bound(last_key);
+
+  u_int i;
+  for (i = 0;  i < field_types.size() && it != end; ++i, ++it) {
+    string s = it->second;
+    Element e;
+    if (s == "${HOSTNAME}") {
+      assert(field_types[i] == 'S');
+      e.set_s_val( boost::asio::ip::host_name());
+    }
+    else {
+      parse_with_types(&e, s, field_types[i]);
+    }
+    new_data.push_back(e);
+  }
+  if (i < field_types.size()) {
+    LOG(WARNING) << "too many type specifiers for operator";
+    return operator_err_t("too many type specifiers for operator");
+  }
+  if ( it != end ) {
+    LOG(WARNING) << "not enough type specifiers for operator";
+    return operator_err_t("not enough type specifiers for operator");
+  }
+  return NO_ERR;
 }
 
-std::string
-FileRead::long_description() {
-  std::ostringstream buf;
-  buf << "reading" << f_name;
-  return buf.str();
-}
 
 operator_err_t
 CSVParse::configure(map<string,string> &config) {
@@ -396,64 +465,6 @@ GenericParse::process(const boost::shared_ptr<Tuple> t) {
 }
 
 void
-ExtendOperator::mutate_tuple (Tuple& t) {
-  for (u_int i = 0; i < new_data.size(); ++i) {
-    Element * e = t.add_e();
-    e->CopyFrom(new_data[i]);
-  }
-}
-
-void
-ExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
-  mutate_tuple(oldV);
-  mutate_tuple(*newV);
-  emit(oldV, newV);
-}
-
-
-operator_err_t
-ExtendOperator::configure (std::map<std::string,std::string> &config) {
-
-  string field_types = boost::to_upper_copy(config["types"]);
-  static boost::regex re("[SDI]+");
-
-  if (!regex_match(field_types, re)) {
-    LOG(WARNING) << "Invalid types for regex fields; got " << field_types;
-    return operator_err_t("Invalid types for regex fields; got " + field_types);
-    //should return failure here?
-  }
-
-  string first_key = "0";
-  string last_key = ":";
-  map<string, string>::iterator it = config.find(first_key);
-  map<string, string>::iterator end = config.upper_bound(last_key);
-
-  u_int i;
-  for (i = 0;  i < field_types.size() && it != end; ++i, ++it) {
-    string s = it->second;
-    Element e;
-    if (s == "${HOSTNAME}") {
-      assert(field_types[i] == 'S');
-      e.set_s_val( boost::asio::ip::host_name());
-    }
-    else {
-      parse_with_types(&e, s, field_types[i]);
-    }
-    new_data.push_back(e);
-  }
-  if (i < field_types.size()) {
-    LOG(WARNING) << "too many type specifiers for operator";
-    return operator_err_t("too many type specifiers for operator");
-  }
-  if ( it != end ) {
-    LOG(WARNING) << "not enough type specifiers for operator";
-    return operator_err_t("not enough type specifiers for operator");
-  }
-  return NO_ERR;
-}
-
-
-void
 SampleOperator::process (boost::shared_ptr<Tuple> t) {
   uint32_t v = gen();
   if (v >= boost::interprocess::ipcdetail::atomic_read32(&threshold)) {
@@ -596,7 +607,7 @@ TRoundingOperator::configure (std::map<std::string,std::string> &config) {
 
   return NO_ERR;
 }
-
+/*
 
 operator_err_t
 UnixOperator::configure (std::map<std::string,std::string> &config) {
@@ -660,7 +671,7 @@ UnixOperator::emit_1() {
     }
   }
   return true; //we're done if we failed to read.
-}
+}*/
 
 operator_err_t
 TimestampOperator::configure (std::map<std::string,std::string> &config) {
@@ -848,19 +859,20 @@ WindowLenFilter::meta_from_upstream(const DataplaneMessage & msg, const operator
 
 
 
-const string FileRead::my_type_name("FileRead operator");
+
+const string CFileRead::my_type_name("CFileRead operator");
 const string CSVParse::my_type_name("CSVParse operator");
 const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
-const string ExtendOperator::my_type_name("Extend operator");
+const string CExtendOperator::my_type_name("Extend operator");
 const string TimestampOperator::my_type_name("Timestamp operator");
 const string OrderingOperator::my_type_name("Ordering operator");
 
 const string SampleOperator::my_type_name("Sample operator");
 const string HashSampleOperator::my_type_name("Hash-sample operator");
 const string TRoundingOperator::my_type_name("Time rounding");
-const string UnixOperator::my_type_name("Unix command");
+//const string UnixOperator::my_type_name("Unix command");
 const string URLToDomain::my_type_name("URL to Domain");
 const string GreaterThan::my_type_name("Numeric Filter");
 const string IEqualityFilter::my_type_name("Numeric Equality");

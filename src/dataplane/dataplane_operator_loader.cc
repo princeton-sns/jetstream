@@ -106,10 +106,10 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 //  REGISTER_OP(RateRecordReceiver);
   REGISTER_OP(SerDeOverhead);
   REGISTER_OP(EchoOperator);
-/*  REGISTER_OP(RandSourceOperator);
+  REGISTER_OP(RandSourceOperator);
   REGISTER_OP(RandEvalOperator);
   REGISTER_OP(RandHistOperator);
-  REGISTER_OP(MockCongestion);
+/*  REGISTER_OP(MockCongestion);
   REGISTER_OP(FixedRateQueue);*/
   REGISTER_OP(ExperimentTimeRewrite);
 /*  REGISTER_OP(CountLogger);

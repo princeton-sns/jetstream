@@ -2,8 +2,9 @@
 #define JetStream_operators_h
 
 #include "dataplaneoperator.h"
-#include "threaded_source.h"
+//#include "threaded_source.h"
 #include "operator_chain.h"
+#include "chain_ops.h"
 
 #include <string>
 #include <iostream>
@@ -16,19 +17,12 @@
 
 namespace jetstream {
   
-/***
- * Operator for reading lines from a file. Expects one parameter, a string named
- * 'file'. Emits tuples with one element, a string corresponding to a line from the
- * file. The carriage return at the end of line is NOT included.
- */
-class FileRead: public ThreadedSource {
+class CFileRead: public TimerSource {
  public:
-  //TODO: Make some of these part of DataPlaneOperator API? Or define a base class
-  //for source operators?
-  FileRead():lineno(0) {}
+
+  CFileRead():lineno(0) {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual bool emit_1();  // A thread that will loop while reading the file
-  virtual void process(boost::shared_ptr<Tuple> t);  
+  virtual int emit_data();
 
   virtual std::string long_description();
 
@@ -120,6 +114,7 @@ class GenericParse: public DataPlaneOperator {
  * GenericParse, Extend, and CSVParse */
 void parse_with_types(Element * e, const std::string& s, char typecode);
   
+
 /**
  * Adds constant data to a tuple.
  *   Values should be named "0"..."9".
@@ -130,24 +125,26 @@ void parse_with_types(Element * e, const std::string& s, char typecode);
  * configuration time. 
  
 */
-class ExtendOperator: public DataPlaneOperator {
+class CExtendOperator: public COperator {
  public:
   std::vector< Element > new_data;
 
   void mutate_tuple(Tuple& t);
-  virtual void process (boost::shared_ptr<Tuple> t) {
-    mutate_tuple(*t);
-    emit(t);
+
+  virtual void process(OperatorChain * chain,
+                       std::vector<boost::shared_ptr<Tuple> > & tuples,
+                       DataplaneMessage& m) {
+    for (int i = 0; i < tuples.size(); ++i)
+      mutate_tuple(*(tuples[i]));
   }
-  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
+  
+//  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
   
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
-
   
-  virtual ~ExtendOperator() {};
-
 GENERIC_CLNAME
 };
+
 
 class TimestampOperator: public DataPlaneOperator {
  public:
@@ -246,6 +243,7 @@ GENERIC_CLNAME
  * look at: http://stackoverflow.com/questions/6171552/popen-simultaneous-read-and-write
  * to fix
  * */
+ /*
 class UnixOperator: public ThreadedSource {
  public:
  
@@ -262,7 +260,7 @@ private:
   int line_count;
 
 GENERIC_CLNAME
-};
+};*/
 
 
 class URLToDomain: public CEachOperator {

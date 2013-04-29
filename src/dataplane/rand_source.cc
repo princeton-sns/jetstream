@@ -123,8 +123,8 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
   */
 #define USE_SEQ 
 
-bool
-RandSourceOperator::emit_1()  {
+int
+RandSourceOperator::emit_data()  {
   
   int tuples_sent = 0;
 
@@ -136,6 +136,8 @@ RandSourceOperator::emit_1()  {
 #endif
 
   time_t now = time(NULL);
+  vector<shared_ptr<Tuple> > tuples;
+  tuples.reserve(BATCH_SIZE);
 
   while (tuples_sent++ < BATCH_SIZE) {
     shared_ptr<Tuple> t(new Tuple);
@@ -167,12 +169,13 @@ RandSourceOperator::emit_1()  {
 
     t->add_e()->set_t_val(now);
     t->set_version(next_version_number++);
-    emit(t);
+    tuples.push_back(t);
   }
-  end_of_window(wait_per_batch);
-  js_usleep( 1000 * wait_per_batch);
-
-  return false; //keep running indefinitely
+  DataplaneMessage end_msg;
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+  end_msg.set_window_length_ms(wait_per_batch);
+  chain->process(tuples, end_msg);
+  return wait_per_batch;
 }
 
 
@@ -198,7 +201,7 @@ RandEvalOperator::configure(std::map<std::string,std::string> &config) {
 
 
 void
-RandEvalOperator::process(boost::shared_ptr<Tuple> t) {
+RandEvalOperator::process_one(boost::shared_ptr<Tuple>& t) {
   assert( t->e_size() > 2);
   assert (t->e(1).has_t_val());
   
@@ -343,7 +346,7 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 
 void
 RandHistOperator::start() {
-  ThreadedSource::start();
+  TimerSource::start();
   //boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&RandHistOperator::generate, this)));
   new boost::thread(boost::bind(&RandHistOperator::generate, this));
   new boost::thread(boost::bind(&RandHistOperator::generate, this));
@@ -398,12 +401,15 @@ RandHistOperator::generate() {
     delete lh;
 }
 
-bool
-RandHistOperator::emit_1() {
+int
+RandHistOperator::emit_data() {
 
   msec_t start_t = get_msec();
 
   unsigned tuples_sent = 0;
+
+  if ( levels.size() > 1)
+    adapt();
 
   msec_t now_msec = get_msec();
   if(schedule && now_msec > (last_schedule_update + schedule_wait)  && tuples_per_sec < schedule_max){
@@ -412,6 +418,7 @@ RandHistOperator::emit_1() {
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
   }
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
+  vector< shared_ptr<Tuple> > tuples;
   while (tuples_sent++ < tuples_per_batch) {
     while(queue.size()<1)
     {
@@ -422,7 +429,7 @@ RandHistOperator::emit_1() {
       boost::unique_lock<boost::mutex> lock(internals);
       shared_ptr<Tuple> t = queue.front();
       queue.pop();
-      emit(t);
+      tuples.push_back(t);
     }
   }
   msec_t end_t = get_msec();
@@ -431,18 +438,16 @@ RandHistOperator::emit_1() {
     LOG_FIRST_N(WARNING, 10) << "Took " << running_time << " to send; exceeds half of wait-per-batch";
   }
   if (running_time > wait_per_batch)
-    LOG(FATAL) << "Generation took way to long "<< running_time << " should be under "<< wait_per_batch;
+    LOG(FATAL) << "Generation took too long. Runtime "<< running_time << " should be under "<< wait_per_batch;
 
-  if ( ++window % batches_per_window == 0)
-    end_of_window((wait_per_batch * batches_per_window)-window_fudge_factor);
+  DataplaneMessage end_msg;
+  if (batch ++ % batches_per_window == 0) {
+    end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+    end_msg.set_window_length_ms(wait_per_batch * batches_per_window-window_fudge_factor);
+  }
+  chain->process(tuples, end_msg);
 
-  js_usleep( 1000 * (wait_per_batch - running_time) );
-
-
-  if ( levels.size() > 1)
-    adapt();
-
-  return false; //keep running indefinitely
+  return (wait_per_batch - running_time); //keep running indefinitely
 }
 
 void

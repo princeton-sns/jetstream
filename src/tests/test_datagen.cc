@@ -20,29 +20,29 @@ const int compID = 4;
 
 TEST(Operator, RandGenHalf) {
 //  Node n;
-  RandSourceOperator op;
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
+
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  boost::shared_ptr<RandSourceOperator> op(new RandSourceOperator);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
   operator_config_t cfg;
   cfg["n"] = "2";
   cfg["k"] = "0";
   cfg["rate"] = "500";
-  operator_err_t err = op.configure(cfg);
+  operator_err_t err = op->configure(cfg);
   ASSERT_EQ(NO_ERR, err);
-  op.set_dest(rec);
   
-  op.start();
-  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  op.stop();
+  op->add_chain(chain);
+  chain->add_member(op);
+  chain->add_member(rec);
+  
+  op->emit_data();
   
   cfg["k"] = "1";
-  err = op.configure(cfg);
-  op.set_dest(rec);
+  err = op->configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   
   cout << "running a second time" <<endl;
-  op.start();
-  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  op.stop();
+  op->emit_data();
   
   cout << "results:" <<endl;
   map<string,int> results;
@@ -64,20 +64,21 @@ TEST(Operator, RandGenHalf) {
 
 TEST(Operator, RandGenFull) {
 //  Node n;
-  RandSourceOperator op;
-  shared_ptr<xDummyReceiver> rec(new xDummyReceiver);
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  boost::shared_ptr<RandSourceOperator> op(new RandSourceOperator);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
   operator_config_t cfg;
   cfg["n"] = "1";
   cfg["k"] = "0";
   cfg["rate"] = "2000";
-  operator_err_t err = op.configure(cfg);
+  operator_err_t err = op->configure(cfg);
   ASSERT_EQ(NO_ERR, err);
-  op.set_dest(rec);
-  
-  op.start();
-  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  op.stop();
-  
+
+  op->add_chain(chain);
+  chain->add_member(op);
+  chain->add_member(rec);
+  op->emit_data();
+
   cout << "results:" <<endl;
   map<string,int> results;
   for (unsigned int i=0; i < rec->tuples.size(); ++i) {
@@ -112,7 +113,7 @@ TEST(Operator, GoodnessOfData) {
   extend_tuple(*t, "California");
   extend_tuple_time(*t, 1);
   extend_tuple(*t, 1);
-  op.process(t);
+  op.process_one(t);
 
   t->mutable_e(1)->set_t_val(2);
   int total = 0;
@@ -121,7 +122,7 @@ TEST(Operator, GoodnessOfData) {
     int v = op.rand_data[i];
     t->mutable_e(2)->set_i_val(v);
     total += v;
-    op.process(t);
+    op.process_one(t);
   }
   
   ASSERT_EQ(1, op.data_in_last_window()); //new data won't have taken effect
@@ -129,7 +130,7 @@ TEST(Operator, GoodnessOfData) {
 
   
   t->mutable_e(1)->set_t_val(3);  
-  op.process(t);
+  op.process_one(t);
 
   ASSERT_EQ(op.data_in_last_window(), total);
   ASSERT_GT(op.cur_deviation(), 0.9);
@@ -137,56 +138,54 @@ TEST(Operator, GoodnessOfData) {
 
 shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
 
-  shared_ptr<RandEvalOperator> eval(new RandEvalOperator);
-  shared_ptr<xDummyReceiver> receiver(new xDummyReceiver);
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  
+  boost::shared_ptr<RandEvalOperator> eval(new RandEvalOperator);
+  boost::shared_ptr<RandSourceOperator> op(new RandSourceOperator);
+  shared_ptr<DummyReceiver> receiver(new DummyReceiver);
 
-  eval->configure(cfg);
-
-  RandSourceOperator op;
   cfg["n"] = "1";
   cfg["k"] = "0";
-  operator_err_t err = op.configure(cfg);
+  operator_err_t err = op->configure(cfg);
+  eval->configure(cfg);
+  cfg.clear();
 
-  shared_ptr<DataPlaneOperator> extend(new ExtendOperator);
+  shared_ptr<CExtendOperator> extend(new CExtendOperator);
   cfg["types"] = "i";
   cfg["0"] = "1";
   extend->configure(cfg);  //add a dummy count
 
   cfg.clear();
-  
   EXPECT_EQ(NO_ERR, err);
 
-
-  op.set_dest(extend);
-  extend->set_dest(receiver);
+  op->add_chain(chain);
+  chain->add_member(op);
+  chain->add_member(extend);
+  chain->add_member(receiver);
   cout << "starting source" << endl;
   for (int i =0; i < BATCHES; ++i) {
-    op.emit_1();
+    op->emit_data();
     cout << "after batch " << i << " have " << receiver->tuples.size() << " tuples" << endl;
    }
 //  op.start();
 //  boost::this_thread::sleep(boost::posix_time::milliseconds(700));
 //  op.stop();
   
-  unsigned int total = op.emitted_count();
+  unsigned int total = receiver->tuples.size();
   cout << "source stopped after emitting " << total << endl;
-  EXPECT_EQ(total, (unsigned int)extend->emitted_count());
-
-  EXPECT_EQ(total, receiver->tuples.size());
   time_t now = time(NULL);
   for (unsigned int i = 0; i < receiver->tuples.size(); ++i){
     boost::shared_ptr<Tuple> t = receiver->tuples[i];
     t->mutable_e(1)->set_t_val(now);
-    eval->process(t);
   }
+  DataplaneMessage no_msg;
+  eval->process(chain.get(), receiver->tuples, no_msg);
   
-  
-
   shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
   extend_tuple(*t, "California");
   extend_tuple_time(*t, time(NULL) + 1);
   extend_tuple(*t, 1);
-  eval->process(t);
+  eval->process_one(t);
 
   EXPECT_EQ(eval->data_in_last_window(), total);
   EXPECT_GT(eval->cur_deviation(), 0.9);
