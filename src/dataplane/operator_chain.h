@@ -32,18 +32,20 @@ class ChainMember {
    virtual bool is_source() = 0;
    virtual std::string id_as_str() = 0;
    virtual void add_chain(boost::shared_ptr<OperatorChain>) {}
+   virtual void stopping() {} ;  //called on strand
+  
 };
 
 
 
-class COperator: public ChainMember {
+class COperator: virtual public ChainMember {
 
  public:
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
   virtual ~COperator() {}
   virtual operator_err_t configure(std::map<std::string,std::string> &config) = 0;
   virtual void start() {}
-  virtual void stop() {} //called only on strand
+//  virtual void stop() {} //called only on strand
   virtual bool is_source() {return false;}
 
   operator_id_t & id() {return operID;}
@@ -82,7 +84,6 @@ public:
   virtual bool should_emit(const Tuple& t)  = 0;
 
 };
-
 
 class OperatorChain {
 

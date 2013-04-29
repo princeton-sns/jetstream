@@ -125,8 +125,16 @@ Node::stop ()
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
   
+  
+  
+  std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator chainIter = chainSources.begin();
+  while (chainIter != chainSources.end()) {
+    chainIter->second->stop();
+    chainIter ++;
+  }
+  
+  
   std::map<operator_id_t, weak_ptr<COperator> >::iterator iter = operators.begin();
-
   // Need to stop operators before deconstructing because otherwise they may
   // keep pointers around after destruction.
   LOG(INFO) << "killing " << operators.size() << " operators on stop";
@@ -135,8 +143,8 @@ Node::stop ()
     operator_id_t id = iter->first;
     iter++;//note that stop will sometimes remove the operator from the table so we advance iterator first;
     if (op) {
-      LOG(INFO) << " stopping " << id << " (" << op->typename_as_str() << ")";
-      op->stop(); 
+      LOG(INFO) << " freeing " << id << " (" << op->typename_as_str() << ")";
+      op.reset();
     }
   }
   
@@ -629,6 +637,7 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<COperator> srcOperator = get_operator(src);
       
       if (!srcOperator) {
+        LOG(INFO) << "oplist is " << make_op_list() << ", no " << src.to_string();
         throw operator_err_t("unknown source operator " + src.to_string() + " for edge.");
       }
 
@@ -715,7 +724,7 @@ Node::create_chains( const AlterTopo & topo,
       if (is_startable) {
         LOG(INFO) << "creating chain starting from " << toStart[i];
         chain->start();
-        chainSources[toStart[i] ] = chainOp;
+        chainSources[toStart[i] ] = chain;
         
       } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
@@ -739,6 +748,25 @@ Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> s
   }
 }
 
+void purgeChains(int compID, map<operator_id_t,
+                 shared_ptr<OperatorChain> >& chainMap,
+                 vector<int32_t>& stopped_ops) {
+    std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator iter;
+    for ( iter = chainMap.begin(); iter != chainMap.end(); ) {
+      operator_id_t op_id = iter->first;
+      boost::shared_ptr<OperatorChain>  op = iter->second;
+       //need to advance iterator BEFORE stop, since iterator to removed element is invalid
+      iter ++;
+    
+      if (op_id.computation_id == compID) {
+        
+        op->stop();
+        stopped_ops.push_back(op_id.task_id);
+        LOG(INFO) << "erasing " << op_id;
+      }
+    }
+
+}
 
 vector<int32_t>
 Node::stop_computation(int32_t compID) {
@@ -746,25 +774,17 @@ Node::stop_computation(int32_t compID) {
   vector<int32_t> stopped_ops;
   {
     unique_lock<boost::recursive_mutex> lock(operatorTableLock);
-    //FIXME CHAINS
-
-    std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator iter;
-    for ( iter = sourcelessChain.begin(); iter != sourcelessChain.end(); ) {
-      operator_id_t op_id = iter->first;
-      boost::shared_ptr<OperatorChain>  op = iter->second;
-       //need to advance iterator BEFORE stop, since iterator to removed element is invalid
+    purgeChains(compID, sourcelessChain, stopped_ops);
+    purgeChains(compID, chainSources, stopped_ops);
+    std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
+    for ( iter = operators.begin(); iter != operators.end(); ) {
+      operator_id_t oid = iter->first;
+      bool should_del = iter->second.expired() || oid.computation_id == compID;
       iter ++;
-    
-      if (op_id.computation_id == compID) {
-        op->stop();
-        stopped_ops.push_back(op_id.task_id);
-  //   FIXME CHAINS        
-        // The actual stop. 
-//        operator_cleanup.stop_on_strand(op);
-        operators.erase(op_id);
-//        operator_cleanup.cleanup(op);   
-      }
+      if (should_del)
+        operators.erase(oid);
     }
+
   }
   LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " <<
     compID << " , leaving " << operators.size()<<":\n" << make_op_list();
@@ -808,7 +828,6 @@ throw(operator_err_t)
   if (err != NO_ERR)
     throw(err);
   
-  LOG(INFO) << "operator create returning ok";
   return d;
 }
 
@@ -817,6 +836,8 @@ Node::unregister_operator(operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
   int delCount = operators.erase(name);
+  chainSources.erase(name);
+  
   return delCount > 0;
 }
 

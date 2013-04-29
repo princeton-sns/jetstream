@@ -69,7 +69,10 @@ StrandedSubscriber::emit_wrapper() {
       timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));
     } else {
       LOG(INFO)<< "Subscriber exiting; should tear down";
-    
+      chain->do_stop(no_op_v);
+      chain.reset();
+      cube->remove_subscriber(id());
+      node->unregister_operator(id()); // will trigger destructor for this!    
     }
   }
 }

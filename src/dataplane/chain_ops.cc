@@ -29,7 +29,6 @@ TimerSource::start() {
 
 void
 TimerSource::emit_wrapper() {
-  LOG(INFO) << "timer emit for " << id() << " of type " << typename_as_str() << " starting";
   if (running) {
     int delay_to_next = emit_data();
     if (delay_to_next >= 0) {
@@ -37,19 +36,28 @@ TimerSource::emit_wrapper() {
       timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
     } else {
       LOG(INFO)<< "EOF; should tear down";
-    
+      running = false;
+      chain->do_stop(no_op_v); // on thread, can call this
+      chain.reset();
+      node->unregister_operator(id()); // will trigger destructor for this!
     }
   }
 }
 
 
 void
-TimerSource::stop() {
+TimerSource::stopping() {
   bool was_running = running;
   running = false;
   if (was_running) {
     timer->cancel();
   }
+}
+
+TimerSource::~TimerSource() {
+  chain.reset();
+  if (timer && running)
+    timer->cancel();
 }
 
 

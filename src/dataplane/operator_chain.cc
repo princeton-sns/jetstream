@@ -79,13 +79,12 @@ OperatorChain::stop_async(close_cb_t cb) {
 
 void
 OperatorChain::do_stop(close_cb_t cb) {
-/*
   if (ops.size() > 0 && ops[0])
-    ops[0]->stop();
+    ops[0]->stopping();
 
-  for (int i = 0; i < ops.size(); ++i) {
-    ops[i]->stop();
-  }*/
+  for (int i = 1; i < ops.size(); ++i) {
+    ops[i]->stopping();
+  }
   LOG(INFO) << " called stop everywhere; invoking cb";
   cb();
 }

@@ -48,7 +48,7 @@ class Node {
   DataPlaneOperatorLoader operator_loader;  
   std::map<operator_id_t, boost::weak_ptr<jetstream::COperator> > operators;
   std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > sourcelessChain;
-  std::map<operator_id_t, boost::shared_ptr<jetstream::COperator> > chainSources;
+  std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> > chainSources;
 
 
 
@@ -134,6 +134,11 @@ class Node {
 
 
 //TODO include private copy-constructor and operator= here?
+
+private:
+//  void purgeChains(int compID, std::map<operator_id_t,
+//                 shared_ptr<OperatorChain> >& chainMap,
+ //                std::vector<int32_t> stopped_ops);
 
 };
 }

@@ -121,8 +121,9 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     void send_rollup_levels();
 
   public:
-    TimeBasedSubscriber(): backfill_tuples(0), regular_tuples(0), next_window_start_time(0),
-     backfill_old_window(0),regular_old_window(0) {};
+    TimeBasedSubscriber(): ts_field(-1),ts_input_tuple_index(-1),latency_ts_field(-1),
+      backfill_tuples(0), regular_tuples(0), next_window_start_time(0),
+      backfill_old_window(0),regular_old_window(0) {};
 
     virtual ~TimeBasedSubscriber() {};
 
