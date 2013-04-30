@@ -18,6 +18,7 @@ COperator::unregister() {
 
 void
 TimerSource::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > & d, DataplaneMessage&) {
+  LOG(WARNING) << "Shouldn't be sending data to a timer source base process() method";
   return;
 }
 

@@ -243,14 +243,7 @@ FixedRateQueue::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-void
-FixedRateQueue::start() {
-  running = true;
-  timer = get_timer();
-  timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
-  timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
-}
-
+/*
 void
 FixedRateQueue::stop() {
 //  cout << "in FixedRateQueue stop" << endl;
@@ -261,65 +254,56 @@ FixedRateQueue::stop() {
     q.pop();
 //  cout << "FixedRateQueue stopped" << endl;
 }
-
+*/
 
 
 void
-FixedRateQueue::process(boost::shared_ptr<Tuple> t) {
+FixedRateQueue::process (OperatorChain * chain,
+                          std::vector<boost::shared_ptr<Tuple> > & tuples,
+                          DataplaneMessage& marker) {
   boost::lock_guard<boost::mutex> lock (mutex);
-  LOG_IF(FATAL, !t) << "didn't expect a null tuple here";
+  for (int i = 0; i < tuples.size(); ++i) {
+    shared_ptr<Tuple> t = tuples[i];
+    if (!t)
+      continue;
+    DataplaneMessage msg;
+    Tuple * t2 = msg.add_data();
+    t2->CopyFrom(*t);
+    mon->report_insert(NULL, 1);    
+    q.push(msg);
+  }
   DataplaneMessage msg;
-  Tuple * t2 = msg.add_data();
-  t2->CopyFrom(*t);
+  msg.CopyFrom(marker);
   q.push(msg);
 }
 
-void
-FixedRateQueue::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
-//  boost::shared_ptr<DataplaneMessage> msg2(new DataplaneMessage);
-//  msg2->CopyFrom(msg);
+int
+FixedRateQueue::emit_data() {
   boost::lock_guard<boost::mutex> lock (mutex);
-  q.push(msg);
-/*  if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
-    window_start = mon->get_window_start();
-    mon->new_window_start();
-  }*/
-}
-
-
-void
-FixedRateQueue::process1() {
-  if (!running) {
-    return; //spurious wakeup, e.g. on close
+  if(q.empty()) {
+    return ms_per_dequeue;
   }
   
-  {
-    boost::lock_guard<boost::mutex> lock (mutex);
-    //deqeue
-    DataplaneMessage msg;
-    
-    if (! q.empty()) {
-      msg = q.front();
-      q.pop();
+  DataplaneMessage msg;
+  //deqeue
+  msg = q.front();
+  q.pop();
+  vector<shared_ptr<Tuple> > data;
+//  cout << "dequeue, length = " << q.size() << endl;
+  if( msg.data_size() > 0) {
+    boost::shared_ptr<Tuple> t(new Tuple);
+    t->CopyFrom(msg.data(0));
+    data.push_back(t);
+    mon->report_delete(NULL, 1);
+    msg.Clear();
+  } else {
+    if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
+      mon->end_of_window(msg.window_length_ms(), mon->get_window_start());
+      mon->new_window_start();
     }
-  //  cout << "dequeue, length = " << q.size() << endl;
-    if( msg.data_size() > 0) {
-      boost::shared_ptr<Tuple> t(new Tuple);
-      t->CopyFrom(msg.data(0));
-      mon->report_insert(t.get(), 1);
-      emit(t);
-      mon->report_delete(t.get(), 1);      
-    } else {
-      if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
-        mon->end_of_window(msg.window_length_ms(), mon->get_window_start());
-        mon->new_window_start();
-      }
-      DataPlaneOperator::meta_from_upstream(msg, id()); //delegate to base class
-    }
-
-    timer->expires_from_now(boost::posix_time::millisec(ms_per_dequeue));
-    timer->async_wait(boost::bind(&FixedRateQueue::process1, this));
   }
+  chain->process(data, msg);
+  return ms_per_dequeue;
 }
 
 

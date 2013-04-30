@@ -197,22 +197,21 @@ GENERIC_CLNAME
 /***
  * Operator for artificially imposing congestion.
  */
-class FixedRateQueue: public DataPlaneOperator {
+class FixedRateQueue: public TimerSource {
  public:
 
-  FixedRateQueue() : running(false) //,elements_queued(0)
+  FixedRateQueue() //,elements_queued(0)
   {}
   
   virtual ~FixedRateQueue() {
-    stop();
   }
   
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  virtual void start();
-  virtual void process(boost::shared_ptr<Tuple> t);
-  virtual void stop();
+//  virtual void start();
+  virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
+//  virtual void stop();
 
-  void process1();
+  virtual int emit_data();
   
   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
     return mon;
@@ -223,14 +222,12 @@ class FixedRateQueue: public DataPlaneOperator {
     return q.size();
   }
   
-    virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+//  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
   
 private:
-  volatile bool running;
   int ms_per_dequeue;
 //  int elements_queued;
-  boost::shared_ptr<boost::asio::deadline_timer> timer;
   std::queue< DataplaneMessage > q;
   boost::mutex mutex;
   boost::shared_ptr<NetCongestionMonitor> mon;

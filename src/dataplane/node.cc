@@ -411,60 +411,62 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   
   //Invariant: if we got here, all operators started OK.
   
-  VLOG(1) << "before creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
-  
-  // Create cubes
-  for (int i=0; i < topo.tocreate_size(); ++i) {
-    const CubeMeta &task = topo.tocreate(i);
-    // Record the outcome of creating the cube in the response message
-    if (cubeMgr.create_cube(task.name(), task.schema(), task.overwrite_old()) != NULL) {
-      LOG(INFO) << "Created cube " << task.name() <<endl;
-      assert (cubeMgr.get_cube(task.name()));
-      CubeMeta *created = respTopo->add_tocreate();
-      created->CopyFrom(task);
-    } else {
-      LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
-        //TODO could tear down operators_to_start here.
-      respTopo->add_cubestostop(task.name());
+    VLOG(1) << "before creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
+    
+    // Create cubes
+    for (int i=0; i < topo.tocreate_size(); ++i) {
+      const CubeMeta &task = topo.tocreate(i);
+      // Record the outcome of creating the cube in the response message
+      if (cubeMgr.create_cube(task.name(), task.schema(), task.overwrite_old()) != NULL) {
+        LOG(INFO) << "Created cube " << task.name() <<endl;
+        assert (cubeMgr.get_cube(task.name()));
+        CubeMeta *created = respTopo->add_tocreate();
+        created->CopyFrom(task);
+      } else {
+        LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
+          //TODO could tear down operators_to_start here.
+        respTopo->add_cubestostop(task.name());
+      }
     }
-  }
-//  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
+  //  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
 
-  // Stop operators if requested
-  for (int i=0; i < topo.tasktostop_size(); ++i) {
-    operator_id_t id = unparse_id(topo.tasktostop(i));
-    LOG(INFO) << "Stopping " << id << " due to server request";
-    unregister_operator(id);
-    // TODO: Should we log whether the stop happened?
-    respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
-  }
-  
-  // Remove cubes if requested
-  for (int i=0; i < topo.cubestostop_size(); ++i) {
-    string id = topo.cubestostop(i);
-    LOG(INFO) << "Destroying cube " << id << " due to server request";
-    cubeMgr.destroy_cube(id); //Note that this disconnects the cube and marks it
-        // as locked. It doesn't actually delete the cube in memory.
-        
-    // TODO: Should we log whether the stop happened correctly?
-  }
+    // Stop operators if requested
+    for (int i=0; i < topo.tasktostop_size(); ++i) {
+      operator_id_t id = unparse_id(topo.tasktostop(i));
+      LOG(INFO) << "Stopping " << id << " due to server request";
+      unregister_operator(id);
+      // TODO: Should we log whether the stop happened?
+      respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
+    }
+    
+    // Remove cubes if requested
+    for (int i=0; i < topo.cubestostop_size(); ++i) {
+      string id = topo.cubestostop(i);
+      LOG(INFO) << "Destroying cube " << id << " due to server request";
+      cubeMgr.destroy_cube(id); //Note that this disconnects the cube and marks it
+          // as locked. It doesn't actually delete the cube in memory.
+          
+      // TODO: Should we log whether the stop happened correctly?
+    }
 
-  map<operator_id_t, boost::shared_ptr<OperatorChain> > opToChain;
-  create_chains(topo, response, operator_ids_to_start, opToChain);
-  establish_congest_policies(topo, response, operator_ids_to_start, opToChain);
-  
+    map<operator_id_t, boost::shared_ptr<OperatorChain> > opToChain;
+    create_chains(topo, response, operator_ids_to_start, opToChain);
+    establish_congest_policies(topo, response, operator_ids_to_start, opToChain);
+    
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
 
-/* Starts now handled by chains code
-  vector<operator_id_t >::iterator iter;
-  for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
-    const operator_id_t& name = *iter;
-    shared_ptr<COperator> op = get_operator(name);
-    LOG_IF(FATAL, !op) << "operator " << name << "vanished without exception thrown";
-    op->start();
-//    dataConnMgr.created_operator(op);
-  } */
+    vector<operator_id_t >::iterator iter;
+    for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
+      const operator_id_t& name = *iter;
+      shared_ptr<COperator> op = get_operator(name);
+      LOG_IF(FATAL, !op) << "operator " << name << "vanished without exception thrown";
+      if (op->is_source()) {
+        shared_ptr<OperatorChain> chain = opToChain[name];
+        LOG_IF(FATAL, !chain) <<"Expected a chain starting from source op " << op;
+        chain->start();
+      }
+    }
   
     for (int i=0; i < topo.tocreate_size(); ++i) {
       const CubeMeta &task = topo.tocreate(i);
@@ -558,12 +560,13 @@ Node::create_chains( const AlterTopo & topo,
   int chain_count = 0;
   LOG(INFO) << "building chains";
   for (int i = 0; i < toStart.size(); ++i) {
-    if ( op_to_pred.count(toStart[i]) == 0) {
+    shared_ptr<COperator> chainOp = get_operator(toStart[i]);
+    bool is_startable = chainOp->is_source();
+
+    if ( op_to_pred.count(toStart[i]) == 0 || is_startable) {
       chain_count += 1;
       boost::shared_ptr<OperatorChain> chain(new OperatorChain);
-      shared_ptr<COperator> chainOp = get_operator(toStart[i]);
       LOG_IF(WARNING, !chainOp) << "operator " << toStart[i] << " not in table";
-      bool is_startable = chainOp->is_source();
       operator_id_t op_id = toStart[i];
       
       shared_ptr<ChainMember> nextMember = chainOp;
@@ -574,11 +577,10 @@ Node::create_chains( const AlterTopo & topo,
         nextMember->add_chain(chain);
         
         const Edge* next_e = op_to_outedge[op_id];
-        
-        if (!next_e || !dynamic_cast<COperator*>(nextMember.get())) //hit a non-operator
-          break;
-
         opToChain[op_id] = chain;
+        
+        if (!next_e || !dynamic_cast<COperator*>(nextMember.get()) || hit_end) //hit a non-operator
+          break;
         
         if (next_e->has_dest_addr()) {
           shared_ptr<RemoteDestAdaptor> xceiver(
@@ -588,18 +590,16 @@ Node::create_chains( const AlterTopo & topo,
         } else if (next_e->has_dest()) {
           op_id = operator_id_t(next_e->computation(), next_e->dest());
           nextMember  = get_operator(op_id);
+          hit_end = nextMember->is_source();
         } else if (next_e->has_dest_cube()) {
           nextMember = get_cube(next_e->dest_cube());
         } else {
           LOG(FATAL) << "no idea what dest is; " << next_e->Utf8DebugString();
         }
-      } while ( !hit_end );
+      } while ( true );
 
       if (is_startable) {
-        LOG(INFO) << "creating chain starting from " << toStart[i];
-        chain->start();
-        chainSources[toStart[i] ] = chain;
-        
+        chainSources[toStart[i] ] = chain;        
       } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
         sourcelessChain[ toStart[i] ] = chain;
