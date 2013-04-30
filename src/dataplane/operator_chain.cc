@@ -103,6 +103,12 @@ OperatorChain::unregister() {
 }
 
 
+boost::shared_ptr<CongestionMonitor>
+OperatorChain::congestion_monitor() {
+  return ops[ops.size() -1]->congestion_monitor();
+}
+  
+
 void
 OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, DataplaneMessage& maybe_meta) {
 

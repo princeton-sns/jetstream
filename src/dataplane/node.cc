@@ -367,58 +367,6 @@ unparse_id (const TaskID& id) {
 }
 
 void
-Node::establish_congest_policies( const AlterTopo & topo,
-                                  ControlMessage & resp,
-                                  const vector<operator_id_t>& toStart) {
-      /*
-  
-  map<operator_id_t, bool> operators_with_policies;
-  for (int i =0; i < topo.congest_policies_size(); ++ i) {
-//    establish_policies(topo.congest_policies(i));
-    const CongestPolicySpec& p_spec = topo.congest_policies(i);
-    boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
-    boost::shared_ptr<DataPlaneOperator> op;
-    ostringstream op_list;
-    for (int t = 0;  t < p_spec.op_size(); ++t) {
-      operator_id_t id = unparse_id(p_spec.op(t));
-      policy->add_operator(id);
-      op = get_operator(id);
-      if (op) {
-        op->set_congestion_policy(policy);
-        operators_with_policies[id] = true;
-        op_list << " " << op->id_as_str();
-      } else {
-        LOG(FATAL) << "can't set policy for nonexistent operator " << id;
-      }
-    }
-    policy->set_congest_monitor( op->congestion_monitor() );
-    
-    LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << op->congestion_monitor()->name();
-  }
-  
-  for (unsigned int i = 0; i < toStart.size(); ++i) {
-    if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
-      boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
-      boost::shared_ptr<COperator> op = get_operator(toStart[i]);
-      if (!op) {
-        LOG(ERROR) << "Can't add policy to " << toStart[i] << "; no such operator.";
-        continue;
-      }
-      policy->add_operator(toStart[i]);
-      policy->set_congest_monitor( op->congestion_monitor() );
-      op->set_congestion_policy(policy);
-      string monitor_name = "undefined";
-      if( op->congestion_monitor()) {
-        monitor_name = "defined";
-      }
-      LOG(INFO) << "added default congestion policy for " << toStart[i]<<
-        ". Monitor is " << monitor_name;
-    }
-
-  }*/
-}
-
-void
 Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
@@ -501,86 +449,9 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     // TODO: Should we log whether the stop happened correctly?
   }
 
-  /*
-  // add edges
-  for (int i=0; i < topo.edges_size(); ++i) {
-    const Edge &edge = topo.edges(i);
-    
-    if (edge.has_src()) {
-      operator_id_t src (edge.computation(), edge.src());
-      shared_ptr<DataPlaneOperator> srcOperator = get_operator(src);
-    
-      if (!srcOperator) {
-        LOG(WARNING) << "unknown source operator " << src<< " for edge";
-        
-        Error * err_msg = response.mutable_error_msg();
-        err_msg->set_msg("unknown source operator " + src.to_string());
-
-        continue;
-      }
-      
-      if (edge.has_dest_addr()) {   // sending to remote operator or cube
-        shared_ptr<RemoteDestAdaptor> xceiver(
-            new RemoteDestAdaptor(dataConnMgr, *connMgr, *iosrv, edge, config.data_conn_wait, srcOperator) );
-        dataConnMgr.register_new_adaptor(xceiver);
-        srcOperator->set_dest(xceiver);
-      }
-      else if (edge.has_dest_cube()) {  //local cube
-        // connect to local table
-        shared_ptr<DataCube> c = cubeMgr.get_cube(edge.dest_cube());
-        if (c) {
-          srcOperator->set_dest(c);
-          LOG(INFO) << "edge from " << src << " to " << edge.dest_cube();
-        } else {
-          LOG(WARNING) << "Dest DataCube unknown: " << edge.dest_cube() << endl;
-          Error * err_msg = response.mutable_error_msg();
-          err_msg->set_msg("unknown dest DataCube " + edge.dest_cube());
-        }
-      }
-      else {  // local operator
-        assert(edge.has_dest());
-        operator_id_t dest (edge.computation(), edge.dest());
-        shared_ptr<DataPlaneOperator> destOperator = get_operator(dest);
-        if (destOperator) {
-          srcOperator->set_dest(destOperator);
-          destOperator->add_pred(srcOperator);
-          LOG(INFO) << "Edge from " << src << " to " << dest;
-         } else {
-          LOG(WARNING) << "Edge from " << src<< " to unknown dest " << dest;
-          Error * err_msg = response.mutable_error_msg();
-          err_msg->set_msg("unknown dest operator " + dest.to_string());
-        }
-      }
-    }
-    else { //edge starts at cube. Must go to a subscriber operator in this case.
-      shared_ptr<DataCube> c = cubeMgr.get_cube(edge.src_cube());
-      operator_id_t dest (edge.computation(), edge.dest());
-      shared_ptr<cube::Subscriber> destOperator =
-         boost::dynamic_pointer_cast<cube::Subscriber>(get_operator(dest));
-
-      ostringstream err_msg;
-      
-      if (!c) {
-        err_msg<< "Can't add edge from " << edge.src_cube() << " to "  << edge.dest() << ": no such cube";
-      } else if (!destOperator) {
-        err_msg << "Can't add edge from " << edge.src_cube() << " to " 
-            << edge.dest() << ": no such destination (or dest not a subscriber)";      
-      }
-      
-      string err_msg_str = err_msg.str();
-      if (err_msg_str.length() > 0) {
-        Error * err_fld = response.mutable_error_msg();
-        err_fld->set_msg(err_msg_str);
-        LOG(WARNING) << err_msg_str;
-      }
-      else {
-        c->add_subscriber(destOperator);
-      }
-    }
-  } */
-
-  establish_congest_policies(topo, response, operator_ids_to_start);
-  create_chains(topo, response, operator_ids_to_start);
+  map<operator_id_t, boost::shared_ptr<OperatorChain> > opToChain;
+  create_chains(topo, response, operator_ids_to_start, opToChain);
+  establish_congest_policies(topo, response, operator_ids_to_start, opToChain);
   
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
@@ -626,7 +497,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
 void
 Node::create_chains( const AlterTopo & topo,
                      ControlMessage & response,
-                     const std::vector<operator_id_t>& toStart) throw(operator_err_t) {
+                     const std::vector<operator_id_t>& toStart,
+                     map<operator_id_t, boost::shared_ptr<OperatorChain> >& opToChain) throw(operator_err_t) {
   std::map<operator_id_t, const Edge *> op_to_outedge;
   std::map<operator_id_t, operator_id_t> op_to_pred;
   for (int i=0; i < topo.edges_size(); ++i) {
@@ -705,6 +577,8 @@ Node::create_chains( const AlterTopo & topo,
         
         if (!next_e || !dynamic_cast<COperator*>(nextMember.get())) //hit a non-operator
           break;
+
+        opToChain[op_id] = chain;
         
         if (next_e->has_dest_addr()) {
           shared_ptr<RemoteDestAdaptor> xceiver(
@@ -735,6 +609,70 @@ Node::create_chains( const AlterTopo & topo,
   }
   LOG(INFO) << chain_count << " chains built";
 }
+
+
+
+void
+Node::establish_congest_policies( const AlterTopo & topo,
+                                  ControlMessage & resp,
+                                  const vector<operator_id_t>& toStart,
+                                  map<operator_id_t, boost::shared_ptr<OperatorChain> >& opToChain)
+                                    throw(operator_err_t){
+  
+  map<operator_id_t, bool> operators_with_policies;
+  for (int i =0; i < topo.congest_policies_size(); ++ i) {
+//    establish_policies(topo.congest_policies(i));
+    const CongestPolicySpec& p_spec = topo.congest_policies(i);
+    boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+    boost::shared_ptr<COperator> op;
+    ostringstream op_list;
+
+    shared_ptr<OperatorChain> chain;
+    for (int t = 0;  t < p_spec.op_size(); ++t) {
+      operator_id_t id = unparse_id(p_spec.op(t));
+      policy->add_operator(id);
+      op = get_operator(id);
+      if (op) {
+        shared_ptr<OperatorChain> my_chain = opToChain[id];
+        if (!my_chain)
+          throw operator_err_t("Operator " + id.to_string() + " not created in this Alter");
+        op->set_congestion_policy(policy);
+        operators_with_policies[id] = true;
+        op_list << " " << op->id_as_str();
+      } else {
+        LOG(FATAL) << "can't set policy for nonexistent operator " << id;
+      }
+    }
+    policy->set_congest_monitor( chain->congestion_monitor() );
+    
+    LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << chain->congestion_monitor()->name();
+  }
+  
+  for (unsigned int i = 0; i < toStart.size(); ++i) {
+    if (operators_with_policies.find(toStart[i]) == operators_with_policies.end()) {
+      boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
+      boost::shared_ptr<OperatorChain> chain = opToChain[toStart[i]];
+
+      if (!chain) {
+        throw operator_err_t("Can't add policy to " + toStart[i].to_string() + "; no chain with operator.");
+      }
+      policy->add_operator(toStart[i]);
+      shared_ptr<CongestionMonitor> mon = chain->congestion_monitor();
+      policy->set_congest_monitor(mon);
+      boost::shared_ptr<COperator> op = get_operator(toStart[i]);
+      op->set_congestion_policy(policy);
+      string monitor_name = "undefined";
+      if(mon) {
+        monitor_name = "defined";
+      }
+      LOG(INFO) << "added default congestion policy for " << toStart[i]<<
+        ". Monitor is " << monitor_name;
+    }
+
+  }
+}
+
+
 
 void
 Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> stopped_operators, int32_t compID) {

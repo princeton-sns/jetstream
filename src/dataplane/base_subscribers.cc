@@ -106,9 +106,6 @@ OneShotSubscriber::emit_batch() {
 
   LOG(ERROR) << "Should stop subscriber here.";
   return -1;
-  // FIXME CHAINS
-//  no_more_tuples();
-//  node->stop_operator(id());
 }
 
 cube::Subscriber::Action
@@ -456,7 +453,6 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
 
   return NO_ERR;
 }
-
 
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");

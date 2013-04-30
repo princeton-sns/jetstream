@@ -75,11 +75,15 @@ class Node {
   
   void establish_congest_policies( const AlterTopo & topo,
                                    ControlMessage & resp,
-                                   const std::vector<operator_id_t>& toStart);
+                                   const std::vector<operator_id_t>& toStart,
+                                   std::map<operator_id_t, boost::shared_ptr<OperatorChain> > &)
+                                      throw(operator_err_t);
 
   void create_chains ( const AlterTopo & topo,
                        ControlMessage & resp,
-                       const std::vector<operator_id_t>& toStart) throw(operator_err_t);
+                       const std::vector<operator_id_t>& toStart,
+                       std::map<operator_id_t, boost::shared_ptr<OperatorChain> > &)
+                          throw(operator_err_t);
 
   void log_statistics();
   

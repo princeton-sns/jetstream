@@ -35,9 +35,8 @@ class COperator: virtual public ChainMember {
   virtual const std::string& typename_as_str() = 0; //return a name for the type  
   virtual std::string long_description() {return "";}
 
-
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy>) {}
   void set_node (Node * n) { node = n; }
-
 
   void unregister(); 
 

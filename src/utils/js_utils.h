@@ -44,7 +44,7 @@ struct operator_id_t {
     return !( *this == rhs);
   }
 
-  std::string to_string () {
+  std::string to_string () const {
     std::ostringstream buf;
     buf << "(" << computation_id << "," << task_id << ")";
     return buf.str();

@@ -167,9 +167,6 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
     op->emit_data();
     cout << "after batch " << i << " have " << receiver->tuples.size() << " tuples" << endl;
    }
-//  op.start();
-//  boost::this_thread::sleep(boost::posix_time::milliseconds(700));
-//  op.stop();
   
   unsigned int total = receiver->tuples.size();
   cout << "source stopped after emitting " << total << endl;

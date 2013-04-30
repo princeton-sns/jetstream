@@ -7,6 +7,7 @@
 #include "jetstream_types.pb.h"
 #include "js_utils.h"
 #include <boost/asio.hpp>
+#include "congestion_monitor.h"
 
 namespace jetstream {
 
@@ -31,6 +32,10 @@ class ChainMember {
    virtual std::string id_as_str() = 0;
    virtual void add_chain(boost::shared_ptr<OperatorChain>) {}
    virtual void stopping() {} ;  //called on strand
+   virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);   
+   }
+  
   
 };
 
@@ -74,6 +79,9 @@ public:
   void unregister();
 
   const std::string& chain_name();  
+  
+  boost::shared_ptr<CongestionMonitor> congestion_monitor();
+  
   
     //These methods are for structural changes
   
