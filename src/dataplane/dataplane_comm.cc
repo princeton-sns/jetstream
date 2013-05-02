@@ -169,9 +169,9 @@ IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& 
 }
 
 
-/*
+
 void
-IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
+IncomingConnectionState::meta_from_downstream(DataplaneMessage & msg) {
   if (conn->is_connected()) {
 //    LOG(INFO) << "propagating meta downstream";
     boost::system::error_code error;
@@ -182,7 +182,7 @@ IncomingConnectionState::meta_from_downstream(const DataplaneMessage & msg) {
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
     }
   }
-}*/
+}
 
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
@@ -353,7 +353,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
 }
 
 void
-RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
+RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
                                         const boost::system::error_code &error) {
 
   if (error) {
@@ -393,6 +393,8 @@ RemoteDestAdaptor::conn_ready_cb(const DataplaneMessage &msg,
     case DataplaneMessage::TPUT_ROUND_3:
     case DataplaneMessage::SET_BACKOFF:
     {
+      for (int i = 0; i < chains.size(); ++i)
+        chains[i]->upwards_metadata(msg, this);
 //      pred->meta_from_downstream(msg);
       break;
     }

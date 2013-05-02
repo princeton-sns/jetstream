@@ -31,10 +31,12 @@ class ChainMember {
    virtual bool is_source() = 0;
    virtual std::string id_as_str() = 0;
    virtual void add_chain(boost::shared_ptr<OperatorChain>) {}
-   virtual void stopping() {} ;  //called on strand
+   virtual void chain_stopping(OperatorChain * ) {}
    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
     return boost::shared_ptr<CongestionMonitor>(new UncongestedMonitor);   
    }
+  
+   virtual void meta_from_downstream(DataplaneMessage & msg) {};
   
   
 };
@@ -70,7 +72,7 @@ public:
     process(dummy, m);
   }
 
-  void upwards_metadata(DataplaneMessage&);
+  void upwards_metadata(DataplaneMessage&, ChainMember * m);
 
   void stop();
   void stop_async(close_cb_t cb);

@@ -61,7 +61,7 @@ MultiRoundSender::get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, in
 }
 
 void
-MultiRoundSender::meta_from_downstream(const DataplaneMessage & msg) {
+MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
 
   DataplaneMessage round_end_marker;
   vector<  boost::shared_ptr<Tuple> > data_buf;
@@ -214,27 +214,28 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 }
 
 void
-MultiRoundCoordinator::start() {
+MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
+  boost::lock_guard<tput_mutex> lock (mutex);
 
-  boost::shared_ptr<TupleReceiver> dest = get_dest();
-  boost::shared_ptr<DataPlaneOperator> dest_op;
-  do {
-    destcube = boost::dynamic_pointer_cast<DataCube>(dest);
-    dest_op = boost::dynamic_pointer_cast<DataPlaneOperator>(dest);
-    if (dest_op)
-      dest = dest_op->get_dest();
-  } while (dest_op && !destcube);
-  
   if (!destcube) {
-    LOG(FATAL) << "must attach MultiRoundCoordinator to cube";
+    boost::shared_ptr<ChainMember> dest = chain->member(chain->members() -1);
+    destcube = boost::dynamic_pointer_cast<DataCube>(dest);
+    if (!destcube) {
+      LOG(FATAL) << "must attach MultiRoundCoordinator to cube";
+    }
+  
+    string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
+    total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
+    running = true;
   }
-  
-  string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
-  total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
-  running = true;
-  timer = get_timer();
-  
-  wait_for_restart();
+  future_preds[chain.get()] = chain;
+
+}
+
+void
+MultiRoundCoordinator::chain_stopping(OperatorChain * c) {
+  boost::lock_guard<tput_mutex> lock (mutex);
+  future_preds.erase(c);
 }
 
 
@@ -261,10 +262,11 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   
   candidates.clear();
   
-  while (! new_preds.empty()) {
-    predecessors.push_back(new_preds.back());
-    LOG(INFO) << "Adding pred " << new_preds.back()->id_as_str();
-    new_preds.pop_back();
+  predecessors.clear();
+  map<OperatorChain *, boost::shared_ptr<OperatorChain> >::iterator preds;
+  for (preds =future_preds.begin(); preds != future_preds.end(); ++preds) {
+    predecessors.push_back(preds->second);
+    LOG(INFO) << "Adding pred " << preds->second->chain_name();
   }
   
   if ( predecessors.size() == 0) {
@@ -295,8 +297,8 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   }
   
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
-    shared_ptr<TupleSender> pred = predecessors[i];
-    pred->meta_from_downstream(start_proto);
+    shared_ptr<OperatorChain> pred = predecessors[i];
+    pred->upwards_metadata(start_proto, this);
   }
 
 }
@@ -304,37 +306,36 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
 
 
 void
-MultiRoundCoordinator::process(boost::shared_ptr<Tuple> t, const operator_id_t pred) {
+MultiRoundCoordinator::process (
+          OperatorChain * c,
+          vector<boost::shared_ptr<Tuple> > & tuples,
+          DataplaneMessage & msg) {
   boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
 
-    DimensionKey k = destcube->get_dimension_key(*t, destcube->get_leaf_levels());
-    double v = get_rank_val(t, total_col);
+    for (int i = 0; i < tuples.size(); ++i) {
+      boost::shared_ptr<Tuple> t = tuples[i];
+      if(!t)
+        continue;
+      DimensionKey k = destcube->get_dimension_key(*t, destcube->get_leaf_levels());
+      double v = get_rank_val(t, total_col);
 
-    std::map<DimensionKey,CandidateItem>::const_iterator found = candidates.find(k);
-    if(found != candidates.end()) {
-      CandidateItem& c = candidates[k];
-      c.val += v;
-      c.responses ++;
-    } else {
-      candidates[k] = CandidateItem(v, 1,  *t);
+      std::map<DimensionKey,CandidateItem>::const_iterator found = candidates.find(k);
+      if(found != candidates.end()) {
+        CandidateItem& c = candidates[k];
+        c.val += v;
+        c.responses ++;
+      } else {
+        candidates[k] = CandidateItem(v, 1,  *t);
+      }
     }
-
-
   } else if (phase == ROUND_3) {//just let responses through
 //    LOG(INFO) << "passing through " << fmt(*t) << " in TPUT phase 3";
-    emit(t);
+    return;
   }
 //  else
 //    LOG(WARNING) << "ignoring input"
-
-}
-
-
-void
-MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
-  boost::lock_guard<tput_mutex> lock (mutex);
 
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
    // check what phase source was in; increment label and counter.
@@ -358,19 +359,21 @@ MultiRoundCoordinator::meta_from_upstream(const DataplaneMessage & msg, const op
           LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3, was " << phase;
           //done!
           phase = NOT_STARTED;
-          if (min_window_size > 0)
-            wait_for_restart();
         }
 
       }
     }
   }
 
+
 }
 
+
+
+
 double
-MultiRoundCoordinator::calculate_tao() {
-  double tao = 0;
+MultiRoundCoordinator::calculate_tau() {
+  double tau = 0;
   
   vector<double> vals;
   vals.reserve(candidates.size());
@@ -381,26 +384,26 @@ MultiRoundCoordinator::calculate_tao() {
   sort (vals.begin(), vals.end());
 
   if (vals.size() < num_results)
-    tao = vals[ vals.size() -1];
+    tau = vals[ vals.size() -1];
   else
     if ( sort_column[0] == '-' ) //reverse sort; greatest to least
-      tao = vals[vals.size() - num_results];
+      tau = vals[vals.size() - num_results];
     else
-      tao = vals[num_results-1];
-  return tao;
+      tau = vals[num_results-1];
+  return tau;
 }
 
 
 void
 MultiRoundCoordinator::start_phase_2() {
 
-//	Controller takes partial sums; declare kth one as phase-1 bottom Tao-1.
+//	Controller takes partial sums; declare kth one as phase-1 bottom Tau-1.
 //	[Needs no per-source state at controller]
 
-  tao_1 = calculate_tao();
+  tau_1 = calculate_tau();
 
-  double t1 = tao_1 / predecessors.size();
-  VLOG(1) << "tao at start of phase two is " << tao_1 << ". Threshold is " << t1
+  double t1 = tau_1 / predecessors.size();
+  VLOG(1) << "tau at start of phase two is " << tau_1 << ". Threshold is " << t1
     << ". " << candidates.size()<< " candidates";
 
   phase = ROUND_2;
@@ -409,8 +412,8 @@ MultiRoundCoordinator::start_phase_2() {
   start_phase.set_tput_r2_threshold(t1);
   start_phase.set_tput_r2_col(total_col);
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
-    shared_ptr<TupleSender> pred = predecessors[i];
-    pred->meta_from_downstream(start_phase);
+    shared_ptr<OperatorChain> pred = predecessors[i];
+    pred->upwards_metadata(start_phase, this);
   }
 
 }
@@ -420,7 +423,7 @@ MultiRoundCoordinator::start_phase_3() {
 
   phase = ROUND_3;
 
-  double tao = calculate_tao();
+  double tau = calculate_tau();
   DataplaneMessage r3_start;
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
   r3_start.set_tput_r3_timecol(ts_field);
@@ -428,39 +431,40 @@ MultiRoundCoordinator::start_phase_3() {
   std::map<DimensionKey, CandidateItem >::iterator iter;
   unsigned int pred_size = predecessors.size();
   for (iter = candidates.begin(); iter != candidates.end(); iter++) {
-    double upper_bound = (pred_size - iter->second.responses) * tao_1 + iter->second.val;
-    if (upper_bound >= tao) {
+    double upper_bound = (pred_size - iter->second.responses) * tau_1 + iter->second.val;
+    if (upper_bound >= tau) {
       Tuple * t = r3_start.add_tput_r3_query();
       t->CopyFrom(iter->second.example);
     }
   }
-  VLOG(1) << "tao at start of phase three is " << tao<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
+  VLOG(1) << "tau at start of phase three is " << tau<< "; total of " << r3_start.tput_r3_query_size() << " candidates";
 
   for (unsigned int i = 0; i < pred_size; ++i) {
-    shared_ptr<TupleSender> pred = predecessors[i];
-    pred->meta_from_downstream(r3_start);
+    shared_ptr<OperatorChain> pred = predecessors[i];
+    pred->upwards_metadata(r3_start, this);
   }
 }
 
 
-void
-MultiRoundCoordinator::wait_for_restart() {
+int
+MultiRoundCoordinator::emit_batch() {
+  boost::lock_guard<tput_mutex> lock (mutex);
+
   time_t now = time(NULL);
-//  time_t window_end = max( now - window_offset, start_ts + min_window_size);
-  time_t window_end = start_ts + min_window_size;
+  time_t window_end = max( now - window_offset, start_ts + min_window_size);
+
+  if (window_end < now)
+    return 1000 * (now - window_end);
+  else {
+    if (phase == NOT_STARTED) {
+      start_phase_1(window_end);
+    }
+  }
+  return min_window_size;
   
-  LOG(INFO) << "Going to run TPUT at " << window_end << " (now is  " << now<< ")";
-  timer->expires_at(boost::posix_time::from_time_t(window_end + window_offset));
-  timer->async_wait(boost::bind(&MultiRoundCoordinator::start_phase_1, this, window_end));
 //  LOG(INFO) << "Timer will expire in " << timer->expires_from_now();
 }
 
-void
-MultiRoundCoordinator::stop() {
-  boost::lock_guard<tput_mutex> lock (mutex);
-  running = false;
-  timer->cancel();
-}
 
 const string MultiRoundSender::my_type_name("TPUT Multi-Round sender");
 const string MultiRoundCoordinator::my_type_name("TPUT Multi-Round coordinator");

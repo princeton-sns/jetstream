@@ -68,7 +68,7 @@ class RemoteDestAdaptor : public ChainMember {
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);
   
-  void conn_ready_cb (const DataplaneMessage &msg,
+  void conn_ready_cb (DataplaneMessage &msg,
                       const boost::system::error_code &error);
 
   bool wait_for_chain_ready ();
@@ -154,7 +154,6 @@ public:
   
   virtual bool is_source() {return true;}
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) {}
-
   
   void close_async() {
     timer.cancel();
@@ -182,7 +181,7 @@ public:
     timer.cancel();
   }
   
-//  virtual void meta_from_downstream(const DataplaneMessage & msg);
+  virtual void meta_from_downstream(DataplaneMessage & msg);
   
   virtual void chain_is_broken() {
     LOG(INFO) << "closing down incoming socket due to chain-broken ahead";

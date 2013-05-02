@@ -53,7 +53,7 @@ TimerSource::emit_wrapper() {
 
 
 void
-TimerSource::stopping() {
+TimerSource::chain_stopping(OperatorChain *) {
   bool was_running = running;
   running = false;
   if (was_running) {

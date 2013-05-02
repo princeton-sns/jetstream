@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 
 #include "jetstream_types.pb.h"
-#include "dataplaneoperator.h"
+#include "chain_ops.h"
 #include "cube.h"
 #include "subscriber.h"
 
@@ -37,7 +37,7 @@ public:
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
 
-    virtual void meta_from_downstream(const DataplaneMessage & msg);
+    virtual void meta_from_downstream(DataplaneMessage & msg);
 
     void get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col);
 
@@ -53,11 +53,11 @@ private:
 
 
 typedef boost::recursive_mutex tput_mutex;
-class MultiRoundCoordinator: public DataPlaneOperator {
+class MultiRoundCoordinator: public TimerSource {
 
  private:
-   std::vector<boost::shared_ptr<TupleSender> > predecessors;
-   std::vector<boost::shared_ptr<TupleSender> > new_preds;
+   std::vector<boost::shared_ptr<OperatorChain> > predecessors;
+   std::map<OperatorChain *, boost::shared_ptr<OperatorChain> > future_preds;
 
    unsigned int num_results;
    unsigned int min_window_size; //seconds
@@ -73,14 +73,13 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    unsigned int responses_this_phase;
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
-   double tao_1;
-   double calculate_tao();
+   double tau_1;
+   double calculate_tau();
 
 //   std::string downstream_cube_name;
   
-  volatile bool running;
   tput_mutex mutex;
-  boost::shared_ptr<boost::asio::deadline_timer> timer;
+//  boost::shared_ptr<boost::asio::deadline_timer> timer;
   
   struct CandidateItem {
     double val;
@@ -100,16 +99,19 @@ class MultiRoundCoordinator: public DataPlaneOperator {
  
    virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-   virtual void start();
-   virtual void stop();
+//   virtual void start();
+//   virtual void stop();
 
- 
-   virtual void process(boost::shared_ptr<Tuple> t, const operator_id_t pred);
+   virtual void add_chain(boost::shared_ptr<OperatorChain>);
+   virtual void chain_stopping(OperatorChain * c);
   
-   virtual void add_pred (boost::shared_ptr<TupleSender> d) { new_preds.push_back(d); }
-   virtual void clear_preds () { predecessors.clear(); }
+   virtual int emit_batch();
   
-   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+   virtual void process( OperatorChain * c,
+                         std::vector<boost::shared_ptr<Tuple> >& t,
+                         DataplaneMessage & msg);
+  
+//   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
 
    ProtoState phase; //visible for debugging
 
@@ -117,7 +119,7 @@ class MultiRoundCoordinator: public DataPlaneOperator {
    void start_phase_1(time_t window_end);
    void start_phase_2();
    void start_phase_3();
-   void wait_for_restart();
+//   void wait_for_restart();
 
 GENERIC_CLNAME
 };

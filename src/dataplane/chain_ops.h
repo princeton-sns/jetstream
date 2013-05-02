@@ -77,7 +77,7 @@ class TimerSource: public COperator {
  public:
 //  virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual void start();
-  virtual void stopping();  //called on strand
+  virtual void chain_stopping(OperatorChain *);  //called on strand
 
 
   virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
