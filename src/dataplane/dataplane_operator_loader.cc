@@ -1,5 +1,4 @@
 #include "dataplane_operator_loader.h"
-#include "dataplaneoperator.h"
 #include "base_operators.h"
 #include "experiment_operators.h"
 #include "base_subscribers.h"

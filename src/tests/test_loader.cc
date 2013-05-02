@@ -1,7 +1,6 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include "node.h"
-#include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include <dlfcn.h>
 

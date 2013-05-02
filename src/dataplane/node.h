@@ -6,7 +6,6 @@
 
 #include "js_utils.h"
 #include "jetstream_types.pb.h"
-//#include "dataplaneoperator.h"
 #include "dataplane_operator_loader.h"
 #include "connection.h"
 #include "cube_manager.h"
@@ -41,7 +40,6 @@ class Node {
   mutable boost::recursive_mutex operatorTableLock; // protects list of operators
   
   boost::condition_variable startStopCond;
-  OperatorCleanup operator_cleanup;
                                                     
   std::vector<boost::shared_ptr<boost::thread> > threads;
 

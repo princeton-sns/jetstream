@@ -114,6 +114,14 @@ class QuantileEstimation;
 void extend_tuple(jetstream::Tuple& t, QuantileEstimation & q);
 //declared here, but defined in quantile_est.cc
 
+
+inline
+double numeric(const Tuple& t, unsigned field) {
+  const Element & d = t.e(field);
+  return d.has_d_val() ? d.d_val() : d.i_val();
+}
+
+
 }
 
 #endif /* _JS_UTILS_H_ */

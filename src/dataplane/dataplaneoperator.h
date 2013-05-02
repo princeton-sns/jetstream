@@ -201,15 +201,6 @@ class OperatorCleanup {
 };
 
 
-
-inline
-double numeric(const Tuple& t, unsigned field) {
-  const Element & d = t.e(field);
-  return d.has_d_val() ? d.d_val() : d.i_val();
-}
-
-
-
 }
 
 #endif /* _dataplaneoperator_H_ */

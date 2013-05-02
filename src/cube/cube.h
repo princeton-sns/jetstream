@@ -6,7 +6,6 @@
 #include <list>
 #include <map>
 #include <boost/functional/hash.hpp>
-#include "dataplaneoperator.h"  //needed only for Receiver
 #include "cube_iterator.h"
 #include "subscriber.h"
 #include "queue_congestion_mon.h"

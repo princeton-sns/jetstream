@@ -12,16 +12,18 @@ namespace jetstream {
 
 
 void
-SeqToRatio::process(boost::shared_ptr<Tuple> t) {
+SeqToRatio::process_one(boost::shared_ptr<Tuple>& t) {
 
-  if ( cur_url.size() == 0) {
+  bool emitted = false;
+  if ( cur_url.size() == 0) {  //no URLs seen before
     cur_url = t->e(url_field).s_val();
-  }
-  else if ( cur_url != t->e(url_field).s_val()) {
-    if (targ_el) {
+  } 
+  else if ( cur_url != t->e(url_field).s_val()) {   //saw a change in URL
+    if (targ_el) {     
       Element * ratio = targ_el->add_e();
       ratio->set_d_val(jetstream::numeric(*targ_el, total_field) / total_val);
-      emit(targ_el);
+      t = targ_el; //emit
+      emitted = true;
     }
     // else shouldn't happen; there should have been at least match
     cur_url = "";
@@ -32,8 +34,10 @@ SeqToRatio::process(boost::shared_ptr<Tuple> t) {
   int response_code = t->e(respcode_field).i_val();
 
   if (response_code == 200 || !targ_el) {
-    targ_el = t;  
-  }  
+    targ_el = t;
+  }
+  if (!emitted)
+    t.reset();
 }
 
 
