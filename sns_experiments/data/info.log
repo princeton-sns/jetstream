@@ -1,0 +1,7 @@
+25:
+arye@sns48:/disk/local/jetstream$ bin/pyrunner.sh src/python/jetstream/examples/hist_test.py --controller 128.112.7.136:3456 -u 128.112.7.139 -g false -l /disk/local/jetstream_results/run_25.latencies.log --schedule_start 10 --schedule_increment 10 --schedule_wait 50000 --hist_size 10000 --no_cube --degrade_at_source
+
+26:
+/disk/local/jetstream$ bin/pyrunner.sh src/python/jetstream/examples/hist_test.py --controller 128.112.7.136:3456 -u 128.112.7.139 -g false -l /disk/local/jetstream_results/run_26.latencies.log --schedule_start 10 --schedule_increment 10 --schedule_wait 50000 --hist_size 10000 --no_cube --no_degrade
+
+python graph_bw.py data/jetstream_results.03.22.2013/coral_url_count_domain_analyze_288_nocap data/jetstream_results.03.22.2013/coral_url_count_domain_analyze_288_bwcap10_mr5 data/coral_url_count_domain_analyze_288_bwcap10_mr10 data/run_40 data/run_63_mr5_sample_steps1000
