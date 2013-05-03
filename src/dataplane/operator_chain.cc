@@ -128,13 +128,13 @@ OperatorChain::clone_from(boost::shared_ptr<OperatorChain> source) {
 void
 OperatorChain::upwards_metadata(jetstream::DataplaneMessage& m, jetstream::ChainMember* c) {
   int i = ops.size() -1;
-  for (; i >=0; ++i) {
+  for (; i >=0; --i) {
     if (ops[i].get() == c)
       break;
   }
   LOG_IF(WARNING, i < 0) << "Got meta from unknown chain source " << c->id_as_str()
             <<":" << m.Utf8DebugString();
-  for (; i >=0; ++i) {
+  for (; i >=0; --i) {
     if(ops[i])
       ops[i]->meta_from_downstream(m);
   }

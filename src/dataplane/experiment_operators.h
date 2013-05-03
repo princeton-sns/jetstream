@@ -207,9 +207,9 @@ class FixedRateQueue: public TimerSource {
   }
   
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
-//  virtual void start();
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
-//  virtual void stop();
+
+  virtual bool is_chain_end() {return true;}
 
   virtual int emit_data();
   
@@ -221,9 +221,6 @@ class FixedRateQueue: public TimerSource {
 //    return mon->queue_length();
     return q.size();
   }
-  
-//  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
-
   
 private:
   int ms_per_dequeue;

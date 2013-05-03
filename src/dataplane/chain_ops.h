@@ -29,6 +29,7 @@ class COperator: virtual public ChainMember {
   virtual void start() {}
 //  virtual void stop() {} //called only on strand
   virtual bool is_source() {return false;}
+  virtual bool is_chain_end() {return false;}
 
   operator_id_t & id() {return operID;}
   virtual std::string id_as_str() { return operID.to_string(); }

@@ -25,13 +25,16 @@ TimerSource::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple>
 
 void
 TimerSource::start() {
-  LOG(INFO) << "timer-based operator " << id() << " of type " << typename_as_str() << " starting";
-  running = true;
-  timer = node->get_timer();
-  st = node->get_new_strand();
-  chain->strand = st.get();
-  timer->expires_from_now(boost::posix_time::seconds(0));
-  timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
+  if (!running) {
+    LOG(INFO) << "timer-based operator " << id() << " of type " << typename_as_str() << " starting";
+    running = true;
+    timer = node->get_timer();
+    st = node->get_new_strand();
+  //  LOG_IF(FATAL, !st) << "Can't get strand from node. Is the node started?";
+    chain->strand = st.get();
+    timer->expires_from_now(boost::posix_time::seconds(0));
+    timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
+  }
 }
 
 void

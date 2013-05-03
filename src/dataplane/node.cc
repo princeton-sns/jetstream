@@ -571,13 +571,14 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<ChainMember> nextMember = chainOp;
 
       bool hit_end = false;
+      LOG(INFO) << "Chain starting from " << op_id;
       do {
         chain->add_member(nextMember);
         nextMember->add_chain(chain);
         
         const Edge* next_e = op_to_outedge[op_id];
         opToChain[op_id] = chain;
-        
+        LOG(INFO) << "adding " << nextMember->id_as_str();
         if (!next_e || !dynamic_cast<COperator*>(nextMember.get()) || hit_end) //hit a non-operator
           break;
         
@@ -588,8 +589,9 @@ Node::create_chains( const AlterTopo & topo,
           nextMember = xceiver;
         } else if (next_e->has_dest()) {
           op_id = operator_id_t(next_e->computation(), next_e->dest());
-          nextMember  = get_operator(op_id);
-          hit_end = nextMember->is_source();
+          shared_ptr<COperator> nextOp = get_operator(op_id);
+          nextMember = nextOp;
+          hit_end = nextOp->is_chain_end();
         } else if (next_e->has_dest_cube()) {
           nextMember = get_cube(next_e->dest_cube());
         } else {

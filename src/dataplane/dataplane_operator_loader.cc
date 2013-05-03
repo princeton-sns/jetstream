@@ -120,15 +120,13 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(FilterSubscriber);
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
-  /*
-  REGISTER_OP(CongestionController);
+//  REGISTER_OP(CongestionController);
   
   // Multi-round topk
   REGISTER_OP(MultiRoundSender);
   REGISTER_OP(MultiRoundCoordinator);
   
   REGISTER_OP(SeqToRatio);
-  */
   if(cache.count(name) < 1)
   {
     bool loaded = load(name);

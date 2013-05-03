@@ -213,9 +213,13 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+
 void
-MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
+MultiRoundCoordinator::start() {
   boost::lock_guard<tput_mutex> lock (mutex);
+  
+  chain = future_preds.begin()->second;
+  LOG_IF(FATAL, !chain) << "Can't have a coordinator with no chain";
 
   if (!destcube) {
     boost::shared_ptr<ChainMember> dest = chain->member(chain->members() -1);
@@ -226,10 +230,15 @@ MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
   
     string trimmed_name = sort_column[0] == '-' ? sort_column.substr(1) : sort_column;
     total_col = destcube->aggregate_offset(trimmed_name)[0]; //assume only one column for dimension
-    running = true;
   }
-  future_preds[chain.get()] = chain;
+  TimerSource::start();
+}
 
+void
+MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
+  LOG(INFO) << "Putting MultiRoundCoordinator into chain " << chain->chain_name();
+  boost::lock_guard<tput_mutex> lock (mutex);
+  future_preds[chain.get()] = chain;
 }
 
 void
@@ -447,7 +456,7 @@ MultiRoundCoordinator::start_phase_3() {
 
 
 int
-MultiRoundCoordinator::emit_batch() {
+MultiRoundCoordinator::emit_data() {
   boost::lock_guard<tput_mutex> lock (mutex);
 
   time_t now = time(NULL);

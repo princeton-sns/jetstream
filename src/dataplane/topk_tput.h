@@ -40,6 +40,10 @@ public:
     virtual void meta_from_downstream(DataplaneMessage & msg);
 
     void get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, int time_col);
+  
+    operator_err_t configure(std::map<std::string,std::string> &config) {
+      return NO_ERR;
+    }
 
 private:
   void end_of_round(int round_no);
@@ -99,13 +103,13 @@ class MultiRoundCoordinator: public TimerSource {
  
    virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-//   virtual void start();
+   virtual void start();
 //   virtual void stop();
 
    virtual void add_chain(boost::shared_ptr<OperatorChain>);
    virtual void chain_stopping(OperatorChain * c);
   
-   virtual int emit_batch();
+   virtual int emit_data();
   
    virtual void process( OperatorChain * c,
                          std::vector<boost::shared_ptr<Tuple> >& t,
