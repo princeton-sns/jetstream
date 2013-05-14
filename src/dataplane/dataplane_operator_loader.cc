@@ -70,24 +70,24 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 {
   //some special cases for internal operators
   REGISTER_OP(CFileRead);
-  REGISTER_OP(CExtendOperator);
+  REGISTER_OP(ExtendOperator);
   
     // These are base operators in base_operators
 
   REGISTER_OP(StringGrep);
-//  REGISTER_OP(GenericParse);
+  REGISTER_OP(GenericParse);
 //  REGISTER_OP(OrderingOperator); 
   REGISTER_OP(SampleOperator);
   REGISTER_OP(HashSampleOperator);
   REGISTER_OP(TRoundingOperator);
 //  REGISTER_OP(UnixOperator);
-//  REGISTER_OP(TimestampOperator); 
+  REGISTER_OP(TimestampOperator);
   REGISTER_OP(CSVParse);
   REGISTER_OP(CSVParseStrTk);
   REGISTER_OP(URLToDomain);
   REGISTER_OP(GreaterThan);
   REGISTER_OP(IEqualityFilter);
-//  REGISTER_OP(RatioFilter); 
+  REGISTER_OP(RatioFilter);
   REGISTER_OP(WindowLenFilter);
 
   //operators on quantiles
@@ -109,9 +109,8 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
 //  REGISTER_OP(MockCongestion);
   REGISTER_OP(FixedRateQueue);
   REGISTER_OP(ExperimentTimeRewrite);
-/*  REGISTER_OP(CountLogger);
+//  REGISTER_OP(CountLogger);
   REGISTER_OP(AvgCongestLogger);
-  */
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
   REGISTER_OP(LatencyMeasureSubscriber);

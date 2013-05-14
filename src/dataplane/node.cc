@@ -634,8 +634,8 @@ Node::establish_congest_policies( const AlterTopo & topo,
       policy->add_operator(id);
       op = get_operator(id);
       if (op) {
-        shared_ptr<OperatorChain> my_chain = opToChain[id];
-        if (!my_chain)
+        chain = opToChain[id];
+        if (!chain)
           throw operator_err_t("Operator " + id.to_string() + " not created in this Alter");
         op->set_congestion_policy(policy);
         operators_with_policies[id] = true;
@@ -645,8 +645,9 @@ Node::establish_congest_policies( const AlterTopo & topo,
       }
     }
     policy->set_congest_monitor( chain->congestion_monitor() );
-    
-    LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << chain->congestion_monitor()->name();
+    string mon_name = chain->congestion_monitor() ? chain->congestion_monitor()->name()
+        : "no-monitor";
+    LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << mon_name;
   }
   
   for (unsigned int i = 0; i < toStart.size(); ++i) {

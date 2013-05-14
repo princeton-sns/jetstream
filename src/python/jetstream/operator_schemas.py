@@ -10,7 +10,7 @@ class SchemaError(Exception):
 
 # Enumeration of already-defined operators
 class OpType (object):
-  FILE_READ = "FileRead"
+  FILE_READ = "CFileRead"
   STRING_GREP = "StringGrep"
   CSV_PARSE = "CSVParseStrTk"
   PARSE = "GenericParse"

@@ -79,6 +79,7 @@ CEachOperator::process ( OperatorChain * c,
     boost::shared_ptr<Tuple> t = tuples[i];
     process_one(t);
   }
+  meta_from_upstream(c, msg);
 }
 
 

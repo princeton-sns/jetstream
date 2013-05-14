@@ -123,7 +123,7 @@ void parse_with_types(Element * e, const std::string& s, char typecode);
  * configuration time. 
  
 */
-class CExtendOperator: public COperator {
+class ExtendOperator: public COperator {
  public:
   std::vector< Element > new_data;
 
@@ -142,16 +142,12 @@ class CExtendOperator: public COperator {
   
 GENERIC_CLNAME
 };
-/*
 
-class TimestampOperator: public DataPlaneOperator {
+class TimestampOperator: public CEachOperator {
  public:
   enum TimeType {S, MS, US};
-  virtual void process (boost::shared_ptr<Tuple> t);
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
-
-  
-  virtual ~TimestampOperator() {};
 
 GENERIC_CLNAME
 
@@ -159,7 +155,7 @@ GENERIC_CLNAME
   TimeType type;
 };
 
-
+/*
 // given concurrent callers, sends out an ordered stream
 class OrderingOperator: public DataPlaneOperator {
  private:

@@ -150,7 +150,7 @@ shared_ptr<RandEvalOperator> src_eval_pair(operator_config_t cfg, int BATCHES) {
   eval->configure(cfg);
   cfg.clear();
 
-  shared_ptr<CExtendOperator> extend(new CExtendOperator);
+  shared_ptr<ExtendOperator> extend(new ExtendOperator);
   cfg["types"] = "i";
   cfg["0"] = "1";
   extend->configure(cfg);  //add a dummy count

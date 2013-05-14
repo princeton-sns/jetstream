@@ -113,8 +113,8 @@ TEST_F(COperatorTest, FileRead) {
 
 TEST(COperator, CExtendOperator) {
 
-  shared_ptr<CExtendOperator>  ex_1(new CExtendOperator);
-  shared_ptr<CExtendOperator> ex_host(new CExtendOperator);
+  shared_ptr<ExtendOperator>  ex_1(new ExtendOperator);
+  shared_ptr<ExtendOperator> ex_host(new ExtendOperator);
   shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
   operator_config_t cfg;

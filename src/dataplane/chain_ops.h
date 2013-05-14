@@ -56,6 +56,7 @@ public:
                        DataplaneMessage&);
   
   virtual void process_one(boost::shared_ptr<Tuple> & t)  = 0;
+  virtual void meta_from_upstream(OperatorChain * c, DataplaneMessage & msg) {}
   
 
 };

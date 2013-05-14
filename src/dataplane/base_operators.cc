@@ -99,7 +99,7 @@ CFileRead::configure(map<string,string> &config) {
 }
 
 void
-CExtendOperator::mutate_tuple (Tuple& t) {
+ExtendOperator::mutate_tuple (Tuple& t) {
   for (u_int i = 0; i < new_data.size(); ++i) {
     Element * e = t.add_e();
     e->CopyFrom(new_data[i]);
@@ -108,7 +108,7 @@ CExtendOperator::mutate_tuple (Tuple& t) {
 
 /*
 void
-CExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
+ExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {
   mutate_tuple(oldV);
   mutate_tuple(*newV);
   emit(oldV, newV);
@@ -116,7 +116,7 @@ CExtendOperator::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, cons
 
 
 operator_err_t
-CExtendOperator::configure (std::map<std::string,std::string> &config) {
+ExtendOperator::configure (std::map<std::string,std::string> &config) {
 
   string field_types = boost::to_upper_copy(config["types"]);
   static boost::regex re("[SDI]+");
@@ -664,7 +664,6 @@ UnixOperator::emit_1() {
 }*/
 
 
-/*
 operator_err_t
 TimestampOperator::configure (std::map<std::string,std::string> &config) {
   if("s" == config["type"])
@@ -679,7 +678,7 @@ TimestampOperator::configure (std::map<std::string,std::string> &config) {
 }
 
 void
-TimestampOperator::process (boost::shared_ptr<Tuple> t) {
+TimestampOperator::process_one (boost::shared_ptr<Tuple>& t) {
   Element * e = t->add_e();
   if(type == S) {
     sec_t time = get_sec();
@@ -693,9 +692,7 @@ TimestampOperator::process (boost::shared_ptr<Tuple> t) {
     usec_t time = get_usec();
     e->set_d_val((double)time);
   }
-  emit(t);
 }
-*/
 
 
 void
@@ -856,8 +853,8 @@ const string CSVParse::my_type_name("CSVParse operator");
 const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
-const string CExtendOperator::my_type_name("Extend operator");
-//const string TimestampOperator::my_type_name("Timestamp operator");
+const string ExtendOperator::my_type_name("Extend operator");
+const string TimestampOperator::my_type_name("Timestamp operator");
 //const string OrderingOperator::my_type_name("Ordering operator");
 
 const string SampleOperator::my_type_name("Sample operator");

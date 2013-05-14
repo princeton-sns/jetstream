@@ -311,6 +311,8 @@ FixedRateQueue::emit_data() {
 void
 ExperimentTimeRewrite::process_one(boost::shared_ptr<Tuple>& t) {
 
+  LOG_IF(FATAL, field >= t->e_size()) << "Can't access field " << field << " of "
+    << fmt(*t)<< "  E-size is " << t->e_size() << ".";
   Element * e = t->mutable_e(field);
   double old_ts = 0;
   if (e->has_d_val()) {
@@ -401,31 +403,30 @@ CountLogger::configure(std::map<std::string,std::string> &config) {
 }
 
 void
-AvgCongestLogger::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
+AvgCongestLogger::meta_from_upstream(OperatorChain * c, DataplaneMessage & msg) {
   if ( msg.type() == DataplaneMessage::END_OF_WINDOW) {
     boost::lock_guard<boost::mutex> lock (mutex);
-    window_for[pred] = msg.window_length_ms();
+    window_for[c] = msg.window_length_ms();
     
     if (msg.has_filter_level())
-      sample_lev_for[pred] = msg.filter_level();
+      sample_lev_for[c] = msg.filter_level();
     
     if (msg.tput_r2_threshold())
       err_bound += msg.tput_r2_threshold();
   }
-  DataPlaneOperator::meta_from_upstream(msg, pred); //delegate to base class
 }
 
 void
 AvgCongestLogger::start() {
   running = true;
-  timer = get_timer();
+//  timer = get_timer();
   timer->expires_from_now(boost::posix_time::millisec(report_interval));
   timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
 
 }
 
 void
-AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
+AvgCongestLogger::process_one(boost::shared_ptr<Tuple>& t) {
   
   {
     boost::lock_guard<boost::mutex> lock (mutex);
@@ -444,15 +445,17 @@ AvgCongestLogger::process(boost::shared_ptr<Tuple> t) {
     //release lock here
   }
   
-  emit(t);
 }
 
 
 void
 AvgCongestLogger::stop() {
   boost::lock_guard<boost::mutex> lock (mutex);
-  running = false;
-  timer->cancel();
+  if (running) {
+    running = false;
+    timer->cancel();
+    timer.reset();
+  }
 }
 
 void
@@ -462,7 +465,7 @@ AvgCongestLogger::report() {
   if ( running ) {
     if (window_for.size() > 0) {
       unsigned total_windows_secs = 0;
-      map<operator_id_t, unsigned>::iterator it = window_for.begin();
+      map<OperatorChain *, unsigned>::iterator it = window_for.begin();
       for ( ; it != window_for.end(); ++it) {
         total_windows_secs += it->second;
       }
@@ -478,7 +481,7 @@ AvgCongestLogger::report() {
       
       string maybe_sample_stats = "";
       double total_sample_ratios = 0;
-      map<operator_id_t, double>::iterator sample_it = sample_lev_for.begin();
+      map<OperatorChain *, double>::iterator sample_it = sample_lev_for.begin();
       for ( ; sample_it != sample_lev_for.end(); ++sample_it) {
         total_sample_ratios += sample_it->second;
       }
