@@ -292,6 +292,8 @@ class AvgCongestLogger: public CEachOperator {
 
   void report();
 
+  virtual bool is_source() {return true;}
+
 
  private:
   std::map<OperatorChain *, unsigned> window_for;

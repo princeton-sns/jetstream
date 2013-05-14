@@ -247,6 +247,8 @@ DataplaneConnManager::created_chain (shared_ptr<OperatorChain> dest) {
     string op_id = dest->member(0)->id_as_str();
     map<string, vector<PendingConn> >::iterator pending_conn = pendingConns.find(op_id);
     if (pending_conn != pendingConns.end()) {
+      LOG(INFO) << "Found match for pending chain " << op_id;
+
       vector< PendingConn > & conns = pending_conn->second;
       for (u_int i = 0; i < conns.size(); ++i) {
         shared_ptr<OperatorChain> newchain = shared_ptr<OperatorChain>(new OperatorChain);
@@ -258,6 +260,7 @@ DataplaneConnManager::created_chain (shared_ptr<OperatorChain> dest) {
     }
   }
 }
+
 void
 DataplaneConnManager::close() {
   lock_guard<boost::recursive_mutex> lock (incomingMapMutex);

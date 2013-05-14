@@ -604,8 +604,8 @@ Node::create_chains( const AlterTopo & topo,
       } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
         sourcelessChain[ toStart[i] ] = chain;
-        dataConnMgr.created_chain(chain);
       }
+      dataConnMgr.created_chain(chain);
     }
   }
   LOG(INFO) << chain_count << " chains built";
