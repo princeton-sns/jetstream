@@ -310,9 +310,8 @@ FixedRateQueue::emit_data() {
 
 void
 ExperimentTimeRewrite::process_one(boost::shared_ptr<Tuple>& t) {
-
   LOG_IF(FATAL, field >= t->e_size()) << "Can't access field " << field << " of "
-    << fmt(*t)<< "  E-size is " << t->e_size() << ".";
+    << fmt(*t)<< "  E-size is " << t->e_size() << ".\n" << t->Utf8DebugString();
   Element * e = t->mutable_e(field);
   double old_ts = 0;
   if (e->has_d_val()) {

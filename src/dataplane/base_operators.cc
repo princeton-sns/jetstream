@@ -66,9 +66,9 @@ CFileRead::emit_data() {
   }
 
 
-  LOG(INFO) << "Calling chain::process, " << tuples.size() << " tuples";
+//  LOG(INFO) << "Calling chain::process, " << tuples.size() << " tuples";
   chain->process(tuples, no_meta);
-  LOG(INFO) << "Returned from chain::process";
+//  LOG(INFO) << "Returned from chain::process";
   
   return in_file.good() ? 1000 : -1;
 }

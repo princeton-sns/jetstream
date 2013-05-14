@@ -114,6 +114,12 @@ OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, Datapl
 
    for (int i = 1; i < ops.size(); ++i) {
      ChainMember * op = ops[i].get();
+/*
+     int nulls = 0;
+     for (int j = 0; j < data_buf.size(); ++j)
+      if (!data_buf[j])
+        nulls++;
+     LOG(INFO) << "Applying operator " << op->id_as_str() << " " << nulls << "empty cells"; */
      op->process(this, data_buf, maybe_meta);
    }
 }

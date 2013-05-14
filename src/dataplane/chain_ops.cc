@@ -76,8 +76,9 @@ CEachOperator::process ( OperatorChain * c,
                           DataplaneMessage& msg) {
   
   for (int i =0 ; i < tuples.size(); ++i ) {
-    boost::shared_ptr<Tuple> t = tuples[i];
-    process_one(t);
+//    boost::shared_ptr<Tuple> t = ;
+    if(tuples[i])
+      process_one(tuples[i]);
   }
   meta_from_upstream(c, msg);
 }

@@ -350,6 +350,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   conn->recv_data_msg(boost::bind(&RemoteDestAdaptor::conn_ready_cb, 
 				  this, _1, _2), err);
   conn->send_msg(data_msg, err);
+  LOG(INFO) << "Chain connect sent";
 }
 
 void

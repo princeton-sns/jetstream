@@ -80,7 +80,7 @@ namespace jetstream {
 inline void add_one_el(std::ostringstream& buf, const Element& el) {
   bool had_el = false;
   if (el.has_s_val()) {
-    buf << el.s_val();
+    buf << '"'<<el.s_val()<< '"';
     had_el = true;
   }
   if (el.has_d_val()) {
