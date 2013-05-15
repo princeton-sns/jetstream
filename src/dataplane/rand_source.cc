@@ -149,6 +149,8 @@ RandSourceOperator::emit_data()  {
       position_in_slice -= rand_data[cur_idx];
       cur_idx ++;
     }
+    LOG_IF(FATAL, cur_idx >= rand_data.size()) << "cur_idx has gotten too big. Sent "
+         << tuples_this_sec << " in sec so far.";
     t->add_e()->set_s_val(rand_labels[cur_idx]);
     position_in_slice += incr;
  //   cout << tuples_sent << ": position " << position_in_slice<< " and idx = " << cur_idx << endl;
