@@ -78,7 +78,7 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "Cubes must have at least one dimension"
       if cube.name in validIDs.keys():
-        return "Cube %s was defined more than once" % (cube.name)
+        print "Cube %s was defined more than once. This is not fatal." % (cube.name)
       validIDs[cube.name] = None
 
     for edge in altertopo.edges:

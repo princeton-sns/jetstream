@@ -41,39 +41,38 @@ class ClientDataReader():
     Usage: see int_tests/client_reader_test.py
   """
 
-  # TODO get SO_REUSEADDR or SO_LINGER to work
-  portno = randint(9000, 65536)
   DoneSentinel = None
 
   def __init__(self, raw_data=False):
     self.HOST = 'localhost'
-    self.PORT = ClientDataReader.portno
-    self.raw_data = bool(raw_data)
-    # allow multiple ClientDataReaders?
-    ClientDataReader.portno += 1
+    self.is_finished = False
+    self.tuples = Queue.Queue()
+    self.tuples_received = 0
+ 
+#  @property
+#  def tuples_received(self): 
+#   return len(self.tuples)
 
-  @staticmethod
-  def bound_socket(addr, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((addr, port))
-    return s
+#  @property   
+#  def is_finished(self):
+#    return self.finished_flag
 
   def prep_to_receive_data(self):
     """ Start collecting tuples from the wire. Return a NodeID corresponding to
         a port on this client. """
     addr = NodeID()
-    addr.address = self.HOST
-    addr.portno = self.PORT
 
-    self.listen_sock = self.bound_socket(self.HOST, self.PORT)
+    self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.listen_sock.bind((self.HOST, 0))
+    bound_id = self.listen_sock.getsockname()
+    addr.address, addr.portno = bound_id
 
     # only one connecting sender for now TODO this probably needs to change
     nSenders = 0
     self.listen_sock.listen(nSenders)
 
     # TODO should this be bounded? probably not critical.
-    self.tuples = Queue.Queue()
 
     # spawn a thread to listen/receive tuples (the producer)
     self.receiver_thread = threading.Thread(target=self.receive_tuples)
@@ -101,26 +100,27 @@ class ClientDataReader():
     response.type = DataplaneMessage.CHAIN_READY
     sock_send_pb(self.conn_sock, response)
 
-  # get stream of tuples and stick them in a list: method executed by producer
-  # thread.
+  # get stream of tuples and stick them in a list.
+  # This is the main method executed by the thread associated with the connection.
   def receive_tuples(self):
     self.accept_sender()
     self.chain_establish()
 
-    while 1:
+    while True:
       mesg = sock_read_data_pb(self.conn_sock)
       if mesg.type == DataplaneMessage.DATA:
         # TODO is this redundant?
-        assert mesg.data is not ClientDataReader.DoneSentinel
         assert mesg.data is not None
   
         # default is to map to each tuple individually
-        if not self.raw_data:
-          map(self.tuples.put, mesg.data)
-        else:
-          self.tuples.put(mesg.data)
+#        if not self.raw_data:
+        map(self.tuples.put, mesg.data)
+        self.tuples_received += len(mesg.data)
+#        else:
+#          self.tuples.put(mesg.data)
 
       elif mesg.type == DataplaneMessage.NO_MORE_DATA:
+        self.is_finished = True
         self.tuples.put(ClientDataReader.DoneSentinel)
         break
       else:

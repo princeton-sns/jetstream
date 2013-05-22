@@ -103,47 +103,5 @@ CFilterOperator::process(OperatorChain * chain,
 }
   
 
-
-operator_err_t
-SendK::configure (std::map<std::string,std::string> &config) {
-  if (config["k"].length() > 0) {
-    // stringstream overloads the '!' operator to check the fail or bad bit
-    if (!(stringstream(config["k"]) >> k)) {
-      LOG(WARNING) << "invalid number of tuples: " << config["k"] << endl;
-      return operator_err_t("Invalid number of tuples: '" + config["k"] + "' is not a number.") ;
-    }
-  } else {
-    // Send one tuple by default
-    k = 1;
-  }
-  send_now = config["send_now"].length() > 0;
-  exit_at_end = config["exit_at_end"].length() == 0 || config["exit_at_end"] != "false";
-  
-  n = 0; // number sent
-  
-  return NO_ERR;
-}
-
-
-int
-SendK::emit_data() {
-
-  vector<shared_ptr<Tuple> > tuples;
-  DataplaneMessage no_meta;
-
-  t = boost::shared_ptr<Tuple>(new Tuple);
-  t->add_e()->set_s_val("foo");
-  t->set_version(n);
-  tuples.push_back(t);
-  chain->process(tuples, no_meta);
-//  cout << "sendk. N=" << n<< " and k = " << k<<endl;
-  return (++n < k) ? 0 : -1;
-}
-
-
-
-const string SendK::my_type_name("SendK operator");
-
-
 }
 

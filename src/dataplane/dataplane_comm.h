@@ -98,7 +98,7 @@ class RemoteDestAdaptor : public ChainMember {
   virtual bool is_source() {return false;}
   
   
-  virtual void no_more_tuples();
+  virtual void chain_stopping(OperatorChain * );
 
   virtual void meta_from_upstream(const DataplaneMessage & msg);
 

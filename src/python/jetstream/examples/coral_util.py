@@ -150,3 +150,11 @@ def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog, inter
   echo_op.instantiate_on(root_node)
   g.chain([central_cube, latency_measure_op, echo_op])
 
+
+def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
+  cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
+  cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
+  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])
+  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4])
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])

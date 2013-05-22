@@ -551,12 +551,16 @@ RemoteDestAdaptor::connection_broken () {
 }
 
 void
-RemoteDestAdaptor::no_more_tuples () {
-  if (!wait_for_chain_ready()) {
+RemoteDestAdaptor::chain_stopping (OperatorChain * ) {
+  
+  
+  if (!conn->is_connected())
+    return;
+/*  if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
 		 << ". Aborting no-more-data message send. Should queue/retry instead?";
     return;
-  }
+  }*/
   
   force_send();
 
@@ -584,12 +588,9 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
   }
 
   boost::system::error_code err;
-  if( msg_in.type() == DataplaneMessage::NO_MORE_DATA) {
-    no_more_tuples();
-    return;
-  }
+  LOG_IF(FATAL, msg_in.type() == DataplaneMessage::NO_MORE_DATA)  << "Shouldn't get no-more-data as routine meta";
 #ifdef ACK_WINDOW_END
-  else if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
+  if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
       msg_in.has_window_length_ms()) {
     if (remote_processing->get_window_start() > 0) { //data in window
       DataplaneMessage msg_out;

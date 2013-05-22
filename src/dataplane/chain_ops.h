@@ -122,25 +122,6 @@ class TimerSource: public COperator {
 };
 
 
-/***
- * Operator for emitting a specified number of generic tuples.
- */
-class SendK: public TimerSource {
- public:
-  virtual operator_err_t configure(std::map<std::string,std::string> &config);
-  void reset() { n = 1; }
-
- protected:
-  virtual int emit_data();
-  boost::shared_ptr<Tuple> t;
-  u_int64_t k, n;  // Number of tuples to send and number sent, respectively
-  
-
-
-GENERIC_CLNAME
-};  
-
-
 }
 
 #endif /* defined(__JetStream__chain_ops__) */

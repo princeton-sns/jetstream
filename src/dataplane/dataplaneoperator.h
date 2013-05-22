@@ -201,6 +201,122 @@ class OperatorCleanup {
 };
 
 
+class xDummyReceiver: public DataPlaneOperator {
+ public:
+  std::vector< boost::shared_ptr<Tuple> > tuples;
+  bool store;
+
+  virtual void process(boost::shared_ptr<Tuple> t) {
+    if(store)
+      tuples.push_back(t);
+  }
+ 
+  virtual operator_err_t configure (std::map<std::string, std::string> & config){
+    if (config["no_store"].length() > 0)
+      store=false;
+    return NO_ERR;
+  }
+
+
+  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {}
+
+  
+  virtual std::string long_description() {
+      std::ostringstream buf;
+      buf << tuples.size() << " stored tuples.";
+      return buf.str();
+  }
+  
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
+  virtual ~xDummyReceiver() {}
+  xDummyReceiver(): store(true) {}
+  
+
+GENERIC_CLNAME
+};
+
+
+
+class RateRecordReceiver: public DataPlaneOperator {
+
+ protected:
+  volatile bool running;
+
+  boost::mutex mutex;
+  
+  boost::posix_time::ptime window_start;
+  
+  volatile long tuples_in_window;
+  volatile long bytes_in_window;
+
+  double bytes_per_sec;
+  double tuples_per_sec;
+
+  boost::shared_ptr<boost::thread> loopThread;
+
+
+ public:
+   RateRecordReceiver():
+     running(false), tuples_in_window(0),bytes_in_window(0) {}
+ 
+  virtual void process(boost::shared_ptr<Tuple> t);
+  
+  virtual std::string long_description();
+  
+  virtual void no_more_tuples() {} //don't exit at end; keep data available
+  
+  virtual void start();
+  virtual void stop();
+  void operator()();  // A thread that will loop while reading the file    
+
+
+GENERIC_CLNAME
+};
+
+
+/***
+ * Operator for artificially imposing congestion.
+ */
+class MockCongestion: public DataPlaneOperator {
+ public:
+  virtual void process(boost::shared_ptr<Tuple> t) {
+    emit(t);
+  }
+  virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {
+    return mon;
+  }
+
+  MockCongestion();
+
+  double congestion;
+
+private:
+  boost::shared_ptr<CongestionMonitor> mon;
+
+GENERIC_CLNAME
+};  
+
+
+class CountLogger: public DataPlaneOperator {
+  //logs the total counts going past
+ public:
+
+  CountLogger(): tally_in_window(0),field(0) {}
+  virtual void process(boost::shared_ptr<Tuple> t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
+ private:
+  unsigned tally_in_window;
+  unsigned field;
+
+
+GENERIC_CLNAME
+};  
+
+
+
 }
 
 #endif /* _dataplaneoperator_H_ */
