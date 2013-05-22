@@ -113,11 +113,8 @@ class ClientDataReader():
         assert mesg.data is not None
   
         # default is to map to each tuple individually
-#        if not self.raw_data:
         map(self.tuples.put, mesg.data)
         self.tuples_received += len(mesg.data)
-#        else:
-#          self.tuples.put(mesg.data)
 
       elif mesg.type == DataplaneMessage.NO_MORE_DATA:
         self.is_finished = True

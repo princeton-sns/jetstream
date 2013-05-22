@@ -235,7 +235,7 @@ def sock_send_pb(sock, pb):
 def sock_read_data_pb(sock):
   pbframe_len = sock.recv(4)
   unpacked_len = struct.unpack("!l", pbframe_len)[0]
-  print "Got data frame of length %d" % unpacked_len
+#  print "Got data frame of length %d" % unpacked_len
   # print "reading another %d bytes" % unpacked_len
   buf = sock.recv(unpacked_len)
   resp = DataplaneMessage()

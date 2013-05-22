@@ -78,7 +78,8 @@ public:
   void stop_async(close_cb_t cb);
   void do_stop(close_cb_t);
 
-  void unregister();
+  void unregister(); //removes the chain from the source operator. This might result in a
+      //garbage collect.
 
   const std::string& chain_name();  
   

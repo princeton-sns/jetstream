@@ -275,7 +275,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
     void cleanup(std::string id) {
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
-  
+ 
     void deferred_cleanup(std::string);
 
     void cleanup_incoming(boost::asio::ip::tcp::endpoint c) {

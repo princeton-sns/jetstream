@@ -287,7 +287,7 @@ DataplaneConnManager::close() {
   //TODO stop RDAs?
   VLOG(1) << "Dataplane communications are closed";
 }
-  
+
 
 RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       ConnectionManager &cm,
@@ -306,9 +306,10 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
     destOpId.task_id = e.dest();
     dest_as_str = destOpId.to_string();
   }
-  else {
+  else if (dest_as_edge.has_dest_cube()){
     dest_as_str = dest_as_edge.dest_cube();
-  }
+  } else
+    dest_as_str = "external on " + remoteAddr;
   
   cm.create_connection(remoteAddr, portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
@@ -531,7 +532,7 @@ RemoteDestAdaptor::do_send_unlocked() {
   
   if (err != 0) {
     //send failed
-    LOG(WARNING) << "Send failed; tearing down chain"; //; local end is " << pred->id_as_str();
+    LOG(WARNING) << "Send failed; tearing down chain to " << dest_as_str; //; local end is " << pred->id_as_str();
     connection_broken();
 //    pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
@@ -541,17 +542,22 @@ RemoteDestAdaptor::do_send_unlocked() {
 
 void
 RemoteDestAdaptor::connection_broken () {
+  if (is_stopping) //already stopping
+    return;
+  
   is_stopping = true;
   for(int i = 0; i < chains.size(); ++i) {
-    chains[i]->stop();
-    chains[i]->unregister();
+    if (chains[i]) {
+      chains[i]->stop();
+      chains[i]->unregister();
+    }
   }
   chains.clear();
   mgr.cleanup(dest_as_str);
 }
 
 void
-RemoteDestAdaptor::chain_stopping (OperatorChain * ) {
+RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
   
   
   if (!conn->is_connected())
@@ -561,6 +567,13 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * ) {
 		 << ". Aborting no-more-data message send. Should queue/retry instead?";
     return;
   }*/
+  is_stopping = true;
+  for (int i = 0; i < chains.size(); ++i) {
+    if (chains[i].get() == c) {
+      chains[i].reset(); //remove the chain from our cache. 
+      break;
+    }
+  } 
   
   force_send();
 
