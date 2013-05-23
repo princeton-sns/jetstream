@@ -68,7 +68,7 @@ StrandedSubscriber::emit_wrapper() {
       timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
       timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));
     } else {
-      LOG(INFO)<< "Subscriber exiting; should tear down";
+      LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
       chain->do_stop(no_op_v);
       chain.reset();
       cube->remove_subscriber(id());
@@ -88,13 +88,14 @@ OneShotSubscriber::emit_batch() {
 
   cube::CubeIterator it = querier.do_query();
 
+  LOG(INFO) << "one-shot querier found " << it.numCells() <<  " cells";
   vector< boost::shared_ptr<Tuple> > buffer;
   buffer.reserve(TUPLES_PER_BUFFER);
 //  DataplaneMessage no_msg;
   while ( it != cube->end()) {
     buffer.push_back( *it);
     it++;
-    if (buffer.size() > TUPLES_PER_BUFFER) {
+    if (buffer.size() >= TUPLES_PER_BUFFER) {
       chain->process(buffer);
       buffer.clear();
     }
@@ -103,8 +104,6 @@ OneShotSubscriber::emit_batch() {
   if (buffer.size() > 0)
     chain->process(buffer);
 
-
-  LOG(ERROR) << "Should stop subscriber here.";
   return -1;
 }
 
@@ -456,6 +455,7 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
 
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
+const string OneShotSubscriber::my_type_name("One-shot subscriber");
 
 
 } //end namespace

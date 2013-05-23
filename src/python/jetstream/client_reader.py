@@ -93,7 +93,8 @@ class ClientDataReader():
     if response.type == DataplaneMessage.CHAIN_CONNECT:
       self.respond_ready()
     else:
-      raise Exception("First received message was not CHAIN_CONNECT")
+      print "Got message '%s'" % response
+      raise Exception("First received message was not CHAIN_CONNECT. Was %d" % response.type)
 
   def respond_ready(self):
     response = DataplaneMessage()

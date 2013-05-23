@@ -510,7 +510,7 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<COperator> srcOperator = get_operator(src);
       
       if (!srcOperator) {
-        LOG(INFO) << "oplist is " << make_op_list() << ", no " << src.to_string();
+        LOG(INFO) << "No operator " << src.to_string() << ", oplist is:\n" << make_op_list();
         throw operator_err_t("unknown source operator " + src.to_string() + " for edge.");
       }
 
@@ -571,7 +571,7 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<ChainMember> nextMember = chainOp;
 
       bool hit_end = false;
-      LOG(INFO) << "Chain starting from " << op_id;
+      LOG(INFO) << "Found a chain starting from " << op_id;
       do {
         chain->add_member(nextMember);
         nextMember->add_chain(chain);

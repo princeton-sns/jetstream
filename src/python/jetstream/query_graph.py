@@ -410,6 +410,11 @@ def VariableCoarseningSubscriber(*args, **kwargs):
    op.type = OpType.VAR_TIME_SUBSCRIBE
    return op
 
+def OneShotSubscriber(g, filter, **kwargs):
+   op = TimeSubscriber(g, filter, 0, **kwargs)
+   op.type = OpType.ONE_SHOT_SUBSCRIBE
+   return op
+
 
 def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, interval_ms=1000):
    cfg = {"time_tuple_index" : str(time_tuple_index),

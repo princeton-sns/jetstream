@@ -193,7 +193,7 @@ class OneShotSubscriber : public jetstream::StrandedSubscriber {
 
     virtual int emit_batch(); 
 
- protected:
+GENERIC_CLNAME
 };
 
 } /* jetsream */

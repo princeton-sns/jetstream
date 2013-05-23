@@ -45,6 +45,7 @@ class OpType (object):
 
   TIME_SUBSCRIBE = "TimeBasedSubscriber"
   VAR_TIME_SUBSCRIBE = "VariableCoarseningSubscriber"
+  ONE_SHOT_SUBSCRIBE = "OneShotSubscriber"
 
   LATENCY_MEASURE_SUBSCRIBER = "LatencyMeasureSubscriber"
 

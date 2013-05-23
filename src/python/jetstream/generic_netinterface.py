@@ -237,7 +237,14 @@ def sock_read_data_pb(sock):
   unpacked_len = struct.unpack("!l", pbframe_len)[0]
 #  print "Got data frame of length %d" % unpacked_len
   # print "reading another %d bytes" % unpacked_len
-  buf = sock.recv(unpacked_len)
+  bufs = []
+  recved_bytes = 0
+  while recved_bytes < unpacked_len:
+    buf = sock.recv(unpacked_len - recved_bytes)
+    recved_bytes += len(buf)
+    bufs.append(buf)
+#  if len(buf) < unpacked_len:
+#    print "!!!!Only got %d bytes; expected %d" % (len(buf), unpacked_len)
   resp = DataplaneMessage()
-  resp.ParseFromString(buf)
+  resp.ParseFromString(''.join(bufs))
   return resp

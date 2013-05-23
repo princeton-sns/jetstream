@@ -497,9 +497,11 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
       out_buffer_msg.add_data()->MergeFrom(*t);
     }
     
-    if (msg.has_type() || this_buf_size > SIZE_TO_SEND) {
+    if (msg.has_type()) {
       do_send_unlocked();
       meta_from_upstream(msg); 
+    } else if (this_buf_size > SIZE_TO_SEND) {
+      do_send_unlocked();
     } else {
       if (buffer_was_empty) {
         timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
@@ -583,7 +585,7 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
   
   boost::system::error_code err;
   conn->send_msg(d, err);
-  LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes); queueing for teardown.";
+  LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
   
   conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   //need to wait until the close actually happens before returning, to avoid
@@ -595,11 +597,6 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
 
 void
 RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
-  if (!wait_for_chain_ready()) {
-    LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
-		 << ". Aborting meta message send. Should queue/retry instead?";
-    return;
-  }
 
   boost::system::error_code err;
   LOG_IF(FATAL, msg_in.type() == DataplaneMessage::NO_MORE_DATA)  << "Shouldn't get no-more-data as routine meta";
@@ -612,20 +609,17 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
       msg_out.set_timestamp(  remote_processing->get_window_start()  );
 //      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
       //we are on caller's thread so this is thread-safe.
-      force_send(); 
       conn->send_msg(msg_out, err);
       remote_processing->new_window_start(); //reset clock
     } else {
       LOG(INFO) << "end of window with no data";
       remote_processing->end_of_window(msg_in.window_length_ms(), 0);
-      force_send();
       conn->send_msg(msg_in, err);      
     }
   }
 #endif
   else {
     //we are on caller's thread so this is thread-safe.
-    force_send(); 
     conn->send_msg(msg_in, err);
   }
 }
