@@ -270,7 +270,8 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
   if (error) {
 //    LOG(WARNING) << "XXXXXX received_header Failing on error " << error.value() << " " << error.message();  
     receiving = false;
-    fail(error);
+    if (error != boost::system::errc::operation_canceled)
+      fail(error); //external close, no need for double-invoke of cleanup
     return;
   }
 

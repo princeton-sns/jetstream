@@ -87,10 +87,7 @@ class RemoteDestAdaptor : public ChainMember {
   RemoteDestAdaptor (DataplaneConnManager &n, ConnectionManager &cm,
                        boost::asio::io_service & iosrv, const jetstream::Edge&,
                      msec_t wait_for_conn);
-  virtual ~RemoteDestAdaptor() {
-    timer.cancel();
-    LOG(INFO) << "destructing RemoteDestAdaptor to " << dest_as_str;
- }
+  virtual ~RemoteDestAdaptor(); 
 
 //  virtual void process (boost::shared_ptr<Tuple> t, const operator_id_t src);
   virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
@@ -273,6 +270,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
     }
   
     void cleanup(std::string id) {
+//      LOG(INFO) << "deferring cleanup for " << id;
       strand.post (boost::bind(&DataplaneConnManager::deferred_cleanup,this, id));
     }
  

@@ -552,14 +552,14 @@ RemoteDestAdaptor::connection_broken () {
       chains[i]->unregister();
     }
   }
+  LOG(INFO) << "connection unexpectedly broken to " << dest_as_str << ", will tear down.";
   chains.clear();
   mgr.cleanup(dest_as_str);
 }
 
 void
 RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
-  
-  
+    
   if (!conn->is_connected())
     return;
 /*  if (!wait_for_chain_ready()) {
@@ -570,19 +570,20 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
   is_stopping = true;
   for (int i = 0; i < chains.size(); ++i) {
     if (chains[i].get() == c) {
-      chains[i].reset(); //remove the chain from our cache. 
+      chains[i].reset(); //remove the chain from our cache.
+//      active_chains --;
       break;
     }
   } 
   
   force_send();
-
+  timer.cancel();//we alredy pushed out all data
   DataplaneMessage d;
   d.set_type(DataplaneMessage::NO_MORE_DATA);
   
   boost::system::error_code err;
   conn->send_msg(d, err);
-  VLOG(1) << "sent last tuples from connection (total is " << conn->send_count() << "); waiting.";
+  LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes); queueing for teardown.";
   
   conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   //need to wait until the close actually happens before returning, to avoid
@@ -641,7 +642,7 @@ RemoteDestAdaptor::wait_for_chain_ready() {
     
     //      if (stopping)
     //         return;
-    if (!conn_established) {
+    if (!conn_established || is_stopping) {
       return false;
     } 
   }
@@ -656,6 +657,11 @@ RemoteDestAdaptor::long_description() {
     return buf.str();
 }
 
+RemoteDestAdaptor::~RemoteDestAdaptor() {
+  timer.cancel();
+  LOG(INFO) << "destructor for RemoteDestAdaptor to " << dest_as_str;
+}
+
 
 void
 DataplaneConnManager::deferred_cleanup(string id) {
@@ -667,7 +673,7 @@ DataplaneConnManager::deferred_cleanup(string id) {
     return;
   }
   assert(a);
-  
+  LOG(INFO) << "erasing / destructing adaptor to " << a->dest_as_str;
   if (!a->conn || !a->conn->is_connected()) {
     adaptors.erase(id);
   } else {
