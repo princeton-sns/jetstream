@@ -9,6 +9,19 @@ using namespace boost::asio::ip;
 #undef REPORT_BW
 
 
+IncomingConnectionState::IncomingConnectionState(boost::shared_ptr<ClientConnection> c,
+                          boost::shared_ptr<OperatorChain> d,
+                          boost::asio::io_service & i,
+                          DataplaneConnManager& m,
+                          operator_id_t srcOpID):
+      conn(c), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
+  dest = d;
+  string name = "local processing for remote from " + srcOpID.to_string();
+  dest_side_congest = boost::shared_ptr<WindowCongestionMonitor>
+    (new WindowCongestionMonitor(name));
+  chain_mon = d->congestion_monitor();
+}
+
 void
 IncomingConnectionState::no_more_tuples() {
   if (!dest)
@@ -53,7 +66,7 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
         register_congestion_recheck();
       }*/
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-
+      dest_side_congest->report_insert(NULL, data.size());
       dest->process(data, msg);
       
       /* FIXME CHAINS
@@ -64,13 +77,6 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
         old_data.MergeFrom(msg.old_val(i));
         dest->process_delta(old_data, new_data, remote_op);      
       }*/
-#ifdef ACK_EACH_PACKET
-      DataplaneMessage resp;
-      resp.set_type(DataplaneMessage::ACK);
-      resp.set_bytes_processed(msg.ByteSize());
-      boost::system::error_code err;
-      conn->send_msg(resp, err);
-#endif
       break;
     }
   case DataplaneMessage::NO_MORE_DATA:
@@ -92,6 +98,7 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
   case DataplaneMessage::END_OF_WINDOW:
     {
       dest->meta_from_upstream(msg); //note that msg is a const param; can't mutate
+      dest_side_congest->end_of_window(msg.window_length_ms());
 #ifdef ACK_WINDOW_END
       LOG_EVERY_N(INFO, 40) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
        << " and window size was " << msg.window_length_ms();
@@ -146,7 +153,7 @@ IncomingConnectionState::report_congestion_upstream(double level) {
 
 void
 IncomingConnectionState::register_congestion_recheck() {
-  timer.expires_from_now(boost::posix_time::millisec(100));
+  timer.expires_from_now(boost::posix_time::millisec(500));
   timer.async_wait(boost::bind(&IncomingConnectionState::congestion_recheck_cb, this, _1));
 }
 
@@ -156,16 +163,16 @@ IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& 
   if (error == boost::asio::error::operation_aborted)
     return;
 
-/* FIXME CHAINS
-  VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
-  double level = mon->capacity_ratio();
+//  VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
+  double downstream_level = chain_mon->capacity_ratio();
+  dest_side_congest->set_downstream_congestion(downstream_level);
   if (conn->is_connected()) {
-    report_congestion_upstream(level);
+    report_congestion_upstream(dest_side_congest->capacity_ratio());
 //  if (!mon->is_congested()) // only report if congestion went away
 //    report_congestion_upstream(0);
 //  else
     register_congestion_recheck();
-  }*/
+  }
 }
 
 
@@ -334,6 +341,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   std::ostringstream mon_name;
   mon_name << "connection to " << c->get_remote_endpoint();
 
+/*
 #ifdef ACK_EACH_PACKET
   remote_processing = boost::shared_ptr<QueueCongestionMonitor>(
     new QueueCongestionMonitor(mgr.maxQueueSize(), mon_name.str()));
@@ -342,9 +350,12 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   remote_processing = boost::shared_ptr<WindowCongestionMonitor>(
     new WindowCongestionMonitor(mon_name.str()));
 #endif
-//  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
   if(dest_as_edge.has_max_kb_per_sec())
      remote_processing->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
+
+//*/
+  conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
+  conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000);
 
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);
@@ -389,7 +400,7 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
       double status = msg.congestion_level();
       VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
-      remote_processing->set_downstream_congestion(status);
+      local_congestion->set_downstream_congestion(status);
       break;
     }
 
@@ -406,14 +417,6 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
 
     case DataplaneMessage::ACK:
     {    
-#ifdef ACK_EACH_PACKET
-      remote_processing->report_delete(0, msg.bytes_processed());
-#endif
-#ifdef ACK_WINDOW_END
-      remote_processing->end_of_window(msg.window_length_ms(), msg.timestamp());
-      reporter.sending_a_tuple(0);
-      //TODO should track time more carefully here to avoid confusion on overlapped windows
-#endif
       break;
     }
   
@@ -444,7 +447,6 @@ RemoteDestAdaptor::process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, co
   {
     size_t sz = oldV.ByteSize() + newV->ByteSize();
     reporter.sending_a_tuple(sz);
-    remote_processing->report_insert(0, sz);
 
     unique_lock<boost::mutex> lock(mutex); //lock around buffers
     out_buffer_msg.set_type(DataplaneMessage::DATA); //TODO should be delta?
@@ -492,7 +494,7 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
         continue;
       size_t sz = t->ByteSize();
       reporter.sending_a_tuple(sz);
-      remote_processing->report_insert(0, sz);
+//      remote_processing->report_insert(0, sz);
       this_buf_size += sz;
       out_buffer_msg.add_data()->MergeFrom(*t);
     }
@@ -615,13 +617,16 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
       LOG(INFO) << "end of window with no data";
       remote_processing->end_of_window(msg_in.window_length_ms(), 0);
       conn->send_msg(msg_in, err);      
-    }
+    } 
   }
-#endif
   else {
+#endif
+
     //we are on caller's thread so this is thread-safe.
     conn->send_msg(msg_in, err);
+#ifdef ACK_WINDOW_END
   }
+#endif
 }
 
 bool
