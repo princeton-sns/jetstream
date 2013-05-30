@@ -115,8 +115,8 @@ def  display_respcode_results(result_readers):
 def make_time_query_graph(g, node):
   print "computing counts by time"
   pull_from_local = get_simple_qgraph(g,node)
-  pull_from_local.set_cfg("rollup_levels", "9,0,0")  #roll up everything but response code
-        # Rollup level 8 = every-five-seconds; 9 = all data
+  pull_from_local.set_cfg("rollup_levels", "8,0,0")  #roll up everything but response code
+        # Rollup level 8 = every-five-seconds; 9 = by second
   return pull_from_local
 
 def  display_time_results(result_readers):
