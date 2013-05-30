@@ -45,7 +45,7 @@ TimerSource::emit_wrapper() {
       timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
       timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
     } else {
-      LOG(INFO)<< "EOF; should tear down";
+      LOG(INFO)<< "Source " << id() << " has no more tuples; will tear down";
       running = false;
       chain->do_stop(no_op_v); // on thread, can call this
       chain.reset();

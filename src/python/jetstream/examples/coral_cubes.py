@@ -46,7 +46,7 @@ def get_graph(node, options):
   csvp = jsapi.CSVParse(g, coral_types)
   csvp.set_cfg("discard_off_size", "true")
   round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
-  round.set_cfg("wait_for_catch_up", "true")
+  round.set_cfg("wait_for_catch_up", "false")
   f.instantiate_on(node)
   
   local_raw_cube = g.add_cube("local_records")

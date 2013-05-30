@@ -104,7 +104,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 
 };
 
-const std::string jetstream::DataCube::my_tyepename("data cube");
+const std::string jetstream::DataCube::my_tyepename("Data Cube");
 
 void DataCube::process(boost::shared_ptr<Tuple> t) {
 //  LOG(INFO) << "processing" << fmt(*t);

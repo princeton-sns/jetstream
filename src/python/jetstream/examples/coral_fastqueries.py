@@ -36,6 +36,12 @@ def main():
   elif options.mode == "counts":
     make_graph = make_counts_query_graph
     display_results = display_respcode_results
+  elif options.mode == "by_time":
+    make_graph = make_time_query_graph
+    display_results = display_time_results
+  elif options.mode == "all":
+    make_graph = get_simple_qgraph
+    display_results = display_all_results
   else:
     print "Unknown mode %s" % options.mode
     sys.exit(0)
@@ -56,8 +62,8 @@ def main():
   
   completed = 0
   t = 0
-  MS_PER_TICK = 100
-  TIME_TO_WAIT = 10  # seconds
+  MS_PER_TICK = 20
+  TIME_TO_WAIT = 20  # seconds
   TICKS_TO_WAIT = 1000 * TIME_TO_WAIT / MS_PER_TICK
   while t < TICKS_TO_WAIT and completed < num_nodes:
     time.sleep( MS_PER_TICK / 1000.0 )
@@ -76,17 +82,21 @@ def make_trivial_graph(g, node):
   return echoer
 
 
-def make_counts_query_graph(g, node):
-  print "returning total counts by response code"
-
+def get_simple_qgraph(g, node):
   cube = g.add_cube("local_records")
   cube.instantiate_on(node)
   define_schema_for_raw_cube (cube)
   cube.set_overwrite(False)
   
   pull_from_local = jsapi.OneShotSubscriber(g, filter={})
-  pull_from_local.set_cfg("rollup_levels", "0,1,0")  #roll up everything but response code
   g.connect(cube, pull_from_local)
+  return pull_from_local
+  
+
+def make_counts_query_graph(g, node):
+  print "returning total counts by response code"
+  pull_from_local = get_simple_qgraph(g,node)
+  pull_from_local.set_cfg("rollup_levels", "0,1,0")  #roll up everything but response code
   return pull_from_local
 
 
@@ -101,6 +111,36 @@ def  display_respcode_results(result_readers):
   for k,v in sorted(code_to_count.items()):
     print "Code %d:  %d" % (k, v)
 
+
+def make_time_query_graph(g, node):
+  print "computing counts by time"
+  pull_from_local = get_simple_qgraph(g,node)
+  pull_from_local.set_cfg("rollup_levels", "9,0,0")  #roll up everything but response code
+        # Rollup level 8 = every-five-seconds; 9 = all data
+  return pull_from_local
+
+def  display_time_results(result_readers):
+  time_to_count = defaultdict(int)
+
+  for reader in result_readers:
+    for req in reader:
+      time = req.e[0].t_val
+      val = req.e[5].i_val
+      time_to_count[time] += val
+  print "%d unique time values; %d requests" % (len(time_to_count),  sum(time_to_count.values()))
+  
+
+def  display_all_results(result_readers):
+  total = 0
+  for reader in result_readers:
+    for req in reader:
+      total += req.e[5].i_val
+  print "total of %d requests" % total
+
+  
+  
+#  for k,v in sorted(code_to_count.items()):
+#    print "Code %d:  %d" % (k, v)
 
 if __name__ == '__main__':
     main()
