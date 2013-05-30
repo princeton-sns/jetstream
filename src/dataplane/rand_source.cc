@@ -150,7 +150,8 @@ RandSourceOperator::emit_data()  {
       cur_idx ++;
     }
     LOG_IF(FATAL, cur_idx >= rand_data.size()) << "cur_idx has gotten too big. Sent "
-         << tuples_this_sec << " in sec so far.";
+         << tuples_this_sec << " in sec so far; cur_idx = " << cur_idx
+         << " and rand data size is " << rand_data.size();
     t->add_e()->set_s_val(rand_labels[cur_idx]);
     position_in_slice += incr;
  //   cout << tuples_sent << ": position " << position_in_slice<< " and idx = " << cur_idx << endl;
@@ -255,7 +256,7 @@ RandEvalOperator::process_one(boost::shared_ptr<Tuple>& t) {
 }
 
 std::string
-RandEvalOperator::long_description() {
+RandEvalOperator::long_description() const {
 //  boost::lock_guard<boost::mutex> lock (mutex);
 
   ostringstream out;

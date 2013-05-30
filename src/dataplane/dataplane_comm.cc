@@ -649,7 +649,7 @@ RemoteDestAdaptor::wait_for_chain_ready() {
 }
 
 string
-RemoteDestAdaptor::long_description() {
+RemoteDestAdaptor::long_description() const {
     std::ostringstream buf;
     buf << dest_as_str << " on " << remoteAddr <<
        (chainIsReady ? " (ready)" : " (waiting for dest)");
@@ -710,4 +710,5 @@ BWReporter::sending_a_tuple(size_t b) {
 
 
 const std::string RemoteDestAdaptor::generic_name("Remote connection");
+const std::string IncomingConnectionState::generic_name("Incoming");
 

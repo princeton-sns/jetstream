@@ -760,8 +760,7 @@ throw(operator_err_t)
   if (d == NULL) {
     throw operator_err_t("Loader failed to create operator of type " + op_typename);
   }
-  
-  d->id() = name;
+  d->set_id(name);
   d->set_node(this);
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);

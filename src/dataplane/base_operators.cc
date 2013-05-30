@@ -75,9 +75,9 @@ CFileRead::emit_data() {
 
 
 std::string
-CFileRead::long_description() {
+CFileRead::long_description() const {
   std::ostringstream buf;
-  buf << "reading" << f_name;
+  buf << "reading " << f_name;
   return buf.str();
 }
 
@@ -234,8 +234,8 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
 }
 
 std::string
-CSVParse::long_description() {
-  return "CSV parser";
+CSVParse::long_description() const {
+  return "";
 }
 
 
@@ -333,7 +333,7 @@ StringGrep::should_emit (const Tuple& t) {
 
 
 std::string
-StringGrep::long_description() {
+StringGrep::long_description() const {
   std::ostringstream buf;
   buf << "filtering for "<< re.str() << " in field " << fieldID;
   return buf.str();

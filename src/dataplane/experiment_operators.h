@@ -31,7 +31,7 @@ class DummyReceiver: public COperator {
 
 //  virtual void process_delta (OperatorChain * chain, Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
   
-  virtual std::string long_description() {
+  virtual std::string long_description() const {
       std::ostringstream buf;
       buf << tuples.size() << " stored tuples.";
       return buf.str();

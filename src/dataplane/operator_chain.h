@@ -20,7 +20,7 @@ typedef boost::function<void ()> close_cb_t;
 #define GENERIC_CLNAME  private: \
    const static std::string my_type_name; \
  public: \
-   virtual const std::string& typename_as_str() {return my_type_name;}
+   virtual const std::string& typename_as_str() const {return my_type_name;}
 
 
 class ChainMember {
@@ -29,7 +29,10 @@ class ChainMember {
    virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
    virtual ~ChainMember() {}
    virtual bool is_source() = 0;
-   virtual std::string id_as_str() = 0;
+   virtual std::string id_as_str() const = 0;
+   virtual const std::string& typename_as_str() const = 0; //return a name for the type
+   virtual std::string long_description() const {return "";}
+  
    virtual void add_chain(boost::shared_ptr<OperatorChain>) {}
    virtual void chain_stopping(OperatorChain * ) {}
    virtual boost::shared_ptr<CongestionMonitor> congestion_monitor() {

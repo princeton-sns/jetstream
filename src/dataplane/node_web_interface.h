@@ -17,6 +17,7 @@ class NodeWebInterface {
   Node &node;
   
   void make_base_page (std::ostream &buf);
+  void describe_chain(const OperatorChain& chain, std::ostream &buf);
   
   void operator= (const NodeWebInterface &) 
     { LOG(FATAL) << "cannot copy a ~NodeWebInterface"; }

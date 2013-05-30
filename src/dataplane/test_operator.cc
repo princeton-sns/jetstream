@@ -26,7 +26,7 @@ class TestOperator: public jetstream::COperator {
   
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) {}
   
-  virtual const std::string& typename_as_str() {
+  virtual const std::string& typename_as_str() const {
       return tname;
   }
 

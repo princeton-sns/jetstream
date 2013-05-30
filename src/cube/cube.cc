@@ -316,12 +316,12 @@ const jetstream::CubeSchema& DataCube::get_schema() {
 }
 
 
-std::string DataCube::id_as_str() {
+std::string DataCube::id_as_str() const {
   return name;
 }
 
 
-const std::string& DataCube::typename_as_str() {
+const std::string& DataCube::typename_as_str() const {
   return my_tyepename;
 }
 

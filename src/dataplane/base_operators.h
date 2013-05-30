@@ -22,7 +22,7 @@ class CFileRead: public TimerSource {
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual int emit_data();
 
-  virtual std::string long_description();
+  virtual std::string long_description() const;
 
  protected:
   std::string f_name; //name of file to read
@@ -39,7 +39,7 @@ class CSVParse: public CEachOperator {
   public:
     virtual operator_err_t configure (std::map<std::string,std::string> &config);
     virtual void process_one (boost::shared_ptr<Tuple>& t);
-    virtual std::string long_description();
+    virtual std::string long_description() const;
 
    protected:
       std::string types;
@@ -69,7 +69,7 @@ class StringGrep: public CFilterOperator {
   StringGrep() : fieldID (0) {}
   virtual operator_err_t configure (std::map<std::string,std::string> &config);
   virtual bool should_emit (const Tuple& t);
-  virtual std::string long_description();
+  virtual std::string long_description() const;
 
  protected:
   boost::regex re; // regexp pattern to match tuples against

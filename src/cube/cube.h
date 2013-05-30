@@ -140,11 +140,11 @@ class DataCube : public ChainMember {
     virtual size_t num_leaf_cells() const = 0;
     Tuple empty_tuple();
     const jetstream::CubeSchema& get_schema() ;
-    virtual std::string id_as_str() ;
-    virtual const std::string& typename_as_str() ;
+    virtual std::string id_as_str() const;
+    virtual const std::string& typename_as_str() const;
     virtual void no_more_tuples() {};
 
-    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const=0;
+    virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const =0;
 
     virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
     virtual std::vector<size_t> aggregate_offset(std::string) = 0;

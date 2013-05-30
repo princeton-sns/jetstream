@@ -140,7 +140,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
 
     virtual int emit_batch();
 
-    virtual std::string long_description();
+    virtual std::string long_description() const;
 
     virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
       congest_policy = p;

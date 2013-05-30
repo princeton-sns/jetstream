@@ -72,7 +72,7 @@ class Subscriber: public jetstream::COperator {
   
     const static std::string my_type_name;
   public:
-    virtual const std::string& typename_as_str() {
+    virtual const std::string& typename_as_str() const {
       return my_type_name;
     }
 };

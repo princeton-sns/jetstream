@@ -105,9 +105,9 @@ class RemoteDestAdaptor : public ChainMember {
   
   void connection_broken(); //called on a broken connection; does teardown.
   
-  virtual const std::string& typename_as_str() {return generic_name;};
-  virtual std::string long_description();
-  virtual std::string id_as_str() {return long_description();}
+  virtual const std::string& typename_as_str() const {return generic_name;};
+  virtual std::string long_description() const;
+  virtual std::string id_as_str() const {return long_description();}
 
   
   private:
@@ -182,15 +182,20 @@ public:
     close_async();
   }
   
-  virtual std::string id_as_str() {
+  virtual std::string id_as_str() const {
     std::ostringstream o;
-    o << "Incoming connection from " << remote_op;
+    o << "Connection from " << remote_op;
     return o.str();
   }
   
+  virtual const std::string& typename_as_str() const {
+    return generic_name; 
+  }; //return a name for the type
+  
+  
   private:
    void no_more_tuples();//  called on error to do teardown
-  
+   const static std::string generic_name;
   
 };
 
@@ -299,7 +304,6 @@ Internally, we identify endpoints by a string consisting of either an operator I
     std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   
 };
-
 
 }
 

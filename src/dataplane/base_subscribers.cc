@@ -380,7 +380,7 @@ TimeBasedSubscriber::emit_batch() {
 
 
 std::string
-TimeBasedSubscriber::long_description() {
+TimeBasedSubscriber::long_description() const {
 //  boost::lock_guard<boost::mutex> lock (mutex);
 
   ostringstream out;

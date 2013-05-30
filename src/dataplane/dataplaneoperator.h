@@ -22,7 +22,7 @@
 #define GENERIC_CLNAME  private: \
    const static std::string my_type_name; \
  public: \
-   virtual const std::string& typename_as_str() {return my_type_name;}
+   virtual const std::string& typename_as_str() const {return my_type_name;}
 
 
 namespace jetstream {
@@ -34,7 +34,7 @@ class TupleSender {
   public:
     virtual void meta_from_downstream(const DataplaneMessage & msg) = 0;
     virtual void chain_is_broken() = 0;
-    virtual std::string id_as_str() = 0;
+    virtual std::string id_as_str() const = 0;
   
   protected:
     boost::shared_ptr<TupleReceiver> dest;
@@ -56,10 +56,10 @@ class TupleReceiver {
   }
 
   virtual ~TupleReceiver() {}
-  virtual const std::string& typename_as_str() = 0; //return a name for the type
-  virtual std::string id_as_str() = 0;
+  virtual const std::string& typename_as_str() const = 0; //return a name for the type
+  virtual std::string id_as_str() const = 0;
     /** Return a longer description of the operator. Should NOT include the typename*/
-  virtual std::string long_description() {return "";}
+  virtual std::string long_description() const {return "";}
 
   virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) = 0;
 
@@ -123,7 +123,7 @@ class DataPlaneOperator : public virtual TupleReceiver, public virtual TupleSend
   
   /** A variety of (self-explanatory) debugging aids and metadata */
   operator_id_t & id() {return operID;}
-  virtual std::string id_as_str() { return operID.to_string(); }
+  virtual std::string id_as_str() const { return operID.to_string(); }
   int emitted_count() { return tuplesEmitted;}
   
     /** This method will be called on every operator, before start() and before
@@ -221,7 +221,7 @@ class xDummyReceiver: public DataPlaneOperator {
   virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred) {}
 
   
-  virtual std::string long_description() {
+  virtual std::string long_description() const {
       std::ostringstream buf;
       buf << tuples.size() << " stored tuples.";
       return buf.str();
@@ -243,7 +243,7 @@ class RateRecordReceiver: public DataPlaneOperator {
  protected:
   volatile bool running;
 
-  boost::mutex mutex;
+  mutable boost::mutex mutex;
   
   boost::posix_time::ptime window_start;
   
@@ -262,7 +262,7 @@ class RateRecordReceiver: public DataPlaneOperator {
  
   virtual void process(boost::shared_ptr<Tuple> t);
   
-  virtual std::string long_description();
+  virtual std::string long_description() const;
   
   virtual void no_more_tuples() {} //don't exit at end; keep data available
   

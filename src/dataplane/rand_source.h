@@ -62,7 +62,7 @@ class RandEvalOperator: public CEachOperator {
   RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),
       total_last_window(0), old_data(0), results_out(&std::cout), total_in_distrib(0) {}
 
-  virtual std::string long_description();
+  virtual std::string long_description() const;
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual ~RandEvalOperator();
 
