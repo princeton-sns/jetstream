@@ -132,7 +132,7 @@ class ExtendOperator: public COperator {
   virtual void process(OperatorChain * chain,
                        std::vector<boost::shared_ptr<Tuple> > & tuples,
                        DataplaneMessage& m) {
-    for (int i = 0; i < tuples.size(); ++i)
+    for (unsigned i = 0; i < tuples.size(); ++i)
       mutate_tuple(*(tuples[i]));
   }
   

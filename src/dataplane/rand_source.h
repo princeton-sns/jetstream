@@ -25,10 +25,10 @@ class RandSourceOperator: public TimerSource {
   
   int rate_per_sec;
   int tuples_this_sec;
-  int cur_idx;
+  unsigned cur_idx;
   double position_in_slice; // used in sequential mode.
 
-  int start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min
+  unsigned start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min
   double accum;  //the sum of labels[0]...labels[start_idx]
   int wait_per_batch; //ms
   int next_version_number;

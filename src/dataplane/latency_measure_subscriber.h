@@ -39,7 +39,7 @@ class LatencyMeasureSubscriber: public jetstream::StrandedSubscriber {
     virtual int emit_batch();  // A thread that will loop
 
     virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > & batch, DataplaneMessage&){
-      for (int i =0; i < batch.size(); ++i)
+      for (unsigned i =0; i < batch.size(); ++i)
         process_c(batch[i]);
       //emit(t);
     }

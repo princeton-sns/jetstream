@@ -84,7 +84,7 @@ OperatorChain::do_stop(close_cb_t cb) {
   if (ops.size() > 0 && ops[0])
     ops[0]->chain_stopping(this);
 
-  for (int i = 1; i < ops.size(); ++i) {
+  for (unsigned i = 1; i < ops.size(); ++i) {
     ops[i]->chain_stopping(this);
   }
   LOG(INFO) << " called stop everywhere; invoking cb";
@@ -112,7 +112,7 @@ OperatorChain::congestion_monitor() {
 void
 OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, DataplaneMessage& maybe_meta) {
 
-   for (int i = 1; i < ops.size(); ++i) {
+   for (unsigned i = 1; i < ops.size(); ++i) {
      ChainMember * op = ops[i].get();
 /*
      int nulls = 0;
@@ -126,7 +126,7 @@ OperatorChain::process(std::vector<boost::shared_ptr<Tuple> > & data_buf, Datapl
 
 void
 OperatorChain::clone_from(boost::shared_ptr<OperatorChain> source) {
-  for (int i = 0; i < source->ops.size(); ++i) {
+  for (unsigned i = 0; i < source->ops.size(); ++i) {
     ops.push_back(source->ops[i]);
   }
 }

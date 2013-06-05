@@ -32,7 +32,7 @@ DummyReceiver::process( OperatorChain * chain,
   if(store) {
     size_t cur_sz = tuples.size();
     tuples.reserve(cur_sz + in_t.size());
-    for (int i = 0; i < in_t.size(); ++i)
+    for (unsigned i = 0; i < in_t.size(); ++i)
       tuples.push_back(in_t[i]);
   }
 }
@@ -213,7 +213,7 @@ FixedRateQueue::process (OperatorChain * chain,
                           std::vector<boost::shared_ptr<Tuple> > & tuples,
                           DataplaneMessage& marker) {
   boost::lock_guard<boost::mutex> lock (mutex);
-  for (int i = 0; i < tuples.size(); ++i) {
+  for (unsigned i = 0; i < tuples.size(); ++i) {
     shared_ptr<Tuple> t = tuples[i];
     if (!t)
       continue;
@@ -261,7 +261,7 @@ FixedRateQueue::emit_data() {
 
 void
 ExperimentTimeRewrite::process_one(boost::shared_ptr<Tuple>& t) {
-  LOG_IF(FATAL, field >= t->e_size()) << "Can't access field " << field << " of "
+  LOG_IF(FATAL, field >= unsigned(t->e_size())) << "Can't access field " << field << " of "
     << fmt(*t)<< "  E-size is " << t->e_size() << ".\n" << t->Utf8DebugString();
   Element * e = t->mutable_e(field);
   double old_ts = 0;

@@ -23,6 +23,8 @@ else (USE_CLANG)
     SET (CMAKE_CXX_COMPILER           "/usr/bin/g++")
 endif(USE_CLANG)
 
+message (STATUS "Compiler is ${CMAKE_CXX_COMPILER}")
+
 set (CMAKE_VERBOSE_MAKEFILE ON)
 
 if (FULL_STATIC)

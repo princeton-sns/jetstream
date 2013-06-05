@@ -82,7 +82,7 @@ OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
   return querier.configure(config, id());
 }
 
-const int TUPLES_PER_BUFFER = 1000;
+const unsigned TUPLES_PER_BUFFER = 1000;
 int
 OneShotSubscriber::emit_batch() {
 

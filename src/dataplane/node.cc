@@ -558,7 +558,7 @@ Node::create_chains( const AlterTopo & topo,
   
   int chain_count = 0;
   LOG(INFO) << "building chains";
-  for (int i = 0; i < toStart.size(); ++i) {
+  for (unsigned i = 0; i < toStart.size(); ++i) {
     shared_ptr<COperator> chainOp = get_operator(toStart[i]);
     bool is_startable = chainOp->is_source();
 

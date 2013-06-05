@@ -74,7 +74,7 @@ void
 FilterSubscriber::process( OperatorChain * chain,
                            std::vector<boost::shared_ptr<Tuple> > & tuples,
                            DataplaneMessage& m) {
-  for (int i = 0; i < tuples.size(); ++i) {
+  for (unsigned i = 0; i < tuples.size(); ++i) {
     boost::shared_ptr<Tuple> t = tuples[i];
 
     if (t->e(level_in_field).has_i_val())

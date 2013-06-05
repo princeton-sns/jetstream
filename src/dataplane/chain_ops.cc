@@ -75,7 +75,7 @@ CEachOperator::process ( OperatorChain * c,
                           std::vector<boost::shared_ptr<Tuple> > & tuples,
                           DataplaneMessage& msg) {
   
-  for (int i =0 ; i < tuples.size(); ++i ) {
+  for (unsigned i =0 ; i < tuples.size(); ++i ) {
 //    boost::shared_ptr<Tuple> t = ;
     if(tuples[i])
       process_one(tuples[i]);

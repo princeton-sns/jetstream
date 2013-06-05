@@ -136,7 +136,7 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
 
 void
 DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > & tuples, DataplaneMessage&) {
-  for(int i =0; i < tuples.size(); ++i) {
+  for(unsigned i =0; i < tuples.size(); ++i) {
     if (tuples[i])
       process(tuples[i]);
   }

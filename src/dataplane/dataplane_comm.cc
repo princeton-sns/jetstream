@@ -409,7 +409,7 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
     case DataplaneMessage::TPUT_ROUND_3:
     case DataplaneMessage::SET_BACKOFF:
     {
-      for (int i = 0; i < chains.size(); ++i)
+      for (unsigned i = 0; i < chains.size(); ++i)
         chains[i]->upwards_metadata(msg, this);
 //      pred->meta_from_downstream(msg);
       break;
@@ -488,7 +488,7 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
 
     bool buffer_was_empty = (this_buf_size == 0);
     
-    for(int i = 0; i < tuples.size(); ++i) {
+    for(unsigned i = 0; i < tuples.size(); ++i) {
       boost::shared_ptr<Tuple> t = tuples[i];
       if (!t)
         continue;
@@ -550,7 +550,7 @@ RemoteDestAdaptor::connection_broken () {
     return;
   
   is_stopping = true;
-  for(int i = 0; i < chains.size(); ++i) {
+  for(unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i]) {
       chains[i]->stop();
       chains[i]->unregister();
@@ -572,7 +572,7 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
     return;
   }*/
   is_stopping = true;
-  for (int i = 0; i < chains.size(); ++i) {
+  for (unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i].get() == c) {
       chains[i].reset(); //remove the chain from our cache.
 //      active_chains --;
