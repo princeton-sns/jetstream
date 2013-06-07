@@ -263,7 +263,7 @@ TEST_F(CubeTest, ProcessTest) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
-  cube->process(t);
+  cube->process(NULL, t);
   cube->wait_for_commits();
 
   ASSERT_EQ(1U, cube->num_leaf_cells());  //we sent several tuples that should have been aggregated
@@ -277,7 +277,7 @@ TEST_F(CubeTest, ProcessTest) {
   t = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
-  cube->process(t);
+  cube->process(NULL, t);
   cube->wait_for_commits();
   it = cube->slice_query(empty, empty, false);
   ASSERT_EQ(1U, it.numCells());
@@ -299,7 +299,7 @@ TEST_F(CubeTest, SubscriberTest) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 &&  sub->insert_q.size() < 1; i++) {
     js_usleep(100000);
@@ -309,7 +309,7 @@ TEST_F(CubeTest, SubscriberTest) {
   check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
   sub->returnAction = Subscriber::SEND_UPDATE;
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 &&  sub->update_q.size() < 1; i++) {
     js_usleep(100000);
@@ -349,10 +349,10 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestInsertInsert) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
 
-  cube->process(t);
+  cube->process(NULL, t);
   ASSERT_EQ(0U, sub->insert_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++) {
     js_usleep(100000);
@@ -363,7 +363,7 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestInsertInsert) {
 
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
+  cube->process(NULL, t2);
 
   for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++) {
     js_usleep(10000);
@@ -399,11 +399,11 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestUpdateUpdate) {
 
   sub->returnAction = Subscriber::SEND_UPDATE;
   js_usleep(1000000);
-  cube->process(t);
+  cube->process(NULL, t);
   ASSERT_EQ(0U, sub->insert_q.size());
   ASSERT_EQ(0U, sub->update_q.size());
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++) {
     js_usleep(100000);
@@ -415,7 +415,7 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestUpdateUpdate) {
 
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
+  cube->process(NULL, t2);
 
   for(int i =0; i < 100 &&  sub->update_q.size() < 2; i++) {
     js_usleep(100000);
@@ -442,13 +442,13 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestInsertUpdate) {
   boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(t);
+  cube->process(NULL, t);
 
   ASSERT_EQ(0U, sub->insert_q.size());
   js_usleep(1000000);
   check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_UPDATE;
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++) {
     js_usleep(100000);
@@ -459,7 +459,7 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestInsertUpdate) {
 
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
+  cube->process(NULL, t2);
 
   for(int i =0; i < 5 && (sub->update_q.size() < 1 || sub->insert_q.size() < 1); i++) {
     VLOG(1)<< "."<<i;
@@ -485,7 +485,7 @@ TEST_F(CubeTest, SubscriberNoBatch) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND_NO_BATCH;
-  cube->process(t);
+  cube->process(NULL, t);
 
   for(int i =0; i < 100 &&  sub->insert_q.size() < 1; i++) {
     js_usleep(100000);
@@ -560,7 +560,7 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTimeout) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND;
-  cube->process(t);
+  cube->process(NULL, t);
   js_usleep(500000);
   ASSERT_EQ(0U, sub->insert_q.size());
   js_usleep(1000000);
@@ -581,10 +581,10 @@ TEST_F(CubeTest, SubscriberBatchCountTest) {
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   sub->returnAction = Subscriber::SEND;
-  cube->process(t);
+  cube->process(NULL, t);
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
+  cube->process(NULL, t2);
   js_usleep(100000);
   ASSERT_EQ(2U, cube->num_leaf_cells() );
   ASSERT_EQ(2U, sub->insert_q.size());
@@ -601,10 +601,10 @@ TEST_F(CubeTest, SubscriberBatchChangeCountTest) {
   boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
   time_t time_entered = time(NULL);
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(t);
+  cube->process(NULL, t);
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
+  cube->process(NULL, t2);
   js_usleep(100000);
   ASSERT_EQ(2U, cube->num_leaf_cells() );
   delete cube;
@@ -710,11 +710,11 @@ TEST_F(CubeTest, MysqlTestIt) {
 
   boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 300, 2);
-  cube->process(t);
+  cube->process(NULL, t);
 
   boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
   insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 300, 300, 2);
-  cube->process(t2);
+  cube->process(NULL, t2);
 
   for(int i =0; i < 5 &&  cube->num_leaf_cells() < 2; i++) {
     js_usleep(1000000);
@@ -814,7 +814,7 @@ TEST_F(CubeTest, MysqlTestSort) {
   for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     insert_tuple(*t, time_entered, "http:\\\\www.example.com", *i, 300, 2);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   for(int i =0; i < 5 &&  cube->num_leaf_cells() < 5; i++) {
@@ -960,7 +960,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     insert_tuple(*t, time_entered, "http:\\\\www.example.com", *i, *i, *i/100);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   for(int i =0; i < 5 &&  cube->num_leaf_cells() < 5; i++) {
@@ -1033,7 +1033,7 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     insert_tuple(*t, time_entered+(*i), "http:\\\\www.example.com", *i, 500, 100);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   for(int i =0; i < 4 &&  cube->num_leaf_cells() < 5; i++) {
@@ -1149,7 +1149,7 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
     boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
     insert_tuple(*t, time_entered+(*i), "http:\\\\www.example.com", *i, 500, 100);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   cube->wait_for_commits();
@@ -1264,7 +1264,7 @@ TEST_F(CubeTest, MysqlTestHistogram) {
     e = t->add_e();
     JSSummary * summary = e->mutable_summary();
     histo.serialize_to(*summary);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   cube->wait_for_commits();
@@ -1328,7 +1328,7 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
     JSSummary * summary = e->mutable_summary();
 
     agg.serialize_to(*summary);
-    cube->process(t);
+    cube->process(NULL, t);
   }
 
   cube->wait_for_commits();
@@ -1393,7 +1393,7 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
     JSSummary * summary = e->mutable_summary();
 
     agg.serialize_to(*summary);
-    cube->process(t);
+    cube->process(NULL, t);
 
     cube->wait_for_commits();
   }

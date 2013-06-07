@@ -146,7 +146,7 @@ int main(int argc, const char **argv)
       e=t->mutable_e(3);
       e->set_i_val(size);
 
-      cube->process(t);
+      cube->process(NULL, t);
     }
     myfile.close();
   }

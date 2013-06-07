@@ -115,7 +115,7 @@ class TestTupleCoralGenerator {
 
       for(std::vector< boost::shared_ptr<jetstream::Tuple> >::const_iterator it = tuples.begin(); it != tuples.end(); ++it) {
         //LOG(INFO) <<"Inserting: "<< fmt(*(*it));
-        cube->process(*it);
+        cube->process(NULL, *it);
         ++i;
 
         if(i%100000 == 0)
