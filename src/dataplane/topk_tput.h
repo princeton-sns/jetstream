@@ -27,7 +27,7 @@ public:
     MultiRoundSender(): Subscriber () {};
     virtual ~MultiRoundSender() {};
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);

@@ -12,7 +12,7 @@ class FilterSubscriber: public cube::Subscriber {
     FilterSubscriber(): Subscriber (), filter_bound(0),level_in_field(0),cube_field(-1) {};
     virtual ~FilterSubscriber() {};
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);

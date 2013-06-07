@@ -46,6 +46,22 @@ void ProcessCallable::assign(OperatorChain * chain, boost::shared_ptr<Tuple> t, 
   service_process->post(boost::bind(&ProcessCallable::process, this, chain, t, key, levels));
 }
 
+
+void
+ProcessCallable::barrier(boost::shared_ptr<FlushInfo> flush) {
+  service_process->post(boost::bind(&ProcessCallable::barrier_to_flushqueue, this, flush));
+}
+
+void
+ProcessCallable::barrier_to_flushqueue(boost::shared_ptr<FlushInfo> flush) {
+  service_flush->post(boost::bind(&ProcessCallable::do_barrier, this, flush));
+}
+
+void
+ProcessCallable::do_barrier(boost::shared_ptr<FlushInfo> flush) {
+  
+}
+
 void ProcessCallable::process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
   VLOG(10) << "got a tuple in ProcessCallable with key " << key;
   boost::lock_guard<boost::mutex> lock(batcherLock);
@@ -136,20 +152,33 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
       process(chain, tuples[i]);
   }
 
+  {
+    shared_lock<boost::shared_mutex> lock(subscriberLock);
+    for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
+        it != subscribers.end(); ++it) {
+      boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
+      LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
+      shared_ptr<FlushInfo> flush = sub->incoming_meta(*chain, msg);
+      if (flush) {
+        for (unsigned i = 0; i < processors.size(); ++i)
+          processors[i]->barrier(flush);
+      }
+    }
+  }
+
   if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
-    if(msg.rollup_levels_size() == 0)
-    {
+    if(msg.rollup_levels_size() == 0) {
       set_current_levels(get_leaf_levels());
     }
-    else
-    {
+    else {
       LOG_IF(FATAL, (unsigned int) msg.rollup_levels_size() != num_dimensions()) << "got a rollup levels msg with the wrong number of dimensions: "
         << msg.rollup_levels_size()<< " should be " <<num_dimensions();
       std::vector<unsigned int> levels;
       for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
         levels.push_back(msg.rollup_levels(i));
       }
-      set_current_levels(levels); //There's a race condition here.
+      set_current_levels(levels); //There's a race condition here since there may be many incoming
+          //chains, at different rollup levels.
     }
   }
   
@@ -191,7 +220,7 @@ DataCube::do_process( OperatorChain * chain,
   for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
       it != subscribers.end(); ++it) {
     boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
-    cube::Subscriber::Action act = sub->action_on_tuple(t);
+    cube::Subscriber::Action act = sub->action_on_tuple(chain, t);
     if(!in_batch) {
       tpi->need_new_value = sub->need_new_value(t);
       tpi->need_old_value = sub->need_old_value(t);

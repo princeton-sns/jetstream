@@ -57,11 +57,13 @@ class ProcessCallable {
     boost::shared_ptr<cube::TupleBatch> batch_flush();
     bool batcher_ready();
     void check_flush();
+    void barrier(boost::shared_ptr<FlushInfo>); //called from outside
 
   private:
     std::string name;
     boost::thread thread_process;
     boost::thread thread_flush;
+      //each service has a single thread associated with it so posts will be ordered.
     shared_ptr<io_service> service_process;
     shared_ptr<io_service> service_flush;
     io_service::work work_process;
@@ -76,6 +78,9 @@ class ProcessCallable {
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
     mutable boost::mutex batcherLock; // protects tupleBatcher
+  
+    void barrier_to_flushqueue(boost::shared_ptr<FlushInfo>); //invoked on service_process
+    void do_barrier(boost::shared_ptr<FlushInfo>); //invoked on flush-strand  
 };
 
 

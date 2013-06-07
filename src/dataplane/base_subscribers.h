@@ -31,7 +31,7 @@ class QueueSubscriber: public Subscriber {
     bool need_new;
     bool need_old;
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
   
     virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) {
       return need_new;
@@ -138,7 +138,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
 
     unsigned int get_window_offset_sec();
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) ;
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) ;
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
@@ -196,7 +196,7 @@ GENERIC_CLNAME
 
 class OneShotSubscriber : public jetstream::StrandedSubscriber {
   public:
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
       return  NO_SEND;
     }
 

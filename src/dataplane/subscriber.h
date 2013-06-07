@@ -36,12 +36,13 @@ class Subscriber: public jetstream::COperator {
     };
 
     virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) = 0;
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) = 0;
     virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
     virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) { return false; }
 
-    //TODO: should this be inline?
-      //These are the thing that should be invoked externally; they call into synchronized code underneath.
+      //These are the things that should be invoked externally; they call into synchronized code underneath.
+      // This helps protect the cube's threads from being consumed by subscribers.
+      // They have to be virtual to make the inter-library linkage work right.
     virtual void insert_callback(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
 
@@ -49,18 +50,14 @@ class Subscriber: public jetstream::COperator {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
-      //these are invoked in a synchronized way.
-    virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value) = 0;
+    virtual void flush_callback(unsigned id);
 
-    virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
-                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
-                                 boost::shared_ptr<jetstream::Tuple> const &old_value) = 0;
-
+  /* Note that this may be called OUT OF ORDER with incoming action_on_tuple
+   calls. Use a Flush if you need ordering.
+  */
     virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
                                                 const DataplaneMessage&) = 0;
 
-    virtual void flush_callback(unsigned id) {}; //callback
 
     size_t queue_length();
   
@@ -70,6 +67,17 @@ class Subscriber: public jetstream::COperator {
 
     virtual void add_chain(boost::shared_ptr<OperatorChain> c) {chain = c;}
 
+
+  protected:
+        //these are invoked in a synchronized way.
+    virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value) = 0;
+
+    virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
+                                 boost::shared_ptr<jetstream::Tuple> const &new_value, 
+                                 boost::shared_ptr<jetstream::Tuple> const &old_value) = 0;
+
+    virtual void post_flush(unsigned id) {}
   
   private:
     void set_cube(DataCube  *c ) {cube = c;}

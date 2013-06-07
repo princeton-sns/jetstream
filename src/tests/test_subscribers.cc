@@ -314,7 +314,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple(*t, double(cur_time + 100 * i));
     extend_tuple(*t, hostnames[i%2]);
-    sub->action_on_tuple(t);
+    sub->action_on_tuple(NULL, t);
     tuples[i] = t;
   }
   

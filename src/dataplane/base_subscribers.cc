@@ -17,7 +17,9 @@ using namespace jetstream::cube;
 
 #undef BACKFILL
 
-jetstream::cube::Subscriber::Action QueueSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+jetstream::cube::Subscriber::Action
+QueueSubscriber::action_on_tuple(OperatorChain * c,
+                                 boost::shared_ptr<const jetstream::Tuple> const update) {
   return returnAction;
 }
 
@@ -108,7 +110,7 @@ OneShotSubscriber::emit_batch() {
 }
 
 cube::Subscriber::Action
-TimeBasedSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+TimeBasedSubscriber::action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
   //update->add_e()->set_i_val(get_msec());
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();

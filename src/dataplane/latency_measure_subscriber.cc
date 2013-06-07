@@ -53,10 +53,10 @@ LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-jetstream::cube::Subscriber::Action LatencyMeasureSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
-  
+jetstream::cube::Subscriber::Action
+LatencyMeasureSubscriber::action_on_tuple( OperatorChain * c,
+                                          boost::shared_ptr<const jetstream::Tuple> const update) {
   process_c(update);
-
   return SEND;
 }
 

@@ -7,7 +7,7 @@ using namespace ::std;
 
 
 jetstream::cube::Subscriber::Action
-FilterSubscriber::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+FilterSubscriber::action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
   return SEND;
 }
 
