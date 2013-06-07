@@ -79,6 +79,12 @@ class ProcessCallable {
 };
 
 
+class FlushInfo {
+  public:
+    unsigned id;
+    boost::shared_ptr<cube::Subscriber> subsc;
+};
+
 
 class DataCube : public ChainMember {
   public:

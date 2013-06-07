@@ -45,6 +45,12 @@ class LatencyMeasureSubscriber: public jetstream::StrandedSubscriber {
     }
     void process_c(boost::shared_ptr<const Tuple>);
 
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                     const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
+
 
   protected:
     unsigned int time_tuple_index;

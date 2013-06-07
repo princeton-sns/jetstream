@@ -25,6 +25,11 @@ class FilterSubscriber: public cube::Subscriber {
 
     virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&);
 
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
   
 
   protected:

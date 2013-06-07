@@ -9,6 +9,7 @@
 
 namespace jetstream {
 
+class FlushInfo;
 class DataCube;
 
 namespace cube {
@@ -55,6 +56,11 @@ class Subscriber: public jetstream::COperator {
     virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value, 
                                  boost::shared_ptr<jetstream::Tuple> const &old_value) = 0;
+
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) = 0;
+
+    virtual void flush_callback(unsigned id) {}; //callback
 
     size_t queue_length();
   

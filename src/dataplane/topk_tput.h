@@ -36,6 +36,12 @@ public:
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
+
 
     virtual void meta_from_downstream(DataplaneMessage & msg);
 
