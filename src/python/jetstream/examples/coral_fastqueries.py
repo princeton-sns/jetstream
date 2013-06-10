@@ -83,7 +83,7 @@ def main():
   logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, t * MS_PER_TICK))
   if completed == 0:
     sys.exit(0)
-  display_results(result_readers)
+  display_results([r for r in result_readers if r.is_finished])
 
 def make_trivial_graph(g, node):
      
