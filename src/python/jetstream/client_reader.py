@@ -44,7 +44,7 @@ class ClientDataReader():
   DoneSentinel = None
 
   def __init__(self, raw_data=False):
-    self.HOST = 'localhost'
+    self.HOST = '0.0.0.0'
     self.is_finished = False
     self.tuples = Queue.Queue()
     self.tuples_received = 0

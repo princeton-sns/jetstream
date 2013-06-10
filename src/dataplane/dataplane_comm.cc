@@ -567,7 +567,7 @@ RemoteDestAdaptor::connection_broken () {
 void
 RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
     
-  if (!conn->is_connected())
+  if (!conn || !conn->is_connected())
     return;
 /*  if (!wait_for_chain_ready()) {
     LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
