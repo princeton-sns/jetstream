@@ -66,7 +66,7 @@ class ClientDataReader():
 #    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.listen_sock.bind((self.HOST, 0))
     bound_id = self.listen_sock.getsockname()
-    addr.address, addr.portno = bound_id
+    addr.address, addr.portno = socket.gethostbyname(socket.gethostname()), bound_id[1]
 
     # only one connecting sender for now TODO this probably needs to change
     nSenders = 0
