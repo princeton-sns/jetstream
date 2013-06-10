@@ -303,8 +303,9 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       msec_t wait)
   : mgr(dcm), chainIsReady(false), this_buf_size(0), is_stopping(false), 
     timer(io), wait_for_conn(wait) {
-  remoteAddr = e.dest_addr().address();
   int32_t portno = e.dest_addr().portno();
+
+  remoteAddr = e.dest_addr().address()+ ":" + lexical_cast<string>(portno);
   
   dest_as_edge.CopyFrom(e);
   if (dest_as_edge.has_dest()) {
@@ -316,9 +317,9 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
   else if (dest_as_edge.has_dest_cube()){
     dest_as_str = dest_as_edge.dest_cube();
   } else
-    dest_as_str = "external on " + remoteAddr;
+    dest_as_str = "external"; // + remoteAddr ;
   
-  cm.create_connection(remoteAddr, portno, boost::bind(
+  cm.create_connection(e.dest_addr().address(), portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
       
 }
@@ -379,7 +380,9 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
     //FIXME need to tear down?
     return;
   }
-  LOG(INFO) << "Conn-ready firing!";
+
+  LOG_IF(FATAL, !chainIsReady && msg.type() != DataplaneMessage::CHAIN_READY) <<
+    "Chain-is-ready must be first message on connection after creation";
   switch (msg.type ()) {
     case DataplaneMessage::CHAIN_READY:
     {
