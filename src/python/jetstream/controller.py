@@ -344,7 +344,7 @@ class Controller (ControllerAPI, JSServer):
       assert(false)
       return  # no response
     elif req.type == ControlMessage.ERROR:
-      logger.error("From %s, %s" % ( str(handler.cli_addr), req.error_msg.msg))
+      logger.error("Incoming error from %s: %s" % ( str(handler.cli_addr), req.error_msg.msg))
       return # no response
     else:
       response.type = ControlMessage.ERROR

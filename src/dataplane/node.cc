@@ -735,14 +735,15 @@ boost::shared_ptr<COperator>
 Node::get_operator (operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
-  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
-  iter = operators.find(name);
-  if (iter != operators.end()) {
-    return iter->second.lock();
-  } else {
+//  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
+  weak_ptr<COperator> p = operators[name];
+  p = operators[name];
+//  if (p) {
+    return p.lock();
+ /* } else {
     boost::shared_ptr<COperator> x;
-    return x; 
-  }
+    return x;
+  }*/
 }
 
 /**

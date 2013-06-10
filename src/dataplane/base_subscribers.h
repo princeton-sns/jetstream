@@ -69,6 +69,7 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
     StrandedSubscriber():running(false) {}
 
     virtual void start();
+  
     virtual void stop() {
       LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
@@ -135,6 +136,8 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
       backfill_old_window(0),regular_old_window(0) {};
 
     virtual ~TimeBasedSubscriber() {};
+  
+    virtual void start();
 
     unsigned int get_window_offset_sec();
 

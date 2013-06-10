@@ -12,8 +12,8 @@
 
 namespace jetstream {
 
-extern double s_rand_data[];
-extern std::string s_rand_labels[];
+extern const double s_rand_data[];
+extern const std::string s_rand_labels[];
 //extern int s_rand_data_len;
 
 class RandSourceOperator: public TimerSource {

@@ -15,9 +15,9 @@ using namespace boost;
 
 namespace jetstream {
 
-double s_rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9, 0.0};
-string s_rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois", "Should never appear; fencepost"};
-int s_rand_data_len = sizeof(s_rand_data) / sizeof(double);
+const double s_rand_data[] = {37.7, 25.7, 19.5, 19.1, 12.9, 0.0};
+const string s_rand_labels[] = {"California", "Texas", "New York", "Florida","Illinois", "Should never appear; fencepost"};
+const int s_rand_data_len = sizeof(s_rand_data) / sizeof(double);
 
 
 

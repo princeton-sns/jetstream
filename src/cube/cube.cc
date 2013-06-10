@@ -59,7 +59,10 @@ ProcessCallable::barrier_to_flushqueue(boost::shared_ptr<FlushInfo> flush) {
 
 void
 ProcessCallable::do_barrier(boost::shared_ptr<FlushInfo> flush) {
-  
+  unsigned v = flush->dec_and_get();
+  if (v == 1) { // note that dec returns PREVIOUS value
+    flush->subsc->flush_callback(flush->id);
+  }
 }
 
 void ProcessCallable::process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
@@ -160,6 +163,8 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
       LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
       shared_ptr<FlushInfo> flush = sub->incoming_meta(*chain, msg);
       if (flush) {
+        flush->subsc = sub;
+        flush->set_count(processors.size());
         for (unsigned i = 0; i < processors.size(); ++i)
           processors[i]->barrier(flush);
       }

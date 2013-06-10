@@ -254,7 +254,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
     VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
     VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
   }
-    tt = boost::shared_ptr<TimeTeller>(new TimeTeller);
+  tt = boost::shared_ptr<TimeTeller>(new TimeTeller);
 
   return NO_ERR;
 }
@@ -296,6 +296,15 @@ unsigned int TimeBasedSubscriber::get_window_offset_sec() {
 
 }
 
+void
+TimeBasedSubscriber::start() {
+  if(ts_field >= 0)
+    ts_input_tuple_index = cube->get_schema().dimensions(ts_field).tuple_indexes(0);
+  else
+    ts_input_tuple_index = ts_field;
+  StrandedSubscriber::start();
+}
+
 
 void
 TimeBasedSubscriber::update_backfill_stats(int elems) {
@@ -319,24 +328,19 @@ TimeBasedSubscriber::update_backfill_stats(int elems) {
 int
 TimeBasedSubscriber::emit_batch() {
 
-
-/*
-  if(ts_field >= 0)
-    ts_input_tuple_index = cube->get_schema().dimensions(ts_field).tuple_indexes(0);
-  else
-    ts_input_tuple_index = ts_field;
-*/
-
-
   respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
 
-
+  time_t newMax = 0;
   if (ts_field >= 0) {
-    time_t newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
+    newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
     VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
       << "-" << ts_to_str(newMax);
   }
+  
+//  shared_ptr<FlushInfo> nextWindow(new FlushInfo);
+//  nextWindow->subsc = node->get_operator(id());
+//  nextWindow->set_count(newMax);
 
   DataplaneMessage end_msg;
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
@@ -374,10 +378,8 @@ TimeBasedSubscriber::emit_batch() {
   
   return windowSizeMs;
 
-
-//  no_more_tuples();
 //  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
-//            << "Total backfill tuple count " << backfill_tuples <<". Total non-backfill tuples " << regular_tuples;
+//            << "Total backfill tuple count " << backfill_tuples <<". ;
 }
 
 
@@ -386,12 +388,10 @@ TimeBasedSubscriber::long_description() const {
 //  boost::lock_guard<boost::mutex> lock (mutex);
 
   ostringstream out;
-  out << backfill_tuples << " late tuples; sample interval " << windowSizeMs << " ms";
+  out << "Total non-backfill tuples " << regular_tuples << " and ";
+  out << backfill_tuples << " late tuples. Sample interval " << windowSizeMs << " ms";
   return out.str();
-
 }
-
-
 
 void
 TimeBasedSubscriber::send_rollup_levels() {

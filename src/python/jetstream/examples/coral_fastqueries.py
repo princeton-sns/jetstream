@@ -58,6 +58,13 @@ def main():
     last_op.instantiate_on(node)
     g.connectExternal(last_op, reader.prep_to_receive_data())
     result_readers.append(reader)
+    if options.DRY_RUN:
+      req = g.get_deploy_pb()
+      planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346) } )
+      planner.take_raw_topo(req.alter)
+      planner.get_assignments(1)
+      print req
+      sys.exit(0)
     server.deploy(g)
   
   completed = 0
@@ -74,6 +81,8 @@ def main():
       logger.info("tick; %d readers completed. %d total tuples." % (completed, tuples))
 
   logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, t * MS_PER_TICK))
+  if completed == 0:
+    sys.exit(0)
   display_results(result_readers)
 
 def make_trivial_graph(g, node):

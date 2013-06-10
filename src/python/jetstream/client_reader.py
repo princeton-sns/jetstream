@@ -128,6 +128,8 @@ class ClientDataReader():
 
   def __iter__(self):
     while True:
+#      if len(self.tuples) == 0:  #don't wait for data if none
+#        break
       item = self.tuples.get(block=True)
       if item is ClientDataReader.DoneSentinel:
         break

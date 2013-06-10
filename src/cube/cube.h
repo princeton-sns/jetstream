@@ -15,6 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include "jetstream_types.pb.h"
 #include "js_executor.h"
+#include <boost/interprocess/detail/atomic.hpp>
 
 namespace jetstream {
 class DataCube;
@@ -88,6 +89,18 @@ class FlushInfo {
   public:
     unsigned id;
     boost::shared_ptr<cube::Subscriber> subsc;
+    void set_count(unsigned c) {
+      count = c;
+    }
+  
+    unsigned dec_and_get() {
+      unsigned v = boost::interprocess::ipcdetail::atomic_dec32(&count);
+      return v;
+    }
+  
+  private:
+    volatile unsigned count;
+  
 };
 
 
