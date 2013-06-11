@@ -14,6 +14,7 @@ adduser --system --group --home /var/lib/mysql mysql
 On SNS: Make sure permissions are
  /var/lib/mysql: drwxr-xr-x   mysql    mysql
 
+Might need to chown -R _mysql /opt/local/var/run/mysql5
 
 
 2) create DB via
@@ -26,6 +27,7 @@ On SNS: Make sure permissions are
 5) mysql5 -u root
 create database test_cube
 
+6) mysql5 -u root < src/mysql_udfs/merge/installdb.sql
 
 
 To restart DB:

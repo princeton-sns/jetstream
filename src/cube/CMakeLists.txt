@@ -4,7 +4,6 @@ find_library(MYSQL_CONN mysqlcppconn-static HINTS /opt/loca/lib /opt/local/lib/m
 find_library(MYSQL_CLI mysql5/mysql/libmysqlclient_r.dylib)
 include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/include/mysql5-connector-cpp)
 set(MYSQL_LIBS ${MYSQL_CONN}  ${MYSQL_CLI})
-include_directories (/opt/local/include/mysql5-connector-cpp)
 else()
 find_library(MYSQL_CONN NAMES mysqlcppconn HINTS /usr/lib64/ /usr/lib/ /opt/local/lib/)
 find_library(MYSQL_CLI NAMES mysqlclient_r HINTS /usr/lib64/ /usr/lib64/mysql/ /usr/lib/ /opt/local/lib/)
