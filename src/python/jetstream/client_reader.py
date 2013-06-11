@@ -44,7 +44,7 @@ class ClientDataReader():
   DoneSentinel = None
 
   def __init__(self, raw_data=False):
-    self.HOST = 'localhost'
+    self.HOST = '0.0.0.0'
     self.is_finished = False
     self.tuples = Queue.Queue()
     self.tuples_received = 0
@@ -66,7 +66,7 @@ class ClientDataReader():
 #    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.listen_sock.bind((self.HOST, 0))
     bound_id = self.listen_sock.getsockname()
-    addr.address, addr.portno = bound_id
+    addr.address, addr.portno = socket.gethostbyname(socket.gethostname()), bound_id[1]
 
     # only one connecting sender for now TODO this probably needs to change
     nSenders = 0
@@ -128,6 +128,8 @@ class ClientDataReader():
 
   def __iter__(self):
     while True:
+#      if len(self.tuples) == 0:  #don't wait for data if none
+#        break
       item = self.tuples.get(block=True)
       if item is ClientDataReader.DoneSentinel:
         break

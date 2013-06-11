@@ -45,7 +45,7 @@ void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
     extend_tuple(*t, "http://foo.com/" + boost::lexical_cast<string>(i));
     extend_tuple(*t,(int) ((i + offset) % CELLS) );
     t->set_version(0);
-    cube->process(t);
+    cube->process(NULL, t);
   }
   int tries = 0;
   while (tries ++ < 20 &&   cube->num_leaf_cells() < CELLS)

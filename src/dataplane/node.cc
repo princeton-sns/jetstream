@@ -558,7 +558,7 @@ Node::create_chains( const AlterTopo & topo,
   
   int chain_count = 0;
   LOG(INFO) << "building chains";
-  for (int i = 0; i < toStart.size(); ++i) {
+  for (unsigned i = 0; i < toStart.size(); ++i) {
     shared_ptr<COperator> chainOp = get_operator(toStart[i]);
     bool is_startable = chainOp->is_source();
 
@@ -735,14 +735,15 @@ boost::shared_ptr<COperator>
 Node::get_operator (operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
   
-  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
-  iter = operators.find(name);
-  if (iter != operators.end()) {
-    return iter->second.lock();
-  } else {
+//  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
+  weak_ptr<COperator> p = operators[name];
+  p = operators[name];
+//  if (p) {
+    return p.lock();
+ /* } else {
     boost::shared_ptr<COperator> x;
-    return x; 
-  }
+    return x;
+  }*/
 }
 
 /**
@@ -760,8 +761,7 @@ throw(operator_err_t)
   if (d == NULL) {
     throw operator_err_t("Loader failed to create operator of type " + op_typename);
   }
-  
-  d->id() = name;
+  d->set_id(name);
   d->set_node(this);
   VLOG(1) << "configuring " << name << " of type " << op_typename;
   operator_err_t err = d->configure(cfg);

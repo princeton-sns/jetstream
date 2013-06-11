@@ -22,7 +22,7 @@ class LatencyMeasureSubscriber: public jetstream::StrandedSubscriber {
     LatencyMeasureSubscriber(): StrandedSubscriber(){};
     virtual ~LatencyMeasureSubscriber() {};
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
 
     virtual void start();
 
@@ -39,11 +39,17 @@ class LatencyMeasureSubscriber: public jetstream::StrandedSubscriber {
     virtual int emit_batch();  // A thread that will loop
 
     virtual void process(OperatorChain *, std::vector<boost::shared_ptr<Tuple> > & batch, DataplaneMessage&){
-      for (int i =0; i < batch.size(); ++i)
+      for (unsigned i =0; i < batch.size(); ++i)
         process_c(batch[i]);
       //emit(t);
     }
     void process_c(boost::shared_ptr<const Tuple>);
+
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                     const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
 
 
   protected:

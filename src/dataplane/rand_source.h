@@ -12,8 +12,8 @@
 
 namespace jetstream {
 
-extern double s_rand_data[];
-extern std::string s_rand_labels[];
+extern const double s_rand_data[];
+extern const std::string s_rand_labels[];
 //extern int s_rand_data_len;
 
 class RandSourceOperator: public TimerSource {
@@ -25,10 +25,10 @@ class RandSourceOperator: public TimerSource {
   
   int rate_per_sec;
   int tuples_this_sec;
-  int cur_idx;
+  unsigned cur_idx;
   double position_in_slice; // used in sequential mode.
 
-  int start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min
+  unsigned start_idx; //label such that cumulative sum from [labels[0]...labels[start_idx-1] < slice_min
   double accum;  //the sum of labels[0]...labels[start_idx]
   int wait_per_batch; //ms
   int next_version_number;
@@ -62,7 +62,7 @@ class RandEvalOperator: public CEachOperator {
   RandEvalOperator() : last_ts_seen(0), max_rel_deviation(0), total_in_window(0),
       total_last_window(0), old_data(0), results_out(&std::cout), total_in_distrib(0) {}
 
-  virtual std::string long_description();
+  virtual std::string long_description() const;
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
   virtual ~RandEvalOperator();
 

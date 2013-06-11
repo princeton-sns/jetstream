@@ -97,7 +97,7 @@ TEST(Backfill, IntoCube) {
   extend_tuple(*t, 10);
   extend_tuple(*t, 1);
   extend_tuple(*t, 6);
-  cube->process(t);
+  cube->process(NULL, t);
   
     //cube should have one tuple:  (now, 10, 1, 6 1)
   boost::shared_ptr<Tuple> t_out = get_tuple(cube);
@@ -113,7 +113,7 @@ TEST(Backfill, IntoCube) {
   extend_tuple(*t2, 3);
   extend_tuple(*t2, 4);
   operator_id_t no_oper_id(0,0);
-  cube->process_delta(*t, t2);
+  cube->process_delta(NULL, *t, t2);
 
   cube->wait_for_commits();
   t_out = get_tuple(cube);

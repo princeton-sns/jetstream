@@ -27,7 +27,7 @@ public:
     MultiRoundSender(): Subscriber () {};
     virtual ~MultiRoundSender() {};
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
@@ -35,6 +35,12 @@ public:
     virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
+
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
 
 
     virtual void meta_from_downstream(DataplaneMessage & msg);

@@ -17,6 +17,7 @@ from coral_util import *   #find_root_node, standard_option_parser,
 def main():
 
   parser = standard_option_parser()
+  parser.add_option("--full_url", dest="full_url", action="store_true", default=False)
 
   (options, args) = parser.parse_args()
 
@@ -45,7 +46,7 @@ def get_graph(node, options):
   csvp = jsapi.CSVParse(g, coral_types)
   csvp.set_cfg("discard_off_size", "true")
   round = jsapi.TimeWarp(g, field=1, warp=options.warp_factor)
-  round.set_cfg("wait_for_catch_up", "true")
+  round.set_cfg("wait_for_catch_up", "false")
   f.instantiate_on(node)
   
   local_raw_cube = g.add_cube("local_records")
@@ -53,7 +54,11 @@ def get_graph(node, options):
   local_raw_cube.set_overwrite(True)
   
   define_schema_for_raw_cube(local_raw_cube, parsed_field_offsets)
-  g.chain([f, csvp, round, local_raw_cube] )
+  if not options.full_url:
+    url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
+    g.chain( [f, csvp, round, url_to_dom, local_raw_cube] )
+  else:
+    g.chain( [f, csvp, round, local_raw_cube] )
   return g
 
 if __name__ == '__main__':

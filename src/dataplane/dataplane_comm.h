@@ -17,7 +17,7 @@
 #include "operator_chain.h"
 
 #undef ACK_EACH_PACKET
-#define ACK_WINDOW_END 1
+#undef ACK_WINDOW_END
 
 namespace  jetstream {
   
@@ -48,7 +48,7 @@ class RemoteDestAdaptor : public ChainMember {
   DataplaneConnManager& mgr;
   //boost::asio::io_service & iosrv;
 
-  boost::shared_ptr<NetCongestionMonitor> remote_processing;
+  boost::shared_ptr<NetCongestionMonitor> local_congestion;
   boost::shared_ptr<ClientConnection> conn;
   boost::condition_variable chainReadyCond;
   boost::mutex mutex;
@@ -105,9 +105,9 @@ class RemoteDestAdaptor : public ChainMember {
   
   void connection_broken(); //called on a broken connection; does teardown.
   
-  virtual const std::string& typename_as_str() {return generic_name;};
-  virtual std::string long_description();
-  virtual std::string id_as_str() {return long_description();}
+  virtual const std::string& typename_as_str() const {return generic_name;};
+  virtual std::string long_description() const;
+  virtual std::string id_as_str() const {return long_description();}
 
   
   private:
@@ -119,7 +119,7 @@ class RemoteDestAdaptor : public ChainMember {
       boost::shared_ptr<CongestionMonitor> m;
       return m; //no monitor
     }
-    return remote_processing;
+    return conn->congestion_monitor();
   }
   
 };
@@ -127,12 +127,13 @@ class RemoteDestAdaptor : public ChainMember {
 
 class IncomingConnectionState: public ChainMember {
   boost::shared_ptr<ClientConnection> conn;
-//  boost::shared_ptr<CongestionMonitor> mon; FIXME CHAINS
   boost::asio::io_service & iosrv;
   DataplaneConnManager& mgr;
   boost::asio::deadline_timer timer;
   operator_id_t remote_op;
   boost::shared_ptr<OperatorChain> dest;
+  boost::shared_ptr<WindowCongestionMonitor> dest_side_congest;
+  boost::shared_ptr<CongestionMonitor> chain_mon;
 
 public:
   void got_data_cb (DataplaneMessage &msg,
@@ -142,11 +143,7 @@ public:
                           boost::shared_ptr<OperatorChain> d,
                           boost::asio::io_service & i,
                           DataplaneConnManager& m,
-                          operator_id_t srcOpID):
-      conn(c), iosrv(i), mgr(m), timer(iosrv), remote_op(srcOpID) {
-      dest = d;
-//      mon = dest->congestion_monitor();
-  }
+                          operator_id_t srcOpID);
   
   
   virtual bool is_source() {return true;}
@@ -185,15 +182,20 @@ public:
     close_async();
   }
   
-  virtual std::string id_as_str() {
+  virtual std::string id_as_str() const {
     std::ostringstream o;
-    o << "Incoming connection from " << remote_op;
+    o << "Connection from " << remote_op;
     return o.str();
   }
   
+  virtual const std::string& typename_as_str() const {
+    return generic_name; 
+  }; //return a name for the type
+  
+  
   private:
    void no_more_tuples();//  called on error to do teardown
-  
+   const static std::string generic_name;
   
 };
 
@@ -302,7 +304,6 @@ Internally, we identify endpoints by a string consisting of either an operator I
     std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   
 };
-
 
 }
 

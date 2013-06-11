@@ -45,7 +45,7 @@ TimerSource::emit_wrapper() {
       timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
       timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
     } else {
-      LOG(INFO)<< "EOF; should tear down";
+      LOG(INFO)<< "Source " << id() << " has no more tuples; will tear down";
       running = false;
       chain->do_stop(no_op_v); // on thread, can call this
       chain.reset();
@@ -75,7 +75,7 @@ CEachOperator::process ( OperatorChain * c,
                           std::vector<boost::shared_ptr<Tuple> > & tuples,
                           DataplaneMessage& msg) {
   
-  for (int i =0 ; i < tuples.size(); ++i ) {
+  for (unsigned i =0 ; i < tuples.size(); ++i ) {
 //    boost::shared_ptr<Tuple> t = ;
     if(tuples[i])
       process_one(tuples[i]);

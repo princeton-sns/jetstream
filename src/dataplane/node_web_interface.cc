@@ -147,23 +147,32 @@ NodeWebInterface::make_base_page(ostream &buf) {
   buf << "<p>Operators:</p>" << endl<<"<ol>"<<endl;
 
 //TODO lock around access to node structures?
-  map<operator_id_t,weak_ptr<COperator> >::iterator oper_it;
-  for (oper_it = node.operators.begin(); oper_it != node.operators.end(); ++oper_it) {
-    const operator_id_t& o_id = oper_it->first;
-    shared_ptr<COperator> op = oper_it->second.lock();
-    if (!op)
-      continue;
-    buf << "<li><b>"<< op->typename_as_str() << " " << op->long_description() << " " << o_id << "</b> " << endl;
-//    if (op->get_dest())
-//      buf << "Connected to "<< op->get_dest()->id_as_str();
-//    else
-      buf << "(no destination)";
-//    buf << "<br>\n" << op->emitted_count() << " tuples emitted.<br>"<<endl;
+  map<operator_id_t,shared_ptr<OperatorChain> >::iterator chain_it;
+  for (chain_it = node.chainSources.begin(); chain_it != node.chainSources.end(); ++chain_it) {
+    const operator_id_t& o_id = chain_it->first;
+    shared_ptr<OperatorChain> chain = chain_it->second;
+    buf << "<li><b>Chain starting at " << o_id << "</b> ";
+    describe_chain( *chain, buf );
     buf << "</li>";
   }
   
   buf << "</ol>" << endl;
   buf << "</body></html>"<< endl;
+}
+
+
+void
+NodeWebInterface::describe_chain(const OperatorChain& chain, ostream &buf) {
+  
+  buf << "<ol>";
+  for (unsigned i = 0; i < chain.members(); ++i) {
+    const ChainMember& mem = *chain.member(i);
+    buf << "<li>" << mem.id_as_str() << " " << mem.typename_as_str() << " " <<
+        mem.long_description() << "</li>";
+  
+  }
+  buf << "</ol>";
+
 }
 
 

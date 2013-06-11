@@ -25,7 +25,7 @@ double get_rank_val(boost::shared_ptr<const jetstream::Tuple> t, size_t col) {
 }
 
 cube::Subscriber::Action
-MultiRoundSender::action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+MultiRoundSender::action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
 
   return NO_SEND;
 }
@@ -323,7 +323,7 @@ MultiRoundCoordinator::process (
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
 
-    for (int i = 0; i < tuples.size(); ++i) {
+    for (unsigned i = 0; i < tuples.size(); ++i) {
       boost::shared_ptr<Tuple> t = tuples[i];
       if(!t)
         continue;

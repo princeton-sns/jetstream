@@ -31,9 +31,14 @@ class QueueSubscriber: public Subscriber {
     bool need_new;
     bool need_old;
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update);
-    virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) { return need_new; }
-    virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) { return need_old; }
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
+  
+    virtual bool need_new_value(boost::shared_ptr<const jetstream::Tuple> const update) {
+      return need_new;
+    }
+    virtual bool need_old_value(boost::shared_ptr<const jetstream::Tuple> const update) {
+      return need_old;
+    }
 
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
@@ -43,9 +48,16 @@ class QueueSubscriber: public Subscriber {
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
 
-  virtual operator_err_t configure(std::map<std::string,std::string> &config)
-    {return NO_ERR;}
-
+    virtual operator_err_t configure(std::map<std::string,std::string> &config) {
+      return NO_ERR;
+    }
+  
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
+    
 };
 
 
@@ -57,14 +69,14 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
     StrandedSubscriber():running(false) {}
 
     virtual void start();
+  
     virtual void stop() {
       LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
         running = false;
-//        loopThread->interrupt();
-//        loopThread->join();
       }
-      VLOG(1) << id() <<  " joined with loop thread";
+      if (timer)
+        timer->cancel();
     }
     void emit_wrapper();
     virtual int emit_batch() = 0;
@@ -124,10 +136,12 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
       backfill_old_window(0),regular_old_window(0) {};
 
     virtual ~TimeBasedSubscriber() {};
+  
+    virtual void start();
 
     unsigned int get_window_offset_sec();
 
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) ;
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) ;
 
     virtual void post_insert(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
@@ -140,13 +154,20 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
 
     virtual int emit_batch();
 
-    virtual std::string long_description();
+    virtual std::string long_description() const;
 
     virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
       congest_policy = p;
     }
 
     int window_size() {return windowSizeMs;}
+  
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }
+    
 
   private:
   
@@ -178,7 +199,7 @@ GENERIC_CLNAME
 
 class OneShotSubscriber : public jetstream::StrandedSubscriber {
   public:
-    virtual Action action_on_tuple(boost::shared_ptr<const jetstream::Tuple> const update) {
+    virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
       return  NO_SEND;
     }
 
@@ -191,7 +212,13 @@ class OneShotSubscriber : public jetstream::StrandedSubscriber {
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
-    virtual int emit_batch(); 
+    virtual int emit_batch();
+  
+    virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
+                                                const DataplaneMessage&) {
+      shared_ptr<FlushInfo> p;
+      return p;
+    }  
 
 GENERIC_CLNAME
 };

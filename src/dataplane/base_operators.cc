@@ -28,7 +28,9 @@ namespace jetstream {
 
 
 
-const int LINES_PER_EMIT = 20;
+const int LINES_PER_EMIT = 4000; //can cut down at least to 1000 without performance penalty
+      //if useful.
+const unsigned MS_PER_READ = 0; //should raise this if we're going to use as a tailer.
 
 int
 CFileRead::emit_data() {
@@ -49,7 +51,6 @@ CFileRead::emit_data() {
   for (int i = 0; i < LINES_PER_EMIT; ++i) {
     // ios::good checks for failures in addition to eof
     if (!in_file.good()) {
-      cout << "hit eof, stopping" << endl;
       break;
     }
     string line;
@@ -70,14 +71,14 @@ CFileRead::emit_data() {
   chain->process(tuples, no_meta);
 //  LOG(INFO) << "Returned from chain::process";
   
-  return in_file.good() ? 1000 : -1;
+  return in_file.good() ? MS_PER_READ : -1;
 }
 
 
 std::string
-CFileRead::long_description() {
+CFileRead::long_description() const {
   std::ostringstream buf;
-  buf << "reading" << f_name;
+  buf << "reading " << f_name << ", at line " << lineno;
   return buf.str();
 }
 
@@ -234,8 +235,8 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
 }
 
 std::string
-CSVParse::long_description() {
-  return "CSV parser";
+CSVParse::long_description() const {
+  return "";
 }
 
 
@@ -333,7 +334,7 @@ StringGrep::should_emit (const Tuple& t) {
 
 
 std::string
-StringGrep::long_description() {
+StringGrep::long_description() const {
   std::ostringstream buf;
   buf << "filtering for "<< re.str() << " in field " << fieldID;
   return buf.str();

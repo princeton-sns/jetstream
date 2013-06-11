@@ -156,7 +156,7 @@ RateRecordReceiver::process(boost::shared_ptr<Tuple> t) {
 }
   
 std::string
-RateRecordReceiver::long_description() {
+RateRecordReceiver::long_description() const {
   boost::lock_guard<boost::mutex> lock (mutex);
 
   ostringstream out;

@@ -31,13 +31,13 @@ class COperator: virtual public ChainMember {
   virtual bool is_source() {return false;}
   virtual bool is_chain_end() {return false;}
 
-  operator_id_t & id() {return operID;}
-  virtual std::string id_as_str() { return operID.to_string(); }
-  virtual const std::string& typename_as_str() = 0; //return a name for the type  
-  virtual std::string long_description() {return "";}
+  const operator_id_t & id() const {return operID;}
+  virtual std::string id_as_str() const { return operID.to_string(); }
 
   virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy>) {}
   void set_node (Node * n) { node = n; }
+  void set_id (const operator_id_t & i) { operID = i; }
+
 
   void unregister(); 
 

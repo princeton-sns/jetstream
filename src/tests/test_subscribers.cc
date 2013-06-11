@@ -85,7 +85,7 @@ class SubscriberTest : public ::testing::Test {
     extend_tuple(*t, 2);
     
     cout<< "Tuple:" << fmt(*t) << endl;
-    cube->process(t);
+    cube->process(NULL, t);
     
     time_t now = time(NULL);
     for (int i = 0; i < 3; ++i) {
@@ -97,7 +97,7 @@ class SubscriberTest : public ::testing::Test {
       t->set_version(i + 1);
 
       cout<< "Tuple:" << fmt(*t) << endl;
-      cube->process(t);
+      cube->process(NULL, t);
     }
   }
   
@@ -196,7 +196,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   extend_tuple(*t, 2);
   t->set_version(0);
   cout<< "Tuple:" << fmt(*t) << endl;
-  cube->process(t);
+  cube->process(NULL, t);
 
   js_usleep(1000* 1000);
   
@@ -314,7 +314,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
     boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple(*t, double(cur_time + 100 * i));
     extend_tuple(*t, hostnames[i%2]);
-    sub->action_on_tuple(t);
+    sub->action_on_tuple(NULL, t);
     tuples[i] = t;
   }
   
@@ -379,7 +379,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     extend_tuple_time(*tuple, now);
     extend_tuple(*tuple, 1);
     tuple->set_version(0);
-    cube->process(tuple);
+    cube->process(NULL, tuple);
   }
   
   size_t tuples_last_window = 0;

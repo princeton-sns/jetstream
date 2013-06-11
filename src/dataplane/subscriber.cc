@@ -24,6 +24,10 @@ void Subscriber::update_callback(boost::shared_ptr<jetstream::Tuple> const &upda
   exec.submit(boost::bind(&Subscriber::post_update, this, update, new_value, old_value));  
 }
 
+void Subscriber::flush_callback(unsigned id) {
+  exec.submit(boost::bind(&Subscriber::post_flush, this, id));
+}
+
 size_t Subscriber::queue_length() {
   return exec.outstanding_tasks();
 }

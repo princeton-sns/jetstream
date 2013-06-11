@@ -28,7 +28,11 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
     virtual void report_insert(void * item, uint32_t weight);
   
     virtual void end_of_window(int window_ms, msec_t start_time);
-  
+
+    virtual void end_of_window(int window_ms) {
+      end_of_window(window_ms, get_window_start());
+    }
+
     virtual msec_t get_window_start() { return window_start_time; }
   
     virtual void new_window_start() { window_start_time = 0; }

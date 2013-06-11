@@ -10,7 +10,7 @@ def normalize_controller_addr(addr_str):
     (serv_addr, serv_port) = addr_str.split(':')
     serv_port = int(serv_port)
   else:
-    serv_addr = options.controller
+    serv_addr = addr_str
     serv_port = 3456  #default
     
   return   serv_addr, serv_port 

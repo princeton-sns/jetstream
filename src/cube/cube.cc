@@ -42,14 +42,33 @@ void ProcessCallable::run_flush() {
 }
 
 
-void ProcessCallable::assign(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels) {
-  service_process->post(boost::bind(&ProcessCallable::process, this, t, key, levels));
+void ProcessCallable::assign(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels) {
+  service_process->post(boost::bind(&ProcessCallable::process, this, chain, t, key, levels));
 }
 
-void ProcessCallable::process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
+
+void
+ProcessCallable::barrier(boost::shared_ptr<FlushInfo> flush) {
+  service_process->post(boost::bind(&ProcessCallable::barrier_to_flushqueue, this, flush));
+}
+
+void
+ProcessCallable::barrier_to_flushqueue(boost::shared_ptr<FlushInfo> flush) {
+  service_flush->post(boost::bind(&ProcessCallable::do_barrier, this, flush));
+}
+
+void
+ProcessCallable::do_barrier(boost::shared_ptr<FlushInfo> flush) {
+  unsigned v = flush->dec_and_get();
+  if (v == 1) { // note that dec returns PREVIOUS value
+    flush->subsc->flush_callback(flush->id);
+  }
+}
+
+void ProcessCallable::process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
   VLOG(10) << "got a tuple in ProcessCallable with key " << key;
   boost::lock_guard<boost::mutex> lock(batcherLock);
-  cube->do_process(t, key, levels, tupleBatcher, this);
+  cube->do_process(chain, t, key, levels, tupleBatcher, this);
   VLOG(10) << "finished a tuple in ProcessCallable with key " << key;
 }
 
@@ -70,19 +89,15 @@ void ProcessCallable::check_flush() {
 }
 
 void ProcessCallable::do_check_flush() {
-  while(true) {
-    if (batcher_ready()) {
-      boost::shared_ptr<cube::TupleBatch> tb = batch_flush();
-      size_t batch_size = tb->size();
-      VLOG_EVERY_N(1, 1000) << "Flushing with size "<< tb->size() << " thread id " << boost::this_thread::get_id()
-         << " size: " << batch_size 
-         << " Current flushCongestMon = " << cube->flushCongestMon->queue_length()
-         << " Current processhCongestMon = " << cube->processCongestMon->queue_length();
-       tb->flush();
-       cube->flushCongestMon->report_delete(tb.get(), batch_size);
-    }
-    else
-      return;
+  while(batcher_ready()) {
+    boost::shared_ptr<cube::TupleBatch> tb = batch_flush();
+    size_t batch_size = tb->size();
+    VLOG_EVERY_N(1, 1000) << "Flushing with size "<< tb->size() << " thread id " << boost::this_thread::get_id()
+       << " size: " << batch_size 
+       << " Current flushCongestMon = " << cube->flushCongestMon->queue_length()
+       << " Current processhCongestMon = " << cube->processCongestMon->queue_length();
+     tb->flush();
+     cube->flushCongestMon->report_delete(tb.get(), batch_size);
   }
 }
 
@@ -104,23 +119,22 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 
 };
 
-const std::string jetstream::DataCube::my_tyepename("data cube");
+const std::string jetstream::DataCube::my_tyepename("Data Cube");
 
-void DataCube::process(boost::shared_ptr<Tuple> t) {
+void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
 //  LOG(INFO) << "processing" << fmt(*t);
 
-   if(config.cube_max_stage < 1)
-     return;
-   static boost::thread_specific_ptr<std::ostringstream> tmpostr;
-   static boost::thread_specific_ptr<boost::hash<std::string> > hash_fn;
+  if(config.cube_max_stage < 1)
+    return;
+  static boost::thread_specific_ptr<std::ostringstream> tmpostr;
+  static boost::thread_specific_ptr<boost::hash<std::string> > hash_fn;
 
-   if (!tmpostr.get())
+  if (!tmpostr.get())
     tmpostr.reset(new std::ostringstream());
-   if(!hash_fn.get())
-   {
-     LOG(INFO) << "Using thread in process thread_id is: " << boost::this_thread::get_id();
-     hash_fn.reset(new boost::hash<std::string>());
-   }
+  if(!hash_fn.get()) {
+    LOG(INFO) << "Using thread in process thread_id is: " << boost::this_thread::get_id();
+    hash_fn.reset(new boost::hash<std::string>());
+  }
   if(config.cube_max_stage > 4)
     processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
@@ -130,22 +144,60 @@ void DataCube::process(boost::shared_ptr<Tuple> t) {
   size_t kh = (*hash_fn)(key);
   if(config.cube_max_stage < 2)
      return;
-  processors[kh % processors.size()]->assign(t, key, current_levels);
+  processors[kh % processors.size()]->assign(chain, t, key, current_levels);
 }
 
 
 void
-DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > & tuples, DataplaneMessage&) {
-  for(int i =0; i < tuples.size(); ++i) {
+DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> > & tuples, DataplaneMessage& msg) {
+  for(unsigned i =0; i < tuples.size(); ++i) {
     if (tuples[i])
-      process(tuples[i]);
+      process(chain, tuples[i]);
   }
+
+  {
+    shared_lock<boost::shared_mutex> lock(subscriberLock);
+    for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
+        it != subscribers.end(); ++it) {
+      boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
+      LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
+      shared_ptr<FlushInfo> flush = sub->incoming_meta(*chain, msg);
+      if (flush) {
+        flush->subsc = sub;
+        flush->set_count(processors.size());
+        for (unsigned i = 0; i < processors.size(); ++i)
+          processors[i]->barrier(flush);
+      }
+    }
+  }
+
+  if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
+    if(msg.rollup_levels_size() == 0) {
+      set_current_levels(get_leaf_levels());
+    }
+    else {
+      LOG_IF(FATAL, (unsigned int) msg.rollup_levels_size() != num_dimensions()) << "got a rollup levels msg with the wrong number of dimensions: "
+        << msg.rollup_levels_size()<< " should be " <<num_dimensions();
+      std::vector<unsigned int> levels;
+      for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
+        levels.push_back(msg.rollup_levels(i));
+      }
+      set_current_levels(levels); //There's a race condition here since there may be many incoming
+          //chains, at different rollup levels.
+    }
+  }
+  
 
 }
 
 
-void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, 
-    boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc) {
+void
+DataCube::do_process( OperatorChain * chain,
+                      boost::shared_ptr<Tuple> t,
+                      DimensionKey key,
+                      boost::shared_ptr<std::vector<unsigned int> > levels,
+                      boost::shared_ptr<cube::TupleBatch> &tupleBatcher,
+                      ProcessCallable * proc) {
   if(config.cube_max_stage < 3)
      return;
 
@@ -159,12 +211,10 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
   }
 
   shared_ptr<TupleProcessingInfo> tpi;
-  if(!in_batch)
-  {
+  if(!in_batch) {
     tpi = make_shared<TupleProcessingInfo>(t, key, levels);
   }
-  else
-  {
+  else {
     tpi = tupleBatcher->get(key);
     merge_tuple_into(*(tpi->t), *t);
   }
@@ -175,7 +225,7 @@ void DataCube::do_process(boost::shared_ptr<Tuple> t, DimensionKey key, boost::s
   for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
       it != subscribers.end(); ++it) {
     boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
-    cube::Subscriber::Action act = sub->action_on_tuple(t);
+    cube::Subscriber::Action act = sub->action_on_tuple(chain, t);
     if(!in_batch) {
       tpi->need_new_value = sub->need_new_value(t);
       tpi->need_old_value = sub->need_old_value(t);
@@ -265,25 +315,6 @@ void DataCube::add_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   LOG(INFO) << "Adding subscriber "<< sub->id() << " to " << id_as_str();
 }
 
-void DataCube::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred) {
-  if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
-    if(msg.rollup_levels_size() == 0)
-    {
-      set_current_levels(get_leaf_levels());
-    }
-    else
-    {
-      LOG_IF(FATAL, (unsigned int) msg.rollup_levels_size() != num_dimensions()) << "got a rollup levels msg with the wrong number of dimensions: "
-        << msg.rollup_levels_size()<< " should be " <<num_dimensions();
-      std::vector<unsigned int> levels;
-      for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
-        levels.push_back(msg.rollup_levels(i));
-      }
-      set_current_levels(levels);
-    }
-  }
-}
-
 void DataCube::remove_subscriber(boost::shared_ptr<cube::Subscriber> sub) {
   return remove_subscriber(sub->id());
 }
@@ -316,12 +347,12 @@ const jetstream::CubeSchema& DataCube::get_schema() {
 }
 
 
-std::string DataCube::id_as_str() {
+std::string DataCube::id_as_str() const {
   return name;
 }
 
 
-const std::string& DataCube::typename_as_str() {
+const std::string& DataCube::typename_as_str() const {
   return my_tyepename;
 }
 

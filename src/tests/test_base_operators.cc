@@ -423,7 +423,7 @@ TEST(Operator, SampleOperator) {
   operator_err_t err = op.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
 
-  int recv_count = 0;
+  unsigned recv_count = 0;
   for (int i = 0; i < 1000; ++i) {
     Tuple t;
     extend_tuple(t, i);
