@@ -171,7 +171,7 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   while (cube->num_leaf_cells() < 4 && tries++ < 50)
     js_usleep(100 * 1000);
   
-  ASSERT_EQ(4U, cube->num_leaf_cells());
+  ASSERT_EQ(4U, cube->num_leaf_cells());  //one tuple from long ago, three from "now"
   //create subscriber
 
   Tuple query_tuple;
@@ -209,6 +209,66 @@ TEST_F(SubscriberTest,TimeSubscriber) {
   cout << "done" <<endl;
 }
 
+
+
+TEST_F(SubscriberTest,TimeSubscriberLowLatency) {
+    shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+    
+    add_tuples(cube);
+    int tries = 0;
+    while (cube->num_leaf_cells() < 4 && tries++ < 50)
+        js_usleep(100 * 1000);
+    
+    ASSERT_EQ(4U, cube->num_leaf_cells());// one very old, three newish
+    //create subscriber
+    
+    Tuple query_tuple;
+    extend_tuple(query_tuple, "http://foo.com");
+    extend_tuple_time(query_tuple, 0); //just a placeholder
+    
+    AlterTopo topo;
+    TaskMeta* subsc = add_operator_to_alter(topo, operator_id_t(compID, 1), "TimeBasedSubscriber");
+    add_cfg_to_task(subsc, "ts_field","1");
+    add_cfg_to_task(subsc, "start_ts", "0");
+    add_cfg_to_task(subsc, "window_offset","100000"); //100 seconds
+
+    add_cfg_to_task(subsc,"slice_tuple",query_tuple.SerializeAsString());
+    
+    add_operator_to_alter(topo, operator_id_t(compID, 2), "DummyReceiver");
+    
+    add_edge_to_alter(topo, TEST_CUBE, operator_id_t(compID, 1));
+    add_edge_to_alter(topo, compID, 1,2);
+    
+    ControlMessage r;
+    node->handle_alter(topo, r);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
+    
+    shared_ptr<DummyReceiver> rec = boost::dynamic_pointer_cast<DummyReceiver>(
+            node->get_operator( operator_id_t(compID, 2)));
+    
+
+    js_usleep(2000 * 1000);
+    ASSERT_EQ(1U, rec->tuples.size()); //newish tuples won't have appeared yet
+    
+    DataplaneMessage window_marker;
+    window_marker.set_type(DataplaneMessage::END_OF_WINDOW);
+    vector< boost::shared_ptr<Tuple> > no_tuples;
+    OperatorChain chain;
+    cube->process(&chain, no_tuples, window_marker);
+    
+    //TODO: send an end of window marker here.  
+    
+    js_usleep(1000* 1000);
+    
+    while (rec->tuples.size() < 4 && tries++ < 50)
+        js_usleep(100 * 1000);
+    
+    ASSERT_EQ(4U, rec->tuples.size());     
+    cout << "done" <<endl;
+}
+
+
+
 TEST_F(SubscriberTest,OneShot) {
   shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
 
@@ -233,7 +293,7 @@ TEST_F(SubscriberTest,OneShot) {
 
   for (tries = 0; node->operator_count() > 1 && tries< 50; tries++)
     js_usleep(100 * 1000);
-  EXPECT_EQ(1U, node->operator_count()); //operator should be stopped
+  EXPECT_EQ(1U, node->operator_count()); //operator should be stopped, leaving only the DummyReceiver.
   cout << "operator has been removed from table" << endl;
   js_usleep(500 * 1000); //put here to debug whether d-tor is called. Can remove if need be.
 }
