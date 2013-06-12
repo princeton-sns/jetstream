@@ -125,6 +125,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     int regular_old_window; 
 
     boost::shared_ptr<TimeTeller> tt;
+    std::map<const OperatorChain*, msec_t> times;
 
     virtual void respond_to_congestion();
 
@@ -163,10 +164,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     int window_size() {return windowSizeMs;}
   
     virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
-                                                const DataplaneMessage&) {
-      shared_ptr<FlushInfo> p;
-      return p;
-    }
+                                                const DataplaneMessage&);
     
 
   private:

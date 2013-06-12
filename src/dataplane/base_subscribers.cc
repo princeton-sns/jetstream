@@ -324,26 +324,39 @@ TimeBasedSubscriber::update_backfill_stats(int elems) {
   VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
 }
 
+    
+
+shared_ptr<FlushInfo>
+TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
+                                   const DataplaneMessage& msg) {
+  if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
+      times[&c] = max( msec_t(msg.timestamp()), times[&c]);
+  }
+  shared_ptr<FlushInfo> p;
+  return p;
+}
+    
 
 int
 TimeBasedSubscriber::emit_batch() {
 
   respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
 
+  DataplaneMessage end_msg;
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
   time_t newMax = 0;
   if (ts_field >= 0) {
     newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
     VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
       << "-" << ts_to_str(newMax);
+    end_msg.set_timestamp( newMax * 1000 );
   }
   
 //  shared_ptr<FlushInfo> nextWindow(new FlushInfo);
 //  nextWindow->subsc = node->get_operator(id());
 //  nextWindow->set_count(newMax);
 
-  DataplaneMessage end_msg;
-  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
 
   cube::CubeIterator it = querier.do_query();
 
@@ -367,6 +380,7 @@ TimeBasedSubscriber::emit_batch() {
   }
 
   end_msg.set_window_length_ms(windowSizeMs);
+    
   chain->process(data_buf, end_msg);
 
   update_backfill_stats(elems);
