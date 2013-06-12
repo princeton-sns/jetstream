@@ -70,7 +70,7 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
 
     virtual void start();
   
-    virtual void stop() {
+    virtual void chain_stopping(OperatorChain *) {
       LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
         running = false;
@@ -125,7 +125,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     int regular_old_window; 
 
     boost::shared_ptr<TimeTeller> tt;
-    std::map<const OperatorChain*, msec_t> times;
+    std::map<const OperatorChain*, time_t> times;
 
     virtual void respond_to_congestion();
 
@@ -150,6 +150,9 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     virtual void post_update(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value,
                                  boost::shared_ptr<jetstream::Tuple> const &old_value);
+
+    virtual void post_flush(unsigned id);
+
 
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
 

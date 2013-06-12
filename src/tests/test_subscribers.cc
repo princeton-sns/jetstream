@@ -252,12 +252,11 @@ TEST_F(SubscriberTest,TimeSubscriberLowLatency) {
     
     DataplaneMessage window_marker;
     window_marker.set_type(DataplaneMessage::END_OF_WINDOW);
+    window_marker.set_timestamp( usec_t(1000 * 1000) * time(NULL));
     vector< boost::shared_ptr<Tuple> > no_tuples;
     OperatorChain chain;
     cube->process(&chain, no_tuples, window_marker);
-    
-    //TODO: send an end of window marker here.  
-    
+        
     js_usleep(1000* 1000);
     
     while (rec->tuples.size() < 4 && tries++ < 50)
@@ -390,7 +389,7 @@ TEST(LatencyMeasureSubscriber,TwoTuples) {
   for (int i = 0; i < count; ++i) {
     cout << fmt( *(rec->tuples[i]) ) << endl;
   }
-  sub->stop();
+  chain->stop();
 }
 
 

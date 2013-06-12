@@ -161,12 +161,10 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
         it != subscribers.end(); ++it) {
       boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
       LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
-      shared_ptr<FlushInfo> flush = sub->incoming_meta(*chain, msg);
-      if (flush) {
-        flush->subsc = sub;
-        flush->set_count(processors.size());
-        for (unsigned i = 0; i < processors.size(); ++i)
-          processors[i]->barrier(flush);
+      shared_ptr<FlushInfo> f = sub->incoming_meta(*chain, msg);
+      if (f) {
+        f->subsc = sub;
+        flush(f);
       }
     }
   }
@@ -186,10 +184,15 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
           //chains, at different rollup levels.
     }
   }
-  
-
 }
 
+
+void
+DataCube::flush(boost::shared_ptr<FlushInfo> f) {
+  f->set_count(processors.size());
+  for (unsigned i = 0; i < processors.size(); ++i)
+    processors[i]->barrier(f);
+}
 
 void
 DataCube::do_process( OperatorChain * chain,

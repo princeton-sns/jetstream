@@ -300,6 +300,8 @@ Internally, we identify endpoints by a string consisting of either an operator I
     boost::recursive_mutex outgoingMapMutex;
   /**
   * Maps from a destination operator ID to an RDA for it.
+    We need this so that an RDA can arrange to tear down the chain it's a member of.
+    Want the chain to stop, followed by conn teardown.
   */
     std::map<std::string, boost::shared_ptr<RemoteDestAdaptor> > adaptors;
   

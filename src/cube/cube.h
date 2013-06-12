@@ -195,6 +195,9 @@ class DataCube : public ChainMember {
     void remove_subscriber(boost::shared_ptr<cube::Subscriber> sub);
     void remove_subscriber(operator_id_t id);
 
+    void flush(boost::shared_ptr<FlushInfo>);
+
+
     //only used by tuple batch
     virtual DimensionKey get_dimension_key(Tuple const &t, boost::shared_ptr<std::vector<unsigned int> > levels) const = 0;
     virtual void get_dimension_key(const Tuple &t, boost::shared_ptr<std::vector<unsigned int> > levels,  std::ostringstream &ostr) const = 0;
@@ -203,7 +206,7 @@ class DataCube : public ChainMember {
     void save_callback(jetstream::TupleProcessingInfo &tpi,
                        boost::shared_ptr<jetstream::Tuple> new_tuple, boost::shared_ptr<jetstream::Tuple> old_tuple);
 
-  virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
+    virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
                             boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple)=0;
 
 

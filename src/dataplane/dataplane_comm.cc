@@ -565,15 +565,15 @@ RemoteDestAdaptor::connection_broken () {
 }
 
 void
+data_noop_cb(DataplaneMessage &msg, const boost::system::error_code &error) {
+}
+
+void
 RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
     
   if (!conn || !conn->is_connected())
     return;
-/*  if (!wait_for_chain_ready()) {
-    LOG(WARNING) << "timeout on dataplane connection to "<< dest_as_str
-		 << ". Aborting no-more-data message send. Should queue/retry instead?";
-    return;
-  }*/
+
   is_stopping = true;
   for (unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i].get() == c) {
@@ -591,13 +591,10 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
   boost::system::error_code err;
   conn->send_msg(d, err);
   LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
-  
+
+  boost::system::error_code error;  
+  conn->recv_data_msg(boost::bind(data_noop_cb, _1, _2), error);
   conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
-  //need to wait until the close actually happens before returning, to avoid
-  //destructing while the connection is in use.
-  
-  //TODO should clean self up.
-//  mgr.deferred_cleanup(remoteAddr); //do this synchronously
 }
 
 void

@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <string>
+#include <limits>
 
 #include "timeteller.h"
 #include "base_subscribers.h"
@@ -330,7 +331,7 @@ shared_ptr<FlushInfo>
 TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
                                    const DataplaneMessage& msg) {
   if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
-      times[&c] = max( msec_t(msg.timestamp()), times[&c]);
+      times[&c] = max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
   }
   shared_ptr<FlushInfo> p;
   return p;
@@ -342,21 +343,44 @@ TimeBasedSubscriber::emit_batch() {
 
   respond_to_congestion(); //do this BEFORE updating window. It may sleep, changing time.
 
-  DataplaneMessage end_msg;
-  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
   time_t newMax = 0;
   if (ts_field >= 0) {
     newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
+    if (times.size() > 0) {
+//      LOG(INFO) << "Subscriber has some end markers";
+      time_t min_window_seen = numeric_limits<time_t>::max();
+      map<const OperatorChain*, time_t>::iterator it = times.begin();
+      while (it != times.end()){
+        min_window_seen = min(min_window_seen, it->second);
+        it++;
+      }
+      newMax = max(newMax, min_window_seen);
+    }
+  }
+  
+  shared_ptr<FlushInfo> nextWindow(new FlushInfo);
+  nextWindow->id = newMax;
+  nextWindow->subsc = dynamic_pointer_cast<Subscriber>(node->get_operator( id() ));
+  cube->flush(nextWindow);
+//  post_flush(newMax);
+  
+  return windowSizeMs;
+//  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
+//            << "Total backfill tuple count " << backfill_tuples <<". ;
+}
+
+void
+TimeBasedSubscriber::post_flush(unsigned newMax) {
+
+  DataplaneMessage end_msg;
+  end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
+
+  if (newMax > 0) {
+    end_msg.set_timestamp( newMax * usec_t(1000 * 1000) );
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
     VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
       << "-" << ts_to_str(newMax);
-    end_msg.set_timestamp( newMax * 1000 );
   }
-  
-//  shared_ptr<FlushInfo> nextWindow(new FlushInfo);
-//  nextWindow->subsc = node->get_operator(id());
-//  nextWindow->set_count(newMax);
-
 
   cube::CubeIterator it = querier.do_query();
 
@@ -390,12 +414,7 @@ TimeBasedSubscriber::emit_batch() {
     querier.min.mutable_e(ts_field)->set_t_val(next_window_start_time);
   }
   
-  return windowSizeMs;
-
-//  LOG(INFO) << "Subscriber " << id() << " exiting. "   /* Emitted " << emitted_count() */
-//            << "Total backfill tuple count " << backfill_tuples <<". ;
 }
-
 
 std::string
 TimeBasedSubscriber::long_description() const {

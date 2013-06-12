@@ -85,7 +85,7 @@
   - name: set tmp dir perms #needed for mysql
     file: path=/tmp state=directory mode=0777
   - name: start mysql
-    service: name=mysqld state=started
+    service: name=mysqld.service state=started
   - name: create mysql db test_cube
     mysql_db: name=test_cube state=present login_user=root login_password=""
 #protobufs
