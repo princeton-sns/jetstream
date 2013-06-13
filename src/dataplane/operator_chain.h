@@ -57,6 +57,7 @@ protected:
 public:
 
   OperatorChain() : running(false), strand(NULL) {}
+  ~OperatorChain();
 
   boost::asio::strand * strand;
   
@@ -82,7 +83,7 @@ public:
   void do_stop(close_cb_t);
 
   void unregister(); //removes the chain from the source operator. This might result in a
-      //garbage collect.
+      //garbage collect. Needed for upward-moving failures.
 
   const std::string& chain_name();  
   

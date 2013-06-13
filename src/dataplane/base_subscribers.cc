@@ -62,6 +62,11 @@ StrandedSubscriber::start() {
   timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));  
 }
 
+StrandedSubscriber::~StrandedSubscriber() {
+  LOG(INFO) << "Deleting stranded subscriber " << id();
+}
+
+
 
 void
 StrandedSubscriber::emit_wrapper() {

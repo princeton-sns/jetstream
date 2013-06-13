@@ -23,11 +23,13 @@ const operator_err_t NO_ERR = "";
 class COperator: virtual public ChainMember {
 
  public:
+  
+  COperator():node(0) {}
+  
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
-  virtual ~COperator() {}
+  virtual ~COperator(); 
   virtual operator_err_t configure(std::map<std::string,std::string> &config) = 0;
   virtual void start() {}
-//  virtual void stop() {} //called only on strand
   virtual bool is_source() {return false;}
   virtual bool is_chain_end() {return false;}
 
@@ -39,7 +41,7 @@ class COperator: virtual public ChainMember {
   void set_id (const operator_id_t & i) { operID = i; }
 
 
-  void unregister(); 
+  void unregister();
 
  protected:
     operator_id_t operID; // note that id() returns a reference, letting us set this

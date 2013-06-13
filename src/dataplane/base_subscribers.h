@@ -67,6 +67,7 @@ class QueueSubscriber: public Subscriber {
 class StrandedSubscriber: public jetstream::cube::Subscriber {
   public:
     StrandedSubscriber():running(false) {}
+    virtual ~StrandedSubscriber();
 
     virtual void start();
   

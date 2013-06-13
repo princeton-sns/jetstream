@@ -55,7 +55,9 @@ OperatorChain::start() {
 //  }
 }
 
-
+OperatorChain::~OperatorChain() {
+//  LOG(INFO) << "Deleting operator chain " << this;
+}
 
 void
 OperatorChain::stop() {
@@ -81,8 +83,9 @@ OperatorChain::stop_async(close_cb_t cb) {
 
 void
 OperatorChain::do_stop(close_cb_t cb) {
-  if (ops.size() > 0 && ops[0])
+  if (ops.size() > 0 && ops[0]) {
     ops[0]->chain_stopping(this);
+  }
 
   for (unsigned i = 1; i < ops.size(); ++i) {
     ops[i]->chain_stopping(this);

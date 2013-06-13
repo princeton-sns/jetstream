@@ -428,7 +428,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
         throw operator_err_t("Failed to create cube " + task.name());
       }
     }
-  //  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
+    VLOG(1) << "after creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
 
     // Stop operators if requested
     for (int i=0; i < topo.tasktostop_size(); ++i) {
@@ -483,7 +483,8 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
 
     vector<operator_id_t >::iterator iter;
     for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
-      const operator_id_t& name = *iter;
+      operator_id_t name = *iter;
+        //note that we aren't iterating over any of these, but over a separate vector
       sourcelessChain.erase(name);
       chainSources.erase(name);
       operators.erase(name);
@@ -511,7 +512,7 @@ Node::create_chains( const AlterTopo & topo,
       shared_ptr<COperator> srcOperator = get_operator(src);
       
       if (!srcOperator) {
-        LOG(INFO) << "No operator " << src.to_string() << ", oplist is:\n" << make_op_list();
+        LOG(WARNING) << "No operator " << src.to_string() << ", oplist is:\n" << make_op_list();
         throw operator_err_t("unknown source operator " + src.to_string() + " for edge.");
       }
 

@@ -9,12 +9,16 @@ using namespace boost;
 namespace jetstream {
 
 
+COperator::~COperator() {
+//  unregister();
+}
+
+
 void
 COperator::unregister() {
   if (node)
     node->unregister_operator(id());
 }
-
 
 void
 TimerSource::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > & d, DataplaneMessage&) {
