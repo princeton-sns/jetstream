@@ -121,11 +121,15 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     boost::shared_ptr<CongestionPolicy> congest_policy;
 
 
+
     int backfill_old_window; 
     int regular_old_window; 
 
     boost::shared_ptr<TimeTeller> tt;
     std::map<const OperatorChain*, time_t> times;
+    mutable boost::mutex stateLock; //locks the times map.
+        // The lock is only needed when state accessed from the upcalls from the cube.
+        // Everything else is on one strand.
 
     virtual void respond_to_congestion();
 

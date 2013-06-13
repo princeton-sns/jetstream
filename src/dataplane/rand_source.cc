@@ -104,7 +104,6 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
     //at this point accum is how much weight is associated with values <= start_idx
   accum = slice_min - low_vals;
   
-  tuples_this_sec = 0;
   rate_per_sec = 1000;
   cur_idx = start_idx;
 
@@ -115,7 +114,7 @@ RandSourceOperator::configure(std::map<std::string,std::string> &config) {
  
   BATCH_SIZE = DEFAULT_BATCH_SIZE;
   if (BATCH_SIZE > rate_per_sec )
-    BATCH_SIZE = rate_per_sec;
+    BATCH_SIZE = rate_per_sec;  // if rate_per_sec is low, split into smaller batches
   wait_per_batch = BATCH_SIZE * 1000 / rate_per_sec;
   return NO_ERR;
 }
@@ -149,19 +148,13 @@ RandSourceOperator::emit_data()  {
       position_in_slice -= rand_data[cur_idx];
       cur_idx ++;
     }
-    LOG_IF(FATAL, cur_idx >= rand_data.size()) << "cur_idx has gotten too big. Sent "
-         << tuples_this_sec << " in sec so far; cur_idx = " << cur_idx
-         << " and rand data size is " << rand_data.size();
+    if ( cur_idx >= rand_data.size()) {
+      cur_idx = start_idx; //wrap around.
+      position_in_slice += accum; //subtract the share of rand_data[startIdx] that isn't this Operator's.
+    }
     t->add_e()->set_s_val(rand_labels[cur_idx]);
     position_in_slice += incr;
- //   cout << tuples_sent << ": position " << position_in_slice<< " and idx = " << cur_idx << endl;
-    if ( ++tuples_this_sec >= rate_per_sec) { //covered whole window, roll back to start
-      cur_idx = start_idx;
-      position_in_slice = accum;
-//      cout << "Rolling over after " << tuples_sent << " tuples in batch" << endl;
-      tuples_this_sec = 0;
-    }
-
+    
 #else
     double d = rand(gen);
     double my_acc = accum;

@@ -331,6 +331,7 @@ shared_ptr<FlushInfo>
 TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
                                    const DataplaneMessage& msg) {
   if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
+      unique_lock<boost::mutex> lock(stateLock);
       times[&c] = max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
   }
   shared_ptr<FlushInfo> p;
@@ -346,6 +347,8 @@ TimeBasedSubscriber::emit_batch() {
   time_t newMax = 0;
   if (ts_field >= 0) {
     newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
+    unique_lock<boost::mutex> lock(stateLock);
+    
     if (times.size() > 0) {
 //      LOG(INFO) << "Subscriber has some end markers";
       time_t min_window_seen = numeric_limits<time_t>::max();

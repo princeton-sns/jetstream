@@ -24,7 +24,6 @@ class RandSourceOperator: public TimerSource {
   double slice_min, slice_max; //the numeric values to choose between
   
   int rate_per_sec;
-  int tuples_this_sec;
   unsigned cur_idx;
   double position_in_slice; // used in sequential mode.
 
