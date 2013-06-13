@@ -147,7 +147,8 @@ time_t MysqlAggregateSimple<time_t>::get_db_value(boost::shared_ptr<sql::ResultS
     return timegm(&temptm);
   }
   else {
-    LOG(FATAL)<<"Error in time conversion";
+    LOG(FATAL) << "Error in time conversion";
+    return 0; //to appease compiler
   }
 }
 

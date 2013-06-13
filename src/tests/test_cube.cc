@@ -821,11 +821,10 @@ TEST_F(CubeTest, MysqlTestSort) {
     js_usleep(1000000);
   }
 
-  jetstream::Element *e;
   jetstream::Tuple max;
-  e=max.add_e(); //time
-  e=max.add_e(); //url
-  e=max.add_e(); //rc
+  max.add_e(); //time
+  max.add_e(); //url
+  max.add_e(); //rc
 
   list<string> sort;
   sort.push_back("response_code");

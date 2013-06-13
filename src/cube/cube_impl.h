@@ -78,6 +78,7 @@ class DataCubeImpl : public DataCube {
         return aggregates.at(pos);
       }
       LOG(FATAL) << "No aggregate named "<<name<< "; schema is " << schema.Utf8DebugString() << " pos ";
+      return boost::shared_ptr<CubeAggregate>( (CubeAggregate*) NULL); //to appease compiler.
     }
 
 

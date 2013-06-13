@@ -9,7 +9,8 @@
 # also works: ansible-playbook  -i ansible_hosts_vicci config_vicci.yml  -u princeton_jetstream
 #
 #
-# This file checks out and build jetstrem on a host. 
+# This file checks out and build jetstream on a host. 
+#  The controller IP address corresponds to sns48
 
 
 ### download and build js###
