@@ -485,9 +485,11 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
       operator_id_t name = *iter;
         //note that we aren't iterating over any of these, but over a separate vector
+      shared_ptr<COperator> to_destroy = get_operator(name); //don't destruct until tables are modified.
       sourcelessChain.erase(name);
       chainSources.erase(name);
       operators.erase(name);
+      //destructor happens here
     }
     response.set_type(ControlMessage::ERROR);
     Error * err_msg = response.mutable_error_msg();
@@ -768,7 +770,8 @@ Node::unregister_operator(operator_id_t name) {
   unique_lock<boost::recursive_mutex> lock(operatorTableLock);
 
   int delCount = operators.erase(name);
-  chainSources.erase(name);
+  if (delCount > 0)       //note that ~ChainOperator tries to call unregister
+    chainSources.erase(name); //so this method has to be reentrant
   
   return delCount > 0;
 }

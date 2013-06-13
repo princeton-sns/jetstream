@@ -10,7 +10,7 @@ namespace jetstream {
 
 
 COperator::~COperator() {
-//  unregister();
+  unregister();  //TODO: WHY DOES THIS CAUSE A CRASH IF UNCOMMENTED? Unregister should be idempotent.
 }
 
 
