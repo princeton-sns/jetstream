@@ -30,16 +30,24 @@ def main():
   action="store", help="query to run. Should be 'trivial' or 'counts'")
   (options, args) = parser.parse_args()
   
-  if options.mode == "trivial":
+  if options.mode:
+    mode = options.mode
+    if len(args) > 0:
+      print "Can't specify mode as both an arg and an option."
+      sys.exit(0)
+  else:
+    mode = args[0]
+  
+  if mode == "trivial":
     make_graph = make_trivial_graph
     display_results = lambda x: x
-  elif options.mode == "counts":
+  elif mode == "counts":
     make_graph = make_counts_query_graph
     display_results = display_respcode_results
-  elif options.mode == "by_time":
+  elif mode == "by_time":
     make_graph = make_time_query_graph
     display_results = display_time_results
-  elif options.mode == "all":
+  elif mode == "all":
     make_graph = get_simple_qgraph
     display_results = display_all_results
   else:

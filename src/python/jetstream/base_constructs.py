@@ -199,6 +199,7 @@ class Cube(Destination):
 
   def out_schema(self, in_schema):
     r = self.in_schema_map()
+    messages = []
 
 #    print "in-schema", in_schema
 #    print "dims", self.desc['dims']
@@ -213,15 +214,15 @@ class Cube(Destination):
     if len(in_schema) > 0:
       for field_id,(ty,name) in r.items():
         if field_id >= len(in_schema):
-          print "assuming COUNT for field %s" % name
+          messages.append("assuming COUNT for field %s" % name)
           continue
 
         if in_schema[field_id][0] != ty:
           raise SchemaError ("Can't put value %s (type %s) into field %s of type %s" % \
             (in_schema[field_id][1],in_schema[field_id][0], name, ty))
         if in_schema[field_id][1] != name:
-          print "Matching input-name %s to cube column %s"  % \
-                     (in_schema[field_id][1], name)
+          messages.append("Matching input-name %s to cube column %s"  % \
+                     (in_schema[field_id][1], name))
 
     ret = []
 

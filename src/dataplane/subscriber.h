@@ -42,7 +42,7 @@ class Subscriber: public jetstream::COperator {
 
       //These are the things that should be invoked externally; they call into synchronized code underneath.
       // This helps protect the cube's threads from being consumed by subscribers.
-      // They have to be virtual to make the inter-library linkage work right.
+      // They have to be virtual to make the inter-library linkage work right
     virtual void insert_callback(boost::shared_ptr<jetstream::Tuple> const &update,
                                  boost::shared_ptr<jetstream::Tuple> const &new_value);
 
@@ -80,7 +80,7 @@ class Subscriber: public jetstream::COperator {
     virtual void post_flush(unsigned id) {}
   
   private:
-    void set_cube(DataCube  *c ) {cube = c;}
+    void set_cube(DataCube  *c ) {cube = c;} //called from cube.addSubscriber
     CountingExecutor exec;
 
   

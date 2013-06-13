@@ -13,7 +13,7 @@
     js_deps: /jetstream/deps
     js_checkout: /jetstream/js
     num_cores: 24
-    mysqld_name: mysqld
+    mysqld_name: mysqld.service
   connection: fireball
   tags: build
   tasks:

@@ -166,7 +166,7 @@ class DataCube : public ChainMember {
     const jetstream::CubeSchema& get_schema() ;
     virtual std::string id_as_str() const;
     virtual const std::string& typename_as_str() const;
-    virtual void no_more_tuples() {};
+    virtual void chain_stopping(OperatorChain * );
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const =0;
 

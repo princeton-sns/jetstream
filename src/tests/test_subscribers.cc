@@ -33,6 +33,7 @@ class SubscriberTest : public ::testing::Test {
 
     NodeConfig cfg;
     boost::system::error_code error;
+    cfg.thread_pool_size = 3;
     node = new Node(cfg, error);
     node->start();
     ASSERT_TRUE(error == 0);

@@ -147,8 +147,16 @@ Node::stop ()
     }
   }
   
-  iosrv->stop();
+  iosrv->stop(); //need to do this BEFORE stopping the threads apparently? -asr 6/13/13
   LOG(INFO) << "io service stopped: "<< iosrv.get() << endl;
+  
+  
+  while (threads.size() > 0 ) {
+    threads.back()->join();
+    threads.pop_back();
+    LOG(INFO) << "joined thread " << threads.size();
+  }
+  
   
   // Optional:  Delete all global objects allocated by libprotobuf.
   // Probably unwise here since we may have multiple Nodes in a unit test.
@@ -156,11 +164,6 @@ Node::stop ()
 
   // Wait for all threads in pool to exit; this only happens after the io service
   // is stopped.
-  while (threads.size() > 0 ) {
-    threads.back()->join();
-    threads.pop_back();
-    LOG(INFO) << "joined thread " << threads.size();
-  }
 
   operators.empty(); //remove pointers, AFTER the threads stop.
 
@@ -422,9 +425,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
         CubeMeta *created = respTopo->add_tocreate();
         created->CopyFrom(task);
       } else {
-        LOG(WARNING) << "Failed to create cube " << task.name() <<endl;
-          //TODO could tear down operators_to_start here.
-        respTopo->add_cubestostop(task.name());
+        throw operator_err_t("Failed to create cube " + task.name());
       }
     }
   //  VLOG(1) << "before starting operators, have " << operators.size() << " operators: \n" << make_op_list();
@@ -546,13 +547,9 @@ Node::create_chains( const AlterTopo & topo,
       
       string err_msg_str = err_msg.str();
       if (err_msg_str.length() > 0) {
-        Error * err_fld = response.mutable_error_msg();
-        err_fld->set_msg(err_msg_str);
-        LOG(WARNING) << err_msg_str;
+        throw operator_err_t(err_msg_str);
       }
-      else {
-        c->add_subscriber(destOperator);
-      }
+      c->add_subscriber(destOperator);
     }
   }
   
@@ -737,13 +734,7 @@ Node::get_operator (operator_id_t name) {
   
 //  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
   weak_ptr<COperator> p = operators[name];
-  p = operators[name];
-//  if (p) {
-    return p.lock();
- /* } else {
-    boost::shared_ptr<COperator> x;
-    return x;
-  }*/
+  return p.lock();
 }
 
 /**

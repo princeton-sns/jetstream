@@ -52,7 +52,6 @@ CubeManager::create_cube ( const std::string &name,
     return iter->second;
   }
 
-
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
 

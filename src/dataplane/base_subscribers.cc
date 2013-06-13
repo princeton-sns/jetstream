@@ -333,11 +333,15 @@ TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
   if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
       unique_lock<boost::mutex> lock(stateLock);
       times[&c] = max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
+  } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
+      unique_lock<boost::mutex> lock(stateLock);
+      times.erase(&c);
   }
   shared_ptr<FlushInfo> p;
   return p;
 }
-    
+  
+  
 
 int
 TimeBasedSubscriber::emit_batch() {
