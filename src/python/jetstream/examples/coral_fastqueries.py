@@ -84,6 +84,7 @@ def main():
   if options.wait:
     TIME_TO_WAIT = int (options.wait)
   TICKS_TO_WAIT = 1000 * TIME_TO_WAIT / MS_PER_TICK
+  start_time = time.time()
   while t < TICKS_TO_WAIT and completed < num_nodes:
     time.sleep( MS_PER_TICK / 1000.0 )
     t += 1
@@ -92,7 +93,8 @@ def main():
     if t % 10 == 0:
       logger.info("tick; %d readers completed. %d total tuples." % (completed, tuples))
 
-  logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, t * MS_PER_TICK))
+  duration = time.time() - start_time
+  logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, duration))
   if completed == 0:
     sys.exit(0)
   display_results([r for r in result_readers if r.is_finished])
