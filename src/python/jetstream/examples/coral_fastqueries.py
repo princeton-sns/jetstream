@@ -28,6 +28,8 @@ def main():
   parser = standard_option_parser()
   parser.add_option("--mode", dest="mode",
   action="store", help="query to run. Should be 'trivial' or 'counts'")
+  parser.add_option("--wait", dest="wait",
+  action="store", help="how long to wait for results")
   (options, args) = parser.parse_args()
   
   if options.mode:
@@ -79,6 +81,8 @@ def main():
   t = 0
   MS_PER_TICK = 20
   TIME_TO_WAIT = 20  # seconds
+  if options.wait:
+    TIME_TO_WAIT = int (options.wait)
   TICKS_TO_WAIT = 1000 * TIME_TO_WAIT / MS_PER_TICK
   while t < TICKS_TO_WAIT and completed < num_nodes:
     time.sleep( MS_PER_TICK / 1000.0 )
