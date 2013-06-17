@@ -132,10 +132,12 @@ def deploy_or_dummy(options, server, g):
   ops = len(req.alter.toStart)
   cubes = len(req.alter.toCreate)
   if options.DRY_RUN:
-    planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346) } )
+    planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346), \
+            ("otherhost", 12345): ("otherhost", 12346) } )
     planner.take_raw_topo(req.alter)
     planner.get_assignments(1)
     print req
+    sys.exit(0)
   else:
     server.deploy_pb(req)
   print "Job has %d cubes and %d operators." % (cubes, ops)
@@ -155,6 +157,6 @@ def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
   cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
-  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])
-  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4])
+  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])  #effectively a sum
+  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4]) # effectively a sum
   cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])

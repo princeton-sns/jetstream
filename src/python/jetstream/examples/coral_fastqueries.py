@@ -10,7 +10,7 @@ from jetstream_types_pb2 import *
 from remote_controller import *
 import query_graph as jsapi
 from query_planner import QueryPlanner
-from client_reader import ClientDataReader
+from client_reader import ClientDataReader,tuple_str
 
 
 from coral_parse import coral_fnames,coral_fidxs, coral_types
@@ -44,9 +44,11 @@ def main():
     make_graph = make_trivial_graph
     display_results = lambda x: x
   elif mode == "counts":
+    print "returning total counts by response code"
     make_graph = make_counts_query_graph
     display_results = display_respcode_results
   elif mode == "by_time":
+    print "computing counts by time"  
     make_graph = make_time_query_graph
     display_results = display_time_results
   elif mode == "all":
@@ -59,23 +61,28 @@ def main():
   all_nodes,server = get_all_nodes(options)
   num_nodes = len(all_nodes)
   result_readers = []
-  for node in all_nodes:
-    reader = ClientDataReader()
+  g= jsapi.QueryGraph()
 
-    g= jsapi.QueryGraph()
+  ops = []
+  for node in all_nodes:
     last_op = make_graph(g, node)
-    
     last_op.instantiate_on(node)
+    ops.append(last_op)
+    
+  union_node = find_root_node(options, all_nodes)
+
+#  cube = g.add_cube("union_cube")
+#  cube.instantiate_on(union_node)
+#  define_schema_for_raw_cube (cube)
+#  cube.set_overwrite(True)
+    
+    
+  for last_op in ops:  
+    reader = ClientDataReader()
     g.connectExternal(last_op, reader.prep_to_receive_data())
     result_readers.append(reader)
-    if options.DRY_RUN:
-      req = g.get_deploy_pb()
-      planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346) } )
-      planner.take_raw_topo(req.alter)
-      planner.get_assignments(1)
-      print req
-      sys.exit(0)
-    server.deploy(g)
+
+  deploy_or_dummy(options, server, g)  
   
   completed = 0
   t = 0
@@ -94,7 +101,7 @@ def main():
       logger.info("tick; %d readers completed. %d total tuples." % (completed, tuples))
 
   duration = time.time() - start_time
-  logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, duration))
+  logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, duration * 1000))
   if completed == 0:
     sys.exit(0)
   display_results([r for r in result_readers if r.is_finished])
@@ -117,7 +124,6 @@ def get_simple_qgraph(g, node):
   
 
 def make_counts_query_graph(g, node):
-  print "returning total counts by response code"
   pull_from_local = get_simple_qgraph(g,node)
   pull_from_local.set_cfg("rollup_levels", "0,1,0")  #roll up everything but response code
   return pull_from_local
@@ -125,8 +131,12 @@ def make_counts_query_graph(g, node):
 
 def  display_respcode_results(result_readers):
   code_to_count = defaultdict(int)
+  did_a_tuple = False
   for reader in result_readers:
     for t in reader:
+      if not did_a_tuple:
+        did_a_tuple=True
+        print tuple_str(t)
       code = t.e[1].i_val
       val = t.e[5].i_val
       code_to_count[code] += val
@@ -136,7 +146,6 @@ def  display_respcode_results(result_readers):
 
 
 def make_time_query_graph(g, node):
-  print "computing counts by time"
   pull_from_local = get_simple_qgraph(g,node)
   pull_from_local.set_cfg("rollup_levels", "8,0,0")  #roll up everything but response code
         # Rollup level 8 = every-five-seconds; 9 = by second
