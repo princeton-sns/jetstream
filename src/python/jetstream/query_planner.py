@@ -196,11 +196,13 @@ class QueryPlanner (object):
     # initiate the connection to the destination
     #TODO: Update for NAT support, which may require dest to contact source
     for edge in self.alter.edges:
-      srcWorkerID = taskToWorker[edge.src] if edge.HasField("src") else taskToWorker[edge.src_cube]
+      workerID = taskToWorker[edge.src] if edge.HasField("src") else taskToWorker[edge.dest] 
+      # If an edge lacks a src, then it's from a cube, and has a dest.
+      # Since cube names can be ambiguous, we use the subscriber's location in that case.
       if edge.HasField("dest") or edge.HasField("dest_cube"):
         destWorkerID = taskToWorker[edge.dest] if edge.HasField("dest") else taskToWorker[edge.dest_cube]
         # If the source/dest workers are different, this is a remote edge
-        if destWorkerID != srcWorkerID:
+        if destWorkerID != workerID:
           # Use the dataplane location of the destination worker
           destLoc = self.workerLocs[destWorkerID]
           edge.dest_addr.address = destLoc[0]
@@ -209,7 +211,7 @@ class QueryPlanner (object):
         # This is an external edge that has its own destination endpoint information
         assert(edge.HasField("dest_addr"))
     
-      assignments[srcWorkerID].add_edge(edge)
+      assignments[workerID].add_edge(edge)
 
     for policy in self.alter.congest_policies:
       worker = taskToWorker[ policy.op[0].task ]
