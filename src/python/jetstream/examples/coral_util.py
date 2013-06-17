@@ -29,7 +29,9 @@ def standard_option_parser():
   parser.add_option("-a", "--controller", dest="controller",
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true",
-                  help="shows PB without running", default=False)
+                  help="shows PB from dummy topology without running", default=False)
+  parser.add_option("--display", dest="SHOW_TOPO", action="store_true",
+                  help="shows PB", default=False)                  
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
   parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
   parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
@@ -139,6 +141,8 @@ def deploy_or_dummy(options, server, g):
     print req
     sys.exit(0)
   else:
+    if options.SHOW_TOPO:
+        print req
     server.deploy_pb(req)
   print "Job has %d cubes and %d operators." % (cubes, ops)
 

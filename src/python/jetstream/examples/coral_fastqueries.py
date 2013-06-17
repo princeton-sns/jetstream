@@ -23,6 +23,8 @@ ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 
+UNION = False
+
 def main():
 
   parser = standard_option_parser()
@@ -71,18 +73,21 @@ def main():
     
   union_node = find_root_node(options, all_nodes)
 
-#  cube = g.add_cube("union_cube")
-#  cube.instantiate_on(union_node)
-#  define_schema_for_raw_cube (cube)
-#  cube.set_overwrite(True)
-    
+  if UNION:
+    cube = g.add_cube("union_cube")
+    cube.instantiate_on(union_node)
+    define_schema_for_raw_cube (cube)
+    cube.set_overwrite(True)
+    for op in ops:
+      g.connect(op, cube)
+ #     last_op = 
     
   for last_op in ops:  
     reader = ClientDataReader()
     g.connectExternal(last_op, reader.prep_to_receive_data())
     result_readers.append(reader)
 
-  deploy_or_dummy(options, server, g)  
+  deploy_or_dummy(options, server, g)
   
   completed = 0
   t = 0
