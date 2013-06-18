@@ -503,6 +503,8 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
 const string OneShotSubscriber::my_type_name("One-shot subscriber");
+const string DelayedOneShotSubscriber::my_type_name("Delayed-effect one-shot subscriber");
+
 
 
 } //end namespace

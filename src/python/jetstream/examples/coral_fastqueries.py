@@ -124,6 +124,7 @@ def get_simple_qgraph(g, node):
   cube.set_overwrite(False)
   
   pull_from_local = jsapi.OneShotSubscriber(g, filter={})
+  pull_from_local.set_cfg("sort_order", "time")
   pull_from_local.instantiate_on(node) #needed since cube names are ambiguous
   g.connect(cube, pull_from_local)
   return pull_from_local

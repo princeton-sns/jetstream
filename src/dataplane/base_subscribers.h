@@ -229,6 +229,14 @@ class OneShotSubscriber : public jetstream::StrandedSubscriber {
 GENERIC_CLNAME
 };
 
-} /* jetsream */
+
+class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
+  public:
+
+
+GENERIC_CLNAME
+};
+
+} /* jetstream */
 
 #endif /* end of include guard: Q_SUBSCRIBER_2FAEJ0UJ */
