@@ -35,8 +35,8 @@ class MysqlDimension: public Dimension{
      */
     virtual string get_groupby_clause_for_rollup(unsigned int const level) const = 0;
 
-    string get_base_column_name() const;
-    string get_rollup_level_column_name() const;
+    virtual string get_base_column_name() const; 
+    virtual string get_rollup_level_column_name() const;
     virtual vector<string> get_column_names() const;
     virtual vector<string> get_column_types() const = 0;
 

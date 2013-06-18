@@ -34,8 +34,13 @@ MysqlDimensionTimeContainment::get_key(Tuple const &t, std::ostringstream &ostr)
 vector<string>
 MysqlDimensionTimeContainment::get_column_names() const {
   vector<string> decl;
-  decl.push_back(get_base_column_name()+"_start");
+  decl.push_back(get_base_column_name());
   return decl;
+}
+
+std::string
+MysqlDimensionTimeContainment::get_base_column_name() const {
+  return name + "_start"; //includes the _start prefix
 }
 
 
