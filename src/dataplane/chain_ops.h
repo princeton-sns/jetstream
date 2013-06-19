@@ -41,7 +41,7 @@ class COperator: virtual public ChainMember {
   void set_id (const operator_id_t & i) { operID = i; }
 
 
-  void unregister();
+//  void unregister();
 
  protected:
     operator_id_t operID; // note that id() returns a reference, letting us set this

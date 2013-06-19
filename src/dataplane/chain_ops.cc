@@ -10,15 +10,15 @@ namespace jetstream {
 
 
 COperator::~COperator() {
-  unregister();  //TODO: WHY DOES THIS CAUSE A CRASH IF UNCOMMENTED? Unregister should be idempotent.
+//  unregister();  //TODO: WHY DOES THIS CAUSE A CRASH IF UNCOMMENTED? Unregister should be idempotent.
 }
 
-
+/*
 void
 COperator::unregister() {
   if (node)
     node->unregister_operator(id());
-}
+}*/
 
 void
 TimerSource::process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > & d, DataplaneMessage&) {
@@ -48,12 +48,14 @@ TimerSource::emit_wrapper() {
     if (delay_to_next >= 0) {
       timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
       timer->async_wait(st->wrap(boost::bind(&TimerSource::emit_wrapper, this)));
+      return;
     } else {
       LOG(INFO)<< "Source " << id() << " has no more tuples; will tear down";
       running = false;
-      chain->do_stop(no_op_v); // on thread, can call this
-      chain.reset();
-      node->unregister_operator(id()); // will trigger destructor for this!
+      shared_ptr<OperatorChain> c  = chain;
+      chain->stop_from_within(); // on thread, can call this; note it will call chain-stopping
+      node->unregister_chain(c);
+      c.reset();// will trigger destructor for this!
     }
   }
 }
@@ -66,6 +68,7 @@ TimerSource::chain_stopping(OperatorChain *) {
   if (was_running) {
     timer->cancel();
   }
+  chain.reset(); //so that we stop if invoked externally.
 }
 
 TimerSource::~TimerSource() {

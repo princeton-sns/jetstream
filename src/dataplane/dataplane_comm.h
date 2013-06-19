@@ -230,7 +230,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
   std::map<boost::asio::ip::tcp::endpoint, boost::shared_ptr<IncomingConnectionState> > liveConns;
 
   boost::recursive_mutex incomingMapMutex;
-  
+  Node * node;
   
   void operator= (const DataplaneConnManager &) 
     { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
@@ -238,8 +238,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
     { LOG(FATAL) << "cannot copy a DataplaneConnManager"; }
   
  public:
-  DataplaneConnManager (boost::asio::io_service& io, const NodeConfig& c):
-      send_counter(NULL), recv_counter(NULL),iosrv(io), strand(iosrv), cfg(c) {}
+  DataplaneConnManager (boost::asio::io_service& io, Node * n);
  
  
     // called to attach incoming connection c to existing operator dest
@@ -292,6 +291,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
       recv_counter = r;
     }  
  
+    Node * get_node() {   return node;  }
 
   private:
     boost::asio::io_service & iosrv;

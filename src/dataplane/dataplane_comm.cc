@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include "dataplane_comm.h"
+#include "node.h"
 
 using namespace jetstream;
 using namespace std;
@@ -190,6 +191,11 @@ IncomingConnectionState::meta_from_downstream(DataplaneMessage & msg) {
     }
   }
 }
+
+DataplaneConnManager::DataplaneConnManager (boost::asio::io_service& io, Node * n):
+      node(n),send_counter(NULL), recv_counter(NULL),iosrv(io), strand(iosrv), cfg(node->cfg())
+      {}
+
 
 void
 DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
@@ -555,8 +561,9 @@ RemoteDestAdaptor::connection_broken () {
   is_stopping = true;
   for(unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i]) {
+      Node * n = mgr.get_node();
       chains[i]->stop();
-      chains[i]->unregister();
+      n->unregister_chain(chains[i]);
     }
   }
   LOG(INFO) << "connection unexpectedly broken to " << dest_as_str << ", will tear down.";

@@ -51,6 +51,7 @@ TEST(Node, OperatorCreateDestroy)
   ASSERT_TRUE(op != NULL);
 }
 
+/*
 TEST(Node, UnregisterNonOperator)
 {
   NodeConfig cfg;
@@ -60,7 +61,7 @@ TEST(Node, UnregisterNonOperator)
   operator_id_t id(1,2);
   node.unregister_operator(id);
   node.unregister_operator(id);//do it again
-}
+}*/
 
 TEST(Node, BadOperatorName) {
   NodeConfig cfg;

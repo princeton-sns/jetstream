@@ -78,6 +78,7 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
       }
       if (timer)
         timer->cancel();
+      chain.reset(); //to avoid leaving a cycle
     }
     void emit_wrapper();
     virtual int emit_batch() = 0;

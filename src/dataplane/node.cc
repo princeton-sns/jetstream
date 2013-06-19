@@ -24,7 +24,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     livenessMgr (iosrv, config),
     webInterface (conf.dataplane_ep.first, conf.webinterface_port, *this),
     cubeMgr(conf),
-    dataConnMgr(*iosrv, config),
+    dataConnMgr(*iosrv, this),
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
@@ -113,7 +113,6 @@ Node::start ()
 void
 Node::stop ()
 {
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
  
   // Use the io service status as a marker for an already-stopped node
   if (iosrv->stopped()) {
@@ -132,18 +131,21 @@ Node::stop ()
     chainIter ++;
   }
   
-  
-  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter = operators.begin();
-  // Need to stop operators before deconstructing because otherwise they may
-  // keep pointers around after destruction.
-  LOG(INFO) << "killing " << operators.size() << " operators on stop";
-  while (iter != operators.end()) {
-    shared_ptr<COperator> op = iter->second.lock();
-    operator_id_t id = iter->first;
-    iter++;//note that stop will sometimes remove the operator from the table so we advance iterator first;
-    if (op) {
-      LOG(INFO) << " freeing " << id << " (" << op->typename_as_str() << ")";
-      op.reset();
+  {
+    unique_lock<boost::shared_mutex> lock(operatorTableLock);
+    
+    std::map<operator_id_t, weak_ptr<COperator> >::iterator iter = operators.begin();
+    // Need to stop operators before deconstructing because otherwise they may
+    // keep pointers around after destruction.
+    LOG(INFO) << "killing " << operators.size() << " operators on stop";
+    while (iter != operators.end()) {
+      shared_ptr<COperator> op = iter->second.lock();
+      operator_id_t id = iter->first;
+      iter++;//note that stop will sometimes remove the operator from the table so we advance iterator first;
+      if (op) {
+        LOG(INFO) << " freeing " << id << " (" << op->typename_as_str() << ")";
+        op.reset();
+      }
     }
   }
   
@@ -377,8 +379,6 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   respTopo->set_computationid(topo.computationid());
 
     //a whole handle_alter is atomic with respect to incoming connections
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
-
 
   VLOG(1) << "Incoming Alter message: "<<topo.Utf8DebugString() << endl;
 
@@ -389,28 +389,31 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   try {
 
     vector<shared_ptr<COperator> > operators_to_start;
-//    vector <operator_id_t, shared_ptr<COperator> > ops_being_created;
-    for (int i=0; i < topo.tostart_size(); ++i) {
-      const TaskMeta &task = topo.tostart(i);
-      operator_id_t id = unparse_id(task.id());
-      const string &cmd = task.op_typename();
-      map<string,string> config;
-      for (int j=0; j < task.config_size(); ++j) {
-        const TaskMeta_DictEntry &cfg_param = task.config(j);
-        config[cfg_param.opt_name()] = cfg_param.val();
-      }    
-      VLOG(1) << "calling create operator " << id;
+    {
+      unique_lock<boost::shared_mutex> lock(operatorTableLock);
 
-      shared_ptr<COperator> op = create_operator(cmd, id, config);
-      operators_to_start.push_back( op);
-      operator_ids_to_start.push_back(id);
-      LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";      
-      TaskMeta *started_task = respTopo->add_tostart();
-      started_task->mutable_id()->CopyFrom(task.id());
-      started_task->set_op_typename(task.op_typename());
-      operators[id] = op;
+      for (int i=0; i < topo.tostart_size(); ++i) {
+        const TaskMeta &task = topo.tostart(i);
+        operator_id_t id = unparse_id(task.id());
+        const string &cmd = task.op_typename();
+        map<string,string> config;
+        for (int j=0; j < task.config_size(); ++j) {
+          const TaskMeta_DictEntry &cfg_param = task.config(j);
+          config[cfg_param.opt_name()] = cfg_param.val();
+        }    
+        VLOG(1) << "calling create operator " << id;
+
+        shared_ptr<COperator> op = create_operator(cmd, id, config);
+        operators_to_start.push_back( op);
+        operator_ids_to_start.push_back(id);
+        LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";      
+        TaskMeta *started_task = respTopo->add_tostart();
+        started_task->mutable_id()->CopyFrom(task.id());
+        started_task->set_op_typename(task.op_typename());
+        operators[id] = op;
+      }
     }
-  
+
   //Invariant: if we got here, all operators started OK.
   
     VLOG(1) << "before creating cubes, have " << operators.size() << " operators: \n" << make_op_list();
@@ -434,7 +437,11 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
     for (int i=0; i < topo.tasktostop_size(); ++i) {
       operator_id_t id = unparse_id(topo.tasktostop(i));
       LOG(INFO) << "Stopping " << id << " due to server request";
-      unregister_operator(id);
+      shared_ptr<OperatorChain> c = chainSources[id];
+      if (c) {
+        c->stop();
+        unregister_chain(c);
+      }
       // TODO: Should we log whether the stop happened?
       respTopo->add_tasktostop()->CopyFrom(topo.tasktostop(i));
     }
@@ -713,7 +720,7 @@ Node::stop_computation(int32_t compID) {
   LOG(INFO) << "stopping computation " << compID;
   vector<int32_t> stopped_ops;
   {
-    unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+    unique_lock<boost::shared_mutex> lock(operatorTableLock);
     purgeChains(compID, sourcelessChain, stopped_ops);
     purgeChains(compID, chainSources, stopped_ops);
     std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
@@ -733,7 +740,7 @@ Node::stop_computation(int32_t compID) {
 
 boost::shared_ptr<COperator> 
 Node::get_operator (operator_id_t name) {
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+  shared_lock<boost::shared_mutex> lock(operatorTableLock);
   
 //  std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
   weak_ptr<COperator> p = operators[name];
@@ -766,21 +773,28 @@ throw(operator_err_t)
 }
 
 bool 
-Node::unregister_operator(operator_id_t name) {
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+Node::unregister_chain(shared_ptr<OperatorChain> c) {
+  unique_lock<boost::shared_mutex> lock(operatorTableLock);
 
-  int delCount = operators.erase(name);
-  if (delCount > 0)       //note that ~ChainOperator tries to call unregister
-    chainSources.erase(name); //so this method has to be reentrant
+//  int delCount = chainSources.erase(c);
   
-  return delCount > 0;
+  unsigned members = c->members();
+  for ( unsigned i = 0; i < members; ++i) {
+    shared_ptr<ChainMember> m = c->member(i);
+    shared_ptr<COperator> op = dynamic_pointer_cast<COperator>(m);
+    if (op)
+      operators.erase(op->id());
+  }
+    
+  return false; 
+//  return delCount > 0;
 }
 
 
 
 std::string
 Node::make_op_list() {
-  unique_lock<boost::recursive_mutex> lock(operatorTableLock);
+  shared_lock<boost::shared_mutex> lock(operatorTableLock);
 
   ostringstream s;
   std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;

@@ -79,11 +79,10 @@ public:
   void upwards_metadata(DataplaneMessage&, ChainMember * m);
 
   void stop();
-  void stop_async(close_cb_t cb);
-  void do_stop(close_cb_t);
-
-  void unregister(); //removes the chain from the source operator. This might result in a
-      //garbage collect. Needed for upward-moving failures.
+  void stop_from_within() {
+    do_stop(no_op_v);
+    //unregister();
+  }
 
   const std::string& chain_name();  
   
@@ -111,6 +110,14 @@ public:
   boost::shared_ptr<ChainMember> member(unsigned i) const {
     return ops[i];
   }
+
+private:
+  void stop_async(close_cb_t cb);
+  void do_stop(close_cb_t);
+
+  void unregister(); //removes the chain from the source operator. This might result in a
+      //garbage collect. Needed for upward-moving failures.
+
 
 };
 

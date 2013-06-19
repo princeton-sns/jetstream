@@ -21,13 +21,10 @@ OperatorChain::chain_name() {
 
   if (cached_chain_name.size() == 0) {
     ostringstream buf;
-//    for (int i= 0; i < ops.size(); ++i)
-    buf << ops.size() <<"-element ";
     if (ops.size() ==0)
       buf << "empty chain";
     else {
-      buf << "chain starting at ";
-    
+      buf << ops.size() <<"-element chain starting at ";
       if (ops[0])
         buf << ops[0]->id_as_str();
       else
@@ -61,22 +58,21 @@ OperatorChain::~OperatorChain() {
 
 void
 OperatorChain::stop() {
-  LOG(INFO) << "Stopping chain.";
+  LOG(INFO) << "Stopping "<< chain_name()<< "; running is " << running;
   // << typename_as_str() << " operator " << id() << ". Running is " << running;
   if (running) {
     running = false;
     boost::barrier b(1);
-
     stop_async( boost::bind(&boost::barrier::wait, &b) );
     b.wait();
-    
+    LOG(INFO) << "Stop of " << chain_name() << " complete";
   }
 }
 
 void
 OperatorChain::stop_async(close_cb_t cb) {
   if (!strand) {
-    LOG(WARNING) << "Can't stop, chain was never started";
+    LOG(WARNING) << "Can't stop, "<< chain_name() << " was never started";
   } else
     strand->wrap(boost::bind(&OperatorChain::do_stop, this, cb));
 }
@@ -90,11 +86,12 @@ OperatorChain::do_stop(close_cb_t cb) {
   for (unsigned i = 1; i < ops.size(); ++i) {
     ops[i]->chain_stopping(this);
   }
-  LOG(INFO) << " called stop everywhere; invoking cb";
+  LOG(INFO) << chain_name() << " called stop everywhere; invoking cb";
   cb();
 }
 
 
+/*
 void
 OperatorChain::unregister() {
 
@@ -103,7 +100,7 @@ OperatorChain::unregister() {
   if( src_op) {
     src_op->unregister();
   }
-}
+}*/
 
 
 boost::shared_ptr<CongestionMonitor>

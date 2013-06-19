@@ -189,14 +189,12 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
 
 void
 DataCube::chain_stopping(OperatorChain * c) {
+//  VLOG(2) << "Cube " << name << " got chain-stopping";
   DataplaneMessage end_of_chain;
   end_of_chain.set_type(DataplaneMessage::NO_MORE_DATA);
-  shared_lock<boost::shared_mutex> lock(subscriberLock);
-  for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
-      it != subscribers.end(); ++it) {
-    boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
-    sub->incoming_meta(*c, end_of_chain);
-  }
+  
+  vector< boost::shared_ptr<Tuple> > no_tuples;
+  process(c, no_tuples, end_of_chain);
 }
 
 

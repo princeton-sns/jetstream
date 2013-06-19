@@ -64,6 +64,7 @@ StrandedSubscriber::start() {
 
 StrandedSubscriber::~StrandedSubscriber() {
   LOG(INFO) << "Deleting stranded subscriber " << id();
+  //FIXME do we cancel the timer here?
 }
 
 
@@ -80,10 +81,13 @@ StrandedSubscriber::emit_wrapper() {
   }
     //either !running and we were invoked by the timer-cancel or else a delay_to_next == -1
   LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
-  chain->do_stop(no_op_v);
-  chain.reset();
-  cube->remove_subscriber(id());
-  node->unregister_operator(id()); // will trigger destructor for this!    
+  if (chain) {
+    shared_ptr<OperatorChain> c(chain);
+    chain->stop_from_within();
+    node->unregister_chain(c);
+    c.reset();
+  }
+  cube->remove_subscriber(id());// will trigger destructor for this!
 }
 
 operator_err_t
@@ -508,7 +512,8 @@ DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
 
 int
 DelayedOneShotSubscriber::emit_batch() {
-  LOG(INFO) << "Delayed one-shot is timing out; could have done something here";
+  LOG(INFO) << "Delayed one-shot " << id() <<  " is timing out; could have done something here";
+  //though we also get invoked immediately
   return 10 * 1000; //wait ten seconds.
 }
 
@@ -531,13 +536,13 @@ shared_ptr<FlushInfo>
 DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
                                             const DataplaneMessage& msg) {
   unique_lock<boost::mutex> lock(stateLock);
-
+//  LOG(INFO) << "Incoming meta " << msg.type() << "  to delayed-one-shot " << id();
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
     times[&chain] = get_msec();
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
     times.erase(&chain);
-  }  
-
+  }
+//  LOG(INFO) << "Total of " << times.size() << " chains left for " << id();
   shared_ptr<FlushInfo> p;
   if (times.size() == 0 ) {
     p = shared_ptr<FlushInfo>(new FlushInfo);
