@@ -75,14 +75,15 @@ StrandedSubscriber::emit_wrapper() {
     if (delay_to_next >= 0) {
       timer->expires_from_now(boost::posix_time::millisec(delay_to_next));
       timer->async_wait(st->wrap(boost::bind(&StrandedSubscriber::emit_wrapper, this)));
-    } else {
-      LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
-      chain->do_stop(no_op_v);
-      chain.reset();
-      cube->remove_subscriber(id());
-      node->unregister_operator(id()); // will trigger destructor for this!    
+      return;
     }
   }
+    //either !running and we were invoked by the timer-cancel or else a delay_to_next == -1
+  LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
+  chain->do_stop(no_op_v);
+  chain.reset();
+  cube->remove_subscriber(id());
+  node->unregister_operator(id()); // will trigger destructor for this!    
 }
 
 operator_err_t
@@ -507,15 +508,14 @@ DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
 
 int
 DelayedOneShotSubscriber::emit_batch() {
-  if (done)
-    return -1;
+  LOG(INFO) << "Delayed one-shot is timing out; could have done something here";
   return 10 * 1000; //wait ten seconds.
 }
 
 void
 DelayedOneShotSubscriber::post_flush(unsigned id) {
   OneShotSubscriber::emit_batch();
-  done = true;
+  chain_stopping(NULL); //will trigger a stop.
 }
 
 
