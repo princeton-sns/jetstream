@@ -509,5 +509,7 @@ TEST_F(SubscriberTest,DelayedOneShot) {
   
   js_usleep(100 * 1000);
   ASSERT_EQ(1, rec->tuples.size());
+  EXPECT_EQ(0U, node->operator_count());
+
 
 }

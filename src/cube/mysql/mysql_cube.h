@@ -96,6 +96,13 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
       
     virtual ~MysqlCube();
 
+    virtual void clear_contents() {
+      destroy();
+      create();
+    }
+
+
+
   protected:
     /*
     void insert_one(jetstream::Tuple const &t);

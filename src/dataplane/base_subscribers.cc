@@ -81,6 +81,11 @@ StrandedSubscriber::emit_wrapper() {
   }
     //either !running and we were invoked by the timer-cancel or else a delay_to_next == -1
   LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
+  stop_from_subscriber();
+}
+
+void
+StrandedSubscriber::stop_from_subscriber() {
   if (chain) {
     shared_ptr<OperatorChain> c(chain);
     chain->stop_from_within();
@@ -89,7 +94,7 @@ StrandedSubscriber::emit_wrapper() {
   }
   cube->remove_subscriber(id());// will trigger destructor for this!
 }
-
+  
 operator_err_t
 OneShotSubscriber::configure(std::map<std::string,std::string> &config) {
   return querier.configure(config, id());
@@ -520,7 +525,8 @@ DelayedOneShotSubscriber::emit_batch() {
 void
 DelayedOneShotSubscriber::post_flush(unsigned id) {
   OneShotSubscriber::emit_batch();
-  chain_stopping(NULL); //will trigger a stop.
+  stop_from_subscriber();
+//  chain_stopping(NULL); //will trigger a stop.
 }
 
 

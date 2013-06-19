@@ -83,6 +83,8 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
     void emit_wrapper();
     virtual int emit_batch() = 0;
 
+    void stop_from_subscriber(); //NOT virtual
+
   protected:
     volatile bool running;
     boost::shared_ptr<boost::asio::strand> st;

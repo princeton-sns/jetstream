@@ -229,6 +229,8 @@ class DataCube : public ChainMember {
 
     boost::shared_ptr<ChainedQueueMonitor> process_congestion_monitor() { return processCongestMon;}
 
+    virtual void clear_contents() = 0;
+
   protected:
     jetstream::CubeSchema schema;
     std::string name;

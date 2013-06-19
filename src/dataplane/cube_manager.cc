@@ -49,7 +49,11 @@ CubeManager::create_cube ( const std::string &name,
   if (iter != cubeMap.end()) { //cube already exists, so return it
     if (!iter->second)
       LOG(WARNING) << "Cube " << name << " had null entry in table";
-    return iter->second;
+    c = iter->second;
+    if (overwrite_if_present) {
+      c->clear_contents();
+    }
+    return c;
   }
 
   //TODO: The cube constructor does several things, some of which may fail; we

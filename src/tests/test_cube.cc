@@ -934,6 +934,8 @@ TEST(Cube,Attach) {
   }
   ASSERT_EQ(K, total_count);
 
+  cube->clear_contents();
+  ASSERT_EQ(0U, cube->num_leaf_cells());  //tests clear_contents
 
   cout << "done"<< endl;
   node.stop();
