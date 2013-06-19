@@ -25,7 +25,10 @@ class Subscriber: public jetstream::COperator {
     boost::shared_ptr<OperatorChain> chain;
   
   public:
-    enum Action {NO_SEND, SEND, SEND_NO_BATCH, SEND_UPDATE} ;
+    enum Action {NO_SEND,
+          SEND,
+          SEND_NO_BATCH, //tells cube to do a flush
+          SEND_UPDATE} ; //tells cube the update is backfill
 
     Subscriber (): cube(NULL), exec(1) {};
     virtual ~Subscriber() {};
@@ -61,10 +64,9 @@ class Subscriber: public jetstream::COperator {
 
     size_t queue_length();
   
-    virtual void no_more_tuples ();
-
     virtual bool is_source() {return true;}
 
+      //adds an OUTGOING chain
     virtual void add_chain(boost::shared_ptr<OperatorChain> c) {chain = c;}
 
 

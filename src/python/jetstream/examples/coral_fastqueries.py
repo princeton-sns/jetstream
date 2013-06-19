@@ -23,7 +23,7 @@ ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 
-UNION = False
+UNION = True
 
 def main():
 
@@ -80,7 +80,9 @@ def main():
     cube.set_overwrite(True)
     for op in ops:
       g.connect(op, cube)
- #     last_op = 
+    sub = jsapi.DelayedSubscriber(g, filter={})
+    g.connect(cube, sub)
+    ops = [sub]
     
   for last_op in ops:  
     reader = ClientDataReader()
@@ -124,7 +126,7 @@ def get_simple_qgraph(g, node):
   cube.set_overwrite(False)
   
   pull_from_local = jsapi.OneShotSubscriber(g, filter={})
-  pull_from_local.set_cfg("sort_order", "time")
+#  pull_from_local.set_cfg("sort_order", "time")  #just a performance experiment
   pull_from_local.instantiate_on(node) #needed since cube names are ambiguous
   g.connect(cube, pull_from_local)
   return pull_from_local

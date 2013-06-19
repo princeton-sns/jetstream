@@ -141,6 +141,23 @@ class SubscriberTest : public ::testing::Test {
     return rec;
   }
   
+
+ shared_ptr<SendK>  get_send_k() {
+    AlterTopo topo;
+    operator_id_t oper_id(compID, 17);
+    TaskMeta* task = add_operator_to_alter(topo, oper_id, "SendK");
+    add_edge_to_alter(topo, oper_id, TEST_CUBE);
+   
+    ControlMessage r;
+    node->handle_alter(topo, r);
+    EXPECT_NE(r.type(), ControlMessage::ERROR);
+
+    shared_ptr<COperator> dest = node->get_operator( operator_id_t(compID, 2));
+    shared_ptr<SendK> rec = boost::dynamic_pointer_cast<SendK>(dest);
+    return rec;
+  }
+  
+  
 };
 
 TEST(TimeTellerTest, TellsNormalTimeCorrectly) {
@@ -280,7 +297,7 @@ TEST_F(SubscriberTest,OneShot) {
   ASSERT_EQ(4U, cube->num_leaf_cells());
 
   Tuple query_tuple;
-  extend_tuple(query_tuple, "http://foo.com");
+  query_tuple.add_e();
   query_tuple.add_e();  
 
   shared_ptr<DummyReceiver> rec = start_time_subscriber("OneShotSubscriber", query_tuple);
@@ -453,10 +470,29 @@ TEST_F(SubscriberTest,VariableSubscriber) {
   }
   cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
   EXPECT_EQ(5000, subscriber->window_size());
-//  for (int i = 0; i < receiver->tuples.size(); ++i)
-//    cout << fmt( (*receiver->tuples[i])) << endl;
-//    js_usleep(50 * 1000);
-//subscriber, attached to a limited-rate sender, attached to a dest.
+}
+
+
+
+TEST_F(SubscriberTest,DelayedOneShot) {
+  shared_ptr<DataCube> cube = node->get_cube(TEST_CUBE);
+
+  Tuple query_tuple;
+  query_tuple.add_e();  
+  query_tuple.add_e();
+
   
+  shared_ptr<DummyReceiver> rec = start_time_subscriber("DelayedOneShotSubscriber", query_tuple);
+  cout << "subscriber started" << endl;
+  js_usleep(1000 * 1000);
+  ASSERT_EQ(0U, rec->tuples.size());
+
+
+  add_tuples(cube);
+
+  int tries = 0;
+  for (tries = 0; cube->num_leaf_cells() < 4 && tries< 50; tries++)
+  ASSERT_EQ(4U, cube->num_leaf_cells());
+
 
 }

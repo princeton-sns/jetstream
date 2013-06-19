@@ -415,6 +415,11 @@ def OneShotSubscriber(g, filter, **kwargs):
    op.type = OpType.ONE_SHOT_SUBSCRIBE
    return op
 
+def DelayedSubscriber(g, filter, **kwargs):
+   op = TimeSubscriber(g, filter, 0, **kwargs)
+   op.type = OpType.DELAYED_SUBSCRIBE
+   return op
+
 
 def LatencyMeasureSubscriber(graph, time_tuple_index, hostname_tuple_index, interval_ms=1000):
    cfg = {"time_tuple_index" : str(time_tuple_index),

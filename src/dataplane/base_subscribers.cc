@@ -500,6 +500,32 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
   return NO_ERR;
 }
 
+cube::Subscriber::Action
+DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_ptr<const jetstream::Tuple> const update) {
+  unique_lock<boost::mutex> lock(stateLock);
+  times[chain] = get_msec();
+
+  return SEND;
+}
+shared_ptr<FlushInfo>
+DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
+                                            const DataplaneMessage& msg) {
+  unique_lock<boost::mutex> lock(stateLock);
+
+  if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
+    times[&chain] = get_msec();
+  } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
+    times.erase(&chain);
+  }  
+
+  shared_ptr<FlushInfo> p;
+  if (times.size() == 0 ) {
+    p = shared_ptr<FlushInfo>(new FlushInfo);
+    p->id = 0; //ignored
+  }
+  return p;
+}
+
 const string TimeBasedSubscriber::my_type_name("Timer-based subscriber");
 const string VariableCoarseningSubscriber::my_type_name("Variable time-based subscriber");
 const string OneShotSubscriber::my_type_name("One-shot subscriber");

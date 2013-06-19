@@ -32,13 +32,6 @@ size_t Subscriber::queue_length() {
   return exec.outstanding_tasks();
 }
 
-void Subscriber::no_more_tuples () {
-  if(cube) {
-    cube->remove_subscriber(id());
-  }
-  LOG(FATAL) << "Teardown isn't implemented yet";
-//  DataPlaneOperator::no_more_tuples();
-}
 
 namespace jetstream {
 
