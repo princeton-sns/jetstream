@@ -232,12 +232,21 @@ GENERIC_CLNAME
 
 class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
   public:
+    DelayedOneShotSubscriber(): done(false) {}
+  
     virtual shared_ptr<FlushInfo> incoming_meta(const OperatorChain&,
                                                 const DataplaneMessage&);
 
     virtual Action action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update);
 
+    virtual operator_err_t configure(std::map<std::string,std::string> &config);
+    virtual int emit_batch();
+
+    virtual void post_flush(unsigned id);
+
+
   protected:
+    bool done;
     std::map<const OperatorChain*, msec_t> times;  //records the time OF UPDATE, locally
     mutable boost::mutex stateLock; //locks the times map.
         // The lock is only needed when state accessed from the upcalls from the cube.

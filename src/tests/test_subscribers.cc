@@ -142,10 +142,13 @@ class SubscriberTest : public ::testing::Test {
   }
   
 
- shared_ptr<SendK>  get_send_k() {
+/*
+  USELESS since sendk doesn't match schema
+ shared_ptr<SendK>  add_send_k() {
     AlterTopo topo;
     operator_id_t oper_id(compID, 17);
-    TaskMeta* task = add_operator_to_alter(topo, oper_id, "SendK");
+    //TaskMeta* task =
+    add_operator_to_alter(topo, oper_id, "SendK");
     add_edge_to_alter(topo, oper_id, TEST_CUBE);
    
     ControlMessage r;
@@ -156,7 +159,7 @@ class SubscriberTest : public ::testing::Test {
     shared_ptr<SendK> rec = boost::dynamic_pointer_cast<SendK>(dest);
     return rec;
   }
-  
+  */
   
 };
 
@@ -484,15 +487,27 @@ TEST_F(SubscriberTest,DelayedOneShot) {
   
   shared_ptr<DummyReceiver> rec = start_time_subscriber("DelayedOneShotSubscriber", query_tuple);
   cout << "subscriber started" << endl;
+  ASSERT_EQ(0U, rec->tuples.size());
+
+//  boost::shared_ptr<OperatorChain>  fakeChain(new OperatorChain);
+  shared_ptr<Tuple> t(new Tuple);
+  t->set_version(0);
+  extend_tuple(*t, "http://foo.com");
+  extend_tuple_time(*t, 10000); //long long ago
+  extend_tuple(*t, 2);
+  
+  OperatorChain fakeChain;
+  cube->process(&fakeChain, t);
+
   js_usleep(1000 * 1000);
   ASSERT_EQ(0U, rec->tuples.size());
 
-
-  add_tuples(cube);
-
-  int tries = 0;
-  for (tries = 0; cube->num_leaf_cells() < 4 && tries< 50; tries++)
-  ASSERT_EQ(4U, cube->num_leaf_cells());
-
+  vector< shared_ptr<Tuple> > no_tuples;
+  DataplaneMessage end_marker;
+  end_marker.set_type(DataplaneMessage::NO_MORE_DATA);
+  cube->process(&fakeChain, no_tuples, end_marker);
+  
+  js_usleep(100 * 1000);
+  ASSERT_EQ(1, rec->tuples.size());
 
 }

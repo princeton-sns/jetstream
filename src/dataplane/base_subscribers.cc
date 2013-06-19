@@ -500,6 +500,25 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
   return NO_ERR;
 }
 
+operator_err_t
+DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
+  return OneShotSubscriber::configure(config);
+}
+
+int
+DelayedOneShotSubscriber::emit_batch() {
+  if (done)
+    return -1;
+  return 10 * 1000; //wait ten seconds.
+}
+
+void
+DelayedOneShotSubscriber::post_flush(unsigned id) {
+  OneShotSubscriber::emit_batch();
+  done = true;
+}
+
+
 cube::Subscriber::Action
 DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_ptr<const jetstream::Tuple> const update) {
   unique_lock<boost::mutex> lock(stateLock);
@@ -507,6 +526,7 @@ DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_p
 
   return SEND;
 }
+
 shared_ptr<FlushInfo>
 DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
                                             const DataplaneMessage& msg) {
