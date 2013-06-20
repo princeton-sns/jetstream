@@ -1,7 +1,7 @@
 #!/bin/bash
 git pull
 cmake .
-make
+make -j3
 cp jsnoded ~/jetstream
 rm -r ~/jetstream/src/proto
 cp -r src/proto ~/jetstream/src/proto
