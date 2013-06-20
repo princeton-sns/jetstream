@@ -29,6 +29,8 @@ IncomingConnectionState::no_more_tuples() {
     return;
   dest->stop();
   dest.reset();
+  //can tear down socket now that chain is stopped and we no longer use its strand
+  
 //  DataplaneMessage teardown;
 //  teardown.set_type(DataplaneMessage::NO_MORE_DATA);
 //  dest->meta_from_upstream(teardown);
@@ -217,6 +219,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
           new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
     dest->set_start(incomingConn);
+    dest->strand = incomingConn->get_strand();
     dest->start();
   }
   

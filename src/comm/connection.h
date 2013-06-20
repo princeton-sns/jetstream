@@ -100,6 +100,9 @@ class ClientConnection {
   { return connSock->get_local_endpoint (); }
   std::string get_fourtuple () const  //NOT SAFE TO CALL IF CONNECTION ISN'T UP
   { assert(connected);  return connSock->get_fourtuple(); }
+  boost::asio::strand * get_recv_strand() {
+    return connSock->get_recv_strand();
+  }
 
   void connect (msec_t timeout, cb_err_t cb);
   bool is_connected () const

@@ -164,6 +164,10 @@ public:
     return conn->get_remote_endpoint();
   }
   
+  boost::asio::strand * get_strand() {
+    return conn->get_recv_strand();
+  }
+  
   void report_congestion_upstream(double congestionLevel);
   
   void register_congestion_recheck();

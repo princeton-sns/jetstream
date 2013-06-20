@@ -179,6 +179,10 @@ friend class ClientConnection;
     return sock->local_endpoint(ep_error);
   }
 
+  boost::asio::strand * get_recv_strand() {
+    return &recvStrand;
+  }
+
   /**
    * Return socket four tuple in string:  
    * local addr | local port | remote addr | remote port 
