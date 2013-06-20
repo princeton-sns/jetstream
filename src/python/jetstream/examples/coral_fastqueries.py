@@ -75,6 +75,9 @@ def main():
     last_op.instantiate_on(node)
     ops.append(last_op)
     
+  if len(ops) == 0:
+    print "can't run, no [non-union] nodes"
+    sys.exit(0) 
 
   if UNION:
     cube = g.add_cube("union_cube")

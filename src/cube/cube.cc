@@ -155,6 +155,7 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
       process(chain, tuples[i]);
   }
 
+  if (msg.has_type() && msg.type() != DataplaneMessage::DATA)
   {
     shared_lock<boost::shared_mutex> lock(subscriberLock);
     for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
