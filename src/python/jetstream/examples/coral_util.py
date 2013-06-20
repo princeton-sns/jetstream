@@ -34,7 +34,7 @@ def standard_option_parser():
                   help="shows PB", default=False)                  
   parser.add_option("-u", "--union_root_node", dest="root_node",help="address of union/aggregator node")
   parser.add_option("-f", "--file_name", dest="fname",help="name of input file")
-  parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_false",help="generate data at union node", default=True)
+  parser.add_option("-g", "--generate-at-union", dest="generate_at_union", action="store_true",help="generate data at union node", default=False)
   parser.add_option("-l", "--latency_log_file", dest="latencylog",
   default="latencies.out", help="file to log latency into")
   parser.add_option("--start-time", dest="start_ts",

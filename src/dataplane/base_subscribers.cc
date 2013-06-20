@@ -549,13 +549,13 @@ shared_ptr<FlushInfo>
 DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
                                             const DataplaneMessage& msg) {
   unique_lock<boost::mutex> lock(stateLock);
-//  LOG(INFO) << "Incoming meta " << msg.type() << "  to delayed-one-shot " << id();
+  LOG(INFO) << "Incoming meta " << msg.type() << "  to delayed-one-shot " << id();
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
     times[&chain] = get_msec();
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
     times.erase(&chain);
   }
-//  LOG(INFO) << "Total of " << times.size() << " chains left for " << id();
+  LOG(INFO) << "Total of " << times.size() << " chains left for " << id();
   shared_ptr<FlushInfo> p;
   if (times.size() == 0 ) {
     p = shared_ptr<FlushInfo>(new FlushInfo);

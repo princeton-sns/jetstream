@@ -69,7 +69,7 @@ def main():
   union_node = find_root_node(options, all_nodes)
 
   for node in all_nodes:
-    if node == union_node:
+    if node == union_node and not options.generate_at_union:
       continue
     last_op = make_graph(g, node)
     last_op.instantiate_on(node)
