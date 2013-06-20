@@ -91,6 +91,7 @@ def main():
     g.connect(cube, sub)
     ops = [sub]
     
+  print "total of %d ops" % len(ops)
   for last_op in ops:  
     reader = ClientDataReader()
     g.connectExternal(last_op, reader.prep_to_receive_data())
@@ -106,7 +107,7 @@ def main():
     TIME_TO_WAIT = int (options.wait)
   TICKS_TO_WAIT = 1000 * TIME_TO_WAIT / MS_PER_TICK
   start_time = time.time()
-  while t < TICKS_TO_WAIT and completed < num_nodes:
+  while t < TICKS_TO_WAIT and completed < len(ops):
     time.sleep( MS_PER_TICK / 1000.0 )
     t += 1
     completed = sum( [r.is_finished for r in result_readers])
