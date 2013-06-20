@@ -543,9 +543,8 @@ DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_p
   if (times.find(chain) == times.end() &&
     (former_chains.find(chain) == former_chains.end())) {
     LOG(INFO) << "new chain: " << chain;
+    times[chain] = get_msec();
   }
-  times[chain] = get_msec();
-
   return SEND;
 }
 
