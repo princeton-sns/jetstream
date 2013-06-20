@@ -249,6 +249,8 @@ class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
 
   protected:
     std::map<const OperatorChain*, msec_t> times;  //records the time OF UPDATE, locally
+    std::map<const OperatorChain*, bool> former_chains; 
+
     mutable boost::mutex stateLock; //locks the times map.
         // The lock is only needed when state accessed from the upcalls from the cube.
         // Everything else is on one strand.
