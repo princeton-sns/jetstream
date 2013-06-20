@@ -66,12 +66,15 @@ def main():
   g= jsapi.QueryGraph()
 
   ops = []
+  union_node = find_root_node(options, all_nodes)
+
   for node in all_nodes:
+    if node == union_node:
+      continue
     last_op = make_graph(g, node)
     last_op.instantiate_on(node)
     ops.append(last_op)
     
-  union_node = find_root_node(options, all_nodes)
 
   if UNION:
     cube = g.add_cube("union_cube")
@@ -81,6 +84,7 @@ def main():
     for op in ops:
       g.connect(op, cube)
     sub = jsapi.DelayedSubscriber(g, filter={})
+    sub.instantiate_on(union_node)
     g.connect(cube, sub)
     ops = [sub]
     

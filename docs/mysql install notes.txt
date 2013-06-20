@@ -30,8 +30,12 @@ create database test_cube
 6) mysql5 -u root < src/mysql_udfs/merge/installdb.sql
 
 
-To restart DB:
+To restart DB on a mac:
 
 sudo /opt/local/share/mysql5/mysql/mysql.server stop
 sudo cp src/mysql_udfs/merge/libjsmysqludfs_merge.dylib /opt/local/lib/mysql5/mysql/plugin
 sudo /opt/local/share/mysql5/mysql/mysql.server start
+
+To restart DB on SNS:
+sudo service mysql restart
+
