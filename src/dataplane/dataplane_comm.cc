@@ -217,6 +217,7 @@ DataplaneConnManager::enable_connection (shared_ptr<ClientConnection> c,
           new IncomingConnectionState(c, dest, iosrv, *this, srcOpID));
     liveConns[c->get_remote_endpoint()] = incomingConn;
     dest->set_start(incomingConn);
+    dest->start();
   }
   
   boost::system::error_code error;
