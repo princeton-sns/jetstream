@@ -517,6 +517,10 @@ DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
 
 int
 DelayedOneShotSubscriber::emit_batch() {
+  
+  if (subsc_start == 0)
+    subsc_start  = get_msec();
+  
   int sz;
   {
     unique_lock<boost::mutex> lock(stateLock);
@@ -532,6 +536,12 @@ DelayedOneShotSubscriber::emit_batch() {
 void
 DelayedOneShotSubscriber::post_flush(unsigned id) {
   OneShotSubscriber::emit_batch();
+  LOG(INFO) << "Delayed one-shot statistics: \n***************" << endl
+   << "* Delay to first data: " << (first_data - subsc_start) << " ms" << endl
+   << "* Delay to first close: " << (first_close - subsc_start) << " ms" << endl
+   << "* Delay to last close: " << (last_close - subsc_start) << " ms" << endl
+   << "* First-to-last: " << (last_close - first_close) << " ms" << endl
+   << "***************";
   stop_from_subscriber();
 //  chain_stopping(NULL); //will trigger a stop.
 }
@@ -543,7 +553,10 @@ DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_p
   if (times.find(chain) == times.end() &&
     (former_chains.find(chain) == former_chains.end())) {
     LOG(INFO) << "new chain: " << chain;
-    times[chain] = get_msec();
+    msec_t t = get_msec();
+    if (first_data == 0)
+      first_data = t;
+    times[chain] = t;
   }
   return SEND;
 }
@@ -559,10 +572,14 @@ DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
     times.erase(&chain);
     former_chains[&chain] = true;
+    if(first_close == 0)
+      first_close = get_msec();
   }
   LOG(INFO) << "Total of " << times.size() << " chains left for " << id();
   shared_ptr<FlushInfo> p;
   if (times.size() == 0 ) {
+    
+    last_close = get_msec();
     p = shared_ptr<FlushInfo>(new FlushInfo);
     p->id = 0; //ignored
   }

@@ -246,6 +246,7 @@ class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
 
     virtual void post_flush(unsigned id);
 
+  DelayedOneShotSubscriber(): subsc_start(0), first_data(0),first_close(0), last_close(0) {}
 
   protected:
     std::map<const OperatorChain*, msec_t> times;  //records the time OF UPDATE, locally
@@ -255,6 +256,7 @@ class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
         // The lock is only needed when state accessed from the upcalls from the cube.
         // Everything else is on one strand.
   
+  msec_t subsc_start, first_data, first_close, last_close;
 
 GENERIC_CLNAME
 };
