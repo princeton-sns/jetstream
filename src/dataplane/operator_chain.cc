@@ -40,11 +40,13 @@ OperatorChain::start() {
 
   running = true;
   if (ops.size() > 0 && ops[0]) {
+  
     boost::shared_ptr<COperator> first_op = boost::dynamic_pointer_cast<COperator>(ops[0]);
-    LOG_IF(FATAL,!first_op)<< "chain can't start if head op is " << ops[0]->id_as_str();
-      
-    LOG(INFO) << "Starting head-of-chain; " << first_op->id_as_str();
-    first_op->start();
+//    LOG_IF(FATAL,!first_op)<< "chain can't start if head op is " << ops[0]->id_as_str();
+    if (first_op) {
+      first_op->start();
+    }
+    LOG(INFO) << "Starting " << chain_name();
   }
   
 //  for (int i = 1; i < ops.size(); ++i) {
