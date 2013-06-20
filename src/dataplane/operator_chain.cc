@@ -59,14 +59,33 @@ OperatorChain::~OperatorChain() {
 }
 
 void
+OperatorChain::unblock(bool * stopped) {
+
+//  LOG(INFO) << "calling notify";
+  {
+    unique_lock<boost::mutex> lock(stopwait_mutex);
+    *stopped = true;
+  }
+  chainStopped.notify_all();
+//  LOG(INFO) << "...notified";
+}
+
+void
 OperatorChain::stop() {
   LOG(INFO) << "Stopping "<< chain_name()<< "; running is " << running;
   // << typename_as_str() << " operator " << id() << ". Running is " << running;
   if (running) {
     running = false;
-    boost::barrier b(1);
-    stop_async( boost::bind(&boost::barrier::wait, &b) );
-    b.wait();
+//    boost::barrier b(2);
+    {
+      bool stopped = false;
+      stop_async( boost::bind(&OperatorChain::unblock, this, &stopped) );
+      {
+        unique_lock<boost::mutex> lock(stopwait_mutex);
+        if (!stopped)
+          chainStopped.wait(lock);
+      }
+    }
     LOG(INFO) << "Stop of " << chain_name() << " complete";
   }
 }
@@ -74,9 +93,10 @@ OperatorChain::stop() {
 void
 OperatorChain::stop_async(close_cb_t cb) {
   if (!strand) {
-    LOG(WARNING) << "Can't stop, "<< chain_name() << " was never started";
+    LOG(WARNING) << "Can't stop gracefully, no strand for "<< chain_name();
+    do_stop(cb);
   } else
-    strand->wrap(boost::bind(&OperatorChain::do_stop, this, cb));
+    strand->dispatch(boost::bind(&OperatorChain::do_stop, this, cb));
 }
 
 void
@@ -88,7 +108,7 @@ OperatorChain::do_stop(close_cb_t cb) {
   for (unsigned i = 1; i < ops.size(); ++i) {
     ops[i]->chain_stopping(this);
   }
-  LOG(INFO) << chain_name() << " called stop everywhere; invoking cb";
+//  LOG(INFO) << chain_name() << " called stop everywhere; invoking cb";
   cb();
 }
 

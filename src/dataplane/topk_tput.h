@@ -50,6 +50,8 @@ public:
     operator_err_t configure(std::map<std::string,std::string> &config) {
       return NO_ERR;
     }
+  
+    virtual void start();
 
 private:
   void end_of_round(int round_no);
@@ -57,6 +59,7 @@ private:
   bool take_greatest;
   Tuple min, max;
   std::vector<unsigned> rollup_levels;
+  boost::shared_ptr<boost::asio::strand> st;  
 
   GENERIC_CLNAME
 };

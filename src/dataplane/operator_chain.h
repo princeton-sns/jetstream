@@ -115,8 +115,12 @@ private:
   void stop_async(close_cb_t cb);
   void do_stop(close_cb_t);
 
-  void unregister(); //removes the chain from the source operator. This might result in a
+//  void unregister(); //removes the chain from the source operator. This might result in a
       //garbage collect. Needed for upward-moving failures.
+  
+  void unblock(bool * stopped);
+  boost::condition_variable chainStopped;
+  boost::mutex stopwait_mutex;
 
 
 };

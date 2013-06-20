@@ -1,10 +1,17 @@
 
 #include "filter_subscriber.h"
 #include "cube.h"
+#include "node.h"
 
 using namespace jetstream;
 using namespace ::std;
 
+
+void
+FilterSubscriber::start() {
+  st = node->get_new_strand();
+  chain->strand = st.get();
+}
 
 jetstream::cube::Subscriber::Action
 FilterSubscriber::action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {

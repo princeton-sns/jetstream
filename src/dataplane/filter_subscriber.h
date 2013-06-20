@@ -30,9 +30,12 @@ class FilterSubscriber: public cube::Subscriber {
       shared_ptr<FlushInfo> p;
       return p;
     }
-  
+
+    virtual void start();
 
   protected:
+    boost::shared_ptr<boost::asio::strand> st;
+  
     int filter_bound;
     unsigned level_in_field; //field of tuple inputs to set filter
     int cube_field; //field id of tuples from cube

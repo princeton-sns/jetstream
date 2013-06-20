@@ -119,12 +119,11 @@ Node::stop ()
     VLOG(1) << "Node was stopped twice; suppressing";
     return;
   }
-
+  
+  webInterface.stop();
   livenessMgr.stop_all_notifications();
   dataConnMgr.close();
-  
-  
-  
+    
   std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator chainIter = chainSources.begin();
   while (chainIter != chainSources.end()) {
     chainIter->second->stop();
@@ -697,16 +696,13 @@ Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> s
 
 void purgeChains(int compID, map<operator_id_t,
                  shared_ptr<OperatorChain> >& chainMap,
+                 vector< shared_ptr<OperatorChain> >& chains_to_stop,
                  vector<int32_t>& stopped_ops) {
     std::map<operator_id_t, shared_ptr<OperatorChain> >::iterator iter;
-    for ( iter = chainMap.begin(); iter != chainMap.end(); ) {
+    for ( iter = chainMap.begin(); iter != chainMap.end(); iter++) {
       operator_id_t op_id = iter->first;
-      boost::shared_ptr<OperatorChain>  op = iter->second;
-       //need to advance iterator BEFORE stop, since iterator to removed element is invalid
-      iter ++;
-    
+      boost::shared_ptr<OperatorChain>  op = iter->second;    
       if (op_id.computation_id == compID) {
-        
         op->stop();
         stopped_ops.push_back(op_id.task_id);
         LOG(INFO) << "erasing " << op_id;
@@ -719,19 +715,31 @@ vector<int32_t>
 Node::stop_computation(int32_t compID) {
   LOG(INFO) << "stopping computation " << compID;
   vector<int32_t> stopped_ops;
+  vector< shared_ptr<OperatorChain> > chains_to_stop;
+  
+  {
+    shared_lock<boost::shared_mutex> lock(operatorTableLock);
+    purgeChains(compID, sourcelessChain, chains_to_stop, stopped_ops);
+    chains_to_stop.clear(); //ignore non-started chains.
+    purgeChains(compID, chainSources, chains_to_stop, stopped_ops);
+  }
+  
+  for(unsigned i = 0; i < chains_to_stop.size(); ++i)
+    chains_to_stop[i]->stop();
+  
   {
     unique_lock<boost::shared_mutex> lock(operatorTableLock);
-    purgeChains(compID, sourcelessChain, stopped_ops);
-    purgeChains(compID, chainSources, stopped_ops);
     std::map<operator_id_t, weak_ptr<COperator> >::iterator iter;
     for ( iter = operators.begin(); iter != operators.end(); ) {
       operator_id_t oid = iter->first;
       bool should_del = iter->second.expired() || oid.computation_id == compID;
       iter ++;
-      if (should_del)
+      if (should_del) {
         operators.erase(oid);
+        sourcelessChain.erase(oid);
+        chainSources.erase(oid);
+      }
     }
-
   }
   LOG(INFO) << "stopped " << stopped_ops.size() << " operators for computation " <<
     compID << " , leaving " << operators.size()<<":\n" << make_op_list();

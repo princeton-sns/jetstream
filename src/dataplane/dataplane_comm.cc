@@ -27,7 +27,7 @@ void
 IncomingConnectionState::no_more_tuples() {
   if (!dest)
     return;
-  dest->stop();
+  dest->stop_from_within();
   dest.reset();
   //can tear down socket now that chain is stopped and we no longer use its strand
   
@@ -568,8 +568,10 @@ RemoteDestAdaptor::connection_broken () {
   for(unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i]) {
       Node * n = mgr.get_node();
+      shared_ptr<OperatorChain> c = chains[i];
       chains[i]->stop();
-      n->unregister_chain(chains[i]);
+        //chains[i] is implicitly cleared here by chain_stopping
+      n->unregister_chain(c);
     }
   }
   LOG(INFO) << "connection unexpectedly broken to " << dest_as_str << ", will tear down.";
@@ -584,30 +586,34 @@ data_noop_cb(DataplaneMessage &msg, const boost::system::error_code &error) {
 void
 RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
     
-  if (!conn || !conn->is_connected())
+  if (!conn || !conn->is_connected() )
     return;
 
-  is_stopping = true;
+  int active_chains = 0;
   for (unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i].get() == c) {
       chains[i].reset(); //remove the chain from our cache.
-//      active_chains --;
-      break;
     }
+    if (chains[i])
+      active_chains ++;
   } 
   
-  force_send();
-  timer.cancel();//we alredy pushed out all data
-  DataplaneMessage d;
-  d.set_type(DataplaneMessage::NO_MORE_DATA);
-  
-  boost::system::error_code err;
-  conn->send_msg(d, err);
-  LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
+  if (active_chains == 0) {
+    if (!is_stopping)
+      force_send();
+    
+    timer.cancel();//we already pushed out all data
+    DataplaneMessage d;
+    d.set_type(DataplaneMessage::NO_MORE_DATA);
+    
+    boost::system::error_code err;
+    conn->send_msg(d, err); //on strand, so safe?
+    LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
 
-  boost::system::error_code error;  
-  conn->recv_data_msg(boost::bind(data_noop_cb, _1, _2), error);
-  conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
+    boost::system::error_code error;  
+    conn->recv_data_msg(boost::bind(data_noop_cb, _1, _2), error);
+    conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
+  }
 }
 
 void

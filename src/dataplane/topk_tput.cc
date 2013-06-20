@@ -4,6 +4,7 @@
 
 #include "topk_tput.h"
 #include "querier.h"
+#include "node.h"
 
 using namespace ::std;
 //using namespace boost;
@@ -11,6 +12,11 @@ using namespace ::std;
 
 namespace jetstream {
 
+
+void MultiRoundSender::start() {
+  st = node->get_new_strand();
+  chain->strand = st.get();
+}
 
 double get_rank_val(boost::shared_ptr<const jetstream::Tuple> t, size_t col) {
   double v = 0;
