@@ -27,9 +27,11 @@ void
 IncomingConnectionState::no_more_tuples() {
   if (!dest)
     return;
-  DataplaneMessage teardown;
-  teardown.set_type(DataplaneMessage::NO_MORE_DATA);
-  dest->meta_from_upstream(teardown);
+  dest->stop();
+  dest.reset();
+//  DataplaneMessage teardown;
+//  teardown.set_type(DataplaneMessage::NO_MORE_DATA);
+//  dest->meta_from_upstream(teardown);
 }
 
 void
@@ -84,8 +86,8 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
     {
       LOG(INFO) << "got no-more-data signal from " << conn->get_remote_endpoint()
                 << ", will tear down connection into " << dest->chain_name();
+      no_more_tuples();
       conn->close_async(boost::bind(&DataplaneConnManager::cleanup_incoming, &mgr, conn->get_remote_endpoint()));
-
     }
     break;
   case DataplaneMessage::TS_ECHO:

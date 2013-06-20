@@ -517,7 +517,14 @@ DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
 
 int
 DelayedOneShotSubscriber::emit_batch() {
-  LOG(INFO) << "Delayed one-shot " << id() <<  " is timing out; could have done something here";
+  int sz;
+  {
+    unique_lock<boost::mutex> lock(stateLock);
+    sz = times.size();
+  }
+  
+  LOG(INFO) << "Delayed one-shot " << id() <<  " is timing out; could have done something here."
+    << " Pending on " << sz << " chains";
   //though we also get invoked immediately
   return 10 * 1000; //wait ten seconds.
 }
