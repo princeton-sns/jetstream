@@ -269,16 +269,16 @@ DataplaneConnManager::created_chain (shared_ptr<OperatorChain> dest) {
       LOG(INFO) << "Found match for pending chain " << op_id;
 
       vector< PendingConn > & conns = pending_conn->second;
-      for (u_int i = 0; i < conns.size(); ++i) {
+      for (u_int conn = 0; conn < conns.size(); ++conn) {
         shared_ptr<OperatorChain> newchain = shared_ptr<OperatorChain>(new OperatorChain);
         newchain->add_member();
         newchain->clone_from(dest);
-        for (unsigned i = 1; i < newchain->members(); ++i) {
-          shared_ptr<ChainMember> m = newchain->member(i);
-          LOG_IF(INFO, !m) << "member " << i << " of chain is undefined";
+        for (unsigned op_id = 1; op_id < newchain->members(); ++op_id) {
+          shared_ptr<ChainMember> m = newchain->member(op_id);
+          LOG_IF(INFO, !m) << "member " << op_id << " of chain is undefined";
           m->add_chain(newchain);
         }
-        enable_connection(conns[i].conn, newchain, conns[i].src);
+        enable_connection(conns[conn].conn, newchain, conns[conn].src);
       }
       pendingConns.erase(pending_conn);
     }
