@@ -273,6 +273,11 @@ DataplaneConnManager::created_chain (shared_ptr<OperatorChain> dest) {
         shared_ptr<OperatorChain> newchain = shared_ptr<OperatorChain>(new OperatorChain);
         newchain->add_member();
         newchain->clone_from(dest);
+        for (unsigned i = 1; i < newchain->members(); ++i) {
+          shared_ptr<ChainMember> m = newchain->member(i);
+          LOG_IF(INFO, !m) << "member " << i << " of chain is undefined";
+          m->add_chain(newchain);
+        }
         enable_connection(conns[i].conn, newchain, conns[i].src);
       }
       pendingConns.erase(pending_conn);
