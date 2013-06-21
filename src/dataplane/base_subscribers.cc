@@ -535,12 +535,14 @@ DelayedOneShotSubscriber::emit_batch() {
 
 void
 DelayedOneShotSubscriber::post_flush(unsigned id) {
+  query_running = get_msec();
   OneShotSubscriber::emit_batch();
   LOG(INFO) << "Delayed one-shot statistics: \n***************" << endl
    << "* Delay to first data: " << (first_data - subsc_start) << " ms" << endl
    << "* Delay to first close: " << (first_close - subsc_start) << " ms" << endl
    << "* Delay to last close: " << (last_close - subsc_start) << " ms" << endl
    << "* First-to-last: " << (last_close - first_close) << " ms" << endl
+   << "* Delay to query start " << (query_running - subsc_start) << " ms " << endl
    << "***************";
   stop_from_subscriber();
 //  chain_stopping(NULL); //will trigger a stop.

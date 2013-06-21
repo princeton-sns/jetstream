@@ -256,7 +256,7 @@ class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
         // The lock is only needed when state accessed from the upcalls from the cube.
         // Everything else is on one strand.
   
-  msec_t subsc_start, first_data, first_close, last_close;
+  msec_t subsc_start, first_data, first_close, last_close, query_running;
 
 GENERIC_CLNAME
 };
