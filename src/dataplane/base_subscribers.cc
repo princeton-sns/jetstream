@@ -577,9 +577,10 @@ DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
     if(first_close == 0)
       first_close = get_msec();
   }
-  LOG(INFO) << "Total of " << times.size() << " chains left for " << id();
+  unsigned chains_in = cube->in_chains();
+  LOG(INFO) << "Total of " << chains_in << " chains left for " << id();
   shared_ptr<FlushInfo> p;
-  if (times.size() == 0 ) {
+  if (chains_in == 0 ) {
     
     last_close = get_msec();
     p = shared_ptr<FlushInfo>(new FlushInfo);

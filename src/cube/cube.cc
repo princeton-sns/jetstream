@@ -105,7 +105,7 @@ void ProcessCallable::do_check_flush() {
 
 DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeConfig &conf) :
   schema(_schema), name(_name), is_frozen(false),
-  config(conf),version(0),
+  config(conf),in_chain_count(0),version(0),
   flushCongestMon(boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(conf.cube_congestion_flush_limit, "cube " + _name + " flush"))),
   processCongestMon(boost::shared_ptr<ChainedQueueMonitor>(new ChainedQueueMonitor(conf.cube_congestion_process_limit, "cube " + _name + " process")))
 {
@@ -189,11 +189,21 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
 
 
 void
+DataCube::add_chain(boost::shared_ptr<OperatorChain> c) {
+  if (c->member(0).get() != this)
+    boost::interprocess::ipcdetail::atomic_inc32(&in_chain_count);
+//  unsigned c = boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
+//  LOG(INFO) << "Adding chain into " << name << ", leaving " << c;
+}
+
+
+void
 DataCube::chain_stopping(OperatorChain * c) {
-//  VLOG(2) << "Cube " << name << " got chain-stopping";
+  if (c->member(0).get() != this)
+    boost::interprocess::ipcdetail::atomic_dec32(&in_chain_count);
+  LOG(INFO) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
   DataplaneMessage end_of_chain;
   end_of_chain.set_type(DataplaneMessage::NO_MORE_DATA);
-  
   vector< boost::shared_ptr<Tuple> > no_tuples;
   process(c, no_tuples, end_of_chain);
 }
@@ -370,4 +380,10 @@ std::string DataCube::id_as_str() const {
 const std::string& DataCube::typename_as_str() const {
   return my_tyepename;
 }
+
+unsigned
+DataCube::in_chains() {
+  return boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
+}
+
 

@@ -167,6 +167,7 @@ class DataCube : public ChainMember {
     virtual std::string id_as_str() const;
     virtual const std::string& typename_as_str() const;
     virtual void chain_stopping(OperatorChain * );
+    virtual void add_chain(boost::shared_ptr<OperatorChain>);
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const =0;
 
@@ -230,14 +231,16 @@ class DataCube : public ChainMember {
     boost::shared_ptr<ChainedQueueMonitor> process_congestion_monitor() { return processCongestMon;}
 
     virtual void clear_contents() = 0;
+    unsigned in_chains();
+
 
   protected:
     jetstream::CubeSchema schema;
     std::string name;
     bool is_frozen;
     NodeConfig config;
-
-
+    unsigned in_chain_count;
+  
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
