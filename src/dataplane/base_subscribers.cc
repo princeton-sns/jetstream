@@ -536,8 +536,8 @@ DelayedOneShotSubscriber::post_flush(unsigned id) {
   query_running = get_msec();
   OneShotSubscriber::emit_batch();
   unsigned num_chains = former_chains.size();
-  LOG(INFO) << "Delayed one-shot statistics ( with " << num_chains <<
-  "chains):\n***************" << endl
+  LOG(INFO) << "Delayed one-shot statistics (with " << num_chains <<
+  " chains):\n***************" << endl
    << "* From subscriber start to first data arriving: " << (first_data - subsc_start) << " ms" << endl
    << "* From subscriber start to first source completing: " << (first_close - subsc_start) << " ms" << endl
    << "* From subscriber start to last source completing: " << (last_close - subsc_start) << " ms" << endl

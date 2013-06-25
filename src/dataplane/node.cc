@@ -325,6 +325,7 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
           new_chain = shared_ptr<OperatorChain>(new OperatorChain());
           new_chain->add_member();
           new_chain->add_member(dest);
+          dest->add_chain(new_chain);
         }
       }  else {
         LOG(WARNING) << "Got remote chain connect without a dest operator or cube";
