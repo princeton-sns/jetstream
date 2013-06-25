@@ -174,6 +174,7 @@ servers=[
 ]
 for index, server in enumerate(servers):
   print server + " public_ip=" +socket.gethostbyname(server)+" server_index="+str(index)
+
 print "---------------"
 for server in servers:
   print server,

@@ -246,7 +246,7 @@ class DelayedOneShotSubscriber : public jetstream::OneShotSubscriber {
 
     virtual void post_flush(unsigned id);
 
-  DelayedOneShotSubscriber(): subsc_start(0), first_data(0),first_close(0), last_close(0) {}
+  DelayedOneShotSubscriber(): subsc_start(0), first_data(0),first_close(0), last_close(0),query_running(0) {}
 
   protected:
     std::map<const OperatorChain*, msec_t> times;  //records the time OF UPDATE, locally

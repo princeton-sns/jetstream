@@ -512,14 +512,12 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
 
 operator_err_t
 DelayedOneShotSubscriber::configure(std::map<std::string,std::string> &config) {
+  subsc_start = get_msec();
   return OneShotSubscriber::configure(config);
 }
 
 int
 DelayedOneShotSubscriber::emit_batch() {
-  
-  if (subsc_start == 0)
-    subsc_start  = get_msec();
   
   int sz;
   {
@@ -537,12 +535,14 @@ void
 DelayedOneShotSubscriber::post_flush(unsigned id) {
   query_running = get_msec();
   OneShotSubscriber::emit_batch();
-  LOG(INFO) << "Delayed one-shot statistics: \n***************" << endl
-   << "* Delay to first data: " << (first_data - subsc_start) << " ms" << endl
-   << "* Delay to first close: " << (first_close - subsc_start) << " ms" << endl
-   << "* Delay to last close: " << (last_close - subsc_start) << " ms" << endl
+  unsigned num_chains = former_chains.size();
+  LOG(INFO) << "Delayed one-shot statistics ( with " << num_chains <<
+  "chains):\n***************" << endl
+   << "* From subscriber start to first data arriving: " << (first_data - subsc_start) << " ms" << endl
+   << "* From subscriber start to first source completing: " << (first_close - subsc_start) << " ms" << endl
+   << "* From subscriber start to last source completing: " << (last_close - subsc_start) << " ms" << endl
    << "* First-to-last: " << (last_close - first_close) << " ms" << endl
-   << "* Delay to query start " << (query_running - subsc_start) << " ms " << endl
+   << "* From subscriber start to db query start " << (query_running - subsc_start) << " ms " << endl
    << "***************";
   stop_from_subscriber();
 //  chain_stopping(NULL); //will trigger a stop.
