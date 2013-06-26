@@ -192,8 +192,8 @@ void
 DataCube::add_chain(boost::shared_ptr<OperatorChain> c) {
   if (c->member(0).get() != this)
     boost::interprocess::ipcdetail::atomic_inc32(&in_chain_count);
-  unsigned ccount = boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
-  LOG(INFO) << "Adding chain into " << name << ", leaving " << ccount;
+//  unsigned ccount = boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
+//  LOG(INFO) << "Adding chain into " << name << ", leaving " << ccount;
 }
 
 
@@ -201,7 +201,7 @@ void
 DataCube::chain_stopping(OperatorChain * c) {
   if (c->member(0).get() != this)
     boost::interprocess::ipcdetail::atomic_dec32(&in_chain_count);
-  LOG(INFO) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
+//  LOG(INFO) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
   DataplaneMessage end_of_chain;
   end_of_chain.set_type(DataplaneMessage::NO_MORE_DATA);
   vector< boost::shared_ptr<Tuple> > no_tuples;

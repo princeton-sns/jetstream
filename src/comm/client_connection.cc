@@ -164,8 +164,9 @@ ClientConnection::recv_data_msg_cb (cb_data_protomsg_t cb,
 				    const boost::system::error_code &error)
 {
   DataplaneMessage dmsg;
-  if (error)
+  if (error) {
     cb(dmsg, error);
+  }
   else {
     boost::system::error_code success;
     dmsg.ParseFromArray(msg.msg, msg.len);

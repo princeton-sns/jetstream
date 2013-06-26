@@ -75,10 +75,10 @@ class StrandedSubscriber: public jetstream::cube::Subscriber {
       LOG(INFO) << id() << " received stop(); running is " << running;
       if (running) {
         running = false;
+        chain.reset(); //to avoid leaving a cycle
+        if (timer)
+          timer->cancel();
       }
-      if (timer)
-        timer->cancel();
-      chain.reset(); //to avoid leaving a cycle
     }
     void emit_wrapper();
     virtual int emit_batch() = 0;

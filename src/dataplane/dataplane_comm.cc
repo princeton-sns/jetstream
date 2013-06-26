@@ -393,8 +393,7 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
   if (error) {
     if (error != boost::system::errc::operation_canceled) 
       LOG(WARNING) << error.message() << " code = " << error.value();
-    
-    //FIXME need to tear down?
+    connection_broken();
     return;
   }
 
@@ -539,7 +538,7 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
 void
 RemoteDestAdaptor::force_send() {
   unique_lock<boost::mutex> lock(mutex);
-  if (this_buf_size == 0)
+  if (this_buf_size == 0 || is_stopping)
     return;
   do_send_unlocked();
 }
@@ -558,7 +557,6 @@ RemoteDestAdaptor::do_send_unlocked() {
     //send failed
     LOG(WARNING) << "Send failed; tearing down chain to " << dest_as_str; //; local end is " << pred->id_as_str();
     connection_broken();
-//    pred->chain_is_broken();
     conn->close_async(boost::bind(&DataplaneConnManager::cleanup, &mgr, dest_as_str));
   }
   
@@ -569,19 +567,25 @@ RemoteDestAdaptor::connection_broken () {
   if (is_stopping) //already stopping
     return;
   
+  LOG(INFO) << "connection unexpectedly broken to " << dest_as_str << ", will tear down.";
   is_stopping = true;
+  timer.cancel();
+  conn.reset();
+  boost::unique_lock<recursive_mutex>(outgoingMapMutex);
+    //note that we hold the lock until we're done here, so we can't get destroyed prematurely
+  mgr.cleanup(dest_as_str);
+  
   for(unsigned i = 0; i < chains.size(); ++i) {
     if (chains[i]) {
       Node * n = mgr.get_node();
       shared_ptr<OperatorChain> c = chains[i];
-      chains[i]->stop();
+      chains[i]->stop();  //we are NOT on the source-strand for the chain
         //chains[i] is implicitly cleared here by chain_stopping
       n->unregister_chain(c);
     }
   }
-  LOG(INFO) << "connection unexpectedly broken to " << dest_as_str << ", will tear down.";
   chains.clear();
-  mgr.cleanup(dest_as_str);
+  
 }
 
 void
@@ -604,16 +608,16 @@ RemoteDestAdaptor::chain_stopping (OperatorChain * c) {
   } 
   
   if (active_chains == 0) {
-    if (!is_stopping)
+    if (!is_stopping) {
       force_send();
-    
-    timer.cancel();//we already pushed out all data
-    DataplaneMessage d;
-    d.set_type(DataplaneMessage::NO_MORE_DATA);
-    
-    boost::system::error_code err;
-    conn->send_msg(d, err); //on strand, so safe?
-    LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
+      timer.cancel();//we just pushed out all data
+      DataplaneMessage d;
+      d.set_type(DataplaneMessage::NO_MORE_DATA);
+      
+      boost::system::error_code err;
+      conn->send_msg(d, err); //on strand, so safe?
+      LOG(INFO) << "sent last data from connection (total is " << conn->send_count() << " bytes for node as a whole); queueing for teardown.";
+    }
 
     boost::system::error_code error;  
     conn->recv_data_msg(boost::bind(data_noop_cb, _1, _2), error);
@@ -703,6 +707,7 @@ DataplaneConnManager::deferred_cleanup(string id) {
     LOG(FATAL) << "need to handle deferred cleanup of an in-use rda";
    //should set this up on a timer
   }
+  //destructor fires HERE, when shared pointer goes out of scope
 }
 
 void

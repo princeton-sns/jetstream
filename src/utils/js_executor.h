@@ -28,8 +28,12 @@ class Executor {
     }
 
     ~Executor() {
+     try {
       service->stop();
       pool.join_all();
+     } catch(const std::exception& e) {
+       std::cout << e.what();
+     }
     }
 
     void start_threads(size_t n) {

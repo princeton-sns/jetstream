@@ -81,11 +81,6 @@ StrandedSubscriber::emit_wrapper() {
   }
     //either !running and we were invoked by the timer-cancel or else a delay_to_next == -1
   LOG(INFO)<< typename_as_str() << " " << id() << " exiting; should tear down";
-  stop_from_subscriber();
-}
-
-void
-StrandedSubscriber::stop_from_subscriber() {
   if (chain) {
     shared_ptr<OperatorChain> c(chain);
     chain->stop_from_within();
@@ -93,6 +88,12 @@ StrandedSubscriber::stop_from_subscriber() {
     c.reset();
   }
   cube->remove_subscriber(id());// will trigger destructor for this!
+}
+
+void
+StrandedSubscriber::stop_from_subscriber() {
+  running = false;
+  timer->cancel();
 }
   
 operator_err_t
