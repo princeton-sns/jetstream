@@ -1,0 +1,5 @@
+vicci_mpisws 141.39.220.*
+vicci_gt 130.207.98.*
+localhost 127.0.0.1
+princeton_sns 128.112.7.*
+dummy (somehost)|(otherhost)
