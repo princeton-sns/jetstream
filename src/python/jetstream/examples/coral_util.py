@@ -93,7 +93,7 @@ def find_root_node(options, all_nodes):
   else:
     root_node = all_nodes[0]  #TODO randomize
 
-  print "Using",root_node,"as aggregator"
+  print "Using %s:%d as root aggregator" % (root_node.address, root_node.portno)
 
   return root_node
 
@@ -157,10 +157,14 @@ def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog, inter
   g.chain([central_cube, latency_measure_op, echo_op])
 
 
-def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
+def define_raw_cube(g, cube_name, cube_node, ids = [0,1,2,3,4,5,6], overwrite=False):
+  cube = g.add_cube(cube_name)
+  cube.instantiate_on(cube_node)
+  cube.set_overwrite(overwrite)
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
   cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
   cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])  #effectively a sum
   cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4]) # effectively a sum
   cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
+  return cube
