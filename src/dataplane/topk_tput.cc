@@ -216,6 +216,7 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     window_offset = 0;
   }
 
+  just_once = true;
   phase = NOT_STARTED;
   return NO_ERR;
 }
@@ -355,7 +356,7 @@ MultiRoundCoordinator::process (
     tuples.clear();
   } else if (phase == ROUND_3) {//just let responses through
 //    LOG(INFO) << "passing through " << fmt(*t) << " in TPUT phase 3";
-    return;
+//    return;
   }
 //  else
 //    LOG(WARNING) << "ignoring input"
