@@ -58,6 +58,7 @@ TEST(Topk_TPUT, TwoLocal) {
   NodeConfig cfg;
   int K = 3;
   boost::system::error_code error;
+ // cfg.thread_pool_size = 3;
   Node node(cfg, error);
   node.start();
   ASSERT_TRUE(error == 0);
@@ -99,7 +100,7 @@ TEST(Topk_TPUT, TwoLocal) {
   while (tries ++ < 200 &&  (dest_cube->num_leaf_cells() == 0  || coord_op->phase != NOT_STARTED))
     js_usleep(50*1000);
 
-  cout << "Done running, waiting for commits";
+  cout << "Done running, waiting for commits" << endl;
   dest_cube->wait_for_commits();
   js_usleep(500*1000);  // and wait for DB to process the update
 
