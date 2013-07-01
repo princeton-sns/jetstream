@@ -126,13 +126,14 @@ OneShotSubscriber::emit_batch() {
   return -1;
 }
 
+const int BACKFILL_LOG_FREQ = 10;
 cube::Subscriber::Action
 TimeBasedSubscriber::action_on_tuple(OperatorChain * c, boost::shared_ptr<const jetstream::Tuple> const update) {
   //update->add_e()->set_i_val(get_msec());
   if (ts_input_tuple_index >= 0) {
     time_t tuple_time = update->e(ts_input_tuple_index).t_val();
-    LOG_IF_EVERY_N(INFO, tuple_time < next_window_start_time, 10001) 
-      << "(every 10001) TimeBasedSubscriber before db next_window_start_time: "<< next_window_start_time 
+    LOG_IF_EVERY_N(INFO, tuple_time < next_window_start_time, BACKFILL_LOG_FREQ) 
+      << "(every " << BACKFILL_LOG_FREQ << ") "<< id_as_str() << " before db next_window_start_time: "<< next_window_start_time
       <<" tuple time being processed: " << tuple_time <<" diff (>0 is good): "<< (tuple_time-next_window_start_time)
       <<" Process q: "<< cube->process_congestion_monitor()->queue_length();
 
@@ -370,13 +371,15 @@ TimeBasedSubscriber::emit_batch() {
     unique_lock<boost::mutex> lock(stateLock);
     
     if (times.size() > 0) {
-//      LOG(INFO) << "Subscriber has some end markers";
       time_t min_window_seen = numeric_limits<time_t>::max();
       map<const OperatorChain*, time_t>::iterator it = times.begin();
       while (it != times.end()){
         min_window_seen = min(min_window_seen, it->second);
         it++;
       }
+      LOG_IF(INFO, newMax != min_window_seen) << "Subscriber has some end markers; fast-forwarding from " <<
+        newMax <<" to "<< min_window_seen;
+      
       newMax = max(newMax, min_window_seen);
     }
   }

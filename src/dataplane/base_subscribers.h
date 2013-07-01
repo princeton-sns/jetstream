@@ -125,7 +125,7 @@ class TimeBasedSubscriber: public jetstream::StrandedSubscriber {
     boost::shared_ptr<CongestionPolicy> congest_policy;
 
 
-
+        //counters
     int backfill_old_window; 
     int regular_old_window; 
 

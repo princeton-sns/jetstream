@@ -68,8 +68,13 @@ def main():
       continue
     raw_cube = define_raw_cube(g, "local_records", node, overwrite=False)
     raw_cube_sub = jsapi.TimeSubscriber(g, {}, 1000)
-    g.connect(raw_cube, raw_cube_sub)
-    last_op = src_to_internal(g, raw_cube_sub, node)
+    raw_cube_sub.set_cfg("simulation_rate", options.warp_factor)
+    raw_cube_sub.set_cfg("ts_field", 0)
+    raw_cube_sub.set_cfg("start_ts", options.start_ts)    
+    time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
+    
+    g.chain([raw_cube, raw_cube_sub, time_shift])
+    last_op = src_to_internal(g, time_shift, node)
     last_op.instantiate_on(node)
     ops.append(last_op)
     
@@ -94,6 +99,7 @@ def main():
     ops = []
     for cube in cube_in_r.values():
       sub = jsapi.TimeSubscriber(g, filter={})
+        #TODO offset here?
       g.connect(cube, sub)
       ops.append(sub)      
       
@@ -104,13 +110,13 @@ def main():
     union_cube.set_inlink_bwcap(float(options.bw_cap))
 
     
-  pull_q = jsapi.TimeSubscriber(g, {}, 1000) #every two seconds
+  pull_q = jsapi.TimeSubscriber(g, {}, 1000) #only for UI purposes
   pull_q.set_cfg("ts_field", 0)
 #  pull_q.set_cfg("latency_ts_field", 7)
 #  pull_q.set_cfg("start_ts", start_ts)
   pull_q.set_cfg("rollup_levels", "8,1")
 #  pull_q.set_cfg("simulation_rate",1)
-  pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
+  pull_q.set_cfg("window_offset", 4* 1000) #...trailing by a few
 
   g.connect(union_cube, pull_q)
   last_op = process_results(g, pull_q)  
@@ -129,6 +135,9 @@ def src_to_quant(g, raw_cube_sub, node):
   local_cube = quant_cube(g, "summarized_local", node)
   query_rate = 1000
   pull_from_local = jsapi.TimeSubscriber(g, filter={}, interval=query_rate)
+  pull_from_local.set_cfg("ts_field", 0)
+  pull_from_local.set_cfg("window_offset", 2000)
+  
   g.chain( [raw_cube_sub, project, to_summary1, to_summary2, local_cube, pull_from_local] )
   return pull_from_local
 
