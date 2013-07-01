@@ -716,6 +716,27 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+
+void
+ProjectionOperator::process_one (boost::shared_ptr<Tuple>& t) {
+  int new_size = t->e_size() - 1;
+  google::protobuf::RepeatedPtrField<Element>* elems = t->mutable_e();
+  for (unsigned i = field_id; i < new_size; ++i) {
+    elems->SwapElements(i, i+1);
+  }
+  elems->RemoveLast();
+}
+
+operator_err_t
+ProjectionOperator::configure (std::map<std::string,std::string> &config) {
+  if ( !(istringstream(config["field"]) >> field_id)) {
+    return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
+  }
+  return NO_ERR;
+}
+
+
+
 bool
 GreaterThan::should_emit (const Tuple& t) {
   double val = jetstream::numeric(t, field_id);
@@ -855,6 +876,8 @@ const string CSVParseStrTk::my_type_name("CSVParseStrTk operator");
 const string StringGrep::my_type_name("StringGrep operator");
 const string GenericParse::my_type_name("Parser operator");
 const string ExtendOperator::my_type_name("Extend operator");
+const string ProjectionOperator::my_type_name("Projection");
+
 const string TimestampOperator::my_type_name("Timestamp operator");
 //const string OrderingOperator::my_type_name("Ordering operator");
 

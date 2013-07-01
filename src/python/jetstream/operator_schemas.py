@@ -23,7 +23,7 @@ class OpType (object):
   TO_SUMMARY = "ToSummary"
   SUMMARY_TO_COUNT = "SummaryToCount"
   DEGRADE_SUMMARY = "DegradeSummary"
-
+  PROJECT = "ProjectionOperator"
   URLToDomain = "URLToDomain"
   COUNT_LOGGER = "CountLogger"
   EQUALS_FILTER = "IEqualityFilter"
@@ -246,6 +246,13 @@ def validate_ToSummary(in_schema, cfg):
   newS.extend(in_schema)
   newS[fld] = ('Histogram', 'summary of '+in_schema[fld][1])
   return newS  
+  
+  
+def validate_Projection(in_schema, cfg):
+  field = int(cfg['field'])
+  new_schema = in_schema[0:field]
+  new_schema.extend(in_schema[field+1:])
+  return new_schema
 
 def validate_Timewarp(in_schema, cfg):
   fld_offset = int(cfg['field'])
@@ -262,9 +269,7 @@ def validate_Timewarp(in_schema, cfg):
   return out_schema
 
 def validate_URLToDomain(in_schema, cfg):
-  fld = cfg['field']
-  if fld >= len(in_schema) or in_schema[fld][0] != 'S':
-    raise SchemaError("Can't parse field %d of %s" % (fld, str(in_schema)))
+  is_string(in_schema, cfg, "field", OpType.URLToDomain) 
   return in_schema    
   
 def validate_CountLogger(in_schema, cfg):
@@ -326,7 +331,7 @@ SCHEMAS[OpType.RAND_HIST] = lambda schema,cfg: [('T', 'timestamp'), ('I', 'dummy
 SCHEMAS[OpType.RAND_EVAL] = validate_RandEval
 # TODO RAND_EVAL
 #  SCHEMAS[NO_OP] = lambda x: x
-
+SCHEMAS[OpType.PROJECT] = validate_Projection
 SCHEMAS[OpType.DUMMY_RECEIVER] = lambda schema,cfg: None
 
 SCHEMAS[OpType.UNIX] =  lambda schema,cfg: [("S","")]

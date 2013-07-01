@@ -143,6 +143,20 @@ class ExtendOperator: public COperator {
 GENERIC_CLNAME
 };
 
+
+class ProjectionOperator: public CEachOperator {
+
+ public:
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+  
+GENERIC_CLNAME
+
+ private:
+  unsigned field_id;
+
+};
+
 class TimestampOperator: public CEachOperator {
  public:
   enum TimeType {S, MS, US};
