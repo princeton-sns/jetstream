@@ -11,8 +11,7 @@ from remote_controller import *
 import query_graph as jsapi
 from query_planner import QueryPlanner
 from client_reader import ClientDataReader,tuple_str
-
-
+from operator_schemas import OpType
 from coral_parse import coral_fnames,coral_fidxs, coral_types
 from coral_util import *   #find_root_node, standard_option_parser,
 import regions
@@ -80,7 +79,7 @@ def main():
     time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
     g.chain([raw_cube, raw_cube_sub, time_shift])
-    last_op = src_to_internal(g, time_shift, node)
+    last_op = src_to_internal(g, time_shift, node, options)
     last_op.instantiate_on(node)
     ops.append(last_op)
     
@@ -134,7 +133,7 @@ def main():
   
 
 
-def src_to_quant(g, raw_cube_sub, node):
+def src_to_quant(g, raw_cube_sub, node, options):
   to_summary1 = jsapi.ToSummary(g, field=2, size=5000)
   to_summary2 = jsapi.ToSummary(g, field=3, size=5000)
   project = jsapi.Project(g, field=2)
@@ -176,11 +175,16 @@ def url_cube(g, cube_name, cube_node):
 #  cube.set_overwrite(True)
 #  return cube
 
-def src_to_url(g, raw_cube_sub, node):
+def src_to_url(g, data_src, node, options):
+  raw_cube_sub = data_src.pred_list()[0]
+  raw_cube_sub.type = OpType.VAR_TIME_SUBSCRIBE
+  raw_cube_sub.set_cfg("max_window_size", options.max_rollup) 
+  raw_cube_sub.set_cfg("sort_order", "-count")
+
 #  project = jsapi.Project(g, field=2)
 #  g.chain([raw_cube_sub, project])
 #  return project
-  return raw_cube_sub
+  return data_src
 
 if __name__ == '__main__':
     main()

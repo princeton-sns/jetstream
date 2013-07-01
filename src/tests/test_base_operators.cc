@@ -596,3 +596,32 @@ TEST(Operator, ExperimentTimeRewrite) {
   time_t shifted_2 = t->e(0).t_val();
   ASSERT_EQ(1U, shifted_2 - shifted);
 }
+
+
+TEST(Operator, ProjectOperator) {
+
+  ProjectionOperator op;
+  operator_config_t cfg;
+  {
+    cfg["field"] = "0";
+    op.configure(cfg);
+    shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+    extend_tuple(*t, 1);
+    extend_tuple(*t, 2);
+    op.process_one(t);
+    ASSERT_EQ(2, t->e(0).i_val());
+    ASSERT_EQ(1, t->e_size());
+  }
+
+  {
+    cfg["field"] = "1";
+    op.configure(cfg);
+    shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
+    extend_tuple(*t, 1);
+    extend_tuple(*t, 2);
+    op.process_one(t);
+    ASSERT_EQ(1, t->e(0).i_val());
+    ASSERT_EQ(1, t->e_size());
+  }
+
+}

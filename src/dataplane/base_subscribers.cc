@@ -367,7 +367,7 @@ TimeBasedSubscriber::emit_batch() {
 
   time_t newMax = 0;
   if (ts_field >= 0) {
-    newMax = tt->now() - get_window_offset_sec(); //TODO could instead offset from highest-ts-seen
+    newMax = tt->now() - get_window_offset_sec();
     unique_lock<boost::mutex> lock(stateLock);
     
     if (times.size() > 0) {

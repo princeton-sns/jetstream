@@ -729,7 +729,7 @@ ProjectionOperator::process_one (boost::shared_ptr<Tuple>& t) {
 
 operator_err_t
 ProjectionOperator::configure (std::map<std::string,std::string> &config) {
-  if ( !(istringstream(config["field"]) >> field_id)) {
+  if (!config.count("field") || !(istringstream(config["field"]) >> field_id)) {
     return operator_err_t("must specify an int as field; got " + config["field"] +  " instead");
   }
   return NO_ERR;
