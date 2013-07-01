@@ -48,6 +48,12 @@ def main():
     define_internal_cube = quant_cube
     src_to_internal = src_to_quant
     process_results = process_quant
+    final_rollup_levels = "8,1"
+  if mode == "domains":
+    define_internal_cube = url_cube
+    src_to_internal = src_to_url
+    process_results = lambda x,y: y
+    final_rollup_levels = "8,1,1"
   else:
     print "Unknown mode %s" % options.mode
     sys.exit(0)
@@ -89,7 +95,7 @@ def main():
       node_in_r = regions.get_1_from_region(defn, all_nodes)
       if node_in_r:
         print "for region %s, aggregation is on %s:%d" % (name, node_in_r.address, node_in_r.portno)
-        cube_in_r[name] = define_internal_cube(g, "partial_agg", node_in_r, overwrite=True)
+        cube_in_r[name] = define_internal_cube(g, "partial_agg", node_in_r)
     for op in ops:
       rgn = regions.get_region(r_list, op.location())
       if not rgn:
@@ -103,7 +109,7 @@ def main():
       g.connect(cube, sub)
       ops.append(sub)      
       
-  union_cube = define_internal_cube (g, "union_cube", union_node, overwrite=True)
+  union_cube = define_internal_cube (g, "union_cube", union_node)
   for op in ops:
     g.connect(op, union_cube)
   if options.bw_cap:
@@ -114,7 +120,7 @@ def main():
   pull_q.set_cfg("ts_field", 0)
 #  pull_q.set_cfg("latency_ts_field", 7)
 #  pull_q.set_cfg("start_ts", start_ts)
-  pull_q.set_cfg("rollup_levels", "8,1")
+  pull_q.set_cfg("rollup_levels", final_rollup_levels)
 #  pull_q.set_cfg("simulation_rate",1)
   pull_q.set_cfg("window_offset", 4* 1000) #...trailing by a few
 
@@ -142,10 +148,10 @@ def src_to_quant(g, raw_cube_sub, node):
   return pull_from_local
 
 
-def quant_cube(g, cube_name, cube_node, overwrite=True):  
+def quant_cube(g, cube_name, cube_node):  
   cube = g.add_cube(cube_name)
   cube.instantiate_on(cube_node)
-  cube.set_overwrite(overwrite)
+  cube.set_overwrite(True)
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
   cube.add_dim("response_code", Element.INT32, 1)
   cube.add_agg("sizes", jsapi.Cube.AggType.HISTO, 2)
@@ -161,6 +167,20 @@ def process_quant(g, union_sub):
 
   g.chain([union_sub, count_op, q_op, q_op2] )
   return q_op2
+
+
+def url_cube(g, cube_name, cube_node):  
+  return define_raw_cube(g, "url_intermed", cube_node, overwrite=True)
+#  cube = g.add_cube(cube_name)
+#  cube.instantiate_on(cube_node)
+#  cube.set_overwrite(True)
+#  return cube
+
+def src_to_url(g, raw_cube_sub, node):
+#  project = jsapi.Project(g, field=2)
+#  g.chain([raw_cube_sub, project])
+#  return project
+  return raw_cube_sub
 
 if __name__ == '__main__':
     main()
