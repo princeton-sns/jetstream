@@ -51,6 +51,7 @@ QueueCongestionMonitor::capacity_ratio() {
 
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
     LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
+ //   LOG(INFO) <<
         "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << inserts <<
          " inserts (max is " << max_per_sec << "); " << removes  <<" removes. Queue length "
           << readQLen << "/" << queueTarget << ". Space Ratio is " << prevRatio <<

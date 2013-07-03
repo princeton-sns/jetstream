@@ -60,8 +60,9 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   if (! check_since_action)
     return 0;
   
-  // LOG(INFO)
-  VLOG(2) << "policy for " << op << ". Queue " <<congest->name() <<
+//  LOG(INFO)
+  VLOG(2)
+      << "policy for " << op << ". Queue " <<congest->name() <<
         " congest level was " << congest_level << endl;
   
   unsigned int targ_step = curLevel;

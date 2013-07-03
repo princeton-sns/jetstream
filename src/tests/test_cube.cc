@@ -1386,7 +1386,7 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
     const int ITEMS = 20;
 
     for(int i = 0; i < ITEMS; ++i) {
-      agg.add_item(i+ ITEMS*j, 1);
+      agg.add_item(i+ ITEMS*j, 1);  //interval from 0 - ITEMS and ITEMS to 2 * ITEMS -1
       true_sum += ( i + ITEMS*j);
     }
 
@@ -1411,6 +1411,7 @@ TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
   const JSSummary &sum_res = ptrTup->e(1).summary();
 
   ReservoirSample res(sum_res);
+//  cout << "reservoir is " << res << endl;
   ASSERT_EQ(40U, res.pop_seen());
   cout << "true mean is " << (true_sum / 40.0) << endl;
   ASSERT_EQ(13, (int) res.mean());
