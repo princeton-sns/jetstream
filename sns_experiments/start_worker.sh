@@ -17,7 +17,7 @@ fi
 echo "logging to ${LOGNAME}; libpath is ${LD_LIBRARY_PATH}"
 CMD="${JS_DIR}/jsnoded --start ${CFG}"
 echo "running ${CMD}"
-nohup ${CMD} $@ 2>&1 > $LOGNAME &
+nohup ${CMD} $@ >$LOGNAME 2>&1 &
 PID=$!
 echo $PID > ${PID_DIR}/jsnode.pid
 echo "started; pid is ${PID}"
