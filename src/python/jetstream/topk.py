@@ -29,7 +29,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
 
   pull_op = jsapi.TimeSubscriber(g, {}, 1000, "-count") #pull every second
   pull_op.set_cfg("ts_field", 1)
-  pull_op.set_cfg("window_offset", OFFSET) #but trailing by a few
+  pull_op.set_cfg("window_offset", 2 * OFFSET) #but trailing by a few
   
   eval_op = jsapi.RandEval(g)
   if perflog:
@@ -65,9 +65,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
     timestamp_op= jsapi.TimestampOperator(g, "ms") 
     count_extend_op = jsapi.ExtendOperator(g, "i", ["1"])
     node_num_op = jsapi.ExtendOperator(g, "s", ["node"+str(k)]) #not hostname for debugging locally
-    g.connect(src, timestamp_op)
-    g.connect(timestamp_op, count_extend_op)
-    g.connect(count_extend_op, node_num_op)
+    g.chain( [ src, timestamp_op, count_extend_op, node_num_op] )
     #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
 
     round_op = jsapi.TRoundOperator(g, fld=1, round_to=WINDOW_SECS)
@@ -85,9 +83,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
       pull_op = jsapi.TimeSubscriber(g, {}, WINDOW_SECS * 1000)
       pull_op.set_cfg("ts_field", 1)
       pull_op.set_cfg("window_offset", OFFSET) #pull every three seconds, trailing by one
-      g.connect(node_num_op, local_cube)
-      g.connect(local_cube, pull_op)      
-      g.connect(pull_op, node_num_local_op)
+      g.chain( [node_num_op, local_cube, pull_op, node_num_local_op])
       local_cube.instantiate_on(node)    
       #tuple format: 0=>S-state, 1=>T-time, 2=>D-timestamp(ms), 3=>I-count, 4=>S-node#
       last_local = node_num_local_op
@@ -98,9 +94,7 @@ def get_graph(root_node, all_nodes, rate=1000, perflog="", clear_file = False, l
     
     if sample:  
       sample_op = jsapi.VariableSampling(g)
-      g.connect(last_local, sample_op)
-      g.connect(sample_op, round_op)
-      g.connect(round_op, sampling_balancer)
+      g.chain( [last_local, sample_op, round_op, sampling_balancer])
     else:
       g.connect(last_local, round_op)
       g.connect(round_op, final_cube)

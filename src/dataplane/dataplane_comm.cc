@@ -64,12 +64,11 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
-/* FIXME CHAINS
-      if (mon->is_congested()) {
-        VLOG(1) << "reporting downstream congestion at " << dest->id_as_str();
-        report_congestion_upstream(mon->capacity_ratio());
+      if (dest_side_congest->is_congested()) {
+//        VLOG(1) << "reporting downstream congestion at " << dest->chain_name();
+        report_congestion_upstream(dest_side_congest->capacity_ratio());
         register_congestion_recheck();
-      }*/
+      }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
       dest_side_congest->report_insert(NULL, data.size());
       dest->process(data, msg);
@@ -145,7 +144,7 @@ IncomingConnectionState::report_congestion_upstream(double level) {
   msg.set_type(DataplaneMessage::CONGEST_STATUS);
   msg.set_congestion_level(level);
 
-  VLOG(1) << "Reporting congestion at " << dest->chain_name()<< ": " << level;
+  LOG(INFO) << "Reporting congestion at " << dest->chain_name()<< ": " << level;
   boost::system::error_code error;
   conn->send_msg(msg, error);
   if (error) {
@@ -336,6 +335,9 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
   } else
     dest_as_str = "external"; // + remoteAddr ;
   
+//  local_congestion = boost::shared_ptr<NetCongestionMonitor> (
+//        new QueueCongestionMonitor(dcm.maxQueueSize(), dest_as_str));
+  
   cm.create_connection(e.dest_addr().address(), portno, boost::bind(
                  &RemoteDestAdaptor::conn_created_cb, this, _1, _2));
       
@@ -351,6 +353,7 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
   
   LOG(INFO) << "RDA to " << c->get_remote_endpoint() <<  " set up OK";
   conn = c;
+  
   conn->set_counters(mgr.send_counter, mgr.recv_counter);
 
   DataplaneMessage data_msg;
@@ -372,8 +375,10 @@ RemoteDestAdaptor::conn_created_cb(shared_ptr<ClientConnection> c,
      remote_processing->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000); //convert kb --> bytes
 
 //*/
+  local_congestion = conn->congestion_monitor();
   conn->congestion_monitor()->set_queue_size(mgr.maxQueueSize());
-  conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000);
+  if(dest_as_edge.has_max_kb_per_sec())
+    conn->congestion_monitor()->set_max_rate(dest_as_edge.max_kb_per_sec() * 1000);
 
   Edge * edge = data_msg.mutable_chain_link();
   edge->CopyFrom(dest_as_edge);

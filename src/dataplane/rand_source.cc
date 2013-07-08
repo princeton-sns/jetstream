@@ -275,10 +275,6 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
 
   tuples_per_sec = 50;
 
-  if ((config["rate"].length() > 0)  && !(stringstream(config["rate"]) >> tuples_per_sec)) {
-    return operator_err_t("'rate' param should be a number, but '" + config["rate"] + "' is not.");
-  }
-
   unique_vals = 100;
   if ((config["unique_vals"].length() > 0)  && !(stringstream(config["unique_vals"]) >> unique_vals)) {
     return operator_err_t("'unique_vals' param should be a number, but '" + config["unique_vals"] + "' is not.");
@@ -295,17 +291,20 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
   if ((config["batches_per_window"].length() > 0)  && !(stringstream(config["batches_per_window"]) >> batches_per_window)) {
     return operator_err_t("'batches_per_window' param should be a number, but '" + config["batches_per_window"] + "' is not.");
   }
-  
-  
+
+  if ((config["schedule_start"].length() > 0)  && !(stringstream(config["schedule_start"]) >> tuples_per_sec)) {
+    return operator_err_t("'schedule_start' param should be a number, but '" + config["schedule_start"] + "' is not.");
+  }  
+
+  schedule_increment = 10;
+  if ((config["schedule_increment"].length() > 0)  && !(stringstream(config["schedule_increment"]) >> schedule_increment)) {
+    return operator_err_t("'schedule_increment' param should be a number, but '" + config["schedule_increment"] + "' is not.");
+  }
 
   schedule = false;
-  if (config["rate"].length() == 0) {
+  if (schedule_increment != 0) {
     schedule = true;
 
-    schedule_increment = 10;
-    if ((config["schedule_increment"].length() > 0)  && !(stringstream(config["schedule_increment"]) >> schedule_increment)) {
-      return operator_err_t("'schedule_increment' param should be a number, but '" + config["schedule_increment"] + "' is not.");
-    }
     schedule_wait = 5000;
     if ((config["schedule_wait"].length() > 0)  && !(stringstream(config["schedule_wait"]) >> schedule_wait)) {
       return operator_err_t("'schedule_wait' param should be a number, but '" + config["schedule_wait"] + "' is not.");
@@ -314,9 +313,7 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     if ((config["schedule_max"].length() > 0)  && !(stringstream(config["schedule_max"]) >> schedule_max)) {
       return operator_err_t("'schedule_max' param should be a number, but '" + config["schedule_max"] + "' is not.");
     }
-    if ((config["schedule_start"].length() > 0)  && !(stringstream(config["schedule_start"]) >> tuples_per_sec)) {
-      return operator_err_t("'schedule_start' param should be a number, but '" + config["schedule_start"] + "' is not.");
-    }
+
     if ((config["window_fudge_factor"].length() > 0)  && !(stringstream(config["window_fudge_factor"]) >> window_fudge_factor)) {
       return operator_err_t("'window_fudge_factor' param should be a number, but '" + config["window_fudge_factor"] + "' is not.");
     }

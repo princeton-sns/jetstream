@@ -63,10 +63,6 @@ def main():
     if not found:
       print "Node with address: ",options.root_node," not found for use as the aggregator node"
       sys.exit()
-    #root_addr, root_port =  normalize_controller_addr(options.root_node)
-    #root_node = NodeID()
-    #root_node.address = root_addr
-    #root_node.portno = root_port
   else:
     root_node = server.get_a_node()
   assert isinstance(root_node, NodeID)
@@ -102,16 +98,19 @@ def main():
 
     cid = server.deploy_pb(req)
     if type(cid) != types.IntType:
+      print "Err:",cid
       break  
 
-    print_wait(TIME_AT_RATE)
-    server.stop_computation(cid)
-    time.sleep(10)   
-    
-  print "DONE; all computations should be stopped"
-    #sleep a while; 
-    #now stop and restart
-    
+    if not options.rate:  #multiple runs, so we need to exit
+      print_wait(TIME_AT_RATE)
+      server.stop_computation(cid)
+      time.sleep(10)     
+  
+
+  if not options.rate:
+    print "DONE; all computations should be stopped"
+  else:
+    print "DONE; leaving job %d running" % cid
 
 
 def print_wait(seconds):

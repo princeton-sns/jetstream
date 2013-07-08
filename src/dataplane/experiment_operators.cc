@@ -342,7 +342,7 @@ AvgCongestLogger::meta_from_upstream(OperatorChain * c, DataplaneMessage & msg) 
 void
 AvgCongestLogger::start() {
   running = true;
-//  timer = get_timer();
+  timer = node->get_timer();
   timer->expires_from_now(boost::posix_time::millisec(report_interval));
   timer->async_wait(boost::bind(&AvgCongestLogger::report, this));
 

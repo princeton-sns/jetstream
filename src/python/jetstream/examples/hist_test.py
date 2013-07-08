@@ -73,6 +73,11 @@ def get_graph(source_nodes, root_node, options):
     # g.chain([congest_logger, ground])
     add_latency_measure(g, congest_logger, root_node, tti=3, hti=4, latencylog=options.latencylog, interval=options.latency_interval_ms)
     
+  if options.rate:
+    options.schedule_increment = 0
+    options.schedule_start = options.rate
+    
+
 
   for node, i in numbered(source_nodes):
     sender = jsapi.RandHist(g)
