@@ -296,12 +296,12 @@ Internally, we identify endpoints by a string consisting of either an operator I
     }  
  
     Node * get_node() {   return node;  }
+    boost::recursive_mutex outgoingMapMutex;
 
   private:
     boost::asio::io_service & iosrv;
     boost::asio::strand strand;
     const NodeConfig& cfg;
-    boost::recursive_mutex outgoingMapMutex;
   /**
   * Maps from a destination operator ID to an RDA for it.
     We need this so that an RDA can arrange to tear down the chain it's a member of.

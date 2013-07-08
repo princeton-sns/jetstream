@@ -242,6 +242,7 @@ FixedRateQueue::emit_data() {
   vector<shared_ptr<Tuple> > data;
 //  cout << "dequeue, length = " << q.size() << endl;
   if( msg.data_size() > 0) {
+    LOG_IF(FATAL, msg.data_size() > 1) << "I expected one tuple per dequeue";
     boost::shared_ptr<Tuple> t(new Tuple);
     t->CopyFrom(msg.data(0));
     data.push_back(t);
@@ -253,6 +254,7 @@ FixedRateQueue::emit_data() {
       mon->new_window_start();
     }
   }
+//  LOG(INFO) << "dequeue";
   chain->process(data, msg);
   return ms_per_dequeue;
 }

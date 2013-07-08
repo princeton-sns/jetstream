@@ -15,7 +15,8 @@ enum ProtoState {
   NOT_STARTED,
   ROUND_1,
   ROUND_2,
-  ROUND_3
+  ROUND_3,
+  DONE
 };
 
 double get_rank_val(boost::shared_ptr<const jetstream::Tuple>, size_t col);
@@ -83,6 +84,8 @@ class MultiRoundCoordinator: public TimerSource {
    int ts_field;
    int window_offset;
    std::string sort_column;
+   bool just_once;
+  
    unsigned int responses_this_phase;
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;

@@ -15,6 +15,7 @@ from client_reader import ClientDataReader,tuple_str
 
 from coral_parse import coral_fnames,coral_fidxs, coral_types
 from coral_util import *   #find_root_node, standard_option_parser,
+import regions
 
 logger = logging.getLogger('JetStream')
 logger.setLevel(logging.INFO)
@@ -24,6 +25,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 
 UNION = True
+MULTI_LEVEL = True
 
 def main():
 
@@ -78,16 +80,35 @@ def main():
   if len(ops) == 0:
     print "can't run, no [non-union] nodes"
     sys.exit(0) 
+    
+    
+  if MULTI_LEVEL:
+    r_list = regions.read_regions('regions.txt') 
+    cube_in_r = {}
+    for (name, defn) in r_list.items():
+      node_in_r = regions.get_1_from_region(defn, all_nodes)
+      if node_in_r:
+        print "for region %s, aggregation is on %s:%d" % (name, node_in_r.address, node_in_r.portno)
+        cube_in_r[name] = define_raw_cube(g, "partial_agg", node_in_r, overwrite=True)
+    for op in ops:
+      rgn = regions.get_region(r_list, op.location())
+      if not rgn:
+        print "No region for node %s:%d" % (op.location().address, op.location().portno)
+      g.connect(op, cube_in_r[rgn])
+
+    ops = []
+    for cube in cube_in_r.values():
+      sub = jsapi.DelayedSubscriber(g, filter={})
+      g.connect(cube, sub)
+      ops.append(sub)      
+      
 
   if UNION:
-    cube = g.add_cube("union_cube")
-    cube.instantiate_on(union_node)
-    define_schema_for_raw_cube (cube)
-    cube.set_overwrite(True)
+    cube = define_raw_cube (g, "union_cube", union_node, overwrite=True)
     for op in ops:
       g.connect(op, cube)
     sub = jsapi.DelayedSubscriber(g, filter={})
-    sub.instantiate_on(union_node)
+#    sub.instantiate_on(union_node)  #hopefully mooted by new placement code
     g.connect(cube, sub)
     ops = [sub]
     
@@ -128,10 +149,7 @@ def make_trivial_graph(g, node):
 
 
 def get_simple_qgraph(g, node):
-  cube = g.add_cube("local_records")
-  cube.instantiate_on(node)
-  define_schema_for_raw_cube (cube)
-  cube.set_overwrite(False)
+  cube = define_raw_cube(g, "local_records", node, overwrite=False)
   
   pull_from_local = jsapi.OneShotSubscriber(g, filter={})
 #  pull_from_local.set_cfg("sort_order", "time")  #just a performance experiment

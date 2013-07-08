@@ -69,11 +69,9 @@ MultiRoundSender::get_bounds(Tuple & my_min, Tuple & my_max, const Tuple & q, in
 void
 MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
 
-  DataplaneMessage round_end_marker;
   vector<  boost::shared_ptr<Tuple> > data_buf;
 
-  round_end_marker.set_type(DataplaneMessage::END_OF_WINDOW);
-
+  int round  = 0;
   take_greatest = msg.tput_sort_key()[0] == '-';
 //  VLOG(1) << "TPUT got meta from downstream";
   if ( msg.type() == DataplaneMessage::TPUT_START) {
@@ -93,13 +91,13 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
         << rollup_levels.size() << " rollup dimensions for cube with "
         << cube->num_dimensions() << "dims";
     cube::CubeIterator it = cube->slice_and_rollup(rollup_levels, min, max, sort_order, msg.tput_k());
-//    LOG(INFO) << "round-1 slice query returned " << it.numCells() << " cells";
+    LOG(INFO) << "round-1 slice query returned " << it.numCells() << " cells";
 
     while ( it != cube->end()) {
       data_buf.push_back(*it);
       it++;
     }
-    round_end_marker.set_tput_round(1);
+    round = 1;
 
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_2) {
 
@@ -124,8 +122,7 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
         t = *it;
       }
     }
-    round_end_marker.set_tput_round(2);
-
+    round = 2;
   } else  if ( msg.type() == DataplaneMessage::TPUT_ROUND_3) {
 
     int emitted = 0;
@@ -159,14 +156,18 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
     
 //    LOG(INFO) << "end of tput for " << id() << "; emitted " << emitted << " tuples";
 //     << " based on " << msg.tput_r3_query_size() << " query terms";
-
-    round_end_marker.set_tput_round(3);
+    round = 3;
   } else {
 //    DataPlaneOperator::meta_from_downstream(msg);
     return; //no emit
   }
-  
+
+  DataplaneMessage round_end_marker;
+  round_end_marker.set_type(DataplaneMessage::END_OF_WINDOW);
+  round_end_marker.set_tput_round(round);
+
   chain->process(data_buf, round_end_marker);
+  LOG(INFO) << id() << " data sent, chain is " << chain << " round is " << round;
 
 }
 
@@ -215,6 +216,7 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     window_offset = 0;
   }
 
+  just_once = true;
   phase = NOT_STARTED;
   return NO_ERR;
 }
@@ -244,6 +246,8 @@ void
 MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
   LOG(INFO) << "Putting MultiRoundCoordinator into chain " << chain->chain_name();
   boost::lock_guard<tput_mutex> lock (mutex);
+  if (chain->member(0).get() == this)
+    return;
   future_preds[chain.get()] = chain;
 }
 
@@ -313,7 +317,10 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<OperatorChain> pred = predecessors[i];
+    LOG(INFO) << "upwards metadata to " << pred;
     pred->upwards_metadata(start_proto, this);
+    LOG(INFO) << "upwards metadata to " << pred <<  " complete";
+
   }
 
 }
@@ -325,6 +332,7 @@ MultiRoundCoordinator::process (
           OperatorChain * c,
           vector<boost::shared_ptr<Tuple> > & tuples,
           DataplaneMessage & msg) {
+  LOG(INFO) << "TPUT coordinator processing, from chain " << c;
   boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
@@ -345,9 +353,10 @@ MultiRoundCoordinator::process (
         candidates[k] = CandidateItem(v, 1,  *t);
       }
     }
+    tuples.clear();
   } else if (phase == ROUND_3) {//just let responses through
 //    LOG(INFO) << "passing through " << fmt(*t) << " in TPUT phase 3";
-    return;
+//    return;
   }
 //  else
 //    LOG(WARNING) << "ignoring input"
@@ -362,7 +371,7 @@ MultiRoundCoordinator::process (
       if (responses_this_phase == predecessors.size()) {
         LOG(INFO) << id() << " completed TPUT round " << phase << " with " << candidates.size()<< " candidates";
         if (candidates.size() == 0) {          
-          phase = ROUND_3;
+          phase = ROUND_3; //move directly to round 3 and done
         }
         
         responses_this_phase = 0;
@@ -370,10 +379,16 @@ MultiRoundCoordinator::process (
           start_phase_2();
         } else if (phase == 2) {
           start_phase_3();
+        } else if (phase == 3) {
+          if(just_once)
+            phase = DONE;
+          else {
+            LOG(INFO) << "TPUT complete, re-running";
+            phase = NOT_STARTED;
+          }
         } else {
-          LOG_IF(FATAL, phase != 3) << " TPUT should only be in phases 1-3, was " << phase;
+          LOG(FATAL) << " TPUT should only be in phases 1-3, was " << phase;
           //done!
-          phase = NOT_STARTED;
         }
 
       }
@@ -468,6 +483,8 @@ MultiRoundCoordinator::emit_data() {
   time_t now = time(NULL);
   time_t window_end = max( now - window_offset, start_ts + min_window_size);
 
+  if (phase == DONE)
+    return -1;
   if (window_end < now)
     return 1000 * (now - window_end);
   else {

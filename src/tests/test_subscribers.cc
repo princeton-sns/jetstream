@@ -313,7 +313,7 @@ TEST_F(SubscriberTest,OneShot) {
 
   for (tries = 0; node->operator_count() > 1 && tries< 50; tries++)
     js_usleep(100 * 1000);
-  EXPECT_EQ(0U, node->operator_count());
+  EXPECT_EQ(1U, node->operator_count());
   cout << "operator has been removed from table" << endl;
   js_usleep(500 * 1000); //put here to debug whether d-tor is called. Can remove if need be.
 }
@@ -446,7 +446,7 @@ TEST_F(SubscriberTest,VariableSubscriber) {
   node->get_operator( operator_id_t(compID, 1)));
 
 
-  const int URL_COUNT = 10; //should take more than 5s to send 'em all
+  const int URL_COUNT = 18; //should take more than 5s to send 'em all
   string urls[URL_COUNT];
   for (int i =0; i < URL_COUNT; ++i)
     urls[i] = "url" + boost::lexical_cast<string>(i);
@@ -472,7 +472,9 @@ TEST_F(SubscriberTest,VariableSubscriber) {
     tuples_last_window = s;
   }
   cout << "total of " << receiver->tuples.size() << " tuples received"<< endl;
-  EXPECT_EQ(5000, subscriber->window_size());
+  EXPECT_GE(10000, subscriber->window_size());
+  EXPECT_LE(5000, subscriber->window_size());
+
 }
 
 
@@ -509,7 +511,7 @@ TEST_F(SubscriberTest,DelayedOneShot) {
   
   js_usleep(100 * 1000);
   ASSERT_EQ(1, rec->tuples.size());
-  EXPECT_EQ(0U, node->operator_count());
+  EXPECT_EQ(1U, node->operator_count());
 
 
 }

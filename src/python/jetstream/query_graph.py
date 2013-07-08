@@ -346,11 +346,14 @@ def Ground(graph):
   cfg = {"no_store": "true"}
   return graph.add_operator(OpType.DUMMY_RECEIVER, cfg)
 
+def Project(graph, field):
+  return graph.add_operator(OpType.PROJECT, {'field':field})
+  
 
 class TimeSubscriber(Operator):
-  def __init__ (self, graph, my_filter, interval, sort_order = "", num_results = 0):
+  def __init__ (self, graph, filter, interval, sort_order = "", num_results = 0):
     super(TimeSubscriber,self).__init__(graph,OpType.TIME_SUBSCRIBE, {}, 0)
-    self.filter = my_filter  #maps
+    self.filter = filter  #maps
     self.cfg["window_size"] = interval
     self.cfg["sort_order"] = sort_order
     self.cfg["num_results"] = num_results

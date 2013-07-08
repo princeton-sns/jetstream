@@ -17,11 +17,13 @@ class Destination(object):
 
   def add_pred(self, p):
     assert( isinstance(p,Destination) )
-
     self.preds.add(p)
 
   def remove_pred(self, src):  #note that argument is a Destination, not an ID
     self.preds.remove(src)
+    
+  def pred_list(self):
+    return [x for x in self.preds]
 
   def get_id(self):
     return self.id

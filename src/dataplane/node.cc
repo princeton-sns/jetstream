@@ -784,15 +784,14 @@ throw(operator_err_t)
 bool 
 Node::unregister_chain(shared_ptr<OperatorChain> c) {
   unique_lock<boost::shared_mutex> lock(operatorTableLock);
+  LOG(INFO) << "node unregistering chain";
 
-//  int delCount = chainSources.erase(c);
-  
-  unsigned members = c->members();
-  for ( unsigned i = 0; i < members; ++i) {
-    shared_ptr<ChainMember> m = c->member(i);
-    shared_ptr<COperator> op = dynamic_pointer_cast<COperator>(m);
-    if (op)
-      operators.erase(op->id());
+  shared_ptr<ChainMember> m = c->member(0);
+  shared_ptr<COperator> op = dynamic_pointer_cast<COperator>(m);
+  if (op) {
+    operator_id_t id = op->id();
+    operators.erase(id);
+    chainSources.erase(id);
   }
     
   return false; 
