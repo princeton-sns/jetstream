@@ -137,7 +137,7 @@ def main():
       logger.info("tick; %d readers completed. %d total tuples." % (completed, tuples))
 
   duration = time.time() - start_time
-  logger.info("finished. %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, tuples, duration * 1000))
+  logger.info("finished. %d of %d readers completed. %d total tuples. Total time taken was %d ms" % (completed, len(ops), tuples, duration * 1000))
   if completed == 0:
     sys.exit(0)
   display_results([r for r in result_readers if r.is_finished])
