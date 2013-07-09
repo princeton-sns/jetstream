@@ -350,24 +350,19 @@ AvgCongestLogger::start() {
 
 void
 AvgCongestLogger::process_one(boost::shared_ptr<Tuple>& t) {
-  
-  {
-    boost::lock_guard<boost::mutex> lock (mutex);
-    tuples_in_interval ++;
-    if (field >= 0) {
-      LOG_IF(FATAL, t->e_size() <= field) << "no such field " << field<< ". Got "
-        << fmt(*t) << ".";
-      count_tally += t->e(field).i_val();
-    }
-
-    if (hist_field >= 0) {
-      LOG_IF(FATAL, t->e_size() <= hist_field) << "no such field " << hist_field<< ". Got "
-        << fmt(*t) << ".";
-      hist_size_total += t->e(hist_field).summary().histo().bucket_vals_size();
-    }
-    //release lock here
+  boost::lock_guard<boost::mutex> lock (mutex);
+  tuples_in_interval ++;
+  if (field >= 0) {
+    LOG_IF(FATAL, t->e_size() <= field) << "no such field " << field<< ". Got "
+      << fmt(*t) << ".";
+    count_tally += t->e(field).i_val();
   }
-  
+
+  if (hist_field >= 0) {
+    LOG_IF(FATAL, t->e_size() <= hist_field) << "no such field " << hist_field<< ". Got "
+      << fmt(*t) << ".";
+    hist_size_total += t->e(hist_field).summary().histo().bucket_vals_size();
+  }
 }
 
 
@@ -400,23 +395,26 @@ AvgCongestLogger::report() {
       
       string maybe_h_stats = "";
       if (hist_field >= 0 && tuples_in_interval > 0)
-        maybe_h_stats = " avg hist size " + boost::lexical_cast<string>( hist_size_total / tuples_in_interval );
+        maybe_h_stats = " Avg hist size " + boost::lexical_cast<string>( hist_size_total / tuples_in_interval );
       
       string maybe_sample_stats = "";
       double total_sample_ratios = 0;
       map<OperatorChain *, double>::iterator sample_it = sample_lev_for.begin();
       for ( ; sample_it != sample_lev_for.end(); ++sample_it) {
         total_sample_ratios += sample_it->second;
-      }
-      
+      }      
       if (total_sample_ratios > 0)
         maybe_sample_stats = " avg sample freq " +
           boost::lexical_cast<string>(   total_sample_ratios / sample_lev_for.size() );
       
+      string maybe_count_tally_stats = "";
+      if (field >= 0)
+        maybe_count_tally_stats = "Lifetime total count="+ boost::lexical_cast<string>(count_tally);
+      
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
        << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
       LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
-        << " Lifetime total count=" << count_tally << maybe_h_stats << maybe_sample_stats;
+        << maybe_count_tally_stats << maybe_h_stats << maybe_sample_stats;
       
       
       LOG(INFO) << "Filter-error bound: " << err_bound;
@@ -443,6 +441,11 @@ AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
     if ( !(istringstream(config["hist_field"]) >> hist_field)) {
       return operator_err_t("must specify an int as hist_field; got " + config["hist_field"] +  " instead");
     }  
+
+  if (config.find("report_interval") != config.end() &&
+    !(istringstream(config["report_interval"]) >> report_interval)) {
+      return operator_err_t("must specify an int as report_interval; got " + config["report_interval"] +  " instead");
+  }
   
   return NO_ERR;
 }

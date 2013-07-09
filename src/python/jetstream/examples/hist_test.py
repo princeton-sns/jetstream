@@ -12,6 +12,7 @@ from remote_controller import RemoteController
 import query_graph as jsapi
 from coral_util import *   #find_root_node, standard_option_parser,
 
+store_hostnames = True #store hostnames in final cube
 
 def main():
 
@@ -52,16 +53,21 @@ def get_graph(source_nodes, root_node, options):
   congest_logger = jsapi.AvgCongestLogger(g)
   congest_logger.instantiate_on(root_node)
   congest_logger.set_cfg("hist_field", 2)
+  congest_logger.set_cfg("report_interval", 10 * 1000)
 
 #  timestamp_cube_op= jsapi.TimestampOperator(g, "ms")
 #  timestamp_cube_op.instantiate_on(root_node)
 
   if not options.no_cube:
     central_cube = g.add_cube("global_hists")
+    central_cube.set_overwrite(True)
     central_cube.instantiate_on(root_node)
     central_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
-    central_cube.add_dim("dummydim", Element.INT32, 1)
+    central_cube.add_dim("randvar_for_degrade", Element.INT32, 1)
     central_cube.add_agg("the_hist", jsapi.Cube.AggType.HISTO, 2)
+    if store_hostnames:
+     central_cube.add_dim("hostname", Element.STRING, 4)
+      
 
     g.chain([congest_logger, central_cube] )
 
@@ -106,7 +112,7 @@ def get_graph(source_nodes, root_node, options):
         degrade.instantiate_on(node)
     
     timestamp_op= jsapi.TimestampOperator(g, "ms")
-    hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) #used as dummy hostname for latency tracker
+    hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) 
     hostname_extend_op.instantiate_on(node)
   
 
