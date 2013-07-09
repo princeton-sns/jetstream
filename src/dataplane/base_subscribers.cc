@@ -377,7 +377,8 @@ TimeBasedSubscriber::emit_batch() {
         min_window_seen = min(min_window_seen, it->second);
         it++;
       }
-      LOG_IF(INFO, newMax != min_window_seen) << "Subscriber has some end markers; fast-forwarding from " <<
+      VLOG_IF(1, newMax != min_window_seen) << "Subscriber " << id_as_str() <<" on "
+         << cube->id_as_str() << " has some end markers; fast-forwarding from " <<
         newMax <<" to "<< min_window_seen;
       
       newMax = max(newMax, min_window_seen);

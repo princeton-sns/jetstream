@@ -26,11 +26,16 @@ ch.setFormatter(formatter)
 UNION = True
 MULTI_LEVEL = False
 
+
+#  NOTES
+#  Raw cube uses source timestamps.
+# We then apply a time-warp operator and all other cubes use warped timestamps.
+
 def main():
 
   parser = standard_option_parser()
   parser.add_option("--mode", dest="mode",
-  action="store", help="query to run. Should be 'trivial' or 'counts'")
+  action="store", help="query to run. Should be 'quantiles' or 'domains'")
   parser.add_option("--wait", dest="wait",
   action="store", help="how long to wait for results")
   (options, args) = parser.parse_args()
@@ -48,13 +53,13 @@ def main():
     src_to_internal = src_to_quant
     process_results = process_quant
     final_rollup_levels = "8,1"
-  if mode == "domains":
+  elif mode == "domains":
     define_internal_cube = url_cube
     src_to_internal = src_to_url
     process_results = lambda x,y: y
     final_rollup_levels = "8,1,1"
   else:
-    print "Unknown mode %s" % options.mode
+    print "Unknown mode %s" % mode
     sys.exit(0)
 
   all_nodes,server = get_all_nodes(options)
@@ -75,11 +80,11 @@ def main():
     raw_cube_sub = jsapi.TimeSubscriber(g, {}, 1000)
     raw_cube_sub.set_cfg("simulation_rate", options.warp_factor)
     raw_cube_sub.set_cfg("ts_field", 0)
-    raw_cube_sub.set_cfg("start_ts", options.start_ts)    
+    raw_cube_sub.set_cfg("start_ts", options.start_ts)
     time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
-    g.chain([raw_cube, raw_cube_sub, time_shift])
-    last_op = src_to_internal(g, time_shift, node, options)
+    last_op = g.chain([raw_cube, raw_cube_sub, time_shift])  #
+    last_op = src_to_internal(g, last_op, node, options)
     last_op.instantiate_on(node)
     ops.append(last_op)
     
@@ -104,7 +109,11 @@ def main():
     ops = []
     for cube in cube_in_r.values():
       sub = jsapi.TimeSubscriber(g, filter={})
-        #TODO offset here?
+      sub.set_cfg("window_offset", 2* 1000) #...trailing by a few
+#      sub.set_cfg("simulation_rate", options.warp_factor)
+#      sub.set_cfg("ts_field", 0)
+#      sub.set_cfg("start_ts", options.start_ts)
+        #TODO offset
       g.connect(cube, sub)
       ops.append(sub)      
       
@@ -120,7 +129,7 @@ def main():
 #  pull_q.set_cfg("latency_ts_field", 7)
 #  pull_q.set_cfg("start_ts", start_ts)
   pull_q.set_cfg("rollup_levels", final_rollup_levels)
-#  pull_q.set_cfg("simulation_rate",1)
+  pull_q.set_cfg("simulation_rate", 1) #options.warp_factor)
   pull_q.set_cfg("window_offset", 4* 1000) #...trailing by a few
 
   g.connect(union_cube, pull_q)
