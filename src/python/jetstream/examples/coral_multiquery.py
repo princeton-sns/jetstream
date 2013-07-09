@@ -83,7 +83,7 @@ def main():
     raw_cube_sub.set_cfg("start_ts", options.start_ts)
     time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
-    last_op = g.chain([raw_cube, raw_cube_sub, time_shift])  #
+    last_op = g.chain([raw_cube, raw_cube_sub, time_shift]) 
     last_op = src_to_internal(g, last_op, node, options)
     last_op.instantiate_on(node)
     ops.append(last_op)
@@ -190,7 +190,7 @@ def src_to_url(g, data_src, node, options):
   raw_cube_sub.set_cfg("max_window_size", options.max_rollup) 
   raw_cube_sub.set_cfg("sort_order", "-count")
 
-#  project = jsapi.Project(g, field=2)
+#  project = jsapi.Project(g, field=2)  #drop response codes?
 #  g.chain([raw_cube_sub, project])
 #  return project
   return data_src

@@ -39,3 +39,5 @@ sudo /opt/local/share/mysql5/mysql/mysql.server start
 To restart DB on SNS:
 sudo service mysql restart
 
+on SNS logs are in:
+ /var/log/mysql/error.log
