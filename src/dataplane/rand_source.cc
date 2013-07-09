@@ -328,15 +328,11 @@ RandHistOperator::configure(std::map<std::string,std::string> &config) {
     levels.push_back(  double(i+1) / (num_levels)  );
   cur_level = num_levels - 1;
   
+  LOG(INFO) << id() << "emitting data every " << wait_per_batch << "ms, totaling " <<
+      tuples_per_sec << " tuples per sec";
 
   
   return NO_ERR;
- 
-/*  BATCH_SIZE = DEFAULT_BATCH_SIZE;
-  if (BATCH_SIZE > rate_per_sec )
-    BATCH_SIZE = rate_per_sec;
-  wait_per_batch = BATCH_SIZE * 1000 / rate_per_sec;
-*/
 }
 
 void

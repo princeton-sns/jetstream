@@ -93,6 +93,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
   }
   bytes_in_window = 0;
   last_window_end = now;
+  window_start_time = 0;
   
 }
 
