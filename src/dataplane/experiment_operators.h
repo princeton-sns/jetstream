@@ -181,7 +181,7 @@ class AvgCongestLogger: public CEachOperator {
   //logs the total counts going past
  public:
 
-  AvgCongestLogger(): report_interval(2000),last_bytes(0),tuples_in_interval(0), field(-1),
+  AvgCongestLogger(): in_chains(0), report_interval(2000),last_bytes(0),tuples_in_interval(0), field(-1),
       count_tally(0), hist_field(-1), hist_size_total(0), err_bound(0) {}
   virtual void process_one(boost::shared_ptr<Tuple>& t);
   
@@ -195,13 +195,17 @@ class AvgCongestLogger: public CEachOperator {
 
   void report();
 
-  virtual bool is_source() {return true;}
+  virtual bool is_source() {return true;} //so we get a chain of our own, even without incoming connections
+
+  virtual void add_chain(boost::shared_ptr<OperatorChain>);
+  virtual void chain_stopping(OperatorChain * );
 
 
  private:
   std::map<OperatorChain *, unsigned> window_for;
   std::map<OperatorChain *, double> sample_lev_for;
 
+  uint32_t in_chains;
   boost::mutex mutex;
   volatile bool running;
   boost::shared_ptr<boost::asio::deadline_timer> timer;

@@ -392,6 +392,7 @@ AvgCongestLogger::report() {
       double bytes_per_sec =  double(bytes_total - last_bytes) * 1000 / report_interval;
       double tuples_per_sec = tuples_in_interval * 1000.0 / report_interval;
       last_bytes = bytes_total;
+      int in_chains_l = boost::interprocess::ipcdetail::atomic_read32(&in_chains) -1;
       
       string maybe_h_stats = "";
       if (hist_field >= 0 && tuples_in_interval > 0)
@@ -412,7 +413,7 @@ AvgCongestLogger::report() {
         maybe_count_tally_stats = "Lifetime total count="+ boost::lexical_cast<string>(count_tally);
       
       LOG(INFO) << "RootReport@ "<< time(NULL)<< " Avg window: " << avg_window_secs << " - " << bytes_per_sec
-       << " bytes/sec " << tuples_per_sec << " tuples/sec"; // << " (bytes_total " << bytes_total << ")";
+       << " bytes/sec " << tuples_per_sec << " tuples/sec from " << in_chains_l << " chains"; // << " (bytes_total " << bytes_total << ")";
       LOG(INFO) << "Statistics: bytes_in=" << node->bytes_in.read() << "  bytes_out="<<node->bytes_out.read()
         << maybe_count_tally_stats << maybe_h_stats << maybe_sample_stats;
       
@@ -448,6 +449,14 @@ AvgCongestLogger::configure(std::map<std::string,std::string> &config) {
   }
   
   return NO_ERR;
+}
+
+
+void AvgCongestLogger::add_chain(boost::shared_ptr<OperatorChain>) {
+  boost::interprocess::ipcdetail::atomic_inc32(&in_chains);
+}
+void AvgCongestLogger::chain_stopping(OperatorChain * ) {
+  boost::interprocess::ipcdetail::atomic_dec32(&in_chains);
 }
 
 
