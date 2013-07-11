@@ -19,10 +19,6 @@
 #include "aggregate.h"
 #include <boost/algorithm/string/join.hpp>
 
-//#include "mysql_driver.h"
-//#include "mysql_connection.h"
-
-
 #undef THREADPOOL_IS_STATIC
 
 namespace jetstream {

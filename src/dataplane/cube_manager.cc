@@ -1,8 +1,9 @@
 #include <boost/thread/locks.hpp>
 #include "mysql_cube.h"
-
+#include "mt_cube.h"
 #include "cube_manager.h"
 #include <boost/regex.hpp>
+
 
 #include <glog/logging.h>
 
@@ -10,6 +11,8 @@ using namespace boost;
 using namespace jetstream;
 using namespace ::std;
 
+
+const bool MASSTREE_CUBE = false;
 
 CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
   cube::MysqlCube::set_db_params(config.cube_db_host, config.cube_db_user, config.cube_db_pass, config.cube_db_name);
@@ -59,7 +62,10 @@ CubeManager::create_cube ( const std::string &name,
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
 
-  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
+  if (MASSTREE_CUBE)
+    c = shared_ptr<DataCube>(new cube::MasstreeCube(schema, name, overwrite_if_present, config));
+  else
+    c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
 //  set_batch(10)
   c->create();
   cubeMap[name] = c;
