@@ -6,7 +6,10 @@
 
 #include "latency_measure_subscriber.h"
 
-using namespace ::std;
+//using namespace ::std;
+using std::string;
+using std::map;
+using std::vector;
 using namespace jetstream;
 using namespace boost;
 
@@ -29,13 +32,13 @@ operator_err_t
 LatencyMeasureSubscriber::configure(std::map<std::string,std::string> &config) {
 
   if ((config["time_tuple_index"].length() < 1) ||
-      !(stringstream(config["time_tuple_index"]) >> time_tuple_index)) {
+      !(std::stringstream(config["time_tuple_index"]) >> time_tuple_index)) {
 
     return operator_err_t("must have a numeric index for time field in tuples");
   }
 
   if ((config["hostname_tuple_index"].length() < 1) ||
-      !(stringstream(config["hostname_tuple_index"]) >> hostname_tuple_index)) {
+      !(std::stringstream(config["hostname_tuple_index"]) >> hostname_tuple_index)) {
 
     return operator_err_t("must have a numeric index for source-hostname in tuples");
   }

@@ -132,7 +132,7 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
     error = make_error_code(boost::system::errc::connection_reset);
     return 0;
   }
-  shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
+  boost::shared_ptr<SerializedMessageOut> msg (new SerializedMessageOut (m, error));
   if (!error)
   {
     //LOG(INFO) << "Send queue " << sendQueue.size();
@@ -143,7 +143,7 @@ ConnectedSocket::send_msg (const ProtobufMessage &m,
 
 
 void
-ConnectedSocket::perform_send (shared_ptr<SerializedMessageOut> msg)
+ConnectedSocket::perform_send (boost::shared_ptr<SerializedMessageOut> msg)
 {
   if (!sock->is_open())
     return;
@@ -175,7 +175,7 @@ ConnectedSocket::perform_queued_send ()
   if (sending || sendQueue.empty() || !sock->is_open())
     return;
   VLOG(2) << "queued send" <<endl;
-  shared_ptr<SerializedMessageOut> msg = sendQueue.front();
+  boost::shared_ptr<SerializedMessageOut> msg = sendQueue.front();
   sendQueue.pop_front();
 
   sending = true;
@@ -195,7 +195,7 @@ ConnectedSocket::perform_queued_send ()
 
 
 void
-ConnectedSocket::sent (shared_ptr<SerializedMessageOut> msg,
+ConnectedSocket::sent (boost::shared_ptr<SerializedMessageOut> msg,
 		       const boost::system::error_code &error,
 		       size_t bytes_transferred)
 {
@@ -249,7 +249,7 @@ ConnectedSocket::perform_recv ()
   // that hdrlen is u_int32_t
   // // shared_ptr<vector<u_int32_t> > hdrbuf (new vector<u_int8_t> (hdrlen));
   assert(SerializedMessageOut::hdrlen == sizeof (u_int32_t));
-  shared_ptr<u_int32_t > hdrbuf (new u_int32_t);
+  boost::shared_ptr<u_int32_t > hdrbuf (new u_int32_t);
 
   asio::async_read(*sock,
 		   asio::buffer( (void*) hdrbuf.get(), 4),
@@ -260,7 +260,7 @@ ConnectedSocket::perform_recv ()
 
 
 void
-ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
+ConnectedSocket::received_header (boost::shared_ptr< u_int32_t > hdrbuf,
 				  const boost::system::error_code &error,
 				  size_t bytes_transferred)
 {
@@ -295,7 +295,7 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
   VLOG(2) << "In ConnectedSocket::received_header; expecting " << msglen <<
       " data bytes on port " << sock->local_endpoint().port();
 
-  shared_ptr<SerializedMessageIn> recvMsg (new SerializedMessageIn (msglen));
+  boost::shared_ptr<SerializedMessageIn> recvMsg (new SerializedMessageIn (msglen));
 
   boost::asio::async_read(*sock,
 			  asio::buffer(recvMsg->msg, recvMsg->len),
@@ -306,7 +306,7 @@ ConnectedSocket::received_header (shared_ptr< u_int32_t > hdrbuf,
 
 
 void
-ConnectedSocket::received_body (shared_ptr<SerializedMessageIn> recvMsg,
+ConnectedSocket::received_body (boost::shared_ptr<SerializedMessageIn> recvMsg,
 				const boost::system::error_code &error,
 				size_t bytes_transferred)
 

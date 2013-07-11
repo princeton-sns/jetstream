@@ -5,10 +5,11 @@
 
 #include "connection.h"
 
+#define GTEST_HAS_TR1_TUPLE 0
 #include <gtest/gtest.h>
 #include <iostream>
 
-using namespace ::std;
+//using namespace ::std;
 using namespace jetstream;
 using namespace boost;
 using namespace boost::asio::ip;
@@ -53,7 +54,7 @@ TEST(Comm, ServerConnection)
 TEST(Comm,PrintPB)
 {
   DataplaneMessage data_msg;
-  ostringstream s;
-  s <<"raw message is:" << data_msg.Utf8DebugString() <<endl;
+  std::ostringstream s;
+  s <<"raw message is:" << data_msg.Utf8DebugString() <<std::endl;
 }
 

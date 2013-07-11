@@ -8,7 +8,6 @@
 namespace jetstream {
 namespace cube {
 
-using namespace ::std;
 using namespace boost;
 
 class Aggregate {
@@ -17,14 +16,14 @@ class Aggregate {
     Aggregate ();
     void init(jetstream::CubeSchema_Aggregate schema_dimension);
     virtual ~Aggregate () {};
-    string get_name() const;
+    std::string get_name() const;
     virtual void update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const = 0;
 
   protected:
     virtual size_t number_tuple_elements() const;
-    string name;
-    string type;
-    vector<size_t> tuple_indexes;
+    std::string name;
+    std::string type;
+    std::vector<size_t> tuple_indexes;
 };
 
 } /* cube */

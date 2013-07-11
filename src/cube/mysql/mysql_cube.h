@@ -21,6 +21,10 @@
 
 #undef THREADPOOL_IS_STATIC
 
+using std::list;
+using std::vector;
+using std::string;
+
 namespace jetstream {
 namespace cube {
 

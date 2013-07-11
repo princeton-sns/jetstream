@@ -42,11 +42,11 @@ vector<string>  MysqlDimension::get_column_names() const {
   return decl;
 }
 
-void  MysqlDimension::set_connection(shared_ptr<sql::Connection> con) {
+void  MysqlDimension::set_connection(boost::shared_ptr<sql::Connection> con) {
   connection = con;
 }
 
-shared_ptr<sql::Connection>  MysqlDimension::get_connection() const {
+boost::shared_ptr<sql::Connection>  MysqlDimension::get_connection() const {
   return connection;
 }
 

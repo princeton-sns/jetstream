@@ -11,7 +11,13 @@
 
 
 using namespace jetstream;
-using namespace std;
+//using namespace std;
+using std::string;
+using std::vector;
+using std::endl;
+using std::map;
+using std::ostringstream;
+using std::pair;
 using namespace boost;
 
 bool PRINT_STATS = false;
@@ -28,7 +34,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
     // TODO This should get set through config files
     operator_loader ("src/dataplane/") //NOTE: path must end in a slash
 {
-  LOG(INFO) << "creating node" << endl;
+  LOG(INFO) << "creating node";
 
   // Set up the network connection
   //asio::io_service::work work(*iosrv);
@@ -50,7 +56,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   // Setup incoming connection listener
   asio::ip::address localAddr = asio::ip::address::from_string(config.dataplane_ep.first, error);
   if (error) {
-    LOG(FATAL) << "Local worker address " << config.dataplane_ep.first << " is invalid, aborting" << endl;
+    LOG(FATAL) << "Local worker address " << config.dataplane_ep.first << " is invalid, aborting";
   }
 
   asio::ip::tcp::endpoint localEp (localAddr, 
@@ -59,7 +65,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
   listeningSock = shared_ptr<ServerConnection>
     (new ServerConnection(iosrv, localEp, error));
   if (error) {
-    LOG(ERROR) << "Error creating server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error creating server socket: " << error.message();
     return;
   }
   // Update the listener port in the config in case the user specified 0. The config
@@ -71,7 +77,7 @@ Node::Node (const NodeConfig &conf, boost::system::error_code &error)
 
   listeningSock->accept(bind(&Node::incoming_conn_handler, this, _1, _2), error);
   if (error) {
-    LOG(ERROR) << "Error accepting server socket: " << error.message() << endl;
+    LOG(ERROR) << "Error accepting server socket: " << error.message();
     return;
   }
 }
@@ -380,10 +386,10 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
 
     //a whole handle_alter is atomic with respect to incoming connections
 
-  VLOG(1) << "Incoming Alter message: "<<topo.Utf8DebugString() << endl;
+  VLOG(1) << "Incoming Alter message: "<<topo.Utf8DebugString();
 
   LOG(INFO) << "Request to create " << topo.tocreate_size() << " cubes and "
-      << topo.tostart_size() << " operators." <<endl;
+      << topo.tostart_size() << " operators.";
   vector<operator_id_t > operator_ids_to_start;
 
   try {

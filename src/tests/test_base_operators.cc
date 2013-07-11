@@ -16,8 +16,12 @@
 #include "experiment_operators.h"
 
 using namespace jetstream;
-using namespace boost;
-using namespace std;
+//using namespace boost;
+using boost::shared_ptr;
+//using namespace std;
+using std::string;
+using std::cout;
+using std::endl;
 
 class COperatorTest : public ::testing::Test {
 public:
@@ -29,7 +33,7 @@ public:
       NodeConfig cfg;
       cfg.heartbeat_time = 2000;
       boost::system::error_code err;
-      node = shared_ptr<Node>(new Node(cfg, err));
+      node = boost::shared_ptr<Node>(new Node(cfg, err));
     }
     node->start();
   }
@@ -47,7 +51,7 @@ TEST_F(COperatorTest, FileRead) {
   enum {TEST_DATA_N_LINES = 19, TEST_DATA_N_EMPTY = 1};
 
   boost::shared_ptr<OperatorChain> chain(new OperatorChain);
-  shared_ptr<CFileRead> reader(new CFileRead);
+  boost::shared_ptr<CFileRead> reader(new CFileRead);
   map<string,string> config;
   config["file"] =  "src/tests/data/base_operators_data.txt";
   config["skip_empty"] = "false";
@@ -56,7 +60,7 @@ TEST_F(COperatorTest, FileRead) {
   reader->set_node(node.get());
   reader->add_chain(chain);
   
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  boost::shared_ptr<DummyReceiver> rec(new DummyReceiver);
   
   chain->add_member(reader);
   chain->add_member(rec);
@@ -113,9 +117,9 @@ TEST_F(COperatorTest, FileRead) {
 
 TEST(COperator, CExtendOperator) {
 
-  shared_ptr<ExtendOperator>  ex_1(new ExtendOperator);
-  shared_ptr<ExtendOperator> ex_host(new ExtendOperator);
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  boost::shared_ptr<ExtendOperator>  ex_1(new ExtendOperator);
+  boost::shared_ptr<ExtendOperator> ex_host(new ExtendOperator);
+  boost::shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
   operator_config_t cfg;
   cfg["types"] = "i";

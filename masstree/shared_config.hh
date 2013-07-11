@@ -20,6 +20,9 @@
 #define SHARED_CONFIG_HH 1
 #include "compiler.hh"
 
+#include "config.h"
+
+
 enum { MaxKeyLen = KVDB_MAX_KEY_LEN }; // Maximum length of a key
 enum { MaxRowLen = KVDB_MAX_ROW_LEN }; // Maximum length of a row
 

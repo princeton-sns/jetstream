@@ -7,13 +7,16 @@
 
 
 #include "js_utils.h"
-
 #include <gtest/gtest.h>
 
 using namespace jetstream;
 using namespace jetstream::cube;
-using namespace boost;
-using namespace ::std;
+using boost::shared_ptr;
+//using namespace std;
+using std::string;
+using std::map;
+using std::cout;
+using std::endl;
 
 const int compID = 4;
 

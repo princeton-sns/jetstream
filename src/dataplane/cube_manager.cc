@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-using namespace boost;
+using boost::shared_ptr;
 using namespace jetstream;
 using namespace ::std;
 
@@ -19,7 +19,7 @@ CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
 }
 
 
-shared_ptr<DataCube>
+boost::shared_ptr<DataCube>
 CubeManager::get_cube (const std::string &name)
 {
   lock_guard<boost::mutex> lock (mapMutex);
@@ -31,7 +31,7 @@ CubeManager::get_cube (const std::string &name)
   }
 }
 
-shared_ptr<DataCube>
+boost::shared_ptr<DataCube>
 CubeManager::create_cube ( const std::string &name,
                            const CubeSchema &schema,
                            bool overwrite_if_present) {
@@ -83,7 +83,7 @@ CubeManager::destroy_cube (const std::string &name)
 
 void
 CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c) {
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
   LOG_IF(FATAL, c == NULL) << "should not insert a null cube";
   cubeMap[name] = c;
 }

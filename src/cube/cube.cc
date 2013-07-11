@@ -7,7 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
-using namespace ::std;
+//using namespace ::std;
 using namespace jetstream;
 using namespace boost;
 
@@ -113,7 +113,7 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 
   LOG(INFO) << "Starting cube with "<<conf.cube_processor_threads <<" threads ";
   for(size_t i=0; i<conf.cube_processor_threads;i++) {
-    boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this, boost::lexical_cast<string>(i)));
+    boost::shared_ptr<ProcessCallable> proc(new ProcessCallable(this, boost::lexical_cast<std::string>(i)));
     processors.push_back(proc);
   }
 
@@ -204,7 +204,7 @@ DataCube::chain_stopping(OperatorChain * c) {
 //  LOG(INFO) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
   DataplaneMessage end_of_chain;
   end_of_chain.set_type(DataplaneMessage::NO_MORE_DATA);
-  vector< boost::shared_ptr<Tuple> > no_tuples;
+  std::vector< boost::shared_ptr<Tuple> > no_tuples;
   process(c, no_tuples, end_of_chain);
 }
 

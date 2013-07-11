@@ -137,11 +137,11 @@ RandSourceOperator::emit_data()  {
 #endif
 
   time_t now = time(NULL);
-  vector<shared_ptr<Tuple> > tuples;
+  vector<boost::shared_ptr<Tuple> > tuples;
   tuples.reserve(BATCH_SIZE);
 
   while (tuples_sent++ < BATCH_SIZE) {
-    shared_ptr<Tuple> t(new Tuple);
+    boost::shared_ptr<Tuple> t(new Tuple);
 
 #ifdef USE_SEQ
     if ( position_in_slice > rand_data[cur_idx] ) { // note endpoint does NOT trigger increment here. That is deliberate.
@@ -369,7 +369,7 @@ RandHistOperator::generate() {
     }
 
     counter++;
-    shared_ptr<Tuple> t(new Tuple);
+    boost::shared_ptr<Tuple> t(new Tuple);
     extend_tuple_time(*t, now);
     extend_tuple(*t, int32_t(counter % unique_vals));
     JSSummary * s = t->add_e()->mutable_summary();
@@ -409,7 +409,7 @@ RandHistOperator::emit_data() {
     LOG(INFO) << "Setting tuples per sec " << tuples_per_sec;
   }
   unsigned tuples_per_batch = tuples_per_sec * (wait_per_batch/1000);
-  vector< shared_ptr<Tuple> > tuples;
+  vector< boost::shared_ptr<Tuple> > tuples;
   while (tuples_sent++ < tuples_per_batch) {
     while(queue.size()<1)
     {
@@ -418,7 +418,7 @@ RandHistOperator::emit_data() {
     }
     {
       boost::unique_lock<boost::mutex> lock(internals);
-      shared_ptr<Tuple> t = queue.front();
+      boost::shared_ptr<Tuple> t = queue.front();
       queue.pop();
       tuples.push_back(t);
     }

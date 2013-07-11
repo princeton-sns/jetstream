@@ -12,7 +12,12 @@
 #include "time_containment_levels.h"
 #include "cube.h"
 
-using namespace std;
+using std::string;
+using std::vector;
+using std::endl;
+using std::map;
+using std::ostringstream;
+using std::pair;
 using namespace boost;
 using namespace jetstream::cube;
 
@@ -254,7 +259,7 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   windowOffsetMs = DEFAULT_WINDOW_OFFSET;
 
   if ((config["window_offset"].length() > 0) &&
-      !(stringstream(config["window_offset"]) >> windowOffsetMs)) {
+      !(std::stringstream(config["window_offset"]) >> windowOffsetMs)) {
     return operator_err_t("window_offset must be a number");
   }
 
@@ -306,7 +311,7 @@ unsigned int TimeBasedSubscriber::get_window_offset_sec() {
 
     if(time_level < DTC_LEVEL_COUNT-1) { //not a leaf
       level_offset_sec = DTC_SECS_PER_LEVEL[time_level];
-      level_offset_sec = min(3600U, level_offset_sec);
+      level_offset_sec = std::min(3600U, level_offset_sec);
     }
   }
     //either not rolled up, or else rolled up completely
@@ -349,7 +354,7 @@ TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
                                    const DataplaneMessage& msg) {
   if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
       unique_lock<boost::mutex> lock(stateLock);
-      times[&c] = max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
+      times[&c] = std::max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
       unique_lock<boost::mutex> lock(stateLock);
       times.erase(&c);
@@ -371,17 +376,17 @@ TimeBasedSubscriber::emit_batch() {
     unique_lock<boost::mutex> lock(stateLock);
     
     if (times.size() > 0) {
-      time_t min_window_seen = numeric_limits<time_t>::max();
+      time_t min_window_seen = std::numeric_limits<time_t>::max();
       map<const OperatorChain*, time_t>::iterator it = times.begin();
       while (it != times.end()){
-        min_window_seen = min(min_window_seen, it->second);
+        min_window_seen = std::min(min_window_seen, it->second);
         it++;
       }
       VLOG_IF(1, newMax != min_window_seen) << "Subscriber " << id_as_str() <<" on "
          << cube->id_as_str() << " has some end markers; fast-forwarding from " <<
         newMax <<" to "<< min_window_seen;
       
-      newMax = max(newMax, min_window_seen);
+      newMax = std::max(newMax, min_window_seen);
     }
   }
   
@@ -499,7 +504,7 @@ VariableCoarseningSubscriber::configure(std::map<std::string,std::string> &confi
 
   unsigned max_window_size = 60 * 5; // default to no more than once every five minutes
   if ((config["max_window_size"].length() > 0) &&
-      !(stringstream(config["max_window_size"]) >> max_window_size)) {
+      !(std::stringstream(config["max_window_size"]) >> max_window_size)) {
     return operator_err_t("max_window_size must be a number");
   }  
   

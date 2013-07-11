@@ -18,22 +18,22 @@ class MysqlAggregateCount: public MysqlAggregate {
   public:
     MysqlAggregateCount() : MysqlAggregate() {};
 
-    vector<string> get_column_types() const;
+    std::vector<std::string> get_column_types() const;
 
-    string get_update_on_insert_sql() const;
+    std::string get_update_on_insert_sql() const;
 
     virtual void insert_default_values_for_full_tuple(jetstream::Tuple &t) const;
     size_t number_tuple_elements() const;
   
     virtual void set_value_for_insert_tuple(
-      shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
+      boost::shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t,
       int &field_index);
 
     void populate_tuple_final(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
     void populate_tuple_partial(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
     
-    virtual string get_select_clause_for_rollup() const;
+    virtual std::string get_select_clause_for_rollup() const;
 
     virtual void update_from_delta(jetstream::Tuple & newV, const jetstream::Tuple& oldV) const;  
   

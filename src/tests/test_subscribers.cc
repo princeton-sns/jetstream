@@ -19,7 +19,10 @@
 using namespace jetstream;
 using namespace jetstream::cube;
 using namespace boost;
-using namespace ::std;
+//using namespace ::std;
+using std::cout;
+using std::string;
+using std::endl;
 
 static const char * TEST_CUBE = "test_cube";
 const int compID = 4;
@@ -274,7 +277,7 @@ TEST_F(SubscriberTest,TimeSubscriberLowLatency) {
     DataplaneMessage window_marker;
     window_marker.set_type(DataplaneMessage::END_OF_WINDOW);
     window_marker.set_timestamp( usec_t(1000 * 1000) * time(NULL));
-    vector< boost::shared_ptr<Tuple> > no_tuples;
+    std::vector< boost::shared_ptr<Tuple> > no_tuples;
     OperatorChain chain;
     cube->process(&chain, no_tuples, window_marker);
         
@@ -504,7 +507,7 @@ TEST_F(SubscriberTest,DelayedOneShot) {
   js_usleep(1000 * 1000);
   ASSERT_EQ(0U, rec->tuples.size());
 
-  vector< shared_ptr<Tuple> > no_tuples;
+  std::vector< shared_ptr<Tuple> > no_tuples;
   DataplaneMessage end_marker;
   end_marker.set_type(DataplaneMessage::NO_MORE_DATA);
   cube->process(&fakeChain, no_tuples, end_marker);

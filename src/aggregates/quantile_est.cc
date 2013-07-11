@@ -6,9 +6,10 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/discrete_distribution.hpp>
 
-//#define ADHOC_BUCKETS
-
-using namespace ::std;
+//using namespace ::std;
+using std::vector;
+using std::cout;
+using std::endl;
 using namespace boost::random;
 
 namespace jetstream {

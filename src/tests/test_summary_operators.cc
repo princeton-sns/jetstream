@@ -9,7 +9,6 @@
 
 
 using namespace jetstream;
-using namespace boost;
 using namespace std;
 
 
@@ -18,9 +17,9 @@ TEST(Operator, QuantileAndCountOperators) {
 
   OperatorChain chain;
   
-  shared_ptr<SummaryToCount> s2count(new SummaryToCount);
-  shared_ptr<QuantileOperator> q_op(new QuantileOperator);
-  shared_ptr<DummyReceiver> receive(new DummyReceiver);
+  boost::shared_ptr<SummaryToCount> s2count(new SummaryToCount);
+  boost::shared_ptr<QuantileOperator> q_op(new QuantileOperator);
+  boost::shared_ptr<DummyReceiver> receive(new DummyReceiver);
 
   operator_config_t cfg;
   cfg["q"] = "0.6";
@@ -46,7 +45,7 @@ TEST(Operator, QuantileAndCountOperators) {
   extend_tuple(*t, 2);
   extend_tuple(*t, lh);
 
-  vector< shared_ptr<Tuple> > tuples;
+  vector< boost::shared_ptr<Tuple> > tuples;
   tuples.push_back(t);
   DataplaneMessage no_meta;
   chain.process(tuples, no_meta);
