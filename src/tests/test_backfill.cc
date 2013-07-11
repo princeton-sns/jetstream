@@ -44,7 +44,7 @@ TEST(Backfill, OperatorChain) {
 }
 */
 
-static shared_ptr<DataCube>
+static boost::shared_ptr<DataCube>
 make_cube(Node& node, std::string& src_cube_name) {
 
   AlterTopo topo;
@@ -69,7 +69,7 @@ make_cube(Node& node, std::string& src_cube_name) {
 }
 
 static
-boost::shared_ptr<Tuple> get_tuple(shared_ptr<DataCube> cube) {
+boost::shared_ptr<Tuple> get_tuple(boost::shared_ptr<DataCube> cube) {
   for(int i =0; i < 20 &&  cube->num_leaf_cells() < 1; i++) {
     js_usleep(100 * 1000);
   }
