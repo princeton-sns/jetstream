@@ -19,11 +19,11 @@
 #include "aggregate.h"
 #include <boost/algorithm/string/join.hpp>
 
-//#include "mysql_driver.h"
-//#include "mysql_connection.h"
-
-
 #undef THREADPOOL_IS_STATIC
+
+using std::list;
+using std::vector;
+using std::string;
 
 namespace jetstream {
 namespace cube {
@@ -92,7 +92,7 @@ class MysqlCube : public DataCubeImpl<MysqlDimension, MysqlAggregate>, public bo
     do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max);
     
     virtual CubeIterator slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<std::string> const &sort = std::list<std::string>(),
-                                                 size_t limit = 0);
+                                                 size_t limit = 0) const;
       
     virtual ~MysqlCube();
 

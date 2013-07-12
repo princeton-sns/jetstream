@@ -153,7 +153,7 @@ class DataCube : public ChainMember {
                                                  jetstream::Tuple const &min,
                                                  jetstream::Tuple const& max,
                                                  std::list<std::string> const &sort = std::list<std::string>(),
-                                                 size_t limit = 0) = 0;
+                                                 size_t limit = 0) const = 0;
 
     virtual void
     do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple const &min, jetstream::Tuple const& max) = 0;

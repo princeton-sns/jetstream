@@ -8,7 +8,7 @@ using namespace boost::asio::ip;
 using namespace jetstream;
 
 
-ClientConnection::ClientConnection (shared_ptr<asio::io_service> srv,
+ClientConnection::ClientConnection (boost::shared_ptr<asio::io_service> srv,
 				    const tcp::endpoint &remoteEndpoint,
 				    boost::system::error_code &error)
   : connected (false), iosrv (srv), sock (new tcp::socket(*iosrv)),
@@ -69,7 +69,7 @@ ClientConnection::connect_cb (cb_err_t cb,
   if (error)
     close();
   else {
-    shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
+    boost::shared_ptr<ConnectedSocket> cs (new ConnectedSocket(iosrv, sock));
     connSock = cs;
     connected = true;
   }

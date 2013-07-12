@@ -6,7 +6,7 @@ using namespace boost::asio::ip;
 using namespace jetstream;
 
 
-ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
+ServerConnection::ServerConnection (boost::shared_ptr<boost::asio::io_service> srv,
 				    const tcp::endpoint &localEndpoint,
 				    boost::system::error_code &error)
   : accepting (false), iosrv (srv), srvAcceptor (*iosrv), 
@@ -35,7 +35,7 @@ ServerConnection::ServerConnection (shared_ptr<boost::asio::io_service> srv,
 ServerConnection::~ServerConnection ()
 {
   if (acceptcb) {
-    shared_ptr<ConnectedSocket> empty;
+    boost::shared_ptr<ConnectedSocket> empty;
     acceptcb(empty, asio::error::eof);
   }
   close();
@@ -69,7 +69,7 @@ ServerConnection::do_accept ()
 
   accepting = true;
 
-  shared_ptr<tcp::socket> newSock (new tcp::socket(*iosrv));
+  boost::shared_ptr<tcp::socket> newSock (new tcp::socket(*iosrv));
   srvAcceptor.async_accept(*newSock,
 			    astrand.wrap(boost::bind(&ServerConnection::accepted, 
 						     this, newSock, _1)));
@@ -79,7 +79,7 @@ ServerConnection::do_accept ()
 
 
 void
-ServerConnection::accepted (shared_ptr<tcp::socket> newSock,
+ServerConnection::accepted (boost::shared_ptr<tcp::socket> newSock,
 			    const boost::system::error_code &error)
 {
   accepting = false;
@@ -92,7 +92,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> newSock,
   if (error) {
     // XXX Temp or permanent error?
     close();
-    shared_ptr<ConnectedSocket> empty;
+    boost::shared_ptr<ConnectedSocket> empty;
     acceptcb (empty, error);
     return;
   }
@@ -106,7 +106,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> newSock,
 
   if (ec) {
     // XXX Temp or permanent erorr
-    shared_ptr<ConnectedSocket> empty;
+    boost::shared_ptr<ConnectedSocket> empty;
     acceptcb (empty, ec);
     return;
   }
@@ -116,7 +116,7 @@ ServerConnection::accepted (shared_ptr<tcp::socket> newSock,
     return;
   }
 
-  shared_ptr<ConnectedSocket> connSock (new ConnectedSocket(iosrv, newSock));
+  boost::shared_ptr<ConnectedSocket> connSock (new ConnectedSocket(iosrv, newSock));
   clients[remote] = connSock;
   boost::system::error_code success;
   acceptcb(connSock, success);

@@ -55,7 +55,7 @@ void MysqlAggregateAvg::merge_full_tuple_into(jetstream::Tuple &into, jetstream:
 }
 
 void
-MysqlAggregateAvg::set_value_for_insert_tuple( shared_ptr<sql::PreparedStatement> pstmt,
+MysqlAggregateAvg::set_value_for_insert_tuple( boost::shared_ptr<sql::PreparedStatement> pstmt,
                                                jetstream::Tuple const &t,
                                                int &field_index)  {
   if(tuple_indexes.size() != 2) {
@@ -80,7 +80,7 @@ void MysqlAggregateAvg::merge_sum(jetstream::Element * into, jetstream::Element 
     into->set_d_val(into->d_val() + update->d_val());
 }
 
-void MysqlAggregateAvg::set_value(shared_ptr<sql::PreparedStatement> pstmt, int &field_index, jetstream::Element *const sum) const {
+void MysqlAggregateAvg::set_value(boost::shared_ptr<sql::PreparedStatement> pstmt, int &field_index, jetstream::Element *const sum) const {
   if(sum->has_i_val()) {
     pstmt->setInt(field_index, sum->i_val());
     pstmt->setInt(field_index+1, 1);
@@ -98,7 +98,7 @@ void MysqlAggregateAvg::set_value(shared_ptr<sql::PreparedStatement> pstmt, int 
   LOG(FATAL) << "Something went wrong when processing tuple for field "<< name;
 }
 
-void MysqlAggregateAvg::set_value(shared_ptr<sql::PreparedStatement> pstmt, int &field_index, jetstream::Element *const sum, jetstream::Element *const count) const {
+void MysqlAggregateAvg::set_value(boost::shared_ptr<sql::PreparedStatement> pstmt, int &field_index, jetstream::Element *const sum, jetstream::Element *const count) const {
   if(!count->has_i_val()) {
     LOG(FATAL) << "Count not properly formatted when processing tuple for field "<< name;
     return;

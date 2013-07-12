@@ -47,7 +47,7 @@ TEST(Node, OperatorCreateDestroy)
 
   operator_id_t id(1,2);
   operator_config_t oper_cfg;
-  shared_ptr<COperator> op = node.create_operator("test",id, oper_cfg);
+  boost::shared_ptr<COperator> op = node.create_operator("test",id, oper_cfg);
   ASSERT_TRUE(op != NULL);
 }
 

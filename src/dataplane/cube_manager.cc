@@ -1,25 +1,28 @@
 #include <boost/thread/locks.hpp>
 #include "mysql_cube.h"
-
+#include "mt_cube.h"
 #include "cube_manager.h"
 #include <boost/regex.hpp>
 
+
 #include <glog/logging.h>
 
-using namespace boost;
+using boost::shared_ptr;
 using namespace jetstream;
 using namespace ::std;
 
+
+const bool MASSTREE_CUBE = false;
 
 CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
   cube::MysqlCube::set_db_params(config.cube_db_host, config.cube_db_user, config.cube_db_pass, config.cube_db_name);
 }
 
 
-shared_ptr<DataCube>
+boost::shared_ptr<DataCube>
 CubeManager::get_cube (const std::string &name)
 {
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
   if (cubeMap.count(name) > 0)
     return cubeMap[name];
   else {
@@ -28,13 +31,13 @@ CubeManager::get_cube (const std::string &name)
   }
 }
 
-shared_ptr<DataCube>
+boost::shared_ptr<DataCube>
 CubeManager::create_cube ( const std::string &name,
                            const CubeSchema &schema,
                            bool overwrite_if_present) {
 
   static const boost::regex NAME_PAT("[a-zA-Z0-9_]+$");
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
 
   shared_ptr<DataCube> c;
   if (!regex_match(name, NAME_PAT)) {
@@ -59,7 +62,10 @@ CubeManager::create_cube ( const std::string &name,
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
 
-  c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
+//  if (MASSTREE_CUBE)
+//    c = shared_ptr<DataCube>(new cube::MasstreeCube(schema, name, overwrite_if_present, config));
+//  else
+    c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
 //  set_batch(10)
   c->create();
   cubeMap[name] = c;
@@ -69,7 +75,7 @@ CubeManager::create_cube ( const std::string &name,
 void
 CubeManager::destroy_cube (const std::string &name)
 {
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
   cubeMap[name]->mark_as_deleted();
   cubeMap.erase(name);
 }
@@ -77,14 +83,14 @@ CubeManager::destroy_cube (const std::string &name)
 
 void
 CubeManager::put_cube (const std::string &name, shared_ptr<DataCube> c) {
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
   LOG_IF(FATAL, c == NULL) << "should not insert a null cube";
   cubeMap[name] = c;
 }
 
 boost::shared_ptr<vector<string> >
 CubeManager::list_cubes() {
-  lock_guard<boost::mutex> lock (mapMutex);
+  boost::lock_guard<boost::mutex> lock (mapMutex);
 
   size_t numCubes = cubeMap.size();
   boost::shared_ptr<vector<string> > cubeList(new vector<string>(numCubes));

@@ -37,12 +37,12 @@ else (FULL_STATIC)
     set(Boost_USE_STATIC_LIBS OFF)
 endif (FULL_STATIC)
 
-SET (CMAKE_C_FLAGS                "-Wall -Werror -std=c99 -DNO_SSL")
+SET (CMAKE_C_FLAGS                "-Wall -Werror -std=c99 -DNO_SSL ")
 SET (CMAKE_C_FLAGS_DEBUG          "-g -O0")
 SET (CMAKE_C_FLAGS_RELEASE        "-O4 -DNDEBUG")
 SET (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-SET (CMAKE_CXX_FLAGS                "-Wall -DNO_SSL -fPIC")
+SET (CMAKE_CXX_FLAGS                "-Wall -DNO_SSL -fPIC -DGTEST_HAS_TR1_TUPLE=0")
 SET (CMAKE_CXX_FLAGS_DEBUG          "-g -O0 -Werror")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
@@ -170,6 +170,8 @@ add_subdirectory (${SRC_DIR}/cube)
 link_directories (${BUILD_DIR}/cube)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 include_directories (${SRC_DIR}/cube/mysql)
+include_directories (${SRC_DIR}/cube/masstree)
+
 
 set (LIBRARY_NAME jsdataplane)
 add_subdirectory (${SRC_DIR}/dataplane)

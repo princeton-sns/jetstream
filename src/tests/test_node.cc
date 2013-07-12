@@ -1,4 +1,4 @@
-#include<iostream>
+#include <iostream>
 #include <gtest/gtest.h>
 
 //#include <boost/thread/thread.hpp>
@@ -13,8 +13,15 @@
 #include "experiment_operators.h"
 #include "dataplane_comm.h"
 
-using namespace std;
-using namespace boost;
+//using namespace std;
+using std::string;
+using std::vector;
+using std::map;
+using std::cout;
+using std::endl;
+
+//using namespace boost;
+using boost::shared_ptr;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 using namespace jetstream;
@@ -95,7 +102,7 @@ class NodeNetTest : public ::testing::Test {
   shared_ptr<Node> n;
   // Order matters here! The constructor initializes io_service before the socket
   // (also see superfluous initializer below)
-  asio::io_service io_service;
+  boost::asio::io_service io_service;
   ip::tcp::socket cli_socket;
   SimpleNet synch_net;
 
@@ -109,7 +116,7 @@ class NodeNetTest : public ::testing::Test {
     ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
     
     acceptor.listen();
-    pair<string, port_t> p("127.0.0.1", concrete_end.port());
+    std::pair<string, port_t> p("127.0.0.1", concrete_end.port());
     
     NodeConfig cfg;
     cfg.thread_pool_size = 3;
@@ -252,7 +259,7 @@ add_operator_to_node(Node& n, operator_id_t dest_id, const string& name)
 shared_ptr<DummyReceiver>
 add_dummy_receiver(Node& n, operator_id_t dest_id) {
   shared_ptr<COperator> d = add_operator_to_node(n, dest_id, "DummyReceiver");
-  return dynamic_pointer_cast<DummyReceiver>(d);
+  return boost::dynamic_pointer_cast<DummyReceiver>(d);
 }
 
 
@@ -415,7 +422,7 @@ NodeTwoNodesTest::SetUp() {
   ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), 0));
   ip::tcp::endpoint concrete_end = acceptor.local_endpoint();
   acceptor.listen();
-  pair<string, port_t> p("127.0.0.1", concrete_end.port());
+  std::pair<string, port_t> p("127.0.0.1", concrete_end.port());
 
 
   NodeConfig cfg;
@@ -508,7 +515,7 @@ TEST_F(NodeTwoNodesTest, DataplaneConn) {
   cout << "created receiver" << endl;
   
   u_int k;
-  stringstream(kStr) >> k;
+  std::stringstream(kStr) >> k;
   
   tries = 0;
   while (dest->tuples.size() < k && tries++ < 5)

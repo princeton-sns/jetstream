@@ -15,7 +15,7 @@ using namespace boost;
 using namespace ::std;
 
 static
-shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
+boost::shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
 
   AlterTopo topo;
   topo.set_computationid(0);
@@ -29,13 +29,13 @@ shared_ptr<DataCube> make_cube(Node& node, std::string& src_cube_name) {
   EXPECT_FALSE(response.has_error_msg());
 
 
-  shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
+  boost::shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
 
   return cube;
 }
 
 static
-void initialize_cube_data(shared_ptr<DataCube> cube, int offset) {
+void initialize_cube_data(boost::shared_ptr<DataCube> cube, int offset) {
   unsigned int CELLS = 10;
 
   time_t now = time(NULL);
@@ -70,13 +70,13 @@ TEST(Topk_TPUT, TwoLocal) {
   string dest_cube_name = "dest_cube";
 
   for (int i = 0; i < 2; ++i ) {
-    shared_ptr<DataCube> src_cube = make_cube(node, src_cube_names[i]); //do this before starting subscribers
+    boost::shared_ptr<DataCube> src_cube = make_cube(node, src_cube_names[i]); //do this before starting subscribers
     initialize_cube_data(src_cube, i);
     add_edge_to_alter(topo, src_cube_names[i], sender_ids[i]); //should be sender_id
     add_operator_to_alter(topo, sender_ids[i], "MultiRoundSender");
     add_edge_to_alter(topo, sender_ids[i], coordinator_id);
   }
-  shared_ptr<DataCube> dest_cube =  make_cube(node, dest_cube_name);
+  boost::shared_ptr<DataCube> dest_cube =  make_cube(node, dest_cube_name);
   ASSERT_EQ(0U, dest_cube->num_leaf_cells());
 
   topo.set_computationid(coordinator_id.computation_id);
@@ -91,7 +91,7 @@ TEST(Topk_TPUT, TwoLocal) {
   node.handle_alter(topo, response);
   ASSERT_FALSE(response.has_error_msg());
 
-  shared_ptr<MultiRoundCoordinator> coord_op =
+  boost::shared_ptr<MultiRoundCoordinator> coord_op =
     boost::dynamic_pointer_cast<MultiRoundCoordinator>(node.get_operator( coordinator_id ));
 
   //wait for query to run.
@@ -112,7 +112,7 @@ TEST(Topk_TPUT, TwoLocal) {
   cout << "output: " <<endl;
   int expected = 17;
   while ( it != dest_cube->end()) {
-    shared_ptr<Tuple> t = *it;
+    boost::shared_ptr<Tuple> t = *it;
     ASSERT_EQ(expected, t->e(2).i_val());
     expected -= 2;
     cout << fmt(*t) << endl;

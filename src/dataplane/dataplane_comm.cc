@@ -3,7 +3,10 @@
 #include "node.h"
 
 using namespace jetstream;
-using namespace std;
+//using namespace std;
+using std::string;
+using std::vector;
+using std::map;
 using namespace boost;
 using namespace boost::asio::ip;
 

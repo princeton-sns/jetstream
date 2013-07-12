@@ -14,7 +14,7 @@ class MysqlDimensionDouble: public MysqlDimensionFlat {
     
     MysqlDimensionDouble() : MysqlDimensionFlat() {};
 
-    vector<string> get_column_types() const ;
+    std::vector<std::string> get_column_types() const ;
 
     virtual void set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const;
 
@@ -23,7 +23,7 @@ class MysqlDimensionDouble: public MysqlDimensionFlat {
     virtual void populate_tuple(boost::shared_ptr<jetstream::Tuple> t, boost::shared_ptr<sql::ResultSet> resultset, int &column_index) const ;
 
   protected:
-    virtual vector<string> get_default_value() const;
+    virtual std::vector<std::string> get_default_value() const;
 };
 
 

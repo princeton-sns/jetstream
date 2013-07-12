@@ -13,9 +13,9 @@ using namespace boost;
 using namespace boost::asio::ip;
 using namespace jetstream;
 
-mutex _lm_mutex;
+boost::mutex _lm_mutex;
 
-LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
+LivenessManager::LivenessManager (boost::shared_ptr<asio::io_service> srv,
 				  NodeConfig &conf)
   : iosrv (srv), config (conf)
 {
@@ -23,7 +23,7 @@ LivenessManager::LivenessManager (shared_ptr<asio::io_service> srv,
 
 
 void
-LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
+LivenessManager::start_notifications (boost::shared_ptr<ClientConnection> c)
 {
   std::string fourtuple = c->get_fourtuple();
 
@@ -36,7 +36,7 @@ LivenessManager::start_notifications (shared_ptr<ClientConnection> c)
 
   LOG(INFO) << "Starting notifications; four-tuple is " << fourtuple << endl;
 
-  shared_ptr<ConnectionNotification> notif 
+  boost::shared_ptr<ConnectionNotification> notif 
     (new ConnectionNotification (iosrv, c, config));
 
   connections[fourtuple] = notif;

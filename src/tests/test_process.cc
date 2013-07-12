@@ -562,7 +562,7 @@ TEST_F(ProcessTest, DISABLED_Key2Test) {
 TEST_F(ProcessTest, DISABLED_Key3Test) {
   //time, string, int
 
-  ostringstream test;
+  std::ostringstream test;
   test << "1";
   string s1 = test.str();
   test.str("");
@@ -577,7 +577,7 @@ TEST_F(ProcessTest, DISABLED_Key3Test) {
   string s = "http:\\\\www.example.com";
   int in = 200; 
   string res;
-  ostringstream st;
+  std::ostringstream st;
   for(int i =0; i < 1000000; i++) {
      st.str("");
      st.clear();
@@ -595,7 +595,7 @@ TEST_F(ProcessTest, DISABLED_Key4Test) {
   int in = 200; 
   string res;
   for(int i =0; i < 1000000; i++) {
-     ostringstream st;
+     std::ostringstream st;
      st << t << "|" << s << "|" << in << "|";
      res=st.str();
   }

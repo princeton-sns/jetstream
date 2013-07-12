@@ -46,7 +46,7 @@ ConnectionManager::domain_resolved (cb_clntconn_t cb,
   if (!error)
     create_connection(resolved, cb);
   else {
-    shared_ptr<ClientConnection> empty;
+    boost::shared_ptr<ClientConnection> empty;
     cb(empty, error);
   }
 }
@@ -58,7 +58,7 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
 				      cb_clntconn_t cb)
 {
   if (resolved == tcp::resolver::iterator()) {
-    shared_ptr<ClientConnection> empty;
+    boost::shared_ptr<ClientConnection> empty;
     iosrv->post(bind(cb, empty, asio::error::host_unreachable));
     return;
   }
@@ -66,7 +66,7 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
   tcp::endpoint remote = *resolved++;
 
   boost::system::error_code error;
-  shared_ptr<ClientConnection> c 
+  boost::shared_ptr<ClientConnection> c 
     (new ClientConnection (iosrv, remote, error));
 
   if (!error)
@@ -82,7 +82,7 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
 
 void
 ConnectionManager::create_connection_cb (tcp::resolver::iterator resolved,
-					 shared_ptr<ClientConnection> conn,
+					 boost::shared_ptr<ClientConnection> conn,
 					 cb_clntconn_t cb,
 					 const boost::system::error_code &error)
 {

@@ -65,7 +65,7 @@ vector<string> MysqlDimensionTimeHierarchy::get_column_types() const {
   return decl;
 }
 
-void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
+void MysqlDimensionTimeHierarchy::set_value_for_insert_tuple(boost::shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
   if(tuple_indexes.size() != 1)
     LOG(FATAL) << "Wrong number of tuple indexes for field "<< name;
 

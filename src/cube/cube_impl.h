@@ -159,7 +159,7 @@ class DataCubeImpl : public DataCube {
         for ( unsigned i = 0; i < dimensions.size(); ++i) {
           for(unsigned int j = 0; j < dimensions[i]->tuple_indexes.size(); ++j) {
             int m = dimensions[i]->tuple_indexes[j];
-            src_tuple_min_len = max (m, src_tuple_min_len);
+            src_tuple_min_len = std::max (m, src_tuple_min_len);
           }
         }
       }

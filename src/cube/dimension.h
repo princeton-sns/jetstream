@@ -9,7 +9,8 @@
 namespace jetstream {
 namespace cube {
 
-using namespace ::std;
+using std::vector;
+using std::string;
 using namespace boost;
 
 class Dimension {

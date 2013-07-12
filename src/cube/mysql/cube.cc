@@ -5,8 +5,11 @@
 
 #include <glog/logging.h>
 
-using namespace ::std;
+using std::string;
+using std::map;
+using std::vector;
 using namespace jetstream::cube;
+using boost::shared_ptr;
 
 #define MYSQL_PROFILE 0
 #define MYSQL_UNION_SELECT 1
@@ -39,7 +42,7 @@ jetstream::cube::MysqlCube::init_connection() {
 
 boost::shared_ptr<MysqlCube::ThreadConnection>
 MysqlCube::get_uncached_connection(sql::Driver * driver) {
-  shared_ptr<ThreadConnection> tc(new ThreadConnection());
+  boost::shared_ptr<ThreadConnection> tc(new ThreadConnection());
 
   sql::ConnectOptionsMap options;
   options.insert( std::make_pair( "hostName", db_host));
@@ -48,11 +51,11 @@ MysqlCube::get_uncached_connection(sql::Driver * driver) {
   options.insert( std::make_pair( "CLIENT_MULTI_STATEMENTS", true ) );
 
   try {
-    shared_ptr<sql::Connection> con(driver->connect(options));
+    boost::shared_ptr<sql::Connection> con(driver->connect(options));
 
     tc->connection = con;
     tc->connection->setSchema(db_name);
-    shared_ptr<sql::Statement> stmnt(tc->connection->createStatement());
+    boost::shared_ptr<sql::Statement> stmnt(tc->connection->createStatement());
     tc->statement = stmnt;
   }
   catch (sql::SQLException &e) {
@@ -107,8 +110,8 @@ boost::shared_ptr<sql::Connection> MysqlCube::get_connection() {
 }
 
 
-void MysqlCube::on_thread_exit(boost::thread::id tid, shared_ptr<ThreadConnection> tc) {
-  unique_lock<boost::upgrade_mutex> lock(connectionLock);
+void MysqlCube::on_thread_exit(boost::thread::id tid, boost::shared_ptr<ThreadConnection> tc) {
+  boost::unique_lock<boost::upgrade_mutex> lock(connectionLock);
   //TODO need to lock here
   connectionPool.erase(tid);
   sql::Driver * driver = sql::mysql::get_driver_instance();
@@ -216,7 +219,7 @@ vector<string> jetstream::cube::MysqlCube::get_dimension_column_types() const {
   size_t i;
 
   for (i = 0; i < dimensions.size() ; i++) {
-    shared_ptr<MysqlDimension> dim =dimensions[i];
+    boost::shared_ptr<MysqlDimension> dim =dimensions[i];
     vector<string> tmp = dim->get_column_types();
 
     for (size_t j = 0; j < tmp.size(); j++) {
@@ -232,7 +235,7 @@ vector<string> jetstream::cube::MysqlCube::get_aggregate_column_types() const {
   size_t i;
 
   for (i = 0; i < aggregates.size() ; i++) {
-    shared_ptr<MysqlAggregate> agg =aggregates[i];
+    boost::shared_ptr<MysqlAggregate> agg =aggregates[i];
     vector<string> tmp = agg->get_column_types();
 
     for (size_t j = 0; j < tmp.size(); j++) {
@@ -372,7 +375,7 @@ boost::shared_ptr<sql::PreparedStatement> MysqlCube::create_prepared_statement(s
   try {
     VLOG(2) << "Create Prepared Statement sql: " << sql;
     boost::shared_ptr<ThreadConnection> tc = get_thread_connection();
-    shared_ptr<sql::PreparedStatement> stmnt(tc->connection->prepareStatement(sql));
+    boost::shared_ptr<sql::PreparedStatement> stmnt(tc->connection->prepareStatement(sql));
     return stmnt;
   }
   catch (sql::SQLException &e) {
@@ -1076,7 +1079,7 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
 }
 
 CubeIterator 
-MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<std::string> const &sort, size_t limit) {
+MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<std::string> const &sort, size_t limit)  const {
   assert(levels.size() == dimensions.size());
   string sql = get_rollup_sql(levels, min, max);
   sql += get_sort_clause(sort);
@@ -1140,8 +1143,7 @@ MysqlCube::list_sql_cubes() {
 
   while (res->next()) {
     string s = res->getString(1);
-    cout << s << endl;
-
+ 
     if (s.substr(s.length() - 8).rfind("_rollup") != string::npos) {
       (*cubeList)[s] = 1;
     }

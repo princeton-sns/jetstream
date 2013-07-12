@@ -44,7 +44,7 @@ TEST(Backfill, OperatorChain) {
 }
 */
 
-static shared_ptr<DataCube>
+static boost::shared_ptr<DataCube>
 make_cube(Node& node, std::string& src_cube_name) {
 
   AlterTopo topo;
@@ -63,13 +63,13 @@ make_cube(Node& node, std::string& src_cube_name) {
   node.handle_alter(topo, response);
   EXPECT_FALSE(response.has_error_msg());
 
-  shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
+  boost::shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
 
   return cube;
 }
 
 static
-boost::shared_ptr<Tuple> get_tuple(shared_ptr<DataCube> cube) {
+boost::shared_ptr<Tuple> get_tuple(boost::shared_ptr<DataCube> cube) {
   for(int i =0; i < 20 &&  cube->num_leaf_cells() < 1; i++) {
     js_usleep(100 * 1000);
   }
@@ -88,7 +88,7 @@ TEST(Backfill, IntoCube) {
   node.start();
   ASSERT_TRUE(error == 0);
   string cubename("test_cube");
-  shared_ptr<DataCube> cube = make_cube(node, cubename);
+  boost::shared_ptr<DataCube> cube = make_cube(node, cubename);
 
   time_t now = time(NULL);
   boost::shared_ptr<Tuple> t(new Tuple);

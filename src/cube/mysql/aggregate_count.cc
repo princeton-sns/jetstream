@@ -42,7 +42,7 @@ size_t  MysqlAggregateCount::number_tuple_elements() const {
 
 
 void
-MysqlAggregateCount::set_value_for_insert_tuple ( shared_ptr<sql::PreparedStatement> pstmt,
+MysqlAggregateCount::set_value_for_insert_tuple ( boost::shared_ptr<sql::PreparedStatement> pstmt,
                                                   const jetstream::Tuple &t,
                                                   int &field_index) {
   if(tuple_indexes.size() != 1) {

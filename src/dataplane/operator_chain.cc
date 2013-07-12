@@ -11,7 +11,9 @@
 #include "chain_ops.h"
 #include "js_utils.h"
 
-using namespace ::std;
+//using namespace ::std;
+using std::string;
+using std::vector;
 using namespace boost;
 
 namespace jetstream {
@@ -20,7 +22,7 @@ const string&
 OperatorChain::chain_name() {
 
   if (cached_chain_name.size() == 0) {
-    ostringstream buf;
+    std::ostringstream buf;
     if (ops.size() ==0)
       buf << "empty chain";
     else {

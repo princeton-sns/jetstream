@@ -14,6 +14,8 @@
 using namespace jetstream;
 using namespace jetstream::cube;
 using namespace boost;
+using std::endl;
+using std::cout;
 
 class CubeTest : public ::testing::Test {
   protected:
@@ -149,8 +151,8 @@ TEST_F(CubeTest, SaveTupleTest) {
   ASSERT_FALSE(new_tuple);
   ASSERT_FALSE(old_tuple);
   cube->save_tuple(t, true, true, new_tuple, old_tuple);
-  ASSERT_TRUE(new_tuple);
-  ASSERT_TRUE(old_tuple);
+  ASSERT_TRUE(new_tuple.get());
+  ASSERT_TRUE(old_tuple.get());
   check_tuple(old_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 100, 2);
   cube->save_tuple(t, false, false, new_tuple, old_tuple);
@@ -186,7 +188,7 @@ TEST_F(CubeTest, SavePartialTupleTest) {
   boost::shared_ptr<jetstream::Tuple> old_tuple;
   cube->save_tuple(t, true, false, new_tuple, old_tuple);
   ASSERT_FALSE(old_tuple);
-  ASSERT_TRUE(new_tuple);
+  ASSERT_TRUE(new_tuple.get());
   check_tuple(new_tuple, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   delete cube;
 }
@@ -270,7 +272,7 @@ TEST_F(CubeTest, ProcessTest) {
   Tuple empty = cube->empty_tuple();
   cube::CubeIterator it = cube->slice_query(empty, empty, false);
   ASSERT_EQ(1U, it.numCells());
-  shared_ptr<Tuple> ret = *it;
+  boost::shared_ptr<Tuple> ret = *it;
   check_tuple(ret, time_entered, "http:\\\\www.example.com", 200, 50, 1);
   ASSERT_EQ(0U, ret->version());
 
@@ -425,7 +427,7 @@ TEST_F(CubeTest, DISABLED_SubscriberBatchTestUpdateUpdate) {
   ASSERT_EQ(2U, sub->update_q.size());
   check_tuple(sub->update_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
   check_tuple(sub->update_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cout << "done" <<endl;
+  cout << "done" << endl;
   delete cube;
 }
 
@@ -733,14 +735,14 @@ TEST_F(CubeTest, MysqlTestIt) {
 
   boost::shared_ptr<Tuple> ptrTup;
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
 
   ++it;
   ASSERT_FALSE(it == cube->end());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
 
@@ -834,13 +836,13 @@ TEST_F(CubeTest, MysqlTestSort) {
 
   boost::shared_ptr<Tuple> ptrTup;
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(100, ptrTup->e(2).i_val());
 
   it = cube->slice_query(max, max, true, sort, 1);
   ASSERT_EQ((size_t)1, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(100, ptrTup->e(2).i_val());
 
   sort.clear();
@@ -849,13 +851,13 @@ TEST_F(CubeTest, MysqlTestSort) {
   it = cube->slice_query(max, max, true, sort);
   ASSERT_EQ((size_t)5, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(500, ptrTup->e(2).i_val());
 
   it = cube->slice_query(max, max, true, sort, 3);
   ASSERT_EQ((size_t)3, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(500, ptrTup->e(2).i_val());
 
 }
@@ -906,7 +908,7 @@ TEST(Cube,Attach) {
   cout << "alter sent; data should be present" << endl;
 
   shared_ptr<DataCube> cube = node.get_cube(cubeName);
-  ASSERT_TRUE( cube );
+  ASSERT_TRUE( cube.get() );
 
   for(int i =0; i < 20 &&  cube->num_leaf_cells() < 1; i++) {
     js_usleep(100 * 1000);
@@ -983,7 +985,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   CubeIterator it = cube->rollup_slice_query(levels, empty, empty);
   ASSERT_EQ(1U, it.numCells());
   boost::shared_ptr<Tuple> ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
   //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
@@ -1061,7 +1063,7 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   CubeIterator it = cube->rollup_slice_query(levels, max, max);
   ASSERT_EQ(1U, it.numCells());
   boost::shared_ptr<Tuple> ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered+1, ptrTup->e(0).t_val());
   //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
@@ -1087,7 +1089,7 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   it = cube->rollup_slice_query(levels, max, max);
   ASSERT_EQ(1U, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
   //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
@@ -1175,7 +1177,7 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   CubeIterator it = cube->rollup_slice_query(levels, max, max);
   ASSERT_EQ(1U, it.numCells());
   boost::shared_ptr<Tuple> ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered+1, ptrTup->e(0).t_val());
   //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
@@ -1201,7 +1203,7 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   it = cube->rollup_slice_query(levels, max, max);
   ASSERT_EQ(1U, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
   //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
@@ -1221,7 +1223,7 @@ TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   it = cube->rollup_slice_query(levels, empty, empty);
   ASSERT_EQ(1U, it.numCells());
   ptrTup = *it;
-  ASSERT_TRUE(ptrTup);
+  ASSERT_TRUE(ptrTup.get());
   ASSERT_EQ(0, ptrTup->e(0).t_val());
   ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
   ASSERT_EQ(0, ptrTup->e(2).i_val());

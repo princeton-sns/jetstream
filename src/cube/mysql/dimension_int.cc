@@ -38,7 +38,7 @@ vector<string> MysqlDimensionInt::get_default_value() const {
   return decl;
 }
 
-void MysqlDimensionInt::set_value_for_insert_tuple(shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
+void MysqlDimensionInt::set_value_for_insert_tuple(boost::shared_ptr<sql::PreparedStatement> pstmt, jetstream::Tuple const &t, int &field_index) const {
   if(tuple_indexes.size() != 1)
     LOG(FATAL) << "Wrong number of tuple indexes for field "<< name;
 

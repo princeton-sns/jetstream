@@ -16,8 +16,14 @@
 #include "experiment_operators.h"
 
 using namespace jetstream;
-using namespace boost;
-using namespace std;
+//using namespace boost;
+using boost::shared_ptr;
+//using namespace std;
+using std::string;
+using std::cout;
+using std::endl;
+using std::map;
+using std::vector;
 
 class COperatorTest : public ::testing::Test {
 public:
@@ -29,7 +35,7 @@ public:
       NodeConfig cfg;
       cfg.heartbeat_time = 2000;
       boost::system::error_code err;
-      node = shared_ptr<Node>(new Node(cfg, err));
+      node = boost::shared_ptr<Node>(new Node(cfg, err));
     }
     node->start();
   }
@@ -47,7 +53,7 @@ TEST_F(COperatorTest, FileRead) {
   enum {TEST_DATA_N_LINES = 19, TEST_DATA_N_EMPTY = 1};
 
   boost::shared_ptr<OperatorChain> chain(new OperatorChain);
-  shared_ptr<CFileRead> reader(new CFileRead);
+  boost::shared_ptr<CFileRead> reader(new CFileRead);
   map<string,string> config;
   config["file"] =  "src/tests/data/base_operators_data.txt";
   config["skip_empty"] = "false";
@@ -56,7 +62,7 @@ TEST_F(COperatorTest, FileRead) {
   reader->set_node(node.get());
   reader->add_chain(chain);
   
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  boost::shared_ptr<DummyReceiver> rec(new DummyReceiver);
   
   chain->add_member(reader);
   chain->add_member(rec);
@@ -113,9 +119,9 @@ TEST_F(COperatorTest, FileRead) {
 
 TEST(COperator, CExtendOperator) {
 
-  shared_ptr<ExtendOperator>  ex_1(new ExtendOperator);
-  shared_ptr<ExtendOperator> ex_host(new ExtendOperator);
-  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  boost::shared_ptr<ExtendOperator>  ex_1(new ExtendOperator);
+  boost::shared_ptr<ExtendOperator> ex_host(new ExtendOperator);
+  boost::shared_ptr<DummyReceiver> rec(new DummyReceiver);
 
   operator_config_t cfg;
   cfg["types"] = "i";
@@ -180,7 +186,7 @@ TEST(Operator, CSVParseOperator) {
 
     csvparse.process_one(t);
 
-    ASSERT_TRUE( t );
+    ASSERT_TRUE( t.get() );
 
     ASSERT_EQ(3, t->e_size());
     ASSERT_EQ(string_field, t->e(0).s_val());
@@ -201,7 +207,7 @@ TEST(Operator, CSVParseOperator) {
     t->set_version(0);
     csvp2.process_one(t);
 
-    ASSERT_TRUE(t);
+    ASSERT_TRUE(t.get());
 
     ASSERT_EQ(2, t->e_size());
 
@@ -504,7 +510,7 @@ TEST(Operator, TRoundingOperator) {
     ASSERT_EQ(NO_ERR, op2.configure(cfg));
 
     const double dExample_Micro_Epoch = 1231151151.510341;
-    const time_t correct = (numeric_cast<time_t>(dExample_Micro_Epoch) / 5) * 5 + 17;
+    const time_t correct = (boost::numeric_cast<time_t>(dExample_Micro_Epoch) / 5) * 5 + 17;
 
     shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
     extend_tuple(*t, "California");
