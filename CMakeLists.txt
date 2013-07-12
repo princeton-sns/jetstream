@@ -170,6 +170,8 @@ add_subdirectory (${SRC_DIR}/cube)
 link_directories (${BUILD_DIR}/cube)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 include_directories (${SRC_DIR}/cube/mysql)
+include_directories (${SRC_DIR}/cube/masstree)
+
 
 set (LIBRARY_NAME jsdataplane)
 add_subdirectory (${SRC_DIR}/dataplane)

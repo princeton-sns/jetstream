@@ -66,8 +66,9 @@ MasstreeCube::get_cell_value(jetstream::Tuple const &t, std::vector<unsigned int
 cube::CubeIterator
 MasstreeCube::slice_query(jetstream::Tuple const &min, jetstream::Tuple const& max,
                 bool final, std::list<std::string> const &sort, size_t limit) const  {
-  
-  }
+  boost::shared_ptr<MasstreeCubeIteratorImpl> iter;
+  return CubeIterator(iter);
+}
 
 
  cube::CubeIterator
@@ -76,7 +77,8 @@ MasstreeCube::slice_and_rollup( std::vector<unsigned int> const &levels,
                                                  jetstream::Tuple const& max,
                                                  std::list<std::string> const &sort,
                                                  size_t limit) const {
-   
+  boost::shared_ptr<MasstreeCubeIteratorImpl> iter;
+  return CubeIterator(iter);  
 }
       
 
@@ -96,8 +98,8 @@ MasstreeCube::do_rollup(std::vector<unsigned int> const &levels,jetstream::Tuple
 
 jetstream::cube::CubeIterator
 MasstreeCube::end() const {
-//  boost::shared_ptr<jetstream::cube::MysqlCubeIteratorImpl> impl = MysqlCubeIteratorImpl::end();
-//  return CubeIterator(impl);
+  boost::shared_ptr<jetstream::cube::MasstreeCubeIteratorImpl> impl = MasstreeCubeIteratorImpl::end();
+  return CubeIterator(impl);
 }
 
 size_t

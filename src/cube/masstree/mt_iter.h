@@ -13,7 +13,7 @@ class MasstreeCubeIteratorImpl : public CubeIteratorImpl {
   public:
     MasstreeCubeIteratorImpl(): final(true), num_cells(0){}
     
-    MasstreeCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MasstreeCube> cube, boost::shared_ptr<sql::ResultSet> rs, bool final=true): cube(cube), final(final), num_cells(rs->rowsCount())
+    MasstreeCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MasstreeCube> cube, bool final=true): cube(cube), final(final), num_cells(0)
     {} 
 
 
