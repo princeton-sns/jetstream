@@ -63,7 +63,7 @@ make_cube(Node& node, std::string& src_cube_name) {
   node.handle_alter(topo, response);
   EXPECT_FALSE(response.has_error_msg());
 
-  shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
+  boost::shared_ptr<DataCube> cube = node.get_cube(src_cube_name);
 
   return cube;
 }
@@ -88,7 +88,7 @@ TEST(Backfill, IntoCube) {
   node.start();
   ASSERT_TRUE(error == 0);
   string cubename("test_cube");
-  shared_ptr<DataCube> cube = make_cube(node, cubename);
+  boost::shared_ptr<DataCube> cube = make_cube(node, cubename);
 
   time_t now = time(NULL);
   boost::shared_ptr<Tuple> t(new Tuple);

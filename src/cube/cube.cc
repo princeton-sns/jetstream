@@ -235,7 +235,7 @@ DataCube::do_process( OperatorChain * chain,
     in_batch = true;
   }
 
-  shared_ptr<TupleProcessingInfo> tpi;
+  boost::shared_ptr<TupleProcessingInfo> tpi;
   if(!in_batch) {
     tpi = make_shared<TupleProcessingInfo>(t, key, levels);
   }

@@ -22,6 +22,8 @@ using boost::shared_ptr;
 using std::string;
 using std::cout;
 using std::endl;
+using std::map;
+using std::vector;
 
 class COperatorTest : public ::testing::Test {
 public:
@@ -184,7 +186,7 @@ TEST(Operator, CSVParseOperator) {
 
     csvparse.process_one(t);
 
-    ASSERT_TRUE( t );
+    ASSERT_TRUE( t.get() );
 
     ASSERT_EQ(3, t->e_size());
     ASSERT_EQ(string_field, t->e(0).s_val());
@@ -205,7 +207,7 @@ TEST(Operator, CSVParseOperator) {
     t->set_version(0);
     csvp2.process_one(t);
 
-    ASSERT_TRUE(t);
+    ASSERT_TRUE(t.get());
 
     ASSERT_EQ(2, t->e_size());
 
@@ -508,7 +510,7 @@ TEST(Operator, TRoundingOperator) {
     ASSERT_EQ(NO_ERR, op2.configure(cfg));
 
     const double dExample_Micro_Epoch = 1231151151.510341;
-    const time_t correct = (numeric_cast<time_t>(dExample_Micro_Epoch) / 5) * 5 + 17;
+    const time_t correct = (boost::numeric_cast<time_t>(dExample_Micro_Epoch) / 5) * 5 + 17;
 
     shared_ptr<Tuple> t = shared_ptr<Tuple>(new Tuple);
     extend_tuple(*t, "California");

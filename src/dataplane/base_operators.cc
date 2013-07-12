@@ -21,8 +21,13 @@
 #include "js_utils.h"
 #include "strtk.hpp"
 
-using namespace std;
+//using namespace std;
+using std::string;
+using std::vector;
+using std::map;
+using std::istringstream;
 using namespace boost;
+//using boost::shared_ptr;
 
 namespace jetstream {
 
@@ -38,7 +43,7 @@ CFileRead::emit_data() {
   if (!in_file.is_open()) {
     in_file.open (f_name.c_str());
     if (in_file.fail()) {
-      LOG(WARNING) << "could not open file " << f_name.c_str() << endl;
+      LOG(WARNING) << "could not open file " << f_name.c_str();
       return -1; //stop
     }
   }
@@ -87,14 +92,14 @@ operator_err_t
 CFileRead::configure(map<string,string> &config) {
   f_name = config["file"];
   if (f_name.length() == 0) {
-    LOG(WARNING) << "no file to read, bailing" << endl;
+    LOG(WARNING) << "no file to read, bailing";
     return operator_err_t("option 'file' not specified");
   }
 
   boost::algorithm::to_lower(config["skip_empty"]);
   // TODO which values of config["skip_empty"] convert to which boolean
   // values?
-  istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
+  std::istringstream(config["skip_empty"]) >> std::boolalpha >> skip_empty;
 
   return NO_ERR;
 }
@@ -178,7 +183,7 @@ CSVParse::configure(map<string,string> &config) {
       keep_fields.push_back(false);
 
     // mark "true" at each specified position
-    istringstream sscanf(keep);
+    std::istringstream sscanf(keep);
     BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
       if (!sscanf)
         return operator_err_t("Invalid \"fields to keep\" string.");
@@ -201,7 +206,7 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
   const Element& e = t->e(0);
 
   if (!e.has_s_val()) {
-    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
+    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring";
     t.reset();
     return;
   }
@@ -215,7 +220,7 @@ CSVParse::process_one(boost::shared_ptr<Tuple>& t) {
     BOOST_FOREACH(string csv_field, csv_parser) {
       if (i >= n_fields) {
         LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
-          << e.s_val()<< endl;
+          << e.s_val();
       } else {
         if (keep_fields[i])
           parse_with_types(t2->add_e(), csv_field, types[i]);
@@ -246,7 +251,7 @@ CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
   const Element& e = t->e(0);
 
   if (!e.has_s_val()) {
-    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring" << endl;
+    LOG(WARNING) << "received tuple but element" << 0 << " is not string, ignoring";
     return;
   }
   try {
@@ -270,7 +275,7 @@ CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
       if (i >= n_fields) {
         //LOG(INFO) << "Parse I=" << i << " Res = |" << row.get<std::string>(c) <<"|";
         LOG_IF(FATAL, !discard_off_size) << "Parsed more fields than types specified. Entry was "
-          << e.s_val()<< endl;
+          << e.s_val();
       } else {
         //LOG(INFO) << "Parse I=" << i << " Res = |" << row.get<std::string>(c)<<"|";
         if (keep_fields[i])
@@ -297,9 +302,9 @@ CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
 operator_err_t
 StringGrep::configure(map<string,string> &config) {
   string pattern = config["pattern"];
-  istringstream(config["id"]) >> fieldID;
+  std::istringstream(config["id"]) >> fieldID;
   if (pattern.length() == 0) {
-    LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
+    LOG(WARNING) << "no regexp pattern specified, bailing";
     return operator_err_t("No regex specified (option 'pattern')");
   } else {
     LOG(INFO) << "starting grep operator " << id() << " with pattern " << pattern;
@@ -317,13 +322,13 @@ StringGrep::should_emit (const Tuple& t) {
   }
 
   if (t.e_size() == 0) {
-    LOG(INFO) << "received empty tuple, ignoring" << endl;
+    LOG(INFO) << "received empty tuple, ignoring";
     return false;
   }
 
   const Element& e = t.e(fieldID);
   if (!e.has_s_val()) {
-    LOG(WARNING) << "received tuple but element" << fieldID << " is not string, ignoring" << endl;
+    LOG(WARNING) << "received tuple but element" << fieldID << " is not string, ignoring";
     return false;
   }
 
@@ -370,7 +375,7 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
   }
 
   if (pattern.length() == 0) {
-    LOG(WARNING) << "no regexp pattern specified, bailing" << endl;
+    LOG(WARNING) << "no regexp pattern specified, bailing";
     return operator_err_t("no regexp pattern specified");
   }
   //TODO could check re.max_size() against field_types.length()
@@ -385,7 +390,7 @@ void parse_with_types(Element * e, const string& s, char typecode) {
         istringstream parser(s);
         parser >> i;
         if (!parser)
-          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s << endl;
+          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s;
         e->set_i_val( i );
         break;
       }
@@ -395,7 +400,7 @@ void parse_with_types(Element * e, const string& s, char typecode) {
         istringstream parser(s);
         parser >> d;
         if (!parser)
-          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s << endl;
+          LOG(WARNING) << "parse_with_type failed for type " << typecode << " and string " << s;
         e->set_d_val( d );
         break;
       }
@@ -433,7 +438,7 @@ GenericParse::process_one(boost::shared_ptr<Tuple>& t) {
       found = boost::regex_match(t->e(fld_to_parse).s_val(), matchResults, re);
   }
   catch (std::exception &e) {
-      LOG(FATAL) << "Regex match error thrown: " << e.what() << endl;
+      LOG(FATAL) << "Regex match error thrown: " << e.what();
   }
 
   if (found) {
@@ -450,7 +455,7 @@ GenericParse::process_one(boost::shared_ptr<Tuple>& t) {
     }
   }
   else {
-    LOG(WARNING) << "No parse matches on string: " << t->e(fld_to_parse).s_val() << endl;
+    LOG(WARNING) << "No parse matches on string: " << t->e(fld_to_parse).s_val();
     // what do we do on parse failures?  Currently, suppress silently as 'no match'
     return;
   }
@@ -474,7 +479,7 @@ operator_err_t
 SampleOperator::configure (std::map<std::string,std::string> &config) {
   double frac_to_drop = 0;
   istringstream(config["fraction"]) >> frac_to_drop;
-  threshold = frac_to_drop * numeric_limits<uint32_t>::max();
+  threshold = frac_to_drop * std::numeric_limits<uint32_t>::max();
   int seed = 0;
   istringstream(config["seed"]) >> seed;
   gen.seed(seed);
@@ -525,9 +530,9 @@ operator_err_t
 HashSampleOperator::configure (std::map<std::string,std::string> &config) {
   double frac_to_drop = 0;
   istringstream(config["fraction"]) >> frac_to_drop;
-  threshold = frac_to_drop * numeric_limits<uint32_t>::max();
+  threshold = frac_to_drop * std::numeric_limits<uint32_t>::max();
 
-  if( !(stringstream(config["hash_field"]) >> hash_field)) {
+  if( !(std::stringstream(config["hash_field"]) >> hash_field)) {
     return operator_err_t("hash_field must be an int");
   }
 
