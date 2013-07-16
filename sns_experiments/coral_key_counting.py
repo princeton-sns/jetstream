@@ -6,6 +6,8 @@ import resource
 import sys
 import time
 import urlparse
+import fileinput
+
 
 def main():
   parser = OptionParser()
@@ -16,26 +18,23 @@ def main():
                   help="whether to use domains instead of full URLs")
     
   (options, args) = parser.parse_args()
-  infile = args[0]
   time_bucket_size = int( options.timewindow)
   domains = options.domains
   
-  print "reading data from %s" % infile
   kb_used_start = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
   key_to_count = defaultdict(int)
 
   lines = 0
-  with open(infile, 'r') as csvfile:
-    reader = csv.reader(csvfile, skipinitialspace=True)
-    
-    for split_line in reader:
-      time_bucket = to_timebucket(split_line[1], time_bucket_size)
-      url = split_line[6]
-      if domains:
-        url = url2domain(url) 
-      key = (url, time_bucket)
-      key_to_count[key] +=1
-      lines += 1
+  input = fileinput.input(args)
+  reader = csv.reader(input, skipinitialspace=True)    
+  for split_line in reader:
+    time_bucket = to_timebucket(split_line[1], time_bucket_size)
+    url = split_line[6]
+    if domains:
+      url = url2domain(url) 
+    key = (url, time_bucket)
+    key_to_count[key] +=1
+    lines += 1
   print "total of %d lines and %d keys (avg of %0.2f recs per key)" % \
           (lines, len(key_to_count), float(lines) / len(key_to_count) )
   frequencies = defaultdict(int)
