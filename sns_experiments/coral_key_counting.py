@@ -22,6 +22,7 @@ def main():
   domains = options.domains
   
   kb_used_start = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+  start_time = time.time()
   key_to_count = defaultdict(int)
 
   lines = 0
@@ -44,7 +45,8 @@ def main():
     (frequencies[1], frequencies[1] * 100.0 / len(key_to_count))
     
   kb_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 - kb_used_start
-  print "\nAnalysis using %d kbytes" % kb_used
+  elapsed_time = time.time() - start_time
+  print "\nAnalysis using %d kbytes in %d seconds" % (kb_used,elapsed_time)
 
 def to_timebucket(timestamp, time_bucket_size):
   timestamp = (int(float(timestamp))  / time_bucket_size) * time_bucket_size
