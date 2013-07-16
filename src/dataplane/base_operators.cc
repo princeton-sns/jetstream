@@ -29,13 +29,7 @@ using std::string;
 using std::vector;
 using std::map;
 using std::istringstream;
-<<<<<<< HEAD
-using namespace boost;
-//using boost::shared_ptr;
-=======
-//using namespace boost;
 using boost::shared_ptr;
->>>>>>> masstree
 
 namespace jetstream {
 
@@ -192,11 +186,7 @@ CSVParse::configure(map<string,string> &config) {
 
     // mark "true" at each specified position
     std::istringstream sscanf(keep);
-<<<<<<< HEAD
-    BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
-=======
     BOOST_FOREACH( int fld_to_keep, boost::istream_range<int>(sscanf)) {
->>>>>>> masstree
       if (!sscanf)
         return operator_err_t("Invalid \"fields to keep\" string.");
 
