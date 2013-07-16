@@ -18,14 +18,13 @@ endif()
 
 file (GLOB LIB_SRCS1 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
 file (GLOB LIB_SRCS2 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "mysql/*.cc")
-file (GLOB LIB_SRCS3 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree/*.cc")
-<<<<<<< HEAD
-set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3})
-=======
+
+#file (GLOB LIB_SRCS3 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree/*.cc")
 #file (GLOB LIB_SRCS4 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree_distrib/*.cc")
 
-set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3}) 
->>>>>>> masstree
+set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2})
+#set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3}) 
+
 add_library (jscube ${LIB_SRCS})
 target_link_libraries (jscube ${Boost_LIBRARIES})
 target_link_libraries (jscube jsproto)
