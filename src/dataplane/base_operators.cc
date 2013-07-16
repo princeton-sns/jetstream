@@ -19,15 +19,23 @@
 
 
 #include "js_utils.h"
+
+#if __cplusplus <= 199711L
 #include "strtk.hpp"
+#endif
 
 //using namespace std;
 using std::string;
 using std::vector;
 using std::map;
 using std::istringstream;
+<<<<<<< HEAD
 using namespace boost;
 //using boost::shared_ptr;
+=======
+//using namespace boost;
+using boost::shared_ptr;
+>>>>>>> masstree
 
 namespace jetstream {
 
@@ -184,13 +192,17 @@ CSVParse::configure(map<string,string> &config) {
 
     // mark "true" at each specified position
     std::istringstream sscanf(keep);
+<<<<<<< HEAD
     BOOST_FOREACH( int fld_to_keep, istream_range<int>(sscanf)) {
+=======
+    BOOST_FOREACH( int fld_to_keep, boost::istream_range<int>(sscanf)) {
+>>>>>>> masstree
       if (!sscanf)
         return operator_err_t("Invalid \"fields to keep\" string.");
 
       if (fld_to_keep >= n_fields) {
         string err_fmt("%d types given; %d is too high for field index.");
-        return operator_err_t((format(err_fmt) % n_fields % fld_to_keep).str());
+        return operator_err_t((boost::format(err_fmt) % n_fields % fld_to_keep).str());
       }
 
       keep_fields[fld_to_keep] = true;
@@ -244,7 +256,7 @@ CSVParse::long_description() const {
   return "";
 }
 
-
+#if __cplusplus <= 199711L
 void
 CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
   // FIXME assume we want to parse 0th element
@@ -298,6 +310,7 @@ CSVParseStrTk::process_one(boost::shared_ptr<Tuple>& t) {
   // assume we don't need to pass through any other elements...
   // TODO unassume
 }
+#endif
 
 operator_err_t
 StringGrep::configure(map<string,string> &config) {
@@ -356,7 +369,7 @@ GenericParse::configure(std::map<std::string,std::string> &config) {
 
   try {
     re.assign(pattern);
-  } catch( regex_error e) {
+  } catch( boost::regex_error e) {
     return operator_err_t("regex " + pattern + " did not compile:" +
         e.std::exception::what());
   }
@@ -559,13 +572,13 @@ TRoundingOperator::process_one (boost::shared_ptr<Tuple>& t) {
   if (in_type == I) {
     int old_val = t->e(fld_offset).i_val();
     t->mutable_e(fld_offset)->clear_i_val();
-    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
+    t->mutable_e(fld_offset)->set_t_val(boost::numeric_cast<time_t>((old_val / round_to) * round_to) + add_offset);
   }
 
   if (in_type == D) {
     double old_val = t->e(fld_offset).d_val();
     t->mutable_e(fld_offset)->clear_d_val();
-    t->mutable_e(fld_offset)->set_t_val(numeric_cast<time_t>(old_val / round_to) * round_to + add_offset);
+    t->mutable_e(fld_offset)->set_t_val(boost::numeric_cast<time_t>(old_val / round_to) * round_to + add_offset);
   }
 }
 
@@ -707,7 +720,7 @@ URLToDomain::process_one (boost::shared_ptr<Tuple>& t) {
   
   vector <string> chunks;
 
-  boost::split( chunks, url,is_any_of("/"));
+  boost::split( chunks, url, boost::is_any_of("/"));
   if (chunks.size() >= 3) {
     t->mutable_e(field_id)->set_s_val(chunks[2]);
   } //else pass through unchanged
@@ -826,7 +839,7 @@ void
 WindowLenFilter::process (OperatorChain * chain,
                           std::vector<boost::shared_ptr<Tuple> > & tuples,
                           DataplaneMessage& window_marker) {
-  boost::lock_guard<boost::mutex> lock (mutex);
+  boost::lock_guard<boost::mutex> lock (boost::mutex);
 
   if ( k_in_win + tuples.size() > bound ) { //won't pass all tuples
     unsigned tuples_to_pass = bound - k_in_win;
@@ -843,7 +856,7 @@ WindowLenFilter::process (OperatorChain * chain,
 
   
   if ( window_marker.type() == DataplaneMessage::END_OF_WINDOW) {
-    boost::lock_guard<boost::mutex> lock (mutex);
+    boost::lock_guard<boost::mutex> lock (boost::mutex);
     vector<double> ratios;
     vector<unsigned> bounds;
     unsigned cur_level = LEVELS-1;

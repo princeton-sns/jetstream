@@ -11,11 +11,21 @@ set(MYSQL_LIBS z ${MYSQL_CONN}  ${MYSQL_CLI})
 #set(MYSQL_LIBS ${MYSQL_CONN})
 endif()
 
+#		This breaks boost.
+# add_definitions (${CMAKE_CXX_FLAGS} "-std=gnu++0x")
+# -stdlib=libc++ -D BOOST_NO_CXX11_NUMERIC_LIMITS=1")
+#-include masstree_distrib/config.h
 
 file (GLOB LIB_SRCS1 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
 file (GLOB LIB_SRCS2 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "mysql/*.cc")
 file (GLOB LIB_SRCS3 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree/*.cc")
+<<<<<<< HEAD
 set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3})
+=======
+#file (GLOB LIB_SRCS4 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree_distrib/*.cc")
+
+set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3}) 
+>>>>>>> masstree
 add_library (jscube ${LIB_SRCS})
 target_link_libraries (jscube ${Boost_LIBRARIES})
 target_link_libraries (jscube jsproto)
