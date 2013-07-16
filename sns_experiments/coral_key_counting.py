@@ -8,6 +8,7 @@ import time
 import urlparse
 import fileinput
 
+RSS_units = "kbytes" if 'darwin' in sys.platform else 'mbytes'
 
 def main():
   parser = OptionParser()
@@ -41,12 +42,13 @@ def main():
   frequencies = defaultdict(int)
   for count in key_to_count.values():
     frequencies[count] += 1
+  print "%d elements in count-statistics" % len(frequencies)
   print "%d unique keys (%0.2f%% of total keys) and %0.2f recs per key" % \
     (frequencies[1], frequencies[1] * 100.0 / len(key_to_count), recs_per_key)
     
   kb_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 - kb_used_start
   elapsed_time = time.time() - start_time
-  print "\nAnalysis using %d kbytes in %d seconds" % (kb_used,elapsed_time)
+  print "\nAnalysis using %d %s in %d seconds" % (kb_used,RSS_units,elapsed_time)
 
 def to_timebucket(timestamp, time_bucket_size):
   if time_bucket_size == 0:
