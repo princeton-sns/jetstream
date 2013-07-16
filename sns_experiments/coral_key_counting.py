@@ -37,18 +37,18 @@ def main():
     key = (url, time_bucket)
     key_to_count[key] +=1
     lines += 1
-  recs_per_key = float(lines) / len(key_to_count)
-  print "total of %d lines and %d keys" %  (lines, len(key_to_count),  )
-  frequencies = defaultdict(int)
-  for count in key_to_count.values():
-    frequencies[count] += 1
-  print "%d elements in count-statistics" % len(frequencies)
-  print "%d unique keys (%0.2f%% of total keys) and %0.2f recs per key" % \
-    (frequencies[1], frequencies[1] * 100.0 / len(key_to_count), recs_per_key)
     
+  print "total of %d lines in input" % lines
+  print "URL:"
+  show_stats(lines, key_to_count)
+  if not domains:
+    key_to_count = remap_to_domain(key_to_count)
+    print "Domain:"
+    show_stats(lines, key_to_count)
+
   kb_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 - kb_used_start
   elapsed_time = time.time() - start_time
-  print "\nAnalysis using %d %s in %d seconds" % (kb_used,RSS_units,elapsed_time)
+  print "\nAnalysis using %d %s in %d seconds" % (kb_used,RSS_units,elapsed_time)  
 
 def to_timebucket(timestamp, time_bucket_size):
   if time_bucket_size == 0:
@@ -60,6 +60,25 @@ def to_timebucket(timestamp, time_bucket_size):
 def url2domain(url):
   u = urlparse.urlparse(url)
   return u.hostname if u.hostname else url
+  
+def remap_to_domain(key_to_count):
+  r = defaultdict(int)
+  for (kurl,ktime),v in key_to_count.iteritems():
+    r[  (url2domain(kurl),ktime) ] += v
+  return r
+  
+def show_stats(lines, key_to_count):
+  recs_per_key = float(lines) / len(key_to_count)
+  print "%d keys" %  len(key_to_count)
+  frequencies = defaultdict(int)
+  for count in key_to_count.values():
+    frequencies[count] += 1
+  print "%d elements in count-statistics" % len(frequencies)
+  one_off_key_frac = frequencies[1] * 100.0 / len(key_to_count)
+  one_off_vals = frequencies[1] * 100.0 / lines
+  print "%d one-element keys (%0.2f%% of total keys, %0.2f%% of entries) and %0.2f recs per key" % \
+    (frequencies[1], one_off_key_frac, one_off_vals, recs_per_key)
+    
 
 if __name__ == '__main__':
     main()
