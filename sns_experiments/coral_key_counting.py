@@ -17,6 +17,8 @@ def main():
                   help="time window", default="1")
   parser.add_option("-d", "--domains", dest="domains", action="store_true", default=False,
                   help="whether to use domains instead of full URLs")
+  parser.add_option("-n", "--noargs", dest="noargs", action="store_true", default=False,
+                  help="whether to strip arguments from URLs")
     
   (options, args) = parser.parse_args()
   time_bucket_size = int( options.timewindow)
@@ -34,17 +36,23 @@ def main():
     url = split_line[6]
     if domains:
       url = url2domain(url) 
+    if options.noargs:
+      url = strip_args(url)
     key = (url, time_bucket)
     key_to_count[key] +=1
     lines += 1
     
   print "total of %d lines in input" % lines
-  print "URL:"
+#  print "URL:"
   show_stats(lines, key_to_count)
-  if not domains:
-    key_to_count = remap_to_domain(key_to_count)
-    print "Domain:"
+  for t in [5,60, 300, 0]:
+    key_to_count = fold_time(key_to_count, t)
+    print "\n\nUsing %d second buckets:" % t
     show_stats(lines, key_to_count)
+    
+#    key_to_count = remap_to_domain(key_to_count)
+#    print "Domain:"
+#    show_stats(lines, key_to_count)
 
   kb_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 - kb_used_start
   elapsed_time = time.time() - start_time
@@ -61,11 +69,24 @@ def url2domain(url):
   u = urlparse.urlparse(url)
   return u.hostname if u.hostname else url
   
+def strip_args(url):
+  u = urlparse.urlparse(url)
+  return u.hostname + u.path if u.hostname else url
+  
+  
 def remap_to_domain(key_to_count):
   r = defaultdict(int)
   for (kurl,ktime),v in key_to_count.iteritems():
     r[  (url2domain(kurl),ktime) ] += v
   return r
+  
+  
+def fold_time(key_to_count, t):
+  r = defaultdict(int)
+  for (kurl,ktime),v in key_to_count.iteritems():
+    r[  (kurl,to_timebucket(ktime, t)) ] += v
+  return r  
+  
   
 def show_stats(lines, key_to_count):
   recs_per_key = float(lines) / len(key_to_count)
