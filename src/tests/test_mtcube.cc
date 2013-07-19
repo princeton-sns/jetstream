@@ -46,7 +46,7 @@ TEST(MTCube, CreateAndStore) {
   
   jetstream::Tuple t;
   extend_tuple_time(t, time(NULL));
-  extend_tuple(t, "http:\\\\www.example.com");
+  extend_tuple(t, "http://www.example.com");
   extend_tuple(t, 4);
   extend_tuple(t, 40);
 
@@ -58,15 +58,16 @@ TEST(MTCube, CreateAndStore) {
   ASSERT_TRUE(new_tuple.get());
   ASSERT_EQ(t.e_size(), new_tuple->e_size());
   
+  ASSERT_EQ(1, cube.num_leaf_cells() );
+  
     //only the dimensions in t should be checked, so we will alter values of aggs.
   t.mutable_e(2)->set_i_val(0);
-  std::vector<unsigned> levels;
-  levels.resize(4);
-  levels[2] = 0;
-  levels[3] = 0;
+  boost::shared_ptr< std::vector<unsigned> > levels = cube.get_leaf_levels();
   
     //check that we got back the stored value, not the query tuple
-  new_tuple = cube.get_cell_value(t, levels);
+  new_tuple = cube.get_cell_value(t, *levels);
+  ASSERT_FALSE( !new_tuple.get()); //got a cell
+  
   ASSERT_EQ(4, new_tuple->e_size());
   ASSERT_EQ(40, new_tuple->e(3).i_val());
 //  cube->destroy();

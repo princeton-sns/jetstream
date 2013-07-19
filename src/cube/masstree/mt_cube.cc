@@ -2,7 +2,7 @@
 #include "mt_cube.h"
 #include "mt_iter.h"
 #include <glog/logging.h>
-
+#include <iostream>
 
 using namespace ::std;
 
@@ -65,11 +65,13 @@ MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool ne
     unsigned sz = 0;
     for (unsigned i = 0; i < num_aggregates(); ++i)
       sz += aggregates[i]->size(t);
-    aggs =  (AggregateBuffer *) malloc(sizeof(AggregateBuffer) + sz -4); //already reserved size four
-    tree.set(k.c_str(), aggs);
+    size_t alloc_sz = sizeof(AggregateBuffer) + sz -4;
+    aggs =  (AggregateBuffer *) malloc(alloc_sz); //already reserved size four
 
       //FIXME: should do something aggregate-specific here
     memset(aggs->data, 0, sz);
+    aggs->sz = alloc_sz;
+    tree.set(k.c_str(), aggs);
   }
   
   if (need_old_value) {
@@ -85,7 +87,7 @@ MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool ne
     LOG_IF(FATAL, buf >= buf_end) << "buffer overrun in MT aggregate processing, on agggregate " <<
         i<< "(" << aggregates[i]->get_name() <<")";
   }
-
+  cout << "At store, aggs->data[0] is " << ((int*) aggs)[1] << endl;
   if ( need_new_value) {
     new_tuple = boost::shared_ptr<Tuple>(new Tuple);
     extend_with_dims_from(new_tuple.get(), t);
@@ -104,6 +106,7 @@ MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tu
     }
 }
 
+
 void
 MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
        const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
@@ -117,12 +120,18 @@ boost::shared_ptr<jetstream::Tuple>
 MasstreeCube::get_cell_value(jetstream::Tuple const &t, std::vector<unsigned int> const &levels, bool final) const {
 
   DimensionKey k = get_dimension_key(t, levels);
+  cout << "lookup key is " << k <<endl;
   AggregateBuffer * from_store = tree.get(k.c_str());
-  boost::shared_ptr<Tuple> ret(new Tuple);
-  extend_with_dims_from(ret.get(), t);
-  extend_with_aggs(ret.get(), from_store);
-  
-  return ret;
+
+  if (from_store) {
+    boost::shared_ptr<Tuple> ret(new Tuple);
+    extend_with_dims_from(ret.get(), t);
+    extend_with_aggs(ret.get(), from_store);
+    return ret;
+  } else {
+    boost::shared_ptr<Tuple> ret;
+    return ret;
+  }
 }
 
 cube::CubeIterator
