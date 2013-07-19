@@ -28,10 +28,6 @@ void MasstreeCube::destroy() {
 
 }
 
-void MasstreeCube::clear_contents() {
-
-}
-
 
 void
 MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
@@ -100,11 +96,6 @@ jetstream::cube::CubeIterator
 MasstreeCube::end() const {
   boost::shared_ptr<jetstream::cube::MasstreeCubeIteratorImpl> impl = MasstreeCubeIteratorImpl::end();
   return CubeIterator(impl);
-}
-
-size_t
-MasstreeCube::num_leaf_cells() const {
-  return 0;
 }
 
 

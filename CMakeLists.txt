@@ -156,10 +156,9 @@ set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 include_directories (${SRC_DIR}/comm)
 
 
-set (LIBRARY_NAME mongoose)
 add_subdirectory (${SRC_DIR}/mongoose)
 link_directories (${BUILD_DIR}/mongoose)
-set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
+set (LIBRARIES ${LIBRARIES} mongoose)
 include_directories (${SRC_DIR}/mongoose)
 
 

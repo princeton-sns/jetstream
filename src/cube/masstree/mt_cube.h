@@ -5,6 +5,7 @@
 #include "cube_impl.h"
 #include "../mysql/dimension.h"
 #include "../mysql/aggregate.h"
+#include "js_mt_shim.h"
 
 namespace jetstream {
 namespace cube {
@@ -22,7 +23,9 @@ class MasstreeCube: // public DataCube {
 
     virtual void create();
     virtual void destroy();
-    virtual void clear_contents();
+    virtual void clear_contents() {
+      tree.clear();
+    }
 
 
     virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
@@ -64,8 +67,12 @@ class MasstreeCube: // public DataCube {
 
 
     virtual jetstream::cube::CubeIterator end() const ;
-    virtual size_t num_leaf_cells() const ;
+    virtual size_t num_leaf_cells() const {
+      return tree.elements();
+    }
 
+  private:
+    JSMasstree tree;
 
 };
 }
