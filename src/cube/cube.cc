@@ -139,7 +139,7 @@ void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
     processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
   tmpostr->clear();
-  get_dimension_key(*t, current_levels, *tmpostr);
+  get_dimension_key(*t, *current_levels, *tmpostr);
   DimensionKey key = tmpostr->str();
   size_t kh = (*hash_fn)(key);
   if(config.cube_max_stage < 2)

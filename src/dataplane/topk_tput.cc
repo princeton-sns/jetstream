@@ -341,7 +341,8 @@ MultiRoundCoordinator::process (
       boost::shared_ptr<Tuple> t = tuples[i];
       if(!t)
         continue;
-      DimensionKey k = destcube->get_dimension_key(*t, destcube->get_leaf_levels());
+      boost::shared_ptr< vector<unsigned int> > levs = destcube->get_leaf_levels();
+      DimensionKey k = destcube->get_dimension_key(*t, *levs);
       double v = get_rank_val(t, total_col);
 
       std::map<DimensionKey,CandidateItem>::const_iterator found = candidates.find(k);

@@ -4,14 +4,19 @@
 #include "cube.h"
 #include "cube_impl.h"
 #include "../mysql/dimension.h"
-#include "../mysql/aggregate.h"
+#include "mt_aggregate.h"
 #include "js_mt_shim.h"
 
 namespace jetstream {
 namespace cube {
 
+struct AggregateBuffer {
+  unsigned sz; //size of this buffer
+  char data[4]; // potentially many more.
+};
+
 class MasstreeCube: // public DataCube {
-    public DataCubeImpl<MysqlDimension, MysqlAggregate>, public boost::enable_shared_from_this<MasstreeCube> {
+    public DataCubeImpl<MysqlDimension, MasstreeAggregate>, public boost::enable_shared_from_this<MasstreeCube> {
 
   public:
 
@@ -72,7 +77,9 @@ class MasstreeCube: // public DataCube {
     }
 
   private:
-    JSMasstree tree;
+    JSMasstreePtr<AggregateBuffer> tree;
+    inline void extend_with_dims_from(Tuple * target, const Tuple& t) const;
+    inline void extend_with_aggs(Tuple * ret, AggregateBuffer * from_store) const;
 
 };
 }

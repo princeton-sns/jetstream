@@ -171,11 +171,11 @@ class DataCube : public ChainMember {
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const =0;
 
-    virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
-    virtual std::vector<size_t> aggregate_offset(std::string) = 0;
+    virtual std::vector<size_t> dimension_offset(std::string) const = 0; //offsets in tuples
+    virtual std::vector<size_t> aggregate_offset(std::string) const = 0;
 
-    virtual size_t num_dimensions() = 0;
-    virtual size_t num_aggregates() = 0;
+    virtual size_t num_dimensions() const = 0;
+    virtual size_t num_aggregates() const = 0;
 
 
     /**
@@ -200,8 +200,8 @@ class DataCube : public ChainMember {
 
 
     //only used by tuple batch
-    virtual DimensionKey get_dimension_key(Tuple const &t, boost::shared_ptr<std::vector<unsigned int> > levels) const = 0;
-    virtual void get_dimension_key(const Tuple &t, boost::shared_ptr<std::vector<unsigned int> > levels,  std::ostringstream &ostr) const = 0;
+    virtual DimensionKey get_dimension_key(Tuple const &t, const std::vector<unsigned int> & levels) const = 0;
+    virtual void get_dimension_key(const Tuple &t, const std::vector<unsigned int>&  levels,  std::ostringstream &ostr) const = 0;
     virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const = 0;
 
     void save_callback(jetstream::TupleProcessingInfo &tpi,

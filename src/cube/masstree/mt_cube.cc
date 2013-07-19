@@ -1,6 +1,7 @@
 
 #include "mt_cube.h"
 #include "mt_iter.h"
+#include <glog/logging.h>
 
 
 using namespace ::std;
@@ -25,23 +26,83 @@ MasstreeCube::create() {
 
 
 void MasstreeCube::destroy() {
-
+  tree.clear();
 }
 
+
+inline void
+MasstreeCube::extend_with_dims_from(Tuple * target, const Tuple& t) const {
+  for (int i = 0; i < dimensions.size(); ++i) {
+    Element * e = target->add_e();
+    vector<size_t> idx = dimension_offset( dimensions[i]->get_name() );
+    e->CopyFrom(t.e(  idx[0] ));
+  }
+}
+
+inline void
+MasstreeCube::extend_with_aggs(Tuple * target, AggregateBuffer * from_store) const {
+  char * buf = from_store->data;
+  char * buf_end = from_store->data + from_store->sz;
+  for (unsigned i = 0; i < num_aggregates(); ++i) {
+    buf += aggregates[i]->add_to_tuple(buf, target);
+    LOG_IF(FATAL, buf >= buf_end) << "buffer overrun in MT aggregate processing, on agggregate " <<
+        i<< "(" << aggregates[i]->get_name() <<")";
+  }
+}
 
 void
 MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
                             boost::shared_ptr<jetstream::Tuple> &new_tuple,boost::shared_ptr<jetstream::Tuple> &old_tuple) {
-  
+  vector<unsigned int> levels;
+  for(size_t i=0; i<dimensions.size(); i++) {
+    levels.push_back(dimensions[i]->leaf_level());
   }
+
+  DimensionKey k = get_dimension_key(t, levels);
+  AggregateBuffer * aggs = tree.get(k.c_str());
+  
+  if (!aggs) {
+    unsigned sz = 0;
+    for (unsigned i = 0; i < num_aggregates(); ++i)
+      sz += aggregates[i]->size(t);
+    aggs =  (AggregateBuffer *) malloc(sizeof(AggregateBuffer) + sz -4); //already reserved size four
+    tree.set(k.c_str(), aggs);
+
+      //FIXME: should do something aggregate-specific here
+    memset(aggs->data, 0, sz);
+  }
+  
+  if (need_old_value) {
+    old_tuple = boost::shared_ptr<Tuple>(new Tuple);
+    extend_with_dims_from(old_tuple.get(), t);
+    extend_with_aggs(old_tuple.get(), aggs);
+  }
+  
+  char * buf = aggs->data;
+  char * buf_end = aggs->data + aggs->sz;
+  for (unsigned i = 0; i < num_aggregates(); ++i) {
+    buf += aggregates[i]->merge(buf, t);
+    LOG_IF(FATAL, buf >= buf_end) << "buffer overrun in MT aggregate processing, on agggregate " <<
+        i<< "(" << aggregates[i]->get_name() <<")";
+  }
+
+  if ( need_new_value) {
+    new_tuple = boost::shared_ptr<Tuple>(new Tuple);
+    extend_with_dims_from(new_tuple.get(), t);
+    extend_with_aggs(new_tuple.get(), aggs);
+  }
+}
 
 
 void
 MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
        const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
        std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) {
-    
+    for (unsigned i = tuple_store.size(); i < tuple_store.size(); ++i) {
+        save_tuple( *(tuple_store[i]), need_new_value_store[i], need_old_value_store[i],
+          new_tuple_store[i], old_tuple_store[i]);    
     }
+}
 
 void
 MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
@@ -55,8 +116,13 @@ MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tu
 boost::shared_ptr<jetstream::Tuple>
 MasstreeCube::get_cell_value(jetstream::Tuple const &t, std::vector<unsigned int> const &levels, bool final) const {
 
-  boost::shared_ptr<Tuple> tup;
-  return tup;
+  DimensionKey k = get_dimension_key(t, levels);
+  AggregateBuffer * from_store = tree.get(k.c_str());
+  boost::shared_ptr<Tuple> ret(new Tuple);
+  extend_with_dims_from(ret.get(), t);
+  extend_with_aggs(ret.get(), from_store);
+  
+  return ret;
 }
 
 cube::CubeIterator

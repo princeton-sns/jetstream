@@ -19,7 +19,7 @@ namespace cube {
  * and CubeAggregate. This allows more generic code to operate on DataCubes of any Dimension
  * and Aggregate type. While, specific code need to Instantiate specific Impl types */
 
-template <class CubeDimension=jetstream::cube::Dimension, class CubeAggregate=jetstream::cube::Aggregate>
+template <class CubeDimension=::jetstream::cube::Dimension, class CubeAggregate= ::jetstream::cube::Aggregate>
 class DataCubeImpl : public DataCube {
   public:
 
@@ -64,15 +64,15 @@ class DataCubeImpl : public DataCube {
       LOG(FATAL) << "No dimension named "<<name << "; schema is " << schema.Utf8DebugString();
     }
 
-    bool has_dimension(string name) const {
+    bool has_dimension(std::string name) const {
       return dimensionMap.count(name) > 0;
     }
 
-    size_t num_dimensions() {
+    size_t num_dimensions() const {
       return dimensions.size();
     }
 
-    boost::shared_ptr<CubeAggregate> get_aggregate(string name) const {
+    boost::shared_ptr<CubeAggregate> get_aggregate(std::string name) const {
       int pos = find_in(aggregateMap, name);
       if(pos > -1) {
         return aggregates.at(pos);
@@ -82,19 +82,19 @@ class DataCubeImpl : public DataCube {
     }
 
 
-    bool has_aggregate(string name) const {
+    bool has_aggregate(std::string name) const {
       return aggregateMap.count(name) > 0;
     }
 
-    size_t num_aggregates() {
+    size_t num_aggregates() const {
       return aggregates.size();
     }
 
-    virtual std::vector<size_t> dimension_offset(std::string n) {
+    virtual std::vector<size_t> dimension_offset(std::string n) const {
       return get_dimension(n)->tuple_indexes;
     }
 
-    virtual std::vector<size_t> aggregate_offset(std::string n) {
+    virtual std::vector<size_t> aggregate_offset(std::string n) const {
       return get_aggregate(n)->tuple_indexes;
     }
 
@@ -131,17 +131,17 @@ class DataCubeImpl : public DataCube {
       else return -1;
     }
 
-    virtual DimensionKey get_dimension_key(const Tuple &t,  boost::shared_ptr<std::vector<unsigned int> > levels) const {
+    virtual DimensionKey get_dimension_key(const Tuple &t,  const std::vector<unsigned int>& levels) const {
       std::ostringstream ostr;
       get_dimension_key(t, levels, ostr);
       return ostr.str();
     }
 
-    virtual void get_dimension_key(const Tuple &t,  boost::shared_ptr<std::vector<unsigned int> > levels, std::ostringstream &ostr) const {
+    virtual void get_dimension_key(const Tuple &t,  const std::vector<unsigned int>& levels, std::ostringstream &ostr) const {
       for(size_t i=0; i<dimensions.size(); ++i) {
         dimensions[i]->get_key(t, ostr);
         ostr << "|";
-        ostr << (*levels)[i] << "|";
+        ostr << levels[i] << "|";
       }
     }
 
