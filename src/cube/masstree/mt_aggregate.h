@@ -35,7 +35,7 @@ class MasstreeAggregate: public ::jetstream::cube::Aggregate {
 
   protected:
 //    size_t sz;
-    size_t srctuple_offset;
+//    size_t srctuple_offset;
 //    size_t aggs_offset;
 };
 
@@ -49,7 +49,7 @@ class MTSumAggregate: public MasstreeAggregate {
     }
   
     virtual size_t from_tuple(char * agg_pos, const Tuple& src) {
-      long l = src.e(srctuple_offset).i_val();
+      long l = src.e(tuple_indexes[0]).i_val();
       *(reinterpret_cast<mt_sum_t*>(agg_pos)) = l;
       return sizeof(mt_sum_t);
     }
@@ -60,7 +60,7 @@ class MTSumAggregate: public MasstreeAggregate {
     }
   
     virtual size_t merge(char * agg_pos, const Tuple& src) {
-      long l = src.e(srctuple_offset).i_val();
+      long l = src.e(tuple_indexes[0]).i_val();
       *(reinterpret_cast<mt_sum_t*>(agg_pos)) += l;
       return sizeof(mt_sum_t);
     }
