@@ -38,6 +38,7 @@ void MasstreeCube::destroy() {
 }
 
 
+
 inline void
 MasstreeCube::extend_with_dims_from(Tuple * target, const Tuple& t) const {
   for (int i = 0; i < dimensions.size(); ++i) {

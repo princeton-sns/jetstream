@@ -79,6 +79,8 @@ class MasstreeCube: // public DataCube {
     virtual size_t num_leaf_cells() const {
       return tree.elements();
     }
+    
+//    virtual void do_process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc);
 
   private:
     JSMasstreePtr<AggregateBuffer> tree;
