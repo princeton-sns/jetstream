@@ -30,7 +30,7 @@ def main():
 
   parser = standard_option_parser()
   parser.add_option("--mode", dest="mode",
-  action="store", help="query to run. Should be 'trivial' or 'counts'")
+  action="store", help="query to run. Should be 'quantiles' or 'domains'")
   parser.add_option("--wait", dest="wait",
   action="store", help="how long to wait for results")
   (options, args) = parser.parse_args()
