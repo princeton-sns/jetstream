@@ -106,6 +106,40 @@ MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool ne
 
 
 void
+MasstreeCube::do_process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc) {
+
+
+  boost::shared_ptr<Tuple> no_need;
+//  save_tuple(*t, false, false, no_need, no_need);
+
+  AggregateBuffer * aggs = tree.get(key.c_str());
+  
+  if (!aggs) {
+    unsigned sz = 0;
+    for (unsigned i = 0; i < num_aggregates(); ++i)
+      sz += aggregates[i]->size(*t);
+    size_t alloc_sz = sizeof(AggregateBuffer) + sz -4;
+    aggs =  (AggregateBuffer *) malloc(alloc_sz); //already reserved size four
+
+      //FIXME: should do something aggregate-specific here
+    memset(aggs->data, 0, sz);
+    aggs->sz = alloc_sz;
+    tree.set(key.c_str(), aggs);
+  }
+  
+  char * buf = aggs->data;
+  char * buf_end = aggs->data + aggs->sz;
+  for (unsigned i = 0; i < num_aggregates(); ++i) {
+    buf += aggregates[i]->merge(buf, *t);
+    LOG_IF(FATAL, buf >= buf_end) << "buffer overrun in MT aggregate processing, on agggregate " <<
+        i<< "(" << aggregates[i]->get_name() <<")";
+  }
+
+
+}
+
+
+void
 MasstreeCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
        const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
        std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store) {
