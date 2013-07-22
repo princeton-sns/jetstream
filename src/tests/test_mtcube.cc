@@ -13,6 +13,7 @@
 using namespace jetstream;
 using jetstream::cube::MasstreeCube;
 using boost::shared_ptr;
+using std::vector;
 
 boost::shared_ptr<jetstream::CubeSchema> get_example_schema()
 {
@@ -72,7 +73,50 @@ TEST(MTCube, CreateAndStore) {
   ASSERT_EQ(40, new_tuple->e(3).i_val());
 //  cube->destroy();
 //  cube->create();
+}
+
+
+
+TEST(MTCube, PerfTest) {
+  const int NUM_DISTINCT = 16;
+  const int NUM_TUPLES = 2 * 1000 * 1000;
+  const int CUBE_THREADS = 1;
   
+  NodeConfig conf;
+  conf.cube_processor_threads = CUBE_THREADS;
+  shared_ptr<CubeSchema> sc = get_example_schema();
+//  MasstreeCube* cube = new MasstreeCube(*sc, "web_requests", true);
+  MasstreeCube cube(*sc, "web_requests", true, conf);
 
-
+  
+  vector< shared_ptr<Tuple> > tuples;
+  time_t cur_time = time(NULL);
+  for (int i = 0; i < NUM_DISTINCT; ++i) {
+    shared_ptr<Tuple> t(new jetstream::Tuple);
+    extend_tuple_time(*t, cur_time);
+    std::string  url("http://www.example.com/");
+    url += char('0' + i);
+    extend_tuple(*t, url);
+    extend_tuple(*t, 2);
+    extend_tuple(*t, 20);
+    tuples.push_back(t);
+  }
+  
+  usec_t start = get_usec();
+  shared_ptr<Tuple> no_need;
+  for (int i = 0; i < NUM_TUPLES; ++i) {
+      cube.save_tuple(*tuples[i % NUM_DISTINCT], false, false, no_need, no_need);
+  }
+  usec_t time_taken = get_usec() - start;
+  LOG(INFO) << "Measured " << double(NUM_TUPLES) * 1000000 /  time_taken << " tuples per second (raw)";
+  
+  
+  start = get_usec();
+  for (int i = 0; i < NUM_TUPLES; ++i) {
+      cube.process(NULL, tuples[i % NUM_DISTINCT]);
+  }
+  time_taken = get_usec() - start;
+  LOG(INFO) << "Measured " << double(NUM_TUPLES) * 1000000 /  time_taken << " tuples per second (via process())";
+//  delete cube;
+  
 }

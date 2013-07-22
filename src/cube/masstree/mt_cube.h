@@ -24,10 +24,12 @@ class MasstreeCube: // public DataCube {
                std::string _name,
                bool overwrite_if_present, const NodeConfig &conf = NodeConfig());
 
-
+    virtual ~MasstreeCube();
 
     virtual void create();
+
     virtual void destroy();
+
     virtual void clear_contents() {
       tree.clear();
     }
@@ -42,9 +44,11 @@ class MasstreeCube: // public DataCube {
        std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store)  ;
 
   virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
-       const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
-       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
-       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
+                                const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
+                                const std::vector<bool> &need_new_value_store,
+                                const std::vector<bool> &need_old_value_store,
+                                std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store,
+                                std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
 
 
     virtual boost::shared_ptr<jetstream::Tuple>

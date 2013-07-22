@@ -16,7 +16,15 @@ MasstreeCube::MasstreeCube (jetstream::CubeSchema const _schema,
       : DataCubeImpl(_schema, _name, conf){
   
   
-  }
+}
+
+MasstreeCube::~MasstreeCube() {
+  // ~TupleBatcher calls flush which calls save_tuple_batch. If processors isn't cleared
+  //until the base ~DataCube, this will be a pure virtual call, since the object has
+  // already been turned into a base instance. So we need to clear it here.
+  processors.clear();
+}
+
 
 
 void
@@ -87,7 +95,7 @@ MasstreeCube::save_tuple(jetstream::Tuple const &t, bool need_new_value, bool ne
     LOG_IF(FATAL, buf >= buf_end) << "buffer overrun in MT aggregate processing, on agggregate " <<
         i<< "(" << aggregates[i]->get_name() <<")";
   }
-  cout << "At store, aggs->data[0] is " << ((int*) aggs)[1] << endl;
+//  cout << "At store, aggs->data[0] is " << ((int*) aggs)[1] << endl;
   if ( need_new_value) {
     new_tuple = boost::shared_ptr<Tuple>(new Tuple);
     extend_with_dims_from(new_tuple.get(), t);
@@ -174,5 +182,5 @@ MasstreeCube::end() const {
 }
 
 
-}
+} //end namespace cube
 }
