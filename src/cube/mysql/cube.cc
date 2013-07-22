@@ -684,7 +684,7 @@ void MysqlCube::save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::
     for(; insert_store_index < count_insert_tally; ++insert_store_index) {
       LOG_IF(FATAL, levels_store.size() <= insert_store_index) << "levels_store only has " << levels_store.size()
           << " entries; index is " << insert_store_index;
-      LOG_IF(FATAL, !levels_store[insert_store_index])<<"levels_store["<<insert_store_index<<"] undefined";
+      LOG_IF(FATAL, !levels_store[insert_store_index])<<"levels_store["<<insert_store_index<<"] undefined, tuple_store size is " << tuple_store.size();
       LOG_IF(FATAL, (*(levels_store[insert_store_index])).size() != dimensions.size())  << "levels_store["<<insert_store_index<<"] does not have the right size. It's size is"
           <<  (*(levels_store[insert_store_index])).size() << " should be "<< dimensions.size();
 

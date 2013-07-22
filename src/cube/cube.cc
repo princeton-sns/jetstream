@@ -139,12 +139,23 @@ void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
     processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
   tmpostr->clear();
-  get_dimension_key(*t, current_levels, *tmpostr);
+
+  boost::shared_ptr<std::vector<unsigned int> > levels;  
+  if (chain && current_levels.find(chain) != current_levels.end()) {
+    levels = current_levels[chain];
+    get_dimension_key(*t, levels, *tmpostr);
+  }
+  else {
+    levels = get_leaf_levels();
+    //LOG(WARNING) << "Processing tuple data from unrecognized chain " << chain;
+    get_dimension_key(*t, levels, *tmpostr);
+  }
+
   DimensionKey key = tmpostr->str();
   size_t kh = (*hash_fn)(key);
   if(config.cube_max_stage < 2)
      return;
-  processors[kh % processors.size()]->assign(chain, t, key, current_levels);
+  processors[kh % processors.size()]->assign(chain, t, key, levels);
 }
 
 
@@ -157,11 +168,11 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
 
   if (msg.has_type() && msg.type() != DataplaneMessage::DATA)
   {
+    LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
     shared_lock<boost::shared_mutex> lock(subscriberLock);
     for(std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> >::iterator it = subscribers.begin();
         it != subscribers.end(); ++it) {
       boost::shared_ptr<jetstream::cube::Subscriber> sub = (*it).second;
-      LOG_IF(FATAL, !chain) << "can't process meta from a non-chain";
       shared_ptr<FlushInfo> f = sub->incoming_meta(*chain, msg);
       if (f) {
         f->subsc = sub;
@@ -170,30 +181,41 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
     }
   }
 
-  if( msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
-    if(msg.rollup_levels_size() == 0) {
-      set_current_levels(get_leaf_levels());
+  if (msg.type() == DataplaneMessage::ROLLUP_LEVELS) {
+    if (!chain || current_levels.find(chain) != current_levels.end()) {
+      LOG(WARNING) << "Recieved rollup levelS info for unrecognized chain " << chain << ", ignoring";
+    }
+    else if(msg.rollup_levels_size() == 0) {
+      set_current_levels(chain, get_leaf_levels());
     }
     else {
       LOG_IF(FATAL, (unsigned int) msg.rollup_levels_size() != num_dimensions()) << "got a rollup levels msg with the wrong number of dimensions: "
-        << msg.rollup_levels_size()<< " should be " <<num_dimensions();
+        << msg.rollup_levels_size()<< " should be " << num_dimensions();
       std::vector<unsigned int> levels;
       for(int i = 0; i < msg.rollup_levels_size(); ++i ) {
         levels.push_back(msg.rollup_levels(i));
       }
-      set_current_levels(levels); //There's a race condition here since there may be many incoming
+      set_current_levels(chain, levels);
           //chains, at different rollup levels.
     }
+  }
+
+  if (msg.type() == DataplaneMessage::NO_MORE_DATA) {
+    current_levels.erase(chain);
   }
 }
 
 
 void
 DataCube::add_chain(boost::shared_ptr<OperatorChain> c) {
-  if (c->member(0).get() != this)
+  if (c->member(0).get() != this) {
     boost::interprocess::ipcdetail::atomic_inc32(&in_chain_count);
 //  unsigned ccount = boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
 //  LOG(INFO) << "Adding chain into " << name << ", leaving " << ccount;
+
+    // Initialize the rollup levels for this incoming chain
+    set_current_levels(c.get(), get_leaf_levels());
+  }
 }
 
 
@@ -359,12 +381,12 @@ Tuple DataCube::empty_tuple() {
   return t;
 }
 
-void DataCube::set_current_levels(const std::vector<unsigned int> &levels) {
-   current_levels = make_shared<std::vector<unsigned int> >(levels);
+void DataCube::set_current_levels(OperatorChain * chain, const std::vector<unsigned int> &levels) {
+  current_levels[chain] = make_shared<std::vector<unsigned int> >(levels);
 }
 
-void DataCube::set_current_levels(boost::shared_ptr<std::vector<unsigned int> > levels) {
-   current_levels = levels;
+void DataCube::set_current_levels(OperatorChain * chain, boost::shared_ptr<std::vector<unsigned int> > levels) {
+  current_levels[chain] = levels;
 }
 
 const jetstream::CubeSchema& DataCube::get_schema() {

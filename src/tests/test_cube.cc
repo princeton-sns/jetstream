@@ -1010,7 +1010,8 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
 
 
 }
-//  Disabled because we ren't using the time hierarchy right now.
+
+//  Disabled because we aren't using the time hierarchy right now.
 TEST_F(CubeTest, MysqlTestTimeRollup) {
 
   boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
@@ -1354,7 +1355,6 @@ TEST_F(CubeTest, MysqlTestReservoirSampleAggregate) {
   cout << "nominal sum is " << nominal_sum << "." <<endl;
   cout << "sample mean was " << res.mean()<<", should be " << (nominal_sum / 40.0) << endl;
   ASSERT_EQ(13, (int) res.mean());
-
 }
 
 TEST_F(CubeTest, MysqlTestReservoirSamplePair) {
@@ -1520,6 +1520,7 @@ TEST_F(CubeTest, Aggregates) {
 
 
 }
+
 /*
 TEST_F(CubeTest, TimeRollupManager) {
 boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
@@ -1574,7 +1575,68 @@ ASSERT_EQ(timegm(&cieltm), ciel);
 
 ASSERT_EQ(timegm(&cieltm), trm.time_ciel(timegm(&cieltm)));
 ASSERT_EQ(timegm(&floortm), trm.time_floor(timegm(&floortm)));
-
-
-
 }*/
+
+TEST_F(CubeTest, DISABLED_PerChainRollupLevels) {
+  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
+  //boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+  boost::shared_ptr<OperatorChain> chain1(new OperatorChain());
+  boost::shared_ptr<OperatorChain> chain2(new OperatorChain());
+
+  cube->add_chain(chain1);
+  cube->add_chain(chain2);
+  //cube->add_subscriber(sub);
+  // cube->destroy();
+  //cube->create();
+  
+  /*
+  boost::shared_ptr<std::vector<unsigned int> > correct_levels = cube->get_leaf_levels();
+  for (uint i = 0; i < correct_levels->size(); i++) {
+    ASSERT_EQ((*correct_levels)[i], (*cube->current_levels[chain1.get()])[i]);
+  }
+  */
+
+  std::vector<boost::shared_ptr<jetstream::Tuple> > tuples;
+  DataplaneMessage msg;
+  msg.set_type(DataplaneMessage::ROLLUP_LEVELS);
+  msg.add_rollup_levels(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
+  msg.add_rollup_levels(1);
+  msg.add_rollup_levels(1);
+  cube->process(chain1.get(), tuples, msg);
+
+  msg.clear_rollup_levels();
+  msg.add_rollup_levels(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
+
+
+  for (uint i = 0; i < cube->num_dimensions(); i++)
+    msg.add_rollup_levels(cube->num_dimensions() - i);
+  cube->process(chain2.get(), tuples, msg);
+
+  /*
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  cube->process(NULL, t);
+
+  for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++) {
+    js_usleep(100000);
+  }
+
+  ASSERT_EQ(0U, sub->insert_q.size());
+  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+
+  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
+  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cube->process(NULL, t2);
+
+  for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++) {
+    js_usleep(10000);
+  }
+
+  ASSERT_EQ(2U, sub->insert_q.size());
+  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
+  cout << "done" <<endl;
+  */
+
+  delete cube;
+}

@@ -25,11 +25,6 @@ class DataCubeImpl : public DataCube {
 
     DataCubeImpl(jetstream::CubeSchema _schema, std::string n, const NodeConfig &conf): DataCube(_schema, n, conf) {
       build(_schema);
-      std::vector<unsigned int> leaf_levels;
-      for (unsigned i = 0; i < dimensions.size(); ++i) {
-        leaf_levels.push_back(dimensions[i]->leaf_level());
-      }
-      set_current_levels(leaf_levels);
       src_tuple_min_len = 0;
     }
 

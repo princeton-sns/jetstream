@@ -244,8 +244,8 @@ class DataCube : public ChainMember {
     std::map<operator_id_t, boost::shared_ptr<jetstream::cube::Subscriber> > subscribers;
     mutable boost::shared_mutex subscriberLock; // protects list of operators; reader/writer semantics
 
-    void set_current_levels(const std::vector<unsigned int> &levels);
-    void set_current_levels(boost::shared_ptr<std::vector<unsigned int> > levels);
+    void set_current_levels(OperatorChain *, const std::vector<unsigned int> &levels);
+    void set_current_levels(OperatorChain *, boost::shared_ptr<std::vector<unsigned int> > levels);
 
     uint64_t version;
 
@@ -258,7 +258,8 @@ class DataCube : public ChainMember {
     boost::shared_ptr<ChainedQueueMonitor> processCongestMon;
 
     std::vector<boost::shared_ptr<ProcessCallable> > processors;
-    boost::shared_ptr<std::vector<unsigned int> > current_levels;
+    // The current rollup levels per incoming chain into the cube
+    std::map<OperatorChain *, boost::shared_ptr<std::vector<unsigned int> > > current_levels;
 };
 
 }

@@ -727,7 +727,7 @@ URLToDomain::configure (std::map<std::string,std::string> &config) {
 
 void
 ProjectionOperator::process_one (boost::shared_ptr<Tuple>& t) {
-  assert(t->e_size() >= 1);
+  //assert(t->e_size() >= 1);
   uint new_size = t->e_size() - 1;
   google::protobuf::RepeatedPtrField<Element>* elems = t->mutable_e();
   for (unsigned i = field_id; i < new_size; ++i) {
