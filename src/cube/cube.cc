@@ -14,11 +14,11 @@ using namespace boost;
 unsigned int const jetstream::DataCube::LEAF_LEVEL =  100000;
   //std::numeric_limits<unsigned int>::max();
 
-
+const int BASE_QUEUE_SIZE = 600000 /200; //tuples/sec / wait time
 ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name),
    //service_process(new io_service(1)),
 #if NONBLOCK_QUEUE
-   process_tasks(128),
+   process_tasks(BASE_QUEUE_SIZE),
 #endif
   service_flush(new io_service(1)),
  //  work_process(*service_process),

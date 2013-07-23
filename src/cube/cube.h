@@ -23,12 +23,11 @@
 #define NONBLOCK_QUEUE 1
 
 #if NONBLOCK_QUEUE
-#include <boost/lockfree/spsc_queue.hpp>
+//#include <boost/lockfree/spsc_queue.hpp>
+//using boost::lockfree::spsc_queue;
 
-using boost::lockfree::spsc_queue;
-
-//#include <boost/lockfree/queue.hpp>
-//using boost::lockfree::queue;
+#include <boost/lockfree/queue.hpp>
+using boost::lockfree::queue;
 
 #endif
 
@@ -132,7 +131,7 @@ class ProcessCallable {
     boost::mutex process_lock;
     boost::condition_variable has_data;
 #elif NONBLOCK_QUEUE
-    boost::lockfree::spsc_queue< ProcessThreadTask* >  process_tasks;
+    boost::lockfree::queue< ProcessThreadTask* >  process_tasks;
 #endif
     unsigned cntr;
 
