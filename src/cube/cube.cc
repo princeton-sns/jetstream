@@ -14,10 +14,19 @@ using namespace boost;
 unsigned int const jetstream::DataCube::LEAF_LEVEL =  100000;
   //std::numeric_limits<unsigned int>::max();
 
-ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name), service_process(new io_service(1)), 
-  service_flush(new io_service(1)), work_process(*service_process), work_flush(*service_flush),
-  cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
 
+ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name),
+   //service_process(new io_service(1)),
+#if NONBLOCK_QUEUE
+   process_tasks(128),
+#endif
+  service_flush(new io_service(1)),
+ //  work_process(*service_process),
+   work_flush(*service_flush),
+  cube(cube), tupleBatcher(new cube::TupleBatch(cube)) {
+  cntr = 0;
+  process_is_running = true;
+  
   // this should always be the last line in the constructor
   thread_process = boost::thread(&ProcessCallable::run_process, this);
   thread_flush = boost::thread(&ProcessCallable::run_flush, this);
@@ -25,15 +34,50 @@ ProcessCallable::ProcessCallable(DataCube * cube, std::string name): name(name),
 
 
 ProcessCallable::~ProcessCallable() {
-  service_process->stop();
+//  service_process->stop();
   service_flush->stop();
+  process_is_running = false;
+#if BLOCKING_QUEUE
+  has_data.notify_all();
+#endif
   thread_process.join();
   thread_flush.join();
 }
 
 void ProcessCallable::run_process() {
   jetstream::set_thread_name("js-cube-proc-"+name);
-  service_process->run();
+  
+  while(process_is_running) {
+#if BLOCKING_QUEUE
+    boost::unique_lock<boost::mutex> lock(process_lock);
+    while(process_tasks.empty() && process_is_running) {
+      has_data.wait(lock);
+    }
+    while(!process_tasks.empty()) {
+      ProcessThreadTask * task = process_tasks.front();
+      process_tasks.pop();
+
+#elif NONBLOCK_QUEUE
+    ProcessThreadTask * task = 0;
+
+    while(!process_tasks.pop(task) && process_is_running) {
+      js_usleep(5 * 1000);
+    }
+    if (!task)
+      break;
+    {
+#endif
+      if (task->is_insert) {
+        TupleInsertion * raw = dynamic_cast<TupleInsertion*>(task);
+        cube->do_process(raw->chain, raw->tuple, raw->key, raw->levels, tupleBatcher, this);
+      } else {
+        FlushTask * flush = dynamic_cast<FlushTask*>(task);
+        barrier_to_flushqueue(flush->flush);
+      }
+      delete task;
+    }
+  }
+ //  service_process->run();
 }
 
 void ProcessCallable::run_flush() {
@@ -42,14 +86,32 @@ void ProcessCallable::run_flush() {
 }
 
 
-void ProcessCallable::assign(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels) {
-  service_process->post(boost::bind(&ProcessCallable::process, this, chain, t, key, levels));
+void ProcessCallable::assign(OperatorChain * chain, const boost::shared_ptr<Tuple> & t, DimensionKey key, const  boost::shared_ptr<std::vector<unsigned int> >& levels) {
+  TupleInsertion * ins =  new TupleInsertion(chain, t, key, levels);
+#if BLOCKING_QUEUE
+  process_lock.lock();
+  process_tasks.push(ins);
+  if ((cntr++ & 0x7F) == 0)
+    has_data.notify_one();
+  process_lock.unlock();
+#elif NONBLOCK_QUEUE
+  process_tasks.push(ins);
+#endif
+//  service_process->post(boost::bind(&ProcessCallable::process, this, chain, t, key, levels));
 }
 
 
 void
 ProcessCallable::barrier(boost::shared_ptr<FlushInfo> flush) {
-  service_process->post(boost::bind(&ProcessCallable::barrier_to_flushqueue, this, flush));
+//  service_process->post(boost::bind(&ProcessCallable::barrier_to_flushqueue, this, flush));
+#if BLOCKING_QUEUE
+  process_lock.lock();
+  process_tasks.push(new FlushTask(flush));
+  has_data.notify_one();
+  process_lock.unlock();
+#elif NONBLOCK_QUEUE
+  process_tasks.push(new FlushTask(flush));
+#endif
 }
 
 void
@@ -72,7 +134,8 @@ void ProcessCallable::process(OperatorChain * chain, boost::shared_ptr<Tuple> t,
   VLOG(10) << "finished a tuple in ProcessCallable with key " << key;
 }
 
-boost::shared_ptr<cube::TupleBatch> ProcessCallable::batch_flush() {
+boost::shared_ptr<cube::TupleBatch>
+ProcessCallable::batch_flush() {
   boost::lock_guard<boost::mutex> lock(batcherLock);
   boost::shared_ptr<cube::TupleBatch> ptr = tupleBatcher;
   cube::TupleBatch * batch = new cube::TupleBatch(cube);
@@ -121,6 +184,16 @@ DataCube::DataCube(jetstream::CubeSchema _schema, std::string _name, const NodeC
 
 const std::string jetstream::DataCube::my_tyepename("Data Cube");
 
+// Borrowed from the boost hash.hpp; stripped out all the genericization.
+unsigned fast_string_hash(const char * c) {
+  unsigned seed = 0;
+  while (*c != '\0') {
+    seed ^= *c + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    c++;
+  }
+  return seed;
+}
+
 void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
 //  LOG(INFO) << "processing" << fmt(*t);
 
@@ -131,17 +204,18 @@ void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
 
   if (!tmpostr.get())
     tmpostr.reset(new std::ostringstream());
-  if(!hash_fn.get()) {
+/*  if(!hash_fn.get()) {
     LOG(INFO) << "Using thread in process thread_id is: " << boost::this_thread::get_id();
     hash_fn.reset(new boost::hash<std::string>());
-  }
+  }*/
   if(config.cube_max_stage > 4)
     processCongestMon->report_insert(t.get(), 1);
   tmpostr->str("");
   tmpostr->clear();
   get_dimension_key(*t, *current_levels, *tmpostr);
   DimensionKey key = tmpostr->str();
-  size_t kh = (*hash_fn)(key);
+//  size_t kh = (*hash_fn)(key);
+  size_t kh = fast_string_hash(key.c_str());
   if(config.cube_max_stage < 2)
      return;
   processors[kh % processors.size()]->assign(chain, t, key, current_levels);

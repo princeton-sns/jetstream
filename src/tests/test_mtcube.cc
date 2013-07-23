@@ -75,12 +75,10 @@ TEST(MTCube, CreateAndStore) {
 //  cube->create();
 }
 
+void run_test(int CUBE_THREADS) {
 
-
-TEST(MTCube, PerfTest) {
   const int NUM_DISTINCT = 16;
   const int NUM_TUPLES = 2 * 1000 * 1000;
-  const int CUBE_THREADS = 4;
   bool PROFILE_RAW = false;
   
   NodeConfig conf;
@@ -105,13 +103,15 @@ TEST(MTCube, PerfTest) {
   
   usec_t time_taken, start = get_usec();
   shared_ptr<Tuple> no_need;
-
+  LOG(INFO) << "----- Test with " << CUBE_THREADS << " threads -----";
   if (PROFILE_RAW) {
     for (int i = 0; i < NUM_TUPLES; ++i) {
         cube.save_tuple(*tuples[i % NUM_DISTINCT], false, false, no_need, no_need);
     }
     time_taken = get_usec() - start;
     LOG(INFO) << "Measured " << double(NUM_TUPLES) * 1000000 /  time_taken << " tuples per second (raw)";
+    ASSERT_EQ(16, cube.num_leaf_cells());
+
     start = get_usec();
   }
   
@@ -122,4 +122,17 @@ TEST(MTCube, PerfTest) {
   LOG(INFO) << "Measured " << double(NUM_TUPLES) * 1000000 /  time_taken << " tuples per second (via process())";
 //  delete cube;
   
+}
+
+TEST(MTCube, DISABLED_PerfTest) {
+  run_test(1);
+  run_test(2);
+  run_test(4);
+  run_test(8);
+}
+
+
+TEST(MTCube, PerfTest4) {
+  run_test(4);
+
 }
