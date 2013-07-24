@@ -3,7 +3,6 @@
 #include "mysql/dimension.h"
 #include "mysql/dimension_time.h"
 
-#include "mysql/dimension_time_hierarchy.h"
 #include "mysql/dimension_time_containment.h"
 #include "mysql/dimension_int.h"
 #include "mysql/dimension_string.h"
@@ -34,11 +33,7 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
         obj->init(_schema);
       return obj;
     }
-    else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_HIERARCHY){
-        boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeHierarchy>();
-        obj->init(_schema);
-      return obj;
-    }else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT){
+    else if(_schema.type() == jetstream::CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT){
         boost::shared_ptr<jetstream::cube::MysqlDimension> obj = boost::make_shared<MysqlDimensionTimeContainment>();
         obj->init(_schema);
       return obj;
