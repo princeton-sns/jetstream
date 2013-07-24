@@ -121,6 +121,8 @@ class ProcessCallable {
     void check_flush();
     void barrier(boost::shared_ptr<FlushInfo>); //called from outside
 
+    mutable boost::mutex batcherLock; // protects tupleBatcher
+
   private:
     std::string name;
     boost::thread thread_process;
@@ -147,11 +149,9 @@ class ProcessCallable {
     jetstream::DataCube * cube;
 
     // This runs in the thread_process thread
-    void process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
     void do_check_flush();
 
     boost::shared_ptr<cube::TupleBatch> tupleBatcher;
-    mutable boost::mutex batcherLock; // protects tupleBatcher
   
     void barrier_to_flushqueue(boost::shared_ptr<FlushInfo>); //invoked on service_process
     void do_barrier(boost::shared_ptr<FlushInfo>); //invoked on flush-strand  

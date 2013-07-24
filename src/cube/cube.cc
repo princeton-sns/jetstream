@@ -126,14 +126,6 @@ ProcessCallable::do_barrier(boost::shared_ptr<FlushInfo> flush) {
     flush->subsc->flush_callback(flush->id);
   }
 }
-
-void ProcessCallable::process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels ) {
-  VLOG(10) << "got a tuple in ProcessCallable with key " << key;
-  boost::lock_guard<boost::mutex> lock(batcherLock);
-  cube->do_process(chain, t, key, levels, tupleBatcher, this);
-  VLOG(10) << "finished a tuple in ProcessCallable with key " << key;
-}
-
 boost::shared_ptr<cube::TupleBatch>
 ProcessCallable::batch_flush() {
   boost::lock_guard<boost::mutex> lock(batcherLock);
@@ -301,6 +293,8 @@ DataCube::do_process( OperatorChain * chain,
      return;
 
 
+  boost::lock_guard<boost::mutex> lock(proc->batcherLock);
+
   bool in_batch = false;
 
   VLOG(2) << "Processing " << key  << " thread id " << boost::this_thread::get_id();
@@ -364,6 +358,7 @@ DataCube::do_process( OperatorChain * chain,
       flushCongestMon->report_insert(tpi.get(), 1);
   }
   else {
+//    LOG_IF(tpi->)
     tupleBatcher->update_batched_tuple(tpi, can_batch);
   }
 
