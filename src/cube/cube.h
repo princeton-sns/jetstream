@@ -19,8 +19,8 @@
 #include <boost/interprocess/detail/atomic.hpp>
 
 // For cube process threads
-#define BLOCKING_QUEUE 0
-#define NONBLOCK_QUEUE 1
+#define BLOCKING_QUEUE 1
+#define NONBLOCK_QUEUE 0
 
 #if NONBLOCK_QUEUE
 //#include <boost/lockfree/spsc_queue.hpp>

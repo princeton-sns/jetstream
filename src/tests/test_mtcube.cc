@@ -21,7 +21,7 @@ boost::shared_ptr<jetstream::CubeSchema> get_example_schema()
 
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_name("time");
-  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
   dim->add_tuple_indexes(0);
 
   dim = sc->add_dimensions();

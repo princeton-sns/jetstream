@@ -1338,7 +1338,7 @@ TEST_F(CubeTest, Aggregates) {
 
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_name("time");
-  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
   dim->add_tuple_indexes(0);
 
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();

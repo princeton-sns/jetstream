@@ -46,11 +46,12 @@ ProcessCallable::~ProcessCallable() {
 
 void ProcessCallable::run_process() {
   jetstream::set_thread_name("js-cube-proc-"+name);
+
+#if BLOCKING_QUEUE
   
   while(process_is_running) {
-#if BLOCKING_QUEUE
     boost::unique_lock<boost::mutex> lock(process_lock);
-    while(process_tasks.empty() && process_is_running) {
+    if(process_tasks.empty()) {
       has_data.wait(lock);
     }
     while(!process_tasks.empty()) {
@@ -58,6 +59,7 @@ void ProcessCallable::run_process() {
       process_tasks.pop();
 
 #elif NONBLOCK_QUEUE
+  while(process_is_running) {
     ProcessThreadTask * task = 0;
 
     while(!process_tasks.pop(task) && process_is_running) {
@@ -91,7 +93,7 @@ void ProcessCallable::assign(OperatorChain * chain, const boost::shared_ptr<Tupl
 #if BLOCKING_QUEUE
   process_lock.lock();
   process_tasks.push(ins);
-  if ((cntr++ & 0x7F) == 0)
+//  if ((cntr++ & 0x7F) == 0)
     has_data.notify_one();
   process_lock.unlock();
 #elif NONBLOCK_QUEUE
@@ -291,8 +293,6 @@ DataCube::do_process( OperatorChain * chain,
                       ProcessCallable * proc) {
   if(config.cube_max_stage < 3)
      return;
-
-
   boost::lock_guard<boost::mutex> lock(proc->batcherLock);
 
   bool in_batch = false;
