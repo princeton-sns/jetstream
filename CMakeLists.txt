@@ -118,10 +118,12 @@ include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/i
 ### Build Masstree
 #
 
-add_custom_command(
-    OUTPUT ${SRC_DIR}/utils/libmtree.a
-    COMMAND make 
-    COMMAND cp ${TOP_DIR}/masstree_source/libmtree.a ${SRC_DIR}/utils/libmtree.a
+#add_custom_command(
+#     OUTPUT ${SRC_DIR}/utils/libmtree.a
+add_custom_target(masstree
+   COMMENT "Building Masstree"
+    make 
+    COMMAND cp ${TOP_DIR}/masstree_source/libmtree.a  ${TOP_DIR}/masstree_source/libmtree.dylib  ${SRC_DIR}/utils/
     DEPENDS ${TOP_DIR}/masstree_source/*.cc ${TOP_DIR}/masstree_source/*.hh ${TOP_DIR}/masstree_source/*.h ${TOP_DIR}/masstree_source/*.c
     WORKING_DIRECTORY ${TOP_DIR}/masstree_source)
 
@@ -140,6 +142,7 @@ include_directories (SYSTEM ${SRC_DIR}/proto/cpp)
 set (LIBRARY_NAME jsutils)
 add_subdirectory (${SRC_DIR}/utils)
 link_directories (${BUILD_DIR}/utils)
+add_dependencies (${LIBRARY_NAME} ${SRC_DIR}/utils/libmtree.a)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 include_directories (${SRC_DIR}/utils)
@@ -183,6 +186,7 @@ link_directories (${BUILD_DIR}/cube)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 include_directories (${SRC_DIR}/cube/mysql)
 include_directories (${SRC_DIR}/cube/masstree)
+add_dependencies (${LIBRARY_NAME} masstree)
 
 
 set (LIBRARY_NAME jsdataplane)
