@@ -61,6 +61,8 @@ struct DimensionFactory<jetstream::cube::MysqlDimension>
     else
     {
       LOG(FATAL) <<"Unknown dimension type";
+      boost::shared_ptr<jetstream::cube::MysqlDimension> obj;
+      return obj;    
     }
   };
 };

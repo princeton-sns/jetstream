@@ -62,6 +62,8 @@ class DataCubeImpl : public DataCube {
         return dimensions.at(pos);
       }
       LOG(FATAL) << "No dimension named "<<name << "; schema is " << schema.Utf8DebugString();
+      boost::shared_ptr<CubeDimension> x;
+      return x;
     }
 
     bool has_dimension(std::string name) const {

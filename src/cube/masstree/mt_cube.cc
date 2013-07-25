@@ -41,7 +41,7 @@ void MasstreeCube::destroy() {
 
 inline void
 MasstreeCube::extend_with_dims_from(Tuple * target, const Tuple& t) const {
-  for (int i = 0; i < dimensions.size(); ++i) {
+  for (unsigned int i = 0; i < dimensions.size(); ++i) {
     Element * e = target->add_e();
     vector<size_t> idx = dimension_offset( dimensions[i]->get_name() );
     e->CopyFrom(t.e(  idx[0] ));
