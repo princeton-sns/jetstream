@@ -23,6 +23,8 @@
 #include <type_traits>
 #endif
 
+#define nullptr 0
+
 #define arraysize(a) (sizeof(a) / sizeof((a)[0]))
 
 #define likely(x) __builtin_expect(!!(x), 1)

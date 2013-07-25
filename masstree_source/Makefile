@@ -1,6 +1,7 @@
 AR = ar
 CC = gcc
 CXX = c++ -std=gnu++0x
+#CXX = /opt/local/bin/g++-mp-4.5 -std=gnu++0x
 CFLAGS = -g -W -Wall -fPIC
 # -O2
 DEPSDIR := .deps

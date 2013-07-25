@@ -277,7 +277,7 @@ class String_base {
         return String_generic::to_i(begin(), end());
     }
   protected:
-    String_base() = default;
+    String_base() {}; //ASR
 };
 
 template <typename T, typename U>
