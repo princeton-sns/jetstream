@@ -115,6 +115,17 @@ find_library(GLOG_LIB glog) #glog has no dependencies and so this is safe. --ASR
 include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/include/mysql5-connector-cpp)
 
 
+### Build Masstree
+#
+
+add_custom_command(
+    OUTPUT ${SRC_DIR}/utils/libmtree.a
+    COMMAND make 
+    COMMAND cp ${TOP_DIR}/masstree_source/libmtree.a ${SRC_DIR}/utils/libmtree.a
+    DEPENDS ${TOP_DIR}/masstree_source/*.cc ${TOP_DIR}/masstree_source/*.hh ${TOP_DIR}/masstree_source/*.h ${TOP_DIR}/masstree_source/*.c
+    WORKING_DIRECTORY ${TOP_DIR}/masstree_source)
+
+
 #######################################################
 # Set library locations and sources
 
