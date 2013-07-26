@@ -46,6 +46,9 @@ def main():
       print "Can't specify mode as both an arg and an option."
       sys.exit(0)
   else:
+    if len(args) == 0:
+      print "Must specify a mode."
+      sys.exit(0)
     mode = args[0]
   
   if mode == "quantiles":
@@ -80,7 +83,8 @@ def main():
     raw_cube_sub = jsapi.TimeSubscriber(g, {}, 1000)
     raw_cube_sub.set_cfg("simulation_rate", options.warp_factor)
     raw_cube_sub.set_cfg("ts_field", 0)
-    raw_cube_sub.set_cfg("start_ts", options.start_ts)
+    if options.start_ts:
+      raw_cube_sub.set_cfg("start_ts", options.start_ts)
     time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
     last_op = g.chain([raw_cube, raw_cube_sub, time_shift]) 
