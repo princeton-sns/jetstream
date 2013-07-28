@@ -2,7 +2,6 @@
 #include "mysql_cube.h"
 #include "cube_iterator.h"
 #include "cube_iterator_impl.h"
-
 #include <glog/logging.h>
 
 using std::string;
@@ -973,6 +972,8 @@ string MysqlCube::get_limit_clause(size_t limit) const {
 string MysqlCube::get_where_clause(jetstream::Tuple const &min, jetstream::Tuple const &max, std::vector<unsigned int> const &levels) const {
 
   assert(levels.empty() || levels.size() == dimensions.size());
+  assert((uint)min.e_size() >= dimensions.size());
+  assert((uint)max.e_size() >= dimensions.size());
   int tuple_index_min = 0;
   int tuple_index_max = 0;
   vector<string> where_clauses;
@@ -991,7 +992,7 @@ string MysqlCube::get_where_clause(jetstream::Tuple const &min, jetstream::Tuple
       where_clauses.push_back(where);
 
     if(!levels.empty()) {
-      where_clauses.push_back(dimensions[i]->get_rollup_level_column_name()+" = "+boost::lexical_cast<string>(*iLevel));
+      where_clauses.push_back(dimensions[i]->get_rollup_level_column_name() + " = " + boost::lexical_cast<string>(*iLevel));
       iLevel++;
     }
   }
@@ -1073,7 +1074,7 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
   sql += get_rollup_sql(levels, min, max);
 
   //  sql += " ON DUPLICATE KEY UPDATE";
-  VLOG(1) << "in rollup_slice_query; query is " << sql;
+  VLOG(1) << "in do_rollup; query is " << sql;
 
   execute_sql(sql);
 }
@@ -1087,6 +1088,7 @@ MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::
 
   VLOG(1) << "in slice_and_rollup; query is " << sql << "\nMin was " << fmt(min)
    << " and max was " << fmt(max);
+
   return get_result_iterator(sql, false, false);
 }
 

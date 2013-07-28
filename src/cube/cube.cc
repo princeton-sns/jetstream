@@ -147,7 +147,7 @@ void DataCube::process(OperatorChain * chain, boost::shared_ptr<Tuple> t) {
   }
   else {
     levels = get_leaf_levels();
-    //LOG(WARNING) << "Processing tuple data from unrecognized chain " << chain;
+    LOG(WARNING) << "Processing tuple data from unrecognized chain " << chain;
     get_dimension_key(*t, levels, *tmpostr);
   }
 
@@ -208,7 +208,7 @@ DataCube::process(OperatorChain * chain,  std::vector<boost::shared_ptr<Tuple> >
 
 void
 DataCube::add_chain(boost::shared_ptr<OperatorChain> c) {
-  if (c->member(0).get() != this) {
+  if (c->members() > 0 && c->member(0).get() != this) {
     boost::interprocess::ipcdetail::atomic_inc32(&in_chain_count);
 //  unsigned ccount = boost::interprocess::ipcdetail::atomic_read32(&in_chain_count);
 //  LOG(INFO) << "Adding chain into " << name << ", leaving " << ccount;

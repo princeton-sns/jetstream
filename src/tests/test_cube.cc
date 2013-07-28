@@ -136,6 +136,17 @@ void check_tuple_input(boost::shared_ptr<jetstream::Tuple> const & answer, time_
   ASSERT_EQ(count, answer->e(5).i_val());
 }
 
+void check_tuple_(boost::shared_ptr<jetstream::Tuple> const & answer, time_t time, string url, int rc, int sum, int count) {
+  ASSERT_EQ(time, answer->e(0).t_val());
+  ASSERT_STREQ(url.c_str(), answer->e(1).s_val().c_str());
+  ASSERT_EQ(rc, answer->e(2).i_val());
+  ASSERT_EQ(count, answer->e(3).i_val());
+  ASSERT_EQ(sum, answer->e(4).i_val());
+  ASSERT_EQ(sum, answer->e(4).d_val());
+  ASSERT_EQ(count, answer->e(5).i_val());
+}
+
+
 TEST_F(CubeTest, SaveTupleTest) {
   MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
 //  cube->destroy();
@@ -233,29 +244,6 @@ TEST_F(CubeTest, SaveTupleBatchTest) {
 
 
 TEST_F(CubeTest, ProcessTest) {
-  /*
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
-  //cube->set_batch_timeout( boost::posix_time::seconds(10));
-  boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
-  cube->add_subscriber(sub);
-  cube->destroy();
-  cube->create();
-
-  boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
-  time_t time_entered = time(NULL);
-  insert_tuple(*t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  sub->returnAction = Subscriber::SEND;
-  cube->process(t);
-  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
-  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(t2);
-  cube->wait_for_commits();
-  //js_usleep(100000);
-  ASSERT_EQ(2U, cube->num_leaf_cells() );
-  ASSERT_EQ(2U, sub->insert_q.size());
-  delete cube;*/
-
-
   boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
   //MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
   cube->destroy();
@@ -1085,7 +1073,6 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   e=max.add_e(); //url
   e=max.add_e(); //rc
 
-
   cube->do_rollup(levels, empty, empty);
   it = cube->rollup_slice_query(levels, max, max);
   ASSERT_EQ(1U, it.numCells());
@@ -1099,7 +1086,6 @@ TEST_F(CubeTest, MysqlTestTimeRollup) {
   //ASSERT_EQ(0, ptrTup->e(4).i_val());
   ASSERT_EQ(200, ptrTup->e(3).i_val());
   ASSERT_EQ(5, ptrTup->e(4).i_val());
-
 }
 
 TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
@@ -1577,25 +1563,19 @@ ASSERT_EQ(timegm(&cieltm), trm.time_ciel(timegm(&cieltm)));
 ASSERT_EQ(timegm(&floortm), trm.time_floor(timegm(&floortm)));
 }*/
 
-TEST_F(CubeTest, DISABLED_PerChainRollupLevels) {
-  MysqlCube * cube = new MysqlCube(*sc, "web_requests", true);
-  //boost::shared_ptr<cube::QueueSubscriber> sub= make_shared<cube::QueueSubscriber>();
+TEST_F(CubeTest, PerChainRollupLevels) {
+  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
   boost::shared_ptr<OperatorChain> chain1(new OperatorChain());
   boost::shared_ptr<OperatorChain> chain2(new OperatorChain());
 
+  // Create a cube with two incoming chains; we don't need to construct the actual chains,
+  // since the cube just treats them as opaque identifiers.
+  cube->create();
   cube->add_chain(chain1);
   cube->add_chain(chain2);
-  //cube->add_subscriber(sub);
-  // cube->destroy();
-  //cube->create();
-  
-  /*
-  boost::shared_ptr<std::vector<unsigned int> > correct_levels = cube->get_leaf_levels();
-  for (uint i = 0; i < correct_levels->size(); i++) {
-    ASSERT_EQ((*correct_levels)[i], (*cube->current_levels[chain1.get()])[i]);
-  }
-  */
 
+  // Tell the cube that time data on one chain is rolled up to the minute level, and
+  // for the other chain rolled up to the second level
   std::vector<boost::shared_ptr<jetstream::Tuple> > tuples;
   DataplaneMessage msg;
   msg.set_type(DataplaneMessage::ROLLUP_LEVELS);
@@ -1603,40 +1583,53 @@ TEST_F(CubeTest, DISABLED_PerChainRollupLevels) {
   msg.add_rollup_levels(1);
   msg.add_rollup_levels(1);
   cube->process(chain1.get(), tuples, msg);
-
   msg.clear_rollup_levels();
   msg.add_rollup_levels(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
-
-
-  for (uint i = 0; i < cube->num_dimensions(); i++)
-    msg.add_rollup_levels(cube->num_dimensions() - i);
+  msg.add_rollup_levels(1);
+  msg.add_rollup_levels(1);
   cube->process(chain2.get(), tuples, msg);
 
-  /*
-  ASSERT_EQ(0U, sub->insert_q.size());
-  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 50, 1);
-  cube->process(NULL, t);
+  // Send the same tuple on each chain. Note that time data at the minute-level is still
+  // reported in seconds, so it's the sender's responsibility to specify times at minute
+  // boundaries, but we are violating that for the sake of testing.
+  boost::shared_ptr<jetstream::Tuple> t1 = boost::make_shared<jetstream::Tuple>();
+  time_t time_entered = time(NULL);
+  insert_tuple(*t1, time_entered, "http:\\\\www.example.com", 200, 50, 1);
+  cube->process(chain1.get(), t1);
+  cube->process(chain2.get(), t1);
+  cube->wait_for_commits();
 
-  for(int i =0; i < 100 && t->e(4).i_val() < 2 ; i++) {
-    js_usleep(100000);
-  }
+  // Check cube contents for the current minute
+  jetstream::Element *e;
+  jetstream::Tuple min;
+  jetstream::Tuple max;
+  e = min.add_e(); //time
+  e->set_t_val(time_entered/60 * 60);
+  e = min.add_e(); //url
+  e = min.add_e(); //rc
+  e = max.add_e(); //time
+  e->set_t_val(time_entered + 60);
+  e = max.add_e(); //url
+  e = max.add_e(); //rc
 
-  ASSERT_EQ(0U, sub->insert_q.size());
-  check_tuple_input(t, time_entered, "http:\\\\www.example.com", 200, 100, 2);
+  // A query of the raw data table should return two cells even though the same tuple was 
+  // processed twice, since time data for one was interpreted at the minute level
+  cube::CubeIterator it = cube->slice_query(min, max, false);
+  ASSERT_EQ(2U, it.numCells());
 
-  boost::shared_ptr<jetstream::Tuple> t2 = boost::make_shared<jetstream::Tuple>();
-  insert_tuple(*t2, time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cube->process(NULL, t2);
+  // A rollup query should return nothing since although we received pre-rolled up data,
+  // we didn't do a rollup ourselves
+  vector<unsigned int> levels;
+  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
+  levels.push_back(1);
+  levels.push_back(1);
+  it = cube->rollup_slice_query(levels, min, max, false);
+  ASSERT_EQ(0U, it.numCells());
 
-  for(int i =0; i < 100 &&  sub->insert_q.size() < 2; i++) {
-    js_usleep(10000);
-  }
-
-  ASSERT_EQ(2U, sub->insert_q.size());
-  check_tuple(sub->insert_q.front(), time_entered, "http:\\\\www.example.com", 200, 100, 2);
-  check_tuple(sub->insert_q.back(), time_entered, "http:\\\\www.example.com", 201, 50, 1);
-  cout << "done" <<endl;
-  */
-
-  delete cube;
+  // Now do a rollup and make sure the processed tuples are properly aggregated
+  cube->do_rollup(levels, min, max);
+  it = cube->rollup_slice_query(levels, min, max, false);
+  ASSERT_EQ(1U, it.numCells());
+  // Note that the returned time is at the minute boundary (even though the input wasn't)
+  check_tuple(*it, time_entered / 60 * 60, "http:\\\\www.example.com", 200, 100, 2);
 }
