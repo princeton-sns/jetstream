@@ -13,9 +13,9 @@ vector<string>  MysqlAggregateCount::get_column_types() const {
 }
 void MysqlAggregateCount::merge_full_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const {
   if(update.e_size()-1 >= (int) tuple_indexes[0]) {
-    jetstream::Element * const e_count_update = const_cast<jetstream::Tuple &>(update).mutable_e(tuple_indexes[0]);
+    const jetstream::Element& e_count_update = update.e(tuple_indexes[0]);
     jetstream::Element * e_count_into = into.mutable_e(tuple_indexes[0]);
-    e_count_into->set_i_val(e_count_into->i_val()+e_count_update->i_val());
+    e_count_into->set_i_val(e_count_into->i_val()+e_count_update.i_val());
   }
   else {
     jetstream::Element * e_count_into = into.mutable_e(tuple_indexes[0]);

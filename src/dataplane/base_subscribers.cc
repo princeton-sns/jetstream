@@ -216,15 +216,20 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   if (r != NO_ERR)
     return r;
 
-  if (config.find("window_size") != config.end())
-    windowSizeMs = boost::lexical_cast<time_t>(config["window_size"]);
+  if (config.find("window_size") != config.end()) {
+    if( !(std::stringstream(config["window_size"]) >> windowSizeMs))
+      return operator_err_t("windowSizeMs must be an int");
+  }
   else
     windowSizeMs = 1000;
 
   start_ts = time(NULL); //now
 
-  if (config.find("start_ts") != config.end())
+  if (config.find("start_ts") != config.end()) {
+    if( !(std::stringstream(config["start_ts"]) >> start_ts))
+      return operator_err_t("start_ts must be an int");
     start_ts = boost::lexical_cast<time_t>(config["start_ts"]);
+  }
 
   if (config.find("ts_field") != config.end()) {
     ts_field = boost::lexical_cast<int32_t>(config["ts_field"]);

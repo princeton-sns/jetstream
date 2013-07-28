@@ -5,6 +5,7 @@
 
 #include "../cube_iterator.h"
 #include "mt_cube.h"
+#include "js_mt_shim.h"
 
 namespace jetstream {
 namespace cube {
@@ -13,7 +14,7 @@ class MasstreeCubeIteratorImpl : public CubeIteratorImpl {
   public:
     MasstreeCubeIteratorImpl(): final(true), num_cells(0){}
     
-    MasstreeCubeIteratorImpl(boost::shared_ptr<const jetstream::cube::MasstreeCube> cube, bool final=true): cube(cube), final(final), num_cells(0)
+    MasstreeCubeIteratorImpl(boost::shared_ptr<const JSMasstreePtr<Tuple> > cube, bool final=true): tuples(cube), final(final), num_cells(0)
     {} 
 
 
@@ -31,10 +32,11 @@ class MasstreeCubeIteratorImpl : public CubeIteratorImpl {
 
   private:
     static boost::shared_ptr<MasstreeCubeIteratorImpl> const impl_end;
-    boost::shared_ptr<const MasstreeCube> const cube;
+    boost::shared_ptr<const JSMasstreePtr<Tuple> > const tuples;
 //    boost::shared_ptr<sql::ResultSet> res;
     bool const final;
     size_t const num_cells;
+  
 };
 
 }

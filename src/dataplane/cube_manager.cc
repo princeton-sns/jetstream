@@ -61,10 +61,10 @@ CubeManager::create_cube ( const std::string &name,
 
   //TODO: The cube constructor does several things, some of which may fail; we
   //need it to throw an exception in case of failure, which should be caught here
-
+  if (schema.has_impl() && schema.impl() == CubeSchema::Masstree)
 //  if (MASSTREE_CUBE)
-//    c = shared_ptr<DataCube>(new cube::MasstreeCube(schema, name, overwrite_if_present, config));
-//  else
+    c = shared_ptr<DataCube>(new cube::MasstreeCube(schema, name, overwrite_if_present, config));
+  else
     c = shared_ptr<DataCube>(new cube::MysqlCube(schema, name, overwrite_if_present, config));
 //  set_batch(10)
   c->create();

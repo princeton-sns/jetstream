@@ -780,10 +780,17 @@ throw(operator_err_t)
   d->set_id(name);
   d->set_node(this);
   VLOG(1) << "configuring " << name << " of type " << op_typename;
-  operator_err_t err = d->configure(cfg);
-  if (err != NO_ERR)
-    throw(err);
+  operator_err_t err;
+  try {
+    err = d->configure(cfg);
+  } catch(std::exception& e) {
+    throw operator_err_t(e.what());
+  }
   
+  if (err != NO_ERR) {
+    LOG(WARNING) << "Failing on exception " << err;
+    throw(err);
+  }
   return d;
 }
 

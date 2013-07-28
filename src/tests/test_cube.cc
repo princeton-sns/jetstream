@@ -25,7 +25,7 @@ class CubeTest : public ::testing::Test {
 
       jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
       dim->set_name("time");
-      dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
+      dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
       dim->add_tuple_indexes(0);
 
       dim = sc->add_dimensions();
@@ -965,7 +965,7 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
   e=empty.add_e(); //rc
 
   vector<unsigned int> levels;
-  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_SECOND);
   levels.push_back(1);
   levels.push_back(0);
 
@@ -999,94 +999,6 @@ TEST_F(CubeTest, MysqlTestFlatRollup) {
 
 }
 
-//  Disabled because we aren't using the time hierarchy right now.
-TEST_F(CubeTest, MysqlTestTimeRollup) {
-
-  boost::shared_ptr<MysqlCube> cube = boost::make_shared<MysqlCube>(*sc, "web_requests", true);
-
-  cube->destroy();
-  cube->create();
-
-  jetstream::Element *e;
-
-  //make it even on the minute
-  time_t time_entered = time(NULL);
-  struct tm temptm;
-  gmtime_r(&time_entered, &temptm);
-  temptm.tm_sec=0;
-  time_entered = timegm(&temptm);
-
-  list<int> rscs;
-  rscs.push_back(1);
-  rscs.push_back(2);
-  rscs.push_back(60*60+1);
-  rscs.push_back(60*60+1);
-
-  for(list<int>::iterator i = rscs.begin(); i!=rscs.end(); i++) {
-    boost::shared_ptr<jetstream::Tuple> t = boost::make_shared<jetstream::Tuple>();
-    insert_tuple(*t, time_entered+(*i), "http:\\\\www.example.com", *i, 500, 100);
-    cube->process(NULL, t);
-  }
-
-  for(int i =0; i < 4 &&  cube->num_leaf_cells() < 5; i++) {
-    js_usleep(1000000);
-  }
-
-  jetstream::Tuple empty;
-  e=empty.add_e(); //time
-  e=empty.add_e(); //url
-  e=empty.add_e(); //rc
-
-  jetstream::Tuple max;
-  e=max.add_e(); //time
-  e->set_t_val(time_entered+1);
-  e=max.add_e(); //url
-  e=max.add_e(); //rc
-
-  vector<unsigned int> levels;
-  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
-  levels.push_back(1);
-  levels.push_back(0);
-
-  cube->do_rollup(levels, empty, empty);
-  CubeIterator it = cube->rollup_slice_query(levels, max, max);
-  ASSERT_EQ(1U, it.numCells());
-  boost::shared_ptr<Tuple> ptrTup = *it;
-  ASSERT_TRUE(ptrTup.get());
-  ASSERT_EQ(time_entered+1, ptrTup->e(0).t_val());
-  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_SECOND, ptrTup->e(1).i_val());
-  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
-  //ASSERT_EQ(1, ptrTup->e(2).i_val());
-  ASSERT_EQ(0, ptrTup->e(2).i_val());
-  //ASSERT_EQ(0, ptrTup->e(4).i_val());
-  ASSERT_EQ(100, ptrTup->e(3).i_val());
-  ASSERT_EQ(5, ptrTup->e(4).i_val());
-
-  levels.clear();
-  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
-  levels.push_back(1);
-  levels.push_back(0);
-
-  max.clear_e();
-  e=max.add_e(); //time
-  e->set_t_val(time_entered);
-  e=max.add_e(); //url
-  e=max.add_e(); //rc
-
-  cube->do_rollup(levels, empty, empty);
-  it = cube->rollup_slice_query(levels, max, max);
-  ASSERT_EQ(1U, it.numCells());
-  ptrTup = *it;
-  ASSERT_TRUE(ptrTup.get());
-  ASSERT_EQ(time_entered, ptrTup->e(0).t_val());
-  //ASSERT_EQ((int)MysqlDimensionTimeHierarchy::LEVEL_MINUTE, ptrTup->e(1).i_val());
-  ASSERT_STREQ("http:\\\\www.example.com", ptrTup->e(1).s_val().c_str());
-  //ASSERT_EQ(1, ptrTup->e(2).i_val());
-  ASSERT_EQ(0, ptrTup->e(2).i_val());
-  //ASSERT_EQ(0, ptrTup->e(4).i_val());
-  ASSERT_EQ(200, ptrTup->e(3).i_val());
-  ASSERT_EQ(5, ptrTup->e(4).i_val());
-}
 
 TEST_F(CubeTest, MysqlTestTimeContainmentRollup) {
   jetstream::CubeSchema schema;
@@ -1414,7 +1326,7 @@ TEST_F(CubeTest, Aggregates) {
 
   jetstream::CubeSchema_Dimension * dim = sc->add_dimensions();
   dim->set_name("time");
-  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_HIERARCHY);
+  dim->set_type(CubeSchema_Dimension_DimensionType_TIME_CONTAINMENT);
   dim->add_tuple_indexes(0);
 
   jetstream::CubeSchema_Aggregate * agg = sc->add_aggregates();
@@ -1579,12 +1491,12 @@ TEST_F(CubeTest, PerChainRollupLevels) {
   std::vector<boost::shared_ptr<jetstream::Tuple> > tuples;
   DataplaneMessage msg;
   msg.set_type(DataplaneMessage::ROLLUP_LEVELS);
-  msg.add_rollup_levels(MysqlDimensionTimeHierarchy::LEVEL_SECOND);
+  msg.add_rollup_levels(MysqlDimensionTimeContainment::LEVEL_SECOND);
   msg.add_rollup_levels(1);
   msg.add_rollup_levels(1);
   cube->process(chain1.get(), tuples, msg);
   msg.clear_rollup_levels();
-  msg.add_rollup_levels(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
+  msg.add_rollup_levels(MysqlDimensionTimeContainment::LEVEL_MINUTE);
   msg.add_rollup_levels(1);
   msg.add_rollup_levels(1);
   cube->process(chain2.get(), tuples, msg);
@@ -1620,7 +1532,7 @@ TEST_F(CubeTest, PerChainRollupLevels) {
   // A rollup query should return nothing since although we received pre-rolled up data,
   // we didn't do a rollup ourselves
   vector<unsigned int> levels;
-  levels.push_back(MysqlDimensionTimeHierarchy::LEVEL_MINUTE);
+  levels.push_back(MysqlDimensionTimeContainment::LEVEL_MINUTE);
   levels.push_back(1);
   levels.push_back(1);
   it = cube->rollup_slice_query(levels, min, max, false);

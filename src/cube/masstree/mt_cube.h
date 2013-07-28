@@ -4,13 +4,19 @@
 #include "cube.h"
 #include "cube_impl.h"
 #include "../mysql/dimension.h"
-#include "../mysql/aggregate.h"
+#include "mt_aggregate.h"
+#include "js_mt_shim.h"
 
 namespace jetstream {
 namespace cube {
 
+struct AggregateBuffer {
+  unsigned sz; //size of this buffer
+  char data[4]; // potentially many more.
+};
+
 class MasstreeCube: // public DataCube {
-    public DataCubeImpl<MysqlDimension, MysqlAggregate>, public boost::enable_shared_from_this<MasstreeCube> {
+    public DataCubeImpl<MysqlDimension, MasstreeAggregate>, public boost::enable_shared_from_this<MasstreeCube> {
 
   public:
 
@@ -18,11 +24,15 @@ class MasstreeCube: // public DataCube {
                std::string _name,
                bool overwrite_if_present, const NodeConfig &conf = NodeConfig());
 
-
+    virtual ~MasstreeCube();
 
     virtual void create();
+
     virtual void destroy();
-    virtual void clear_contents();
+
+    virtual void clear_contents() {
+      tree.clear();
+    }
 
 
     virtual void save_tuple(jetstream::Tuple const &t, bool need_new_value, bool need_old_value,
@@ -34,9 +44,11 @@ class MasstreeCube: // public DataCube {
        std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store)  ;
 
   virtual void save_tuple_batch(const std::vector<boost::shared_ptr<jetstream::Tuple> > &tuple_store,
-       const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
-       const std::vector<bool> &need_new_value_store, const std::vector<bool> &need_old_value_store,
-       std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store, std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
+                                const std::vector<boost::shared_ptr<std::vector<unsigned int> > > &levels_store,
+                                const std::vector<bool> &need_new_value_store,
+                                const std::vector<bool> &need_old_value_store,
+                                std::vector<boost::shared_ptr<jetstream::Tuple> > &new_tuple_store,
+                                std::vector<boost::shared_ptr<jetstream::Tuple> > &old_tuple_store);
 
 
     virtual boost::shared_ptr<jetstream::Tuple>
@@ -64,8 +76,16 @@ class MasstreeCube: // public DataCube {
 
 
     virtual jetstream::cube::CubeIterator end() const ;
-    virtual size_t num_leaf_cells() const ;
+    virtual size_t num_leaf_cells() const {
+      return tree.elements();
+    }
+    
+    virtual void do_process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels, boost::shared_ptr<cube::TupleBatch> &tupleBatcher, ProcessCallable * proc);
 
+  private:
+    JSMasstreePtr<AggregateBuffer> tree;
+    inline void extend_with_dims_from(Tuple * target, const Tuple& t) const;
+    inline void extend_with_aggs(Tuple * ret, AggregateBuffer * from_store) const;
 
 };
 }

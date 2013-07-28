@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <queue>
 #include <boost/functional/hash.hpp>
 #include "cube_iterator.h"
 #include "subscriber.h"
@@ -16,6 +17,19 @@
 #include "jetstream_types.pb.h"
 #include "js_executor.h"
 #include <boost/interprocess/detail/atomic.hpp>
+
+// For cube process threads
+#define BLOCKING_QUEUE 1
+#define NONBLOCK_QUEUE 0
+
+#if NONBLOCK_QUEUE
+//#include <boost/lockfree/spsc_queue.hpp>
+//using boost::lockfree::spsc_queue;
+
+#include <boost/lockfree/queue.hpp>
+using boost::lockfree::queue;
+
+#endif
 
 namespace jetstream {
 class DataCube;
@@ -45,48 +59,9 @@ class TupleProcessingInfo {
     bool need_old_value;
 };
 
-class ProcessCallable {
-
-  public:
-    ProcessCallable(DataCube * cube, std::string name);
-    ~ProcessCallable();
-
-    void run_process();
-    void run_flush();
-
-    void assign(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
-    boost::shared_ptr<cube::TupleBatch> batch_flush();
-    bool batcher_ready();
-    void check_flush();
-    void barrier(boost::shared_ptr<FlushInfo>); //called from outside
-
-  private:
-    std::string name;
-    boost::thread thread_process;
-    boost::thread thread_flush;
-      //each service has a single thread associated with it so posts will be ordered.
-    shared_ptr<io_service> service_process;
-    shared_ptr<io_service> service_flush;
-    io_service::work work_process;
-    io_service::work work_flush;
-
-
-    jetstream::DataCube * cube;
-
-    // This runs in the internal thread
-    void process(OperatorChain * chain, boost::shared_ptr<Tuple> t, DimensionKey key, boost::shared_ptr<std::vector<unsigned int> > levels);
-    void do_check_flush();
-
-    boost::shared_ptr<cube::TupleBatch> tupleBatcher;
-    mutable boost::mutex batcherLock; // protects tupleBatcher
-  
-    void barrier_to_flushqueue(boost::shared_ptr<FlushInfo>); //invoked on service_process
-    void do_barrier(boost::shared_ptr<FlushInfo>); //invoked on flush-strand  
-};
-
-
 class FlushInfo {
   public:
+
     unsigned id;
     boost::shared_ptr<cube::Subscriber> subsc;
     void set_count(unsigned c) {
@@ -97,10 +72,89 @@ class FlushInfo {
       unsigned v = boost::interprocess::ipcdetail::atomic_dec32(&count);
       return v;
     }
-  
+    
   private:
     volatile unsigned count;
+};
+
+
+class ProcessThreadTask {
+  public:
+    bool is_insert;
+    ProcessThreadTask(bool i): is_insert(i) {};
+    virtual ~ProcessThreadTask() {}
+//    virtual void run(ProcessCallable * p) = 0;
+};
+
+
+class TupleInsertion: public ProcessThreadTask {
+  public:
+    TupleInsertion(OperatorChain * c,
+                   boost::shared_ptr<Tuple> t,
+                   DimensionKey k, boost::shared_ptr<std::vector<unsigned int> > levs):
+      ProcessThreadTask(true),chain(c), tuple(t), key(k), levels(levs) {}
+    OperatorChain * chain;
+    boost::shared_ptr<Tuple> tuple;
+    DimensionKey key;
+    boost::shared_ptr<std::vector<unsigned int> > levels;
+};
+
+class FlushTask: public ProcessThreadTask {
+  public:
+    FlushTask(const boost::shared_ptr<FlushInfo>& f): ProcessThreadTask(false), flush(f) {}
+    boost::shared_ptr<FlushInfo> flush;
+};
+
+class ProcessCallable {
+//  friend class TupleInsertion;
+//  friend FlushInfo;
+  public:
+    ProcessCallable(DataCube * cube, std::string name);
+    ~ProcessCallable();
+
+    void run_process();
+    void run_flush();
+
+    void assign(OperatorChain * chain, const boost::shared_ptr<Tuple>& t, DimensionKey key, const boost::shared_ptr<std::vector<unsigned int> >& levels);
+    boost::shared_ptr<cube::TupleBatch> batch_flush();
+    bool batcher_ready();
+    void check_flush();
+    void barrier(boost::shared_ptr<FlushInfo>); //called from outside
+
+    mutable boost::mutex batcherLock; // protects tupleBatcher
+
+  private:
+    std::string name;
+    boost::thread thread_process;
+    boost::thread thread_flush;
+#if BLOCKING_QUEUE
+    std::queue< ProcessThreadTask* > process_tasks;
   
+    boost::mutex process_lock;
+    boost::condition_variable has_data;
+#elif NONBLOCK_QUEUE
+    boost::lockfree::queue< ProcessThreadTask* >  process_tasks;
+#endif
+    unsigned cntr;
+
+    volatile bool process_is_running;
+  
+      //each service has a single thread associated with it so posts will be ordered.
+ //   shared_ptr<io_service> service_process;
+    shared_ptr<io_service> service_flush;
+//    io_service::work work_process;
+    io_service::work work_flush;
+
+
+    jetstream::DataCube * cube;
+
+    // This runs in the thread_process thread
+    void do_check_flush();
+
+    boost::shared_ptr<cube::TupleBatch> tupleBatcher;
+  
+    void barrier_to_flushqueue(boost::shared_ptr<FlushInfo>); //invoked on service_process
+    void do_barrier(boost::shared_ptr<FlushInfo>); //invoked on flush-strand  
 };
 
 
@@ -171,11 +225,11 @@ class DataCube : public ChainMember {
 
     virtual void merge_tuple_into(jetstream::Tuple &into, jetstream::Tuple const &update) const =0;
 
-    virtual std::vector<size_t> dimension_offset(std::string) = 0; //offsets in tuples
-    virtual std::vector<size_t> aggregate_offset(std::string) = 0;
+    virtual std::vector<size_t> dimension_offset(std::string) const = 0; //offsets in tuples
+    virtual std::vector<size_t> aggregate_offset(std::string) const = 0;
 
-    virtual size_t num_dimensions() = 0;
-    virtual size_t num_aggregates() = 0;
+    virtual size_t num_dimensions() const = 0;
+    virtual size_t num_aggregates() const = 0;
 
 
     /**
@@ -200,8 +254,8 @@ class DataCube : public ChainMember {
 
 
     //only used by tuple batch
-    virtual DimensionKey get_dimension_key(Tuple const &t, boost::shared_ptr<std::vector<unsigned int> > levels) const = 0;
-    virtual void get_dimension_key(const Tuple &t, boost::shared_ptr<std::vector<unsigned int> > levels,  std::ostringstream &ostr) const = 0;
+    virtual DimensionKey get_dimension_key(Tuple const &t, const std::vector<unsigned int> & levels) const = 0;
+    virtual void get_dimension_key(const Tuple &t, const std::vector<unsigned int>&  levels,  std::ostringstream &ostr) const = 0;
     virtual boost::shared_ptr<std::vector<unsigned int> > get_leaf_levels() const = 0;
 
     void save_callback(jetstream::TupleProcessingInfo &tpi,

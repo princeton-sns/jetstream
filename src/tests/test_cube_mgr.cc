@@ -6,11 +6,12 @@ using namespace jetstream;
 using namespace boost;
 
 TEST(CubeManager, MakeAndDestroy) {
-  
-/*  CubeManager mgr;
-  shared_ptr<DataCube> cptr(new DataCube("schema goes here"));
-  mgr.put_cube("my cube", cptr);
+/*
+  NodeConfig conf;
+  CubeManager mgr(conf);
+  mgr.create_cube();
+//  shared_ptr<DataCube> cptr(new DataCube("schema goes here"));
   DataCube* c2 = mgr.get_cube("my cube").get();
-  EXPECT_EQ(cptr.get(), c2);*/
+  EXPECT_EQ(cptr.get(), c2); */
 }
 

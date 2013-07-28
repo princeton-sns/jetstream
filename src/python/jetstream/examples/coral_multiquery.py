@@ -31,11 +31,13 @@ MULTI_LEVEL = False
 #  Raw cube uses source timestamps.
 # We then apply a time-warp operator and all other cubes use warped timestamps.
 
+MODE_LIST = "quantiles, domains, slow_reqs"
+
 def main():
 
   parser = standard_option_parser()
   parser.add_option("--mode", dest="mode",
-  action="store", help="query to run. Should be 'quantiles' or 'domains'")
+  action="store", help="query to run. Should be one of %s" % MODE_LIST)
   parser.add_option("--wait", dest="wait",
   action="store", help="how long to wait for results")
   (options, args) = parser.parse_args()
@@ -46,6 +48,9 @@ def main():
       print "Can't specify mode as both an arg and an option."
       sys.exit(0)
   else:
+    if len(args) == 0:
+      print "Must specify a mode."
+      sys.exit(0)
     mode = args[0]
   
   if mode == "quantiles":
@@ -57,7 +62,13 @@ def main():
     define_internal_cube = url_cube
     src_to_internal = src_to_url
     process_results = lambda x,y: y
-    final_rollup_levels = "8,1,1"
+    final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
+  elif mode == "slow_reqs":
+    define_internal_cube = url_cube
+    src_to_internal = src_slow_reqs
+    process_results = lambda x,y: y
+    final_rollup_levels = "9,1,1" #nothing rolled up.
+    
   else:
     print "Unknown mode %s" % mode
     sys.exit(0)
@@ -80,7 +91,8 @@ def main():
     raw_cube_sub = jsapi.TimeSubscriber(g, {}, 1000)
     raw_cube_sub.set_cfg("simulation_rate", options.warp_factor)
     raw_cube_sub.set_cfg("ts_field", 0)
-    raw_cube_sub.set_cfg("start_ts", options.start_ts)
+    if options.start_ts:
+      raw_cube_sub.set_cfg("start_ts", options.start_ts)
     time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
     last_op = g.chain([raw_cube, raw_cube_sub, time_shift]) 
@@ -194,6 +206,12 @@ def src_to_url(g, data_src, node, options):
 #  g.chain([raw_cube_sub, project])
 #  return project
   return data_src
+  
+  
+def src_slow_reqs(g, data_src, node, options):
+    #units are usec/byte, or sec/mb. So bound of 100 ==> < 10 kb/sec
+  filter = jsapi.RatioFilter(g, numer=4, denom=3, bound = 100)
+  return g.connect(data_src, filter)
 
 if __name__ == '__main__':
     main()

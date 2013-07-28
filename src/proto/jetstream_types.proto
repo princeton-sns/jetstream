@@ -66,11 +66,12 @@ message TaskMeta {
 
 
 message CubeSchema {
-//  required string name = 1;    // uniquely identifies the cube
+  enum ImplType {MySQL = 1; Masstree = 2;}
+  optional ImplType impl = 1;
  //un-needed; this is present in the CubeMeta
 
   message Dimension {
-    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4; TIME_HIERARCHY = 5; TIME_CONTAINMENT=6; URL=7; }
+    enum DimensionType {STRING = 1; INT32 = 2; DOUBLE = 3; TIME=4;  TIME_CONTAINMENT=6; URL=7; }
     required string name = 1;
     required DimensionType type = 2;
     repeated int32 tuple_indexes = 3;
