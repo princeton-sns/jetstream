@@ -31,11 +31,13 @@ MULTI_LEVEL = False
 #  Raw cube uses source timestamps.
 # We then apply a time-warp operator and all other cubes use warped timestamps.
 
+MODE_LIST = "quantiles, domains, slow_reqs"
+
 def main():
 
   parser = standard_option_parser()
   parser.add_option("--mode", dest="mode",
-  action="store", help="query to run. Should be 'quantiles' or 'domains'")
+  action="store", help="query to run. Should be one of %s" % MODE_LIST)
   parser.add_option("--wait", dest="wait",
   action="store", help="how long to wait for results")
   (options, args) = parser.parse_args()
@@ -60,7 +62,13 @@ def main():
     define_internal_cube = url_cube
     src_to_internal = src_to_url
     process_results = lambda x,y: y
-    final_rollup_levels = "8,1,1"
+    final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
+  elif mode == "slow_reqs":
+    define_internal_cube = url_cube
+    src_to_internal = src_slow_reqs
+    process_results = lambda x,y: y
+    final_rollup_levels = "9,1,1" #nothing rolled up.
+    
   else:
     print "Unknown mode %s" % mode
     sys.exit(0)
@@ -198,6 +206,12 @@ def src_to_url(g, data_src, node, options):
 #  g.chain([raw_cube_sub, project])
 #  return project
   return data_src
+  
+  
+def src_slow_reqs(g, data_src, node, options):
+    #units are usec/byte, or sec/mb. So bound of 100 ==> < 10 kb/sec
+  filter = jsapi.RatioFilter(g, numer=4, denom=3, bound = 100)
+  return g.connect(data_src, filter)
 
 if __name__ == '__main__':
     main()
