@@ -105,6 +105,24 @@ VariableSamplingOperator::end_of_window( DataplaneMessage & msg){
   
 }
 
+
+
+operator_err_t
+FixedSampleOperator::configure(std::map<std::string,std::string> &config) {
+  if((config["max_drops"].length() > 0) && !(stringstream(config["max_drops"]) >> max_drops)) {
+    return operator_err_t("max_drops must be an int");
+  }
+  LOG(INFO) << "Configured VariableSamplingOperator. max_drops="<<max_drops;
+  return NO_ERR;
+}
+
+
+
+bool
+FixedSampleOperator::should_emit(const jetstream::Tuple &t) {
+  return ++cntr % (drops_per_keep +1) == 0;
+}
+
 /*
 
 void
@@ -239,6 +257,7 @@ CongestionController::long_description() {
 */
 
 const string VariableSamplingOperator::my_type_name("Variable sampling operator");
+const string FixedSampleOperator::my_type_name("Fixed-interval sampling operator");
 //const string CongestionController::my_type_name("Congestion controller");
 
 }

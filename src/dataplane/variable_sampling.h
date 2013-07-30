@@ -52,8 +52,6 @@ public:
 */
 class VariableSamplingOperator: public HashSampleOperator {
   private:
-//    PeriodicCongestionReporter reporter;
-//    boost::shared_ptr<CongestionMonitor> downstream_congestion;
 
   public:
   
@@ -82,6 +80,27 @@ class VariableSamplingOperator: public HashSampleOperator {
 
 GENERIC_CLNAME
 
+};
+
+
+class FixedSampleOperator: public CFilterOperator {
+
+public:
+  FixedSampleOperator():drops_per_keep(0),max_drops(0) {}
+  
+  virtual bool should_emit (const Tuple& t);
+  virtual operator_err_t configure (std::map<std::string,std::string> &config);
+  virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
+    congest_policy = p;
+  }
+  
+private:
+  unsigned cntr;
+  unsigned drops_per_keep;
+  unsigned max_drops;
+  boost::shared_ptr<CongestionPolicy> congest_policy;
+
+GENERIC_CLNAME
 };
 
 /*

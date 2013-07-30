@@ -229,6 +229,7 @@ class HashSampleOperator: public CFilterOperator {
 GENERIC_CLNAME
 };
 
+
 //rounds time fields
 class TRoundingOperator: public CEachOperator {
  public:
@@ -317,6 +318,8 @@ private:
 
 GENERIC_CLNAME
 };
+
+
 
 
 class WindowLenFilter: public COperator {

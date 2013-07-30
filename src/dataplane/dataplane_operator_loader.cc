@@ -127,6 +127,8 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(FilterSubscriber);
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
+  REGISTER_OP(FixedSampleOperator);
+  
 //  REGISTER_OP(CongestionController);
   
   // Multi-round topk
