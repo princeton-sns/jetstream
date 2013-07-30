@@ -118,6 +118,7 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(ExperimentTimeRewrite);
 //  REGISTER_OP(CountLogger);
   REGISTER_OP(AvgCongestLogger);
+  
     // Subscribers
   REGISTER_OP(TimeBasedSubscriber);
   REGISTER_OP(LatencyMeasureSubscriber);
@@ -125,6 +126,7 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(DelayedOneShotSubscriber);
   REGISTER_OP(VariableCoarseningSubscriber);
   REGISTER_OP(FilterSubscriber);
+  
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
   REGISTER_OP(FixedSampleOperator);
@@ -134,8 +136,12 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   // Multi-round topk
   REGISTER_OP(MultiRoundSender);
   REGISTER_OP(MultiRoundCoordinator);
-  
+
+    // For specific experiments
   REGISTER_OP(SeqToRatio);
+  REGISTER_OP(BlobReader);
+  REGISTER_OP(ImageSampler);
+  
   if(cache.count(name) < 1)
   {
     bool loaded = load(name);

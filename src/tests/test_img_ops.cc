@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include "experiment_operators.h"
+#include "sosp_operators.h"
 
 using namespace jetstream;
 //using namespace boost;
@@ -30,7 +31,9 @@ TEST(Operator, FixedSampleOperator) {
 
   operator_config_t cfg;
   cfg["max_drops"] = "4";
-  degrade_op.configure(cfg);
+  operator_err_t err = degrade_op.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  
 
   boost::shared_ptr<CongestionPolicy> policy(new CongestionPolicy);
   boost::shared_ptr<QueueCongestionMonitor> mockCongest(new QueueCongestionMonitor(256, "dummy"));
@@ -49,7 +52,26 @@ TEST(Operator, FixedSampleOperator) {
     bool should_emit = degrade_op.should_emit(t);
     ASSERT_EQ( should_emit, i%2 != 0);
   }
-  
-//  cout << fmt(*result) << endl;
+}
+
+
+TEST(Operator, BlobReader) {
+
+  boost::shared_ptr<OperatorChain> chain(new OperatorChain);
+  shared_ptr<DummyReceiver> rec(new DummyReceiver);
+  chain->add_member();
+  chain->add_member(rec);
+
+  BlobReader reader;
+  operator_config_t cfg;
+  cfg["dirname"] = ".";
+  cfg["ms_per_file"] = "500";
+  operator_err_t err = reader.configure(cfg);
+  ASSERT_EQ(NO_ERR, err);
+  reader.add_chain(chain);
+
+
+  reader.emit_data();
 
 }
+
