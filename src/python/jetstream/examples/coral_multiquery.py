@@ -58,9 +58,14 @@ def main():
     src_to_internal = src_to_quant
     process_results = process_quant
     final_rollup_levels = "8,1"
-  elif mode == "domains":
+  elif mode == "urls":
     define_internal_cube = url_cube
     src_to_internal = src_to_url
+    process_results = lambda x,y: y
+    final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
+  elif mode == "domains":
+    define_internal_cube = url_cube
+    src_to_internal = src_to_domain
     process_results = lambda x,y: y
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
   elif mode == "slow_reqs":
@@ -68,6 +73,11 @@ def main():
     src_to_internal = src_slow_reqs
     process_results = lambda x,y: y
     final_rollup_levels = "9,1,1" #nothing rolled up.
+  elif mode == "bad_domains":
+    define_internal_cube = url_cube
+    src_to_internal = src_to_url
+    process_results = lambda x,y: y
+    final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
     
   else:
     print "Unknown mode %s" % mode
@@ -206,7 +216,13 @@ def src_to_url(g, data_src, node, options):
 #  g.chain([raw_cube_sub, project])
 #  return project
   return data_src
-  
+
+
+def src_to_domain(g, data_src, node, options):
+  data_src = src_to_url(g, data_src, node, options)
+  url2dom = jsapi.URLToDomain(g, 2)
+  g.chain([data_src, url2dom])
+  return url2dom
   
 def src_slow_reqs(g, data_src, node, options):
     #units are usec/byte, or sec/mb. So bound of 100 ==> < 10 kb/sec
