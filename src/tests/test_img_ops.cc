@@ -47,7 +47,7 @@ TEST(Operator, FixedSampleOperator) {
 
   for(int i = 0; i < 10; ++i) {
     bool should_emit = degrade_op.should_emit(t);
-    ASSERT_EQ( should_emit, i%2 == 0);
+    ASSERT_EQ( should_emit, i%2 != 0);
   }
   
 //  cout << fmt(*result) << endl;

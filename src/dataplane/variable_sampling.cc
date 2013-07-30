@@ -112,15 +112,31 @@ FixedSampleOperator::configure(std::map<std::string,std::string> &config) {
   if((config["max_drops"].length() > 0) && !(stringstream(config["max_drops"]) >> max_drops)) {
     return operator_err_t("max_drops must be an int");
   }
-  LOG(INFO) << "Configured VariableSamplingOperator. max_drops="<<max_drops;
+  
+  for( int drops_per =max_drops; drops_per >= 0; --drops_per) {
+    steps.push_back(  1.0 / (1+drops_per) );
+  }
+  
+  LOG(INFO) << "Configured " << my_type_name <<  ". max_drops="<<max_drops;
   return NO_ERR;
+}
+
+void
+FixedSampleOperator::start() {
+
 }
 
 
 
 bool
 FixedSampleOperator::should_emit(const jetstream::Tuple &t) {
-  return ++cntr % (drops_per_keep +1) == 0;
+
+  int cur_step = steps.size() - drops_per_keep -1;
+  drops_per_keep -= congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+
+  cntr++;
+  cntr %= (drops_per_keep +1);
+  return cntr == 0;
 }
 
 /*

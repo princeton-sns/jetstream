@@ -94,10 +94,16 @@ public:
     congest_policy = p;
   }
   
+  virtual void start();
+
+  
 private:
   unsigned cntr;
   unsigned drops_per_keep;
   unsigned max_drops;
+
+  std::vector<double> steps;
+  
   boost::shared_ptr<CongestionPolicy> congest_policy;
 
 GENERIC_CLNAME
