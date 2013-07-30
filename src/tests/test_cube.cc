@@ -1520,7 +1520,7 @@ TEST_F(CubeTest, PerChainRollupLevels) {
   e = min.add_e(); //url
   e = min.add_e(); //rc
   e = max.add_e(); //time
-  e->set_t_val(time_entered + 60);
+  e->set_t_val(time_entered);
   e = max.add_e(); //url
   e = max.add_e(); //rc
 
