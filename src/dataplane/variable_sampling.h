@@ -83,10 +83,10 @@ GENERIC_CLNAME
 };
 
 
-class FixedSampleOperator: public CFilterOperator {
+class IntervalSamplingOperator: public CFilterOperator {
 
 public:
-  FixedSampleOperator():drops_per_keep(0),max_drops(0) {}
+  IntervalSamplingOperator():drops_per_keep(0),max_drops(0) {}
   
   virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);

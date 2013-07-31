@@ -129,7 +129,7 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   
    // Congestion response
   REGISTER_OP(VariableSamplingOperator);
-  REGISTER_OP(FixedSampleOperator);
+  REGISTER_OP(IntervalSamplingOperator);
   
 //  REGISTER_OP(CongestionController);
   

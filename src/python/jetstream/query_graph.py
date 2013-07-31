@@ -497,7 +497,6 @@ def RatioFilter(graph, numer, denom, bound):
    cfg = {"numer_field":numer, "denom_field":denom, "bound":bound}
    return graph.add_operator(OpType.RATIO_FILTER, cfg)
 
-
 def SeqToRatio(graph, url_field, total_field, respcode_field):
     cfg = {"url_field":url_field, "total_field": total_field, "respcode_field":respcode_field}
     return graph.add_operator(OpType.SEQ_TO_RATIO, cfg)
@@ -508,7 +507,6 @@ def MultiRoundClient(graph):
 
 def MultiRoundCoord(graph):
    return graph.add_operator(OpType.TPUT_CONTROLLER, {})
-
 
 def WindowLenFilter(graph):
    return graph.add_operator(OpType.WINDOW_CUTOFF, {})
@@ -569,6 +567,16 @@ def filter_subsc_validate(filter_op, input_schemas):
     if len(in_s) <= level_in or  in_s[ level_in ][0] != 'I':
       raise SchemaError("schema[level_in_field=%d] for FilterSubscriber should be int. " \
           "Schema was %s." % (level_in, str(in_s)))
-
-
   return ret
+
+
+
+def BlobReader(graph, dirname, prefix, ms_per_file):
+   cfg = {"dirname":dirname, "prefix":prefix, 'ms_per_file':ms_per_file}
+   return graph.add_operator(OpType.BLOB_READ, cfg)
+
+def IntervalSampling(graph, max_interval):
+   return graph.add_operator(OpType.INTERVAL_SAMPLING, {'max_drops':max_interval})
+   
+   
+   

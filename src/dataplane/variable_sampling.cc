@@ -108,7 +108,7 @@ VariableSamplingOperator::end_of_window( DataplaneMessage & msg){
 
 
 operator_err_t
-FixedSampleOperator::configure(std::map<std::string,std::string> &config) {
+IntervalSamplingOperator::configure(std::map<std::string,std::string> &config) {
   if((config["max_drops"].length() > 0) && !(stringstream(config["max_drops"]) >> max_drops)) {
     return operator_err_t("max_drops must be an int");
   }
@@ -122,14 +122,14 @@ FixedSampleOperator::configure(std::map<std::string,std::string> &config) {
 }
 
 void
-FixedSampleOperator::start() {
+IntervalSamplingOperator::start() {
 
 }
 
 
 
 bool
-FixedSampleOperator::should_emit(const jetstream::Tuple &t) {
+IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
 
   int cur_step = steps.size() - drops_per_keep -1;
   drops_per_keep -= congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
@@ -273,7 +273,7 @@ CongestionController::long_description() {
 */
 
 const string VariableSamplingOperator::my_type_name("Variable sampling operator");
-const string FixedSampleOperator::my_type_name("Fixed-interval sampling operator");
+const string IntervalSamplingOperator::my_type_name("Fixed-interval sampling operator");
 //const string CongestionController::my_type_name("Congestion controller");
 
 }

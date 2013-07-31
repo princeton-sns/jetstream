@@ -25,9 +25,9 @@ using std::vector;
 
 
 
-TEST(Operator, FixedSampleOperator) {
+TEST(Operator, IntervalSamplingOperator) {
 
-  FixedSampleOperator degrade_op;
+  IntervalSamplingOperator degrade_op;
 
   operator_config_t cfg;
   cfg["max_drops"] = "4";
