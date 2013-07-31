@@ -25,6 +25,7 @@ class BlobReader: public TimerSource {
 
   private:
     std::string dirname;
+    std::string prefix;
     std::vector<boost::filesystem::path> paths;
     unsigned cur_path;
     unsigned ms_per_file; //

@@ -94,15 +94,25 @@ BlobReader::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("must specify a string as dirname; got " + config["dirname"] +  " instead");
   } else
     dirname = config["dirname"];
+  
+  prefix = config["prefix"];
+  
   boost::filesystem::path p(dirname);
   if (!boost::filesystem::exists(p))
     return operator_err_t("No such directory " + p.string());
   if (!boost::filesystem::is_directory(p))
     return operator_err_t(p.string() + " is not a directory");
-  boost::filesystem::directory_iterator iter(p);
-  copy(directory_iterator(dirname), directory_iterator(), back_inserter(paths));
-  sort(paths.begin(), paths.end());
 
+  boost::filesystem::directory_iterator iter(p);
+  while(iter != directory_iterator()) {
+    boost::filesystem::path f = *iter;
+    if (f.filename().string().find(prefix) == 0)
+      paths.push_back(f);
+    iter++;
+  }
+  sort(paths.begin(), paths.end());
+  LOG(INFO) << "Blob reader " << id() << " will iterate over " << paths.size() << " files in " << dirname;
+  
   if ( !(istringstream(config["ms_per_file"]) >> ms_per_file)) {
     return operator_err_t("must specify an int as ms_per_file; got " + config["ms_per_file"] +  " instead");
   }
