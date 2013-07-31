@@ -2,7 +2,7 @@
 
 
 #include <glog/logging.h>
-
+#include <boost/filesystem/fstream.hpp>
 
 using namespace ::std;
 using namespace boost;
@@ -77,9 +77,30 @@ int
 BlobReader::emit_data()  {
 
   boost::filesystem::path& p = paths[cur_path];
-  if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p))
+  if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p)) {
     LOG(INFO) << "reading from " << p;
-  else
+    uintmax_t len = boost::filesystem::file_size(p);
+    if (len < MAX_READ_SIZE) {
+      char* data_buf = new char[len];
+      boost::filesystem::ifstream in(p);
+      in.read(data_buf, len);
+      len = in.gcount();
+      
+      boost::shared_ptr<Tuple> t = boost::shared_ptr<Tuple>(new Tuple);
+      extend_tuple(*t, p.string());
+      Element * e = t->add_e();
+      e->set_blob(data_buf, len);
+      
+      std::vector<boost::shared_ptr<Tuple> > buf;
+      buf.push_back(t);
+      chain->process(buf);
+      
+      delete[] data_buf;
+    
+    } else
+      LOG(WARNING) << "Omitting " << p << "because too big";
+    
+  } else
     LOG(INFO) << "omitting non-file " << p;
     
   cur_path++;
@@ -106,12 +127,15 @@ BlobReader::configure(std::map<std::string,std::string> &config) {
   boost::filesystem::directory_iterator iter(p);
   while(iter != directory_iterator()) {
     boost::filesystem::path f = *iter;
-    if (f.filename().string().find(prefix) == 0)
+    if (boost::filesystem::exists(f) && boost::filesystem::is_regular(f) &&
+          (f.filename().string().find(prefix) == 0))
       paths.push_back(f);
     iter++;
   }
   sort(paths.begin(), paths.end());
   LOG(INFO) << "Blob reader " << id() << " will iterate over " << paths.size() << " files in " << dirname;
+  if (paths.size() == 0)
+      return "Can't scan an empty directory";
   
   if ( !(istringstream(config["ms_per_file"]) >> ms_per_file)) {
     return operator_err_t("must specify an int as ms_per_file; got " + config["ms_per_file"] +  " instead");

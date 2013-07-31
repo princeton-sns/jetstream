@@ -71,8 +71,15 @@ TEST(Operator, BlobReader) {
   ASSERT_EQ(NO_ERR, err);
   reader.add_chain(chain);
 
-
   reader.emit_data();
-
+  
+  ASSERT_EQ(1, rec->tuples.size());
+  Tuple & t = *(rec->tuples[0]);
+  ASSERT_EQ(2, t.e_size());
+  ASSERT_EQ("src/tests/data/base_operators_data.txt", t.e(0).s_val());
+  const string& data = t.e(1).blob();
+  cout << " data size is " << data.size() << endl;
+  ASSERT_LT(200, data.size()); //some data in the tuple
+            
 }
 
