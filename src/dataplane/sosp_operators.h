@@ -24,7 +24,9 @@ class BlobReader: public TimerSource {
 
 
   private:
+    static const unsigned MAX_READ_SIZE = 10 * (1 <<20); // 10 MB
     std::string dirname;
+    std::string prefix;
     std::vector<boost::filesystem::path> paths;
     unsigned cur_path;
     unsigned ms_per_file; //
