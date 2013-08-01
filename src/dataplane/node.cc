@@ -291,6 +291,17 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
 
 }
 
+shared_ptr<OperatorChain> 
+Node::clone_chain_from(std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> >& chainMap, operator_id_t dest_operator_id) {
+  shared_ptr<OperatorChain> new_chain;
+  if (chainMap.count(dest_operator_id) > 0) {
+    new_chain = shared_ptr<OperatorChain>(new OperatorChain());
+    new_chain->add_member();
+    new_chain->clone_from(chainMap[dest_operator_id]);
+    LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
+  }
+  return new_chain;
+}
 
 /**
  * This is only invoked for a "new" connection. We change the signal handler
@@ -317,13 +328,10 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
       if (e.has_dest()) { //already exists
         operator_id_t dest_operator_id (e.computation(), e.dest());
         dest_as_str = dest_operator_id.to_string();
-        if (sourcelessChain.count(dest_operator_id) > 0) {
-          new_chain = shared_ptr<OperatorChain>(new OperatorChain());
-          new_chain->add_member();
-          new_chain->clone_from(sourcelessChain[dest_operator_id]);
-          LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
-          LOG(INFO) << new_chain->chain_name();
-        }
+        
+        new_chain = clone_chain_from(sourcelessChain, dest_operator_id);
+        if (!new_chain)
+          new_chain = clone_chain_from(chainSources, dest_operator_id);
       } else if (e.has_dest_cube()) {
         dest_as_str = e.dest_cube();
         boost::shared_ptr<DataCube> dest = cubeMgr.get_cube(dest_as_str);

@@ -103,6 +103,11 @@ class Node {
     create_operator (std::string op_typename, operator_id_t, operator_config_t) throw(operator_err_t);
 
   bool unregister_chain (boost::shared_ptr<OperatorChain>);
+  
+  shared_ptr<OperatorChain>
+  clone_chain_from( std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> >& chainMap,
+                    operator_id_t dest_operator_id);
+
 
     //Helper methods for handling incoming commands
   void handle_alter (const AlterTopo& t, ControlMessage& response);

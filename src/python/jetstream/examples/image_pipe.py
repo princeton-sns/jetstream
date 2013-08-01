@@ -35,9 +35,12 @@ def main():
   collector.instantiate_on(root_node)
   
   for node in all_nodes:
+    if node == root_node:
+      continue
     reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file="500")
     filter = jsapi.IntervalSampling(g, max_interval=4)
-    filter.instantiate_on(node)
+    reader.instantiate_on(node)
+    
     g.chain([reader, filter, collector])
   print "deploying"
   deploy_or_dummy(options, server, g)
