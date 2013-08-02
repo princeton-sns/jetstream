@@ -579,7 +579,7 @@ def IntervalSampling(graph, max_interval):
    return graph.add_operator(OpType.INTERVAL_SAMPLING, {'max_drops':max_interval})
    
 def ImageQuality(graph):
-   return graph.add_operator(OpType.IMAGE_QUALITY)
+   return graph.add_operator(OpType.IMAGE_QUALITY, {})
    
    
    

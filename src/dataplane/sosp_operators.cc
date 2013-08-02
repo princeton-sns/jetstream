@@ -3,6 +3,7 @@
 
 #include <glog/logging.h>
 #include <boost/filesystem/fstream.hpp>
+#include "node.h"
 
 using namespace ::std;
 using namespace boost;
@@ -159,6 +160,35 @@ ImageSampler::configure(std::map<std::string,std::string> &config) {
 void
 ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
 
+
+//  LOG(INFO) << "reporter got a tuple";
+  {
+    boost::unique_lock<boost::mutex> l(mutex);
+    bytes_this_period += t->ByteSize();
+    int latency_ms = int(get_usec()/1000 - t->e(ts_field).d_val());
+    if (latency_ms > 0)
+      latencies_this_period.add_item(latency_ms, 1);
+    else if (latency_ms < 0)
+      LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
+  }
+}
+
+void
+ImageQualityReporter::emit_stats() {
+
+  {
+    boost::unique_lock<boost::mutex> l(mutex);
+    LOG(INFO) << "IMGREPORT: " << bytes_this_period << " bytes. Median latency " <<
+      latencies_this_period.quantile(0.5) << " and 95th percentile is " << latencies_this_period.quantile(0.95);
+    
+    latencies_this_period.clear();
+    bytes_this_period = 0;
+  }
+  if (running) {
+    timer->expires_from_now(boost::posix_time::seconds(2));
+    timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
+  }
+
 }
 
 operator_err_t
@@ -167,6 +197,26 @@ ImageQualityReporter::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+void
+ImageQualityReporter::chain_stopping(OperatorChain * ) {
+  if (chains == 0) {
+    LOG(INFO) << "Stopping image quality reporter";
+    running = false;
+    timer->cancel();
+  } else
+    chains --;
+}
+
+void
+ImageQualityReporter::add_chain(boost::shared_ptr<OperatorChain>) {
+  if (++chains == 1) { //added first chain
+    running = true;
+    LOG(INFO) << "reporter started";
+    timer = node->get_timer();
+    timer->expires_from_now(boost::posix_time::seconds(2));
+    timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
+  }
+}
 
 const string SeqToRatio::my_type_name("Seq to Ratio");
 const string BlobReader::my_type_name("Blob Reader");

@@ -220,7 +220,7 @@ LogHistogram::quantile_bucket(double q) const {
   for (unsigned int i = 0; i < buckets.size(); ++i) {
 
     cum_sum += buckets[i];
-    if (cum_sum > target_sum) {
+    if (cum_sum >= target_sum) {
       return i;
     }
   }

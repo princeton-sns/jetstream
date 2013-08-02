@@ -4,6 +4,7 @@
 
 #include "chain_ops.h"
 #include <boost/filesystem.hpp>
+#include "quantile_est.h"
 
 using boost::filesystem::directory_iterator;
 
@@ -50,9 +51,27 @@ GENERIC_CLNAME
 class ImageQualityReporter: public CEachOperator {
 
  public:
+  ImageQualityReporter():
+    period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500) {}
   virtual void process_one(boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
+  virtual void add_chain(boost::shared_ptr<OperatorChain>);
+  virtual void chain_stopping(OperatorChain * );
+
+  void emit_stats();
+
+ private:
+  unsigned period_ms;
+  unsigned ts_field;
+  unsigned chains;
+  volatile bool running;
+  boost::shared_ptr<boost::asio::deadline_timer> timer;
+  boost::mutex mutex;
+  
+
+  long long bytes_this_period;  
+  LogHistogram latencies_this_period;
 
 GENERIC_CLNAME
 };  
@@ -68,6 +87,7 @@ class SeqToRatio: public CEachOperator {
   virtual void process_one(boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 //  virtual void meta_from_upstream(const DataplaneMessage & msg, const operator_id_t pred);
+
 
  private:
   unsigned total_field;

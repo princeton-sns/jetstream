@@ -31,7 +31,7 @@ def main():
   print "%d worker nodes in system" % len(all_nodes)
   g= jsapi.QueryGraph()
   
-  collector = jsapi.AvgCongestLogger(g)
+  collector = jsapi.ImageQuality(g)
   collector.instantiate_on(root_node)
   
   for node in all_nodes:

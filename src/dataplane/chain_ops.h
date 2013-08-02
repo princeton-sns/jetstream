@@ -29,7 +29,7 @@ class COperator: virtual public ChainMember {
   virtual void process(OperatorChain * chain, std::vector<boost::shared_ptr<Tuple> > &, DataplaneMessage&) = 0;
   virtual ~COperator(); 
   virtual operator_err_t configure(std::map<std::string,std::string> &config) = 0;
-  virtual void start() {}
+  virtual void start() {} //NOTE: This is only called on source operators!
   virtual bool is_source() {return false;}
   virtual bool is_chain_end() {return false;}
 
