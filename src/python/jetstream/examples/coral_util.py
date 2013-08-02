@@ -80,6 +80,7 @@ def get_all_nodes(options):
   return all_nodes,server
 
 def find_root_node(options, all_nodes):
+
   if options.root_node:
     found = False
     for node in all_nodes:

@@ -84,8 +84,10 @@ def main():
     sys.exit(0)
 
   all_nodes,server = get_all_nodes(options)
-  num_nodes = len(all_nodes)
-  result_readers = []
+  if len(all_nodes) < 1:
+    print "FATAL: no nodes"
+    sys.exit(0)
+  
   g= jsapi.QueryGraph()
 
   ops = []
@@ -102,10 +104,10 @@ def main():
     raw_cube_sub.set_cfg("simulation_rate", options.warp_factor)
     raw_cube_sub.set_cfg("ts_field", 0)
     if options.start_ts:
-      raw_cube_sub.set_cfg("start_ts", options.start_ts)
-    time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
+      raw_cube_sub.set_cfg("start_ts", options.start_ts)      
+#    time_shift = jsapi.TimeWarp(g, field=0, warp=options.warp_factor)
     
-    last_op = g.chain([raw_cube, raw_cube_sub, time_shift]) 
+    last_op = g.chain([raw_cube, raw_cube_sub]) #, time_shift]) 
     last_op = src_to_internal(g, last_op, node, options)
     last_op.instantiate_on(node)
     ops.append(last_op)
@@ -145,13 +147,14 @@ def main():
   if options.bw_cap:
     union_cube.set_inlink_bwcap(float(options.bw_cap))
 
-    
+      #This is the final output subscriber
   pull_q = jsapi.TimeSubscriber(g, {}, 1000) #only for UI purposes
   pull_q.set_cfg("ts_field", 0)
 #  pull_q.set_cfg("latency_ts_field", 7)
-#  pull_q.set_cfg("start_ts", start_ts)
+  if options.start_ts:
+    pull_q.set_cfg("start_ts", options.start_ts)
   pull_q.set_cfg("rollup_levels", final_rollup_levels)
-  pull_q.set_cfg("simulation_rate", 1) #options.warp_factor)
+  pull_q.set_cfg("simulation_rate", options.warp_factor)
   pull_q.set_cfg("window_offset", 4* 1000) #...trailing by a few
 
   g.connect(union_cube, pull_q)
@@ -172,6 +175,9 @@ def src_to_quant(g, raw_cube_sub, node, options):
   query_rate = 1000
   pull_from_local = jsapi.TimeSubscriber(g, filter={}, interval=query_rate)
   pull_from_local.set_cfg("ts_field", 0)
+  if options.start_ts:
+    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+    pull_from_local.set_cfg("start_ts", options.start_ts)
   pull_from_local.set_cfg("window_offset", 2000)
   
   g.chain( [raw_cube_sub, project, to_summary1, to_summary2, local_cube, pull_from_local] )
