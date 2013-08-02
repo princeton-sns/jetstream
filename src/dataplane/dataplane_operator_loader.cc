@@ -141,6 +141,7 @@ jetstream::COperator *jetstream::DataPlaneOperatorLoader::newOp(string name)
   REGISTER_OP(SeqToRatio);
   REGISTER_OP(BlobReader);
   REGISTER_OP(ImageSampler);
+  REGISTER_OP(ImageQualityReporter);
   
   if(cache.count(name) < 1)
   {

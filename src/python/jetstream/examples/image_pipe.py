@@ -39,9 +39,10 @@ def main():
       continue
     reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file="500")
     filter = jsapi.IntervalSampling(g, max_interval=4)
+    timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)
     
-    g.chain([reader, filter, collector])
+    g.chain([reader, filter, timestamp,  collector])
   print "deploying"
   deploy_or_dummy(options, server, g)
 

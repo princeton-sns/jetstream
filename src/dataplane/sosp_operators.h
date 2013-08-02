@@ -46,6 +46,20 @@ GENERIC_CLNAME
 
 
 
+
+class ImageQualityReporter: public CEachOperator {
+
+ public:
+  virtual void process_one(boost::shared_ptr<Tuple>& t);
+  virtual operator_err_t configure(std::map<std::string,std::string> &config);
+
+
+GENERIC_CLNAME
+};  
+
+
+
+
 class SeqToRatio: public CEachOperator {
   //logs the total counts going past
  public:

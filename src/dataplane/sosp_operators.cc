@@ -156,11 +156,22 @@ ImageSampler::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
+void
+ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
+
+}
+
+operator_err_t
+ImageQualityReporter::configure(std::map<std::string,std::string> &config) {
+
+  return NO_ERR;
+}
+
 
 const string SeqToRatio::my_type_name("Seq to Ratio");
 const string BlobReader::my_type_name("Blob Reader");
 const string ImageSampler::my_type_name("Image Downsampler");
-
+const string ImageQualityReporter::my_type_name("Image quality reporter");
 
 
 

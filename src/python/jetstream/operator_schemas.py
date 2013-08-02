@@ -61,7 +61,7 @@ class OpType (object):
   
   BLOB_READ = "BlobReader"
   INTERVAL_SAMPLING = "IntervalSamplingOperator"
-  
+  IMAGE_QUALITY = "ImageQualityReporter"
   
 def check_ts_field(in_schema, cfg):
   if 'ts_field' in cfg:
@@ -364,7 +364,7 @@ SCHEMAS[OpType.TPUT_WORKER] = lambda schema,cfg: schema
 
 SCHEMAS[OpType.SEQ_TO_RATIO] = validate_SeqToRatio
 SCHEMAS[OpType.WINDOW_CUTOFF] = lambda schema,cfg: schema
-
+SCHEMAS[OpType.IMAGE_QUALITY] = lambda schema,cfg: schema
 
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
 # is a special case
