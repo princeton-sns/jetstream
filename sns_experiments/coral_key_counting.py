@@ -44,12 +44,14 @@ def main():
     
   print "total of %d lines in input" % lines
 #  print "URL:"
+  stats = {}
   show_stats(lines, key_to_count)
-  for t in [5,60, 300, 0]:
+  for t in [5,60, 300, 60 * 60, 0]:
     key_to_count = fold_time(key_to_count, t)
     print "\n\nUsing %d second buckets:" % t
-    show_stats(lines, key_to_count)
-    
+    urlstats = show_stats(lines, key_to_count)
+    domstats = show_stats(lines, remap_to_domain(key_to_count))
+    stats[t] = (urlstats, domstats)
 #    key_to_count = remap_to_domain(key_to_count)
 #    print "Domain:"
 #    show_stats(lines, key_to_count)
@@ -57,6 +59,7 @@ def main():
   kb_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 - kb_used_start
   elapsed_time = time.time() - start_time
   print "\nAnalysis using %d %s in %d seconds" % (kb_used,RSS_units,elapsed_time)  
+  print_stats(stats)
 
 def to_timebucket(timestamp, time_bucket_size):
   if time_bucket_size == 0:
@@ -99,6 +102,14 @@ def show_stats(lines, key_to_count):
   one_off_vals = frequencies[1] * 100.0 / lines
   print "%d one-element keys (%0.2f%% of total keys, %0.2f%% of entries) and %0.2f recs per key" % \
     (frequencies[1], one_off_key_frac, one_off_vals, recs_per_key)
+  return recs_per_key
+
+def print_stats(stats):
+  stats[24 * 60 * 60] = stats[0]
+  del stats[0]
+  print "\n\n\nTime & URL occurrences & Dom occurrences"
+  for t, (url, dom) in sorted( stats.items()):
+    print "%d %0.2f %0.2f" % (t, url, dom)
     
 
 if __name__ == '__main__':

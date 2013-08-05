@@ -33,9 +33,13 @@ def main():
   
   collector = jsapi.ImageQuality(g)
   collector.instantiate_on(root_node)
+
+  if len(all_nodes) < 1 or (len(all_nodes) == 1 and options.generate_at_union):
+    print "FAIL: not enough nodes"
+    sys.exit(0)
   
   for node in all_nodes:
-    if node == root_node:
+    if node == root_node and not options.generate_at_union:
       continue
     reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file="500")
     filter = jsapi.IntervalSampling(g, max_interval=4)
