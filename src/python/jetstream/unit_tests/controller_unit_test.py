@@ -71,6 +71,8 @@ class TestQueryPlanner(unittest.TestCase):
     dim.type = Element.INT32
     alter.toCreate.extend([newCube])
     err = planner.validate_raw_topo(alter).lower()
+    if len(err) > 0:
+      print err    
     self.assertTrue(len(err) > 0)
     self.assertTrue(("cube" in err) and ("more than once" in err))
 
@@ -154,6 +156,8 @@ class TestQueryPlanner(unittest.TestCase):
     qGraph.add_to_PB(req.alter)
 
     err = planner.take_raw_topo(req.alter).lower()
+    if len(err) > 0:
+      print err
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)

@@ -9,7 +9,7 @@ import sys
 
 
 OUT_TO_FILE = True
-
+OUT_FILE = "key_stats.pdf" 
 import matplotlib
 if OUT_TO_FILE:
     matplotlib.use('Agg')
@@ -24,7 +24,7 @@ def main():
   infile = sys.argv[1]
   data = parse_data(infile)
   plot_compressions(data)
-  print "Done"
+  print "Done. Output in",OUT_FILE
   
 INTERVAL_NAMES = {5: "5s", 60:"minute", 300:"5 m", 3600:"hour", 86400:"day"}
 
@@ -57,7 +57,7 @@ def plot_compressions(data):
 
   ax.legend(frameon=False, loc = "upper left")
   if OUT_TO_FILE:
-    plt.savefig("key_stats.pdf")
+    plt.savefig(OUT_FILE)
     plt.close(fig)  
 
 #  print data

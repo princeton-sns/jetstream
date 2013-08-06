@@ -249,7 +249,7 @@ class Controller (ControllerAPI, JSServer):
 
 
   def handle_alter (self, response, altertopo):
-    #TODO This method isn't quite thread safe and should be
+    #TODO This method isn't quite thread safe, and should be.
     response.type = ControlMessage.OK
     
     if len(self.workers) == 0:
@@ -286,7 +286,7 @@ class Controller (ControllerAPI, JSServer):
       logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
         
     self.start_computation_async(assignments)
-    return    
+    return    #response is built up in an argument, rather than returned
 
 
   def handle_alter_response (self, altertopo, workerEndpoint):

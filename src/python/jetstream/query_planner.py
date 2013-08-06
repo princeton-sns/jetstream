@@ -8,6 +8,18 @@ from worker_assign import WorkerAssignment
 
 from jetstream_types_pb2 import *
 
+
+def overwrite_comp_ids (alter, compID):
+  for operatorMeta in alter.toStart:
+    operatorMeta.id.computationID = compID
+
+  for edge in alter.edges:
+    edge.computation = compID
+
+  for policy in alter.congest_policies:
+    for o in policy.op:
+      o.computationID = compID
+
 class QueryPlanner (object):
   """Stages of computation compilation:
 
@@ -55,21 +67,22 @@ class QueryPlanner (object):
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
 
-    validIDs = {}  # map of operator ID/cube name -> None
+    validIDs = set({})  # set of operator IDs
     # Organization of this method is parallel to the altertopo structure.
     # First verify top-level metadata. Then operators, then cubes.
     if len(altertopo.toStart) == 0:
       return "Topology includes no operators"
     for op in altertopo.toStart:
-      if op.id.task in validIDs.keys():
+      if op.id.task in validIDs:
         return "Operator %d was defined more than once" % (op.id.task)
-      validIDs[op.id.task] = None
+      validIDs.add(op.id.task)
 
 #  Can't really do this verification -- breaks with UDFs
 #    for operator in altertopo.toStart:
 #      if not operator.op_typename in KNOWN_OP_TYPES:
 #        print "WARNING: unknown operator type KNOWN_OP_TYPES"
-      
+
+    pinnedCubes = {} #true if cube is pinned, false if unpinned      
     for cube in altertopo.toCreate:
       if not self.CUBE_NAME_PAT.match(cube.name):
         return "Invalid cube name %s" % cube.name
@@ -77,10 +90,15 @@ class QueryPlanner (object):
         return "Cubes must have at least one aggregate per cell"
       if len(cube.schema.dimensions) == 0:
         return "Cubes must have at least one dimension"
-      if cube.name in validIDs.keys():
-        print "Cube %s was defined more than once. This is not fatal." % (cube.name)
-      validIDs[cube.name] = None
-
+      if cube.name in pinnedCubes:
+        if cube.name in pinnedCubes and pinnedCubes[cube.name] and cube.HasField("site"):
+          print "Cube %s was defined more than once. This is not fatal." % (cube.name)
+        else:
+          return "Cube %s is defined more than once and not pinned at each" % cube.name
+      else:
+        pinnedCubes[cube.name] = cube.HasField("site")
+      validIDs.add(cube.name)
+        
     for edge in altertopo.edges:
       if ((edge.HasField("src") and edge.HasField("src_cube")) or
           (edge.HasField("dest") and edge.HasField("dest_cube"))):
@@ -92,24 +110,13 @@ class QueryPlanner (object):
       else:
         srcID = edge.src if edge.HasField("src") else edge.src_cube
         destID = edge.dest if edge.HasField("dest") else edge.dest_cube
-        if srcID not in validIDs.keys():
+        if srcID not in validIDs:
           return "Edge source operator/cube %s has not been defined" % (str(srcID))
-        if destID not in validIDs.keys():
+        if destID not in validIDs:
           return "Edge destination operator/cube %s has not been defined" % (str(destID))
 
     return ""
 
-
-  def overwrite_comp_ids (self, compID):
-    for operatorMeta in self.alter.toStart:
-      operatorMeta.id.computationID = compID
-
-    for edge in self.alter.edges:
-      edge.computation = compID
-
-    for policy in self.alter.congest_policies:
-      for o in policy.op:
-        o.computationID = compID
     
   def get_assignments (self, compID):
     """ Creates a set of assignments for this computation.
@@ -121,7 +128,7 @@ class QueryPlanner (object):
       logger.error("No raw topology specified; need to call take_raw before get_assignments")
       assert(false)
 
-    self.overwrite_comp_ids(compID)
+    overwrite_comp_ids(self.alter, compID)
     # Build the computation graph so we can analyze/manipulate it
     jsGraph = JSGraph(self.alter.toStart, self.alter.toCreate, self.alter.edges)
     assignments = {}   # maps worker ID [host,port pair] -> WorkerAssignment
