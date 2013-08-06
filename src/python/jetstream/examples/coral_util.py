@@ -132,12 +132,12 @@ def numbered(all_nodes, can_read_cache = True):
 
 def deploy_or_dummy(options, server, g):
   req = g.get_deploy_pb()
-  ops = len(req.alter.toStart)
-  cubes = len(req.alter.toCreate)
+  ops = len(req.alter[0].toStart)
+  cubes = len(req.alter[0].toCreate)
   if options.DRY_RUN:
     planner = QueryPlanner( {("somehost", 12345): ("somehost", 12346), \
             ("otherhost", 12345): ("otherhost", 12346) } )
-    planner.take_raw_topo(req.alter)
+    planner.take_raw_topo(req.alter[0])
     planner.get_assignments(1)
     print req
     sys.exit(0)

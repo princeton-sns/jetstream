@@ -330,10 +330,14 @@ class Controller (ControllerAPI, JSServer):
       self.handle_get_nodes(response)
 
     elif req.type == ControlMessage.ALTER:
-      self.handle_alter(response, req.alter)
+      if len(req.alter) != 1:
+        response.error_msg.msg = "One alter per request from client"
+      else:
+        self.handle_alter(response, req.alter[0])
 
     elif req.type == ControlMessage.ALTER_RESPONSE:
-      self.handle_alter_response(req.alter, handler.cli_addr)
+      for a in req.alter:
+        self.handle_alter_response(a, handler.cli_addr)
       return  # no response
 
     elif req.type == ControlMessage.HEARTBEAT:
