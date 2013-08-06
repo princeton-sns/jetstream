@@ -183,7 +183,7 @@ TEST_F(NodeNetTest, NetStartStop)
 //create a request
 
   ControlMessage msg;
-  AlterTopo* topo = msg.mutable_alter();
+  AlterTopo* topo = msg.add_alter();
   add_pair_to_topo(*topo, COMP_ID);
   msg.set_type(ControlMessage::ALTER);
   //send it
@@ -196,7 +196,7 @@ TEST_F(NodeNetTest, NetStartStop)
     switch( h->type() ) {
       case ControlMessage::ALTER_RESPONSE:
         cout << "got response back ok from AlterTopo" <<endl;
-        ASSERT_EQ(h->alter().tostart_size(), 2);
+        ASSERT_EQ(h->alter(0).tostart_size(), 2);
         
         found_response = true;
         break;

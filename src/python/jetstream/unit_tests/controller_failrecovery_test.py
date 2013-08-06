@@ -43,16 +43,16 @@ class TestFailRecovery(unittest.TestCase):
 
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    qGraph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter.add())
     resp = ControlMessage()
-    c.handle_alter(resp, req.alter)
+    c.handle_alter(resp, req.alter[0])
     if resp.type != ControlMessage.OK:
       print resp.error_msg.msg
     self.assertEquals(ControlMessage.OK, resp.type)
 
     req.type=ControlMessage.ALTER_RESPONSE
-    query_planner.overwrite_comp_ids(req.alter, resp.started_comp_id)
-    c.handle_alter_response(req.alter, dummyNodeOutbound)
+    query_planner.overwrite_comp_ids(req.alter[0], resp.started_comp_id)
+    c.handle_alter_response(req.alter[0], dummyNodeOutbound)
 
         #confirm topology started
     self.assertTrue('local_results' in c.cube_locations)

@@ -85,13 +85,13 @@ class TestLocalController(unittest.TestCase):
     echo_op = jsapi.Echo(g);
     g.connect(f, echo_op, bwLimit=0)
     pb = g.get_deploy_pb()
-    self.assertEquals(len(pb.alter.edges), 0)
+    self.assertEquals(len(pb.alter[0].edges), 0)
     
 
     echo_op.set_inlink_bwcap(100)
     pb = g.get_deploy_pb()
-    self.assertEquals(len(pb.alter.edges), 1)
-    self.assertEquals(pb.alter.edges[0].max_kb_per_sec, 100.0)    
+    self.assertEquals(len(pb.alter[0].edges), 1)
+    self.assertEquals(pb.alter[0].edges[0].max_kb_per_sec, 100.0)    
     
 if __name__ == '__main__':
     unittest.main()

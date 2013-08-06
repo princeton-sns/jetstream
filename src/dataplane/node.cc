@@ -235,8 +235,8 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
   switch (msg.type ()) {
   case ControlMessage::ALTER:
     {
-      const AlterTopo &alter = msg.alter();
-      handle_alter(alter, response);
+      for (int i = 0; i < msg.alter_size(); ++i)
+        handle_alter(msg.alter(i), response);
       break;
     }
   case ControlMessage::STOP_COMPUTATION:
@@ -389,7 +389,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
-  AlterTopo *respTopo = response.mutable_alter();
+  AlterTopo *respTopo = response.add_alter();
   respTopo->set_computationid(topo.computationid());
 
     //a whole handle_alter is atomic with respect to incoming connections
@@ -700,7 +700,7 @@ Node::establish_congest_policies( const AlterTopo & topo,
 void
 Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> stopped_operators, int32_t compID) {
   response.set_type(ControlMessage::ALTER_RESPONSE);
-  AlterTopo *respTopo = response.mutable_alter();
+  AlterTopo *respTopo = response.add_alter();
   respTopo->set_computationid(compID);
   for (unsigned int i = 0; i < stopped_operators.size(); ++i) {
     TaskID * tID = respTopo->add_tasktostop();

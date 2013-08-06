@@ -62,9 +62,10 @@ class WorkerAssignment (object):
   def get_pb(self):
     req = ControlMessage()
     req.type = ControlMessage.ALTER
-    req.alter.computationID = self.compID
-    req.alter.toStart.extend(self.operators)
-    req.alter.toCreate.extend(self.cubes)
-    req.alter.edges.extend(self.edges)
-    req.alter.congest_policies.extend(self.policies)
+    req.alter.add()
+    req.alter[0].computationID = self.compID
+    req.alter[0].toStart.extend(self.operators)
+    req.alter[0].toCreate.extend(self.cubes)
+    req.alter[0].edges.extend(self.edges)
+    req.alter[0].congest_policies.extend(self.policies)
     return req

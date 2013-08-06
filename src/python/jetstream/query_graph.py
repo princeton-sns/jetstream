@@ -210,7 +210,7 @@ class QueryGraph(object):
     self.validate_schemas()
     req = ControlMessage()
     req.type = ControlMessage.ALTER
-    self.add_to_PB(req.alter)
+    self.add_to_PB(req.alter.add())
     return req
 
   def node_type(self, id):
