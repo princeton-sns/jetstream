@@ -10,6 +10,8 @@ from jetstream_types_pb2 import *
 
 
 def overwrite_comp_ids (alter, compID):
+
+  alter.computationID = compID
   for operatorMeta in alter.toStart:
     operatorMeta.id.computationID = compID
 

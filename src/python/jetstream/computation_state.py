@@ -23,7 +23,7 @@ class CWorker (object):
   
   def __init__ (self, endpoint, hbInterval=DEFAULT_HB_INTERVAL_SECS,
                hbDeadIntervals=DEFAULT_HB_DEAD_INTERVALS):
-    self.endpoint = endpoint  #this is the 
+    self.endpoint = endpoint  #this is the OUTGOING endpoint, visible here.
     self.hbInterval = hbInterval
     self.hbDeadIntervals = hbDeadIntervals
     self.state = CWorker.DEAD
@@ -65,6 +65,12 @@ class CWorker (object):
     for a in self.assignments.values():
       cubes.extend(a.cubes)
     return cubes
+    
+  def __str__(self):
+    cubes = sum([ len(a.cubes) for a in self.assignments.values()])
+    ops = sum([ len(a.operators) for a in self.assignments.values()])
+    ep = self.get_dataplane_ep()
+    return "CWorker(%d operators, %d cubes on %s:%d)" % (cubes, ops, ep[0], ep[1])
 
 class Computation (object):
   """Controller's view of a running computation. Maps worker ID to assignment"""

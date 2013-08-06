@@ -88,10 +88,11 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
-    self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE
+    self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE, NOT the nodeID
     self.computations = {}  #maps ID to Computation
     self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
       # acknowledged. Note this is NODE ID, not local port!
+    self.pending_work = {} #maps nodeID to an assignment.
     self.hbInterval = hbInterval
     self.running = False
     self.livenessThread = None
@@ -219,15 +220,17 @@ class Controller (ControllerAPI, JSServer):
       h.send_pb(req)
 #      logger.info("XXX send to %s returned", str(workerID))
 
-  def worker_died (self, workerID):
+  def worker_died (self, workerConnID):
     """Called when a worker stops heartbeating and should be treated as dead.
     Manipulates the worker list (caller must ensure thread-safety)."""
 
-    if workerID in self.workers.keys():
-      worker_assignment = self.workers[workerID]
+    if workerConnID in self.workers.keys():
+      worker_assignment = self.workers[workerConnID]
+      nodeID = worker_assignment.get_dataplane_ep()
+      self.pending_work[nodeID] = worker_assignment
       for c in worker_assignment.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
-      del self.workers[workerID]
+      del self.workers[workerConnID]
 
     #TODO: Reschedule worker's assignments elsewhere, etc.
 
@@ -235,18 +238,20 @@ class Controller (ControllerAPI, JSServer):
   
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
+    response = None #but might be non-none if there's a reconnect
     with self.stateLock:
       if clientEndpoint not in self.workers:
         logger.info("Added worker %s; dp addr %s:%d" % 
             (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
         self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+#        myAssign = pending
       node_count = len(self.workers)
       self.workers[clientEndpoint].receive_hb(hb)
 
     if t > self.last_HB_ts:
       logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
       self.last_HB_ts = t
-
+    return response
 
   def handle_alter (self, response, altertopo):
     #TODO This method isn't quite thread safe, and should be.
@@ -332,8 +337,9 @@ class Controller (ControllerAPI, JSServer):
       return  # no response
 
     elif req.type == ControlMessage.HEARTBEAT:
-      self.handle_heartbeat(req.heartbeat, handler.cli_addr)
-      return # no response
+      response = self.handle_heartbeat(req.heartbeat, handler.cli_addr)
+      if not response:
+        return # no response
       
     elif req.type == ControlMessage.STOP_COMPUTATION:
       self.stop_computation(response, req)

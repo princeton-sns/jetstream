@@ -215,7 +215,8 @@ LogHistogram::bucket_bounds(size_t i) const {
 size_t
 LogHistogram::quantile_bucket(double q) const {
 
-  count_val_t cum_sum = 0, target_sum = (count_val_t) (q * total_vals);
+  count_val_t cum_sum = 0;
+  double target_sum = (q * total_vals);
 
   for (unsigned int i = 0; i < buckets.size(); ++i) {
 
