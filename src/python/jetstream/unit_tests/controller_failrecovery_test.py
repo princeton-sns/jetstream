@@ -65,12 +65,24 @@ class TestFailRecovery(unittest.TestCase):
     print c.pending_work[dummyNodeListening]
     dummyNodeOutbound = ("host", 124) #change of outgoing port    
     restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+    
+    
 #    print "Controller handed back",restart_cmd
     self.assertEquals(ControlMessage.ALTER, restart_cmd.type)
     self.assertEquals(1, len(restart_cmd.alter))
     self.assertEquals(1, len(restart_cmd.alter[0].edges))
     self.assertEquals(1, len(restart_cmd.alter[0].toStart))
+    
+    print "Worker node has been 'restarted'"    
 
+    req.type=ControlMessage.ALTER_RESPONSE
+    c.handle_alter_response(req.alter[0], dummyNodeOutbound)
+
+    print "Worker node has sent alter response. Heartbeating again"    
+    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+    if restart_cmd:
+      print restart_cmd
+    self.assertIsNone(restart_cmd)
 
 if __name__ == '__main__':
   unittest.main()

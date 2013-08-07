@@ -36,6 +36,7 @@ class WorkerAssignment (object):
         if self.cubes[i].name != other.cubes[i].name:
           return False
       return True
+#    elif isinstance(other, AlterTopo):     
     return NotImplemented
 
 
@@ -74,3 +75,5 @@ class WorkerAssignment (object):
     alter.congest_policies.extend(self.policies)
     
     
+#  def prune(alter_response):
+#    for 
