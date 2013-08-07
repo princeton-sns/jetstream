@@ -74,7 +74,10 @@ def main():
   
   serv = get_server_on_this_node(endpoint, bind_port)
   start_web_interface(serv, endpoint, config.getint(NOSECTION, 'controller_web_port'))
-  serv.evtloop()
+#  serv.start()
+  serv.running = True
+  serv.start_liveness_thread()
+  serv.evtloop()  #call doesn't return
 
   
 def get_server_on_this_node (endpoint_i = "", bind_port = DEFAULT_BIND_PORT):  
@@ -111,8 +114,8 @@ class Controller (ControllerAPI, JSServer):
       JSServer.handle_connection_close(self, cHandler)
     
   
-  def start (self):
-    self.running = True
+  def start (self):         #Note that start() returns after starting; it's useful for
+    self.running = True     # embedding, not so much for standalone
     JSServer.start(self)
     # Start the liveness thread
     self.start_liveness_thread()
@@ -169,16 +172,14 @@ class Controller (ControllerAPI, JSServer):
 
   def liveness_thread (self):
     while self.running:
-      self.stateLock.acquire()
-      for wID,s in self.workers.items():
-        # TODO: Just delete the node for now, but going forward we'll have to 
-        # reschedule computations etc.
-        if s.update_state() == CWorker.DEAD:
-          logger.info("Marking worker %s:%d as dead due to timeout" % (wID[0],wID[1]))
-          # This is thread-safe since we are using items() and not an iterator
-          self.worker_died(wID)
-      self.stateLock.release()
-          
+      with self.stateLock:
+        for wID,s in self.workers.items():
+          # TODO: Just delete the node for now, but going forward we'll have to 
+          # reschedule computations etc.
+          if s.update_state() == CWorker.DEAD:
+            logger.info("Marking worker %s:%d as dead due to timeout" % (wID[0],wID[1]))
+            # This is thread-safe since we are using items() and not an iterator
+            self.worker_died(wID)
       # All workers reporting to a controller should have the same hb interval
       # (enforced via common config file)
       time.sleep(self.hbInterval)
@@ -259,9 +260,9 @@ class Controller (ControllerAPI, JSServer):
             a.fillin_alter(response.alter.add())
             self.workers[clientEndpoint].add_assignment(a)
 
-    if t > self.last_HB_ts:
-      logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
-      self.last_HB_ts = t
+      if t > self.last_HB_ts:
+        logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
+        self.last_HB_ts = t
     return response
 
 
