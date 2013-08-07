@@ -227,6 +227,8 @@ class Controller (ControllerAPI, JSServer):
     if workerConnID in self.workers.keys():
       worker_assignment = self.workers[workerConnID]
       nodeID = worker_assignment.get_dataplane_ep()
+      logger.info("Saving pending work for disconnected node %s:%d" % nodeID)
+      logger.info("assignment is " + str(worker_assignment))
       self.pending_work[nodeID] = worker_assignment
       for c in worker_assignment.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
@@ -248,13 +250,14 @@ class Controller (ControllerAPI, JSServer):
       self.workers[clientEndpoint].receive_hb(hb)
       
       id_as_tuple = (hb.dataplane_addr.address, hb.dataplane_addr.portno)
-      if id_as_tuple in self.pending_work :
+      if id_as_tuple in self.pending_work:
         prevAssignments = self.pending_work[id_as_tuple]
         if len(prevAssignments.assignments) > 0:
           response = ControlMessage()
           response.type = ControlMessage.ALTER
           for a in prevAssignments.assignments.values():
             a.fillin_alter(response.alter.add())
+            self.workers[clientEndpoint].add_assignment(a)
 
     if t > self.last_HB_ts:
       logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))

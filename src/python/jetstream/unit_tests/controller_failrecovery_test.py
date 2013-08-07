@@ -23,6 +23,40 @@ def add_node(c, dummyNodeOutbound, dummyNodeListening):
 class TestFailRecovery(unittest.TestCase):
 
 
+  def stop_and_start(self, c, dummyNodeOutbound, dummyNodeListening, req):
+  
+    print "Sending stop for ",dummyNodeOutbound,"; worker list is ", [k for k in c.workers.keys()]
+    self.assertTrue(dummyNodeOutbound in c.workers)
+    c.worker_died(dummyNodeOutbound)
+    self.assertFalse(dummyNodeOutbound in c.workers)
+
+    
+    self.assertTrue(c.cube_locations['local_results'] == None)
+    self.assertTrue(c.pending_work[dummyNodeListening] != None)
+    print c.pending_work[dummyNodeListening]
+    
+    dummyNodeOutbound = ("host", dummyNodeOutbound[1] + 1) #change of outgoing port    
+    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+  #    print "Controller handed back",restart_cmd
+    self.assertEquals(ControlMessage.ALTER, restart_cmd.type)
+    self.assertEquals(1, len(restart_cmd.alter))
+    self.assertEquals(1, len(restart_cmd.alter[0].edges))
+    self.assertEquals(1, len(restart_cmd.alter[0].toStart))
+  
+    print "Worker node has been 'restarted'"    
+
+    req.type=ControlMessage.ALTER_RESPONSE
+    c.handle_alter_response(req.alter[0], dummyNodeOutbound)
+
+    print "Worker node has sent alter response. Heartbeating again"    
+    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+    self.assertTrue(dummyNodeOutbound in c.workers)
+    if restart_cmd:
+      print restart_cmd
+    self.assertIsNone(restart_cmd)
+    return dummyNodeOutbound
+
+
   def test_1node_failure(self):
     dummyNodeOutbound = ("host",123)
     dummyNodeListening = ("host",1235)
@@ -59,30 +93,11 @@ class TestFailRecovery(unittest.TestCase):
 #    print c.cube_locations
     
     #   drop node
-    c.worker_died(dummyNodeOutbound)
-    self.assertTrue(c.cube_locations['local_results'] == None)
-    self.assertTrue(c.pending_work[dummyNodeListening] != None)
-    print c.pending_work[dummyNodeListening]
-    dummyNodeOutbound = ("host", 124) #change of outgoing port    
-    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+    dummyNodeOutbound = self.stop_and_start(c, dummyNodeOutbound, dummyNodeListening, req)
     
-    
-#    print "Controller handed back",restart_cmd
-    self.assertEquals(ControlMessage.ALTER, restart_cmd.type)
-    self.assertEquals(1, len(restart_cmd.alter))
-    self.assertEquals(1, len(restart_cmd.alter[0].edges))
-    self.assertEquals(1, len(restart_cmd.alter[0].toStart))
-    
-    print "Worker node has been 'restarted'"    
+    print "stopping a second time."
+    self.stop_and_start(c, dummyNodeOutbound, dummyNodeListening, req)
 
-    req.type=ControlMessage.ALTER_RESPONSE
-    c.handle_alter_response(req.alter[0], dummyNodeOutbound)
-
-    print "Worker node has sent alter response. Heartbeating again"    
-    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
-    if restart_cmd:
-      print restart_cmd
-    self.assertIsNone(restart_cmd)
 
 if __name__ == '__main__':
   unittest.main()
