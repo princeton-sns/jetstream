@@ -244,9 +244,16 @@ class Controller (ControllerAPI, JSServer):
         logger.info("Added worker %s; dp addr %s:%d" % 
             (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
         self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
-#        myAssign = pending
       node_count = len(self.workers)
       self.workers[clientEndpoint].receive_hb(hb)
+      
+      id_as_tuple = (hb.dataplane_addr.address, hb.dataplane_addr.portno)
+      if id_as_tuple in self.pending_work:
+        prevAssignments = self.pending_work[id_as_tuple]
+        response = ControlMessage()
+        response.type = ControlMessage.ALTER
+        for a in prevAssignments.assignments.values():
+          a.fillin_alter(response.alter.add())
 
     if t > self.last_HB_ts:
       logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))

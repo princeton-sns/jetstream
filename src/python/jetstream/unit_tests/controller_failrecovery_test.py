@@ -64,8 +64,12 @@ class TestFailRecovery(unittest.TestCase):
     self.assertTrue(c.pending_work[dummyNodeListening] != None)
     print c.pending_work[dummyNodeListening]
     dummyNodeOutbound = ("host", 124) #change of outgoing port    
-    outgoing_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
-
+    restart_cmd = add_node(c, dummyNodeOutbound, dummyNodeListening)
+#    print "Controller handed back",restart_cmd
+    self.assertEquals(ControlMessage.ALTER, restart_cmd.type)
+    self.assertEquals(1, len(restart_cmd.alter))
+    self.assertEquals(1, len(restart_cmd.alter[0].edges))
+    self.assertEquals(1, len(restart_cmd.alter[0].toStart))
 
 
 if __name__ == '__main__':
