@@ -8,7 +8,7 @@
 #include "dataplane_comm.h"
 #include "jetstream_types.pb.h"
 #include "subscriber.h"
-
+#include <typeinfo>
 
 using namespace jetstream;
 //using namespace std;
@@ -190,7 +190,7 @@ void Node::log_statistics()
   while(!iosrv->stopped())
   {
     boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
-    LOG(INFO) << "Node Statistics: bytes_in="  << bytes_in.read() << " bytes_out=" <<bytes_out.read() ; 
+    LOG(INFO) << "Node Statistics: bytes_in="  << bytes_in.read() << " bytes_out=" <<bytes_out.read() ;
   }
 }
 
@@ -410,21 +410,36 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
         const TaskMeta &task = topo.tostart(i);
         operator_id_t id = unparse_id(task.id());
         const string &cmd = task.op_typename();
-        map<string,string> config;
-        for (int j=0; j < task.config_size(); ++j) {
-          const TaskMeta_DictEntry &cfg_param = task.config(j);
-          config[cfg_param.opt_name()] = cfg_param.val();
-        }    
-        VLOG(1) << "calling create operator " << id;
 
-        shared_ptr<COperator> op = create_operator(cmd, id, config);
-        operators_to_start.push_back( op);
-        operator_ids_to_start.push_back(id);
-        LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";      
+        
+        if ( operators.count(id) > 0) {
+          vector <operator_id_t>::iterator objPos = find (operator_ids_to_start.begin(),
+                                                          operator_ids_to_start.end(), id);
+          if (objPos != operator_ids_to_start.end())
+            throw operator_err_t("Operator " + id.to_string() + " already defined in this alter");
+          boost::shared_ptr<COperator> prev_op = operators[id].lock();
+          const string& existing_typename = typeid(*prev_op).name();
+          if (existing_typename.find(cmd) == string::npos)
+            throw operator_err_t("operator " + id.to_string() + " clashes with " + prev_op->long_description());
+          else
+            LOG(INFO) << "Already got an operator " << id << "of type " << existing_typename;
+        } else {
+          map<string,string> config;
+          for (int j=0; j < task.config_size(); ++j) {
+            const TaskMeta_DictEntry &cfg_param = task.config(j);
+            config[cfg_param.opt_name()] = cfg_param.val();
+          }    
+          VLOG(1) << "calling create operator " << id;
+
+          shared_ptr<COperator> op = create_operator(cmd, id, config);
+          operators_to_start.push_back( op);
+          operator_ids_to_start.push_back(id);
+          LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";
+          operators[id] = op;
+        }
         TaskMeta *started_task = respTopo->add_tostart();
         started_task->mutable_id()->CopyFrom(task.id());
         started_task->set_op_typename(task.op_typename());
-        operators[id] = op;
       }
     }
 
@@ -777,6 +792,7 @@ shared_ptr<COperator>
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 throw(operator_err_t)
 {
+  
   if (operators.count(name) > 0) {
     throw operator_err_t("operator "  + name.to_string() + "  already exists");
   }
