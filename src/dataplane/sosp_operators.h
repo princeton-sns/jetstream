@@ -30,7 +30,7 @@ class BlobReader: public TimerSource {
     std::string prefix;
     std::vector<boost::filesystem::path> paths;
     unsigned cur_path;
-    unsigned ms_per_file; //
+    unsigned ms_per_file;  //read interval
 GENERIC_CLNAME
 };  
 
