@@ -88,10 +88,11 @@ class Controller (ControllerAPI, JSServer):
   
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
-    self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE
+    self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE, NOT the nodeID
     self.computations = {}  #maps ID to Computation
     self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
       # acknowledged. Note this is NODE ID, not local port!
+    self.pending_work = {} #maps nodeID to an assignment.
     self.hbInterval = hbInterval
     self.running = False
     self.livenessThread = None
@@ -219,15 +220,19 @@ class Controller (ControllerAPI, JSServer):
       h.send_pb(req)
 #      logger.info("XXX send to %s returned", str(workerID))
 
-  def worker_died (self, workerID):
+  def worker_died (self, workerConnID):
     """Called when a worker stops heartbeating and should be treated as dead.
     Manipulates the worker list (caller must ensure thread-safety)."""
 
-    if workerID in self.workers.keys():
-      worker_assignment = self.workers[workerID]
+    if workerConnID in self.workers.keys():
+      worker_assignment = self.workers[workerConnID]
+      nodeID = worker_assignment.get_dataplane_ep()
+      logger.info("Saving pending work for disconnected node %s:%d" % nodeID)
+      logger.info("assignment is " + str(worker_assignment))
+      self.pending_work[nodeID] = worker_assignment
       for c in worker_assignment.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
-      del self.workers[workerID]
+      del self.workers[workerConnID]
 
     #TODO: Reschedule worker's assignments elsewhere, etc.
 
@@ -235,6 +240,7 @@ class Controller (ControllerAPI, JSServer):
   
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())
+    response = None #but might be non-none if there's a reconnect
     with self.stateLock:
       if clientEndpoint not in self.workers:
         logger.info("Added worker %s; dp addr %s:%d" % 
@@ -242,14 +248,25 @@ class Controller (ControllerAPI, JSServer):
         self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
       node_count = len(self.workers)
       self.workers[clientEndpoint].receive_hb(hb)
+      
+      id_as_tuple = (hb.dataplane_addr.address, hb.dataplane_addr.portno)
+      if id_as_tuple in self.pending_work:
+        prevAssignments = self.pending_work[id_as_tuple]
+        if len(prevAssignments.assignments) > 0:
+          response = ControlMessage()
+          response.type = ControlMessage.ALTER
+          for a in prevAssignments.assignments.values():
+            a.fillin_alter(response.alter.add())
+            self.workers[clientEndpoint].add_assignment(a)
 
     if t > self.last_HB_ts:
       logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
       self.last_HB_ts = t
+    return response
 
 
   def handle_alter (self, response, altertopo):
-    #TODO This method isn't quite thread safe and should be
+    #TODO This method isn't quite thread safe, and should be.
     response.type = ControlMessage.OK
     
     if len(self.workers) == 0:
@@ -275,41 +292,40 @@ class Controller (ControllerAPI, JSServer):
       response.type = ControlMessage.ERROR
       response.error_msg.msg = err
       return
-  
       
     with self.stateLock:  
       # Finalize the worker assignments
       # Should this be AFTER we hear back from workers?
       for workerID,assignment in assignments.items():
-        comp.assign_worker(workerID, assignment)
+        comp.assign_worker(workerLocations[workerID], assignment)
         self.workers[workerID].add_assignment(assignment)
       logger.info("Starting computation %d with %d worker assignments" % (compID, len(assignments)))
         
     self.start_computation_async(assignments)
-    return    
+    return    #response is built up in an argument, rather than returned
 
 
-  def handle_alter_response (self, altertopo, workerEndpoint):
-    self.stateLock.acquire()
-
-    compID = altertopo.computationID
+  def handle_alter_response (self, alter_response, workerEndpoint):
+    with self.stateLock:
+      compID = alter_response.computationID
     
-    for name in altertopo.cubesToStop:
-      del self.cube_locations[name]
+      for name in alter_response.cubesToStop:
+        del self.cube_locations[name]
 
-    if compID not in self.computations:
-      #there's a race here if the job is being shut down and this is the death notice
-      if len(altertopo.toStart) > 0:
-        logger.warning("Invalid computation id %d in ALTER_RESPONSE message reporting operator starts" % (compID))
-      # if a dead job and it's all stops, we ignore it quietly
-    else:
-    # Let the computation know which parts of the assignment were started/created
-      actualAssignment = WorkerAssignment(altertopo.computationID, altertopo.toStart, altertopo.toCreate)
-      nodeID = self.workers[workerEndpoint].get_dataplane_ep()
-      self.computations[compID].update_worker(workerEndpoint, actualAssignment)
-      for cubeMeta in altertopo.toCreate:
-        self.cube_locations[cubeMeta.name] = nodeID         
-    self.stateLock.release()
+      if compID not in self.computations:
+        #there's a race here if the job is being shut down and this is the death notice
+        if len(alter_response.toStart) > 0:
+          logger.warning("Invalid computation id %d in ALTER_RESPONSE message reporting operator starts" % (compID))
+        # if a dead job and it's all stops, we ignore it quietly
+      else:
+      # Let the computation know which parts of the assignment were started/created
+        actualAssignment = WorkerAssignment(alter_response.computationID, alter_response.toStart, alter_response.toCreate)
+        nodeID = self.workers[workerEndpoint].get_dataplane_ep()
+        self.computations[compID].update_worker(nodeID, actualAssignment)
+        for cubeMeta in alter_response.toCreate:
+          self.cube_locations[cubeMeta.name] = nodeID 
+        if nodeID in self.pending_work:
+          self.pending_work[nodeID].pruneStarted(alter_response)
       
 
   def process_message (self, buf, handler):
@@ -325,15 +341,20 @@ class Controller (ControllerAPI, JSServer):
       self.handle_get_nodes(response)
 
     elif req.type == ControlMessage.ALTER:
-      self.handle_alter(response, req.alter)
+      if len(req.alter) != 1:
+        response.error_msg.msg = "One alter per request from client"
+      else:
+        self.handle_alter(response, req.alter[0])
 
     elif req.type == ControlMessage.ALTER_RESPONSE:
-      self.handle_alter_response(req.alter, handler.cli_addr)
+      for a in req.alter:
+        self.handle_alter_response(a, handler.cli_addr)
       return  # no response
 
     elif req.type == ControlMessage.HEARTBEAT:
-      self.handle_heartbeat(req.heartbeat, handler.cli_addr)
-      return # no response
+      response = self.handle_heartbeat(req.heartbeat, handler.cli_addr)
+      if not response:
+        return # no response
       
     elif req.type == ControlMessage.STOP_COMPUTATION:
       self.stop_computation(response, req)

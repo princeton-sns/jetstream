@@ -27,6 +27,9 @@ class QuantileEstimation {
     virtual size_t size() const = 0; //
 
     virtual void add_item(int, count_val_t) = 0;
+  
+//    void add_1(int item) { add_item(item, 1); }
+  
 
     virtual void add_data(int * data, size_t size_to_take) {
       for (unsigned int i =0; i < size_to_take; ++i)
@@ -119,7 +122,7 @@ class LogHistogram : public QuantileEstimation {
   protected:
     std::vector<count_val_t> buckets;
     std::vector<int> bucket_starts;
-    uint64_t total_vals;
+    uint64_t total_vals; //total number of inserted items
 
     size_t quantile_bucket(double d) const; //the bucket holding quantile d
 
@@ -150,6 +153,11 @@ class LogHistogram : public QuantileEstimation {
       for (size_t i = 0; i < buckets.size(); ++i)
         total+=buckets[i];
       return total;*/
+    }
+  
+    virtual void clear() {
+      buckets.assign(buckets.size(), 0);
+      total_vals = 0;
     }
 
 

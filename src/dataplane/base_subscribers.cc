@@ -274,16 +274,16 @@ TimeBasedSubscriber::configure(std::map<std::string,std::string> &config) {
   if (config.find("simulation_rate") != config.end()) {
     simulation_rate = boost::lexical_cast<time_t>(config["simulation_rate"]);
 
-    LOG(INFO) << "configuring a TimeSubscriber simulation" << endl;
     windowOffsetMs *= simulation_rate;
     tt = boost::shared_ptr<TimeTeller>(new TimeSimulator(start_ts, simulation_rate));
 
-    VLOG(1) << "TSubscriber simulation start: " << start_ts << endl;
-    VLOG(1) << "TSubscriber simulation rate: " << simulation_rate << endl;
+    LOG(INFO) << "configuring a TimeSubscriber simulation for " << id() <<". Starting at "<< start_ts<<
+     " and rate is " << simulation_rate;
     VLOG(1) << "TSubscriber window size ms: " << windowSizeMs << endl;
+  } 
+  else {
+    tt = boost::shared_ptr<TimeTeller>(new TimeTeller);
   }
-  tt = boost::shared_ptr<TimeTeller>(new TimeTeller);
-
   return NO_ERR;
 }
 
@@ -329,7 +329,7 @@ TimeBasedSubscriber::start() {
   if(ts_field >= 0)
     ts_input_tuple_index = cube->get_schema().dimensions(ts_field).tuple_indexes(0);
   else
-    ts_input_tuple_index = ts_field;
+    ts_input_tuple_index = -1;
   StrandedSubscriber::start();
 }
 
@@ -378,6 +378,7 @@ TimeBasedSubscriber::emit_batch() {
   time_t newMax = 0;
   if (ts_field >= 0) {
     newMax = tt->now() - get_window_offset_sec();
+//    LOG(INFO) << "For " << id() << ", tt now is " << tt->now();
     unique_lock<boost::mutex> lock(stateLock);
     
     if (times.size() > 0) {

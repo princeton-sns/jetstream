@@ -36,6 +36,7 @@ class WorkerAssignment (object):
         if self.cubes[i].name != other.cubes[i].name:
           return False
       return True
+#    elif isinstance(other, AlterTopo):     
     return NotImplemented
 
 
@@ -62,9 +63,17 @@ class WorkerAssignment (object):
   def get_pb(self):
     req = ControlMessage()
     req.type = ControlMessage.ALTER
-    req.alter.computationID = self.compID
-    req.alter.toStart.extend(self.operators)
-    req.alter.toCreate.extend(self.cubes)
-    req.alter.edges.extend(self.edges)
-    req.alter.congest_policies.extend(self.policies)
+    self.fillin_alter(req.alter.add())
     return req
+
+
+  def fillin_alter(self, alter):
+    alter.computationID = self.compID
+    alter.toStart.extend(self.operators)
+    alter.toCreate.extend(self.cubes)
+    alter.edges.extend(self.edges)
+    alter.congest_policies.extend(self.policies)
+    
+    
+#  def prune(alter_response):
+#    for 

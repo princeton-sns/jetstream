@@ -109,8 +109,31 @@ TEST(Node, DuplicateOperator) {
 
   ControlMessage r;
   node.handle_alter(topo, r);
-  ASSERT_EQ(r.type(), ControlMessage::ERROR);
+  ASSERT_EQ(ControlMessage::ERROR, r.type());
   ASSERT_EQ(node.operator_count(), 0U);  //all or none should start
+
+}
+
+
+
+TEST(Node, DuplicateAlter) {
+  NodeConfig cfg;
+  boost::system::error_code error;
+  Node node(cfg, error);
+  ASSERT_TRUE(error == 0);
+  AlterTopo topo;
+
+  operator_id_t id (1,1);
+  add_operator_to_alter(topo, id, "EchoOperator");
+  ControlMessage r;
+  node.handle_alter(topo, r);  
+  ASSERT_EQ(ControlMessage::ALTER_RESPONSE, r.type());
+  cout << "first alter sent ok " << endl;
+
+  node.handle_alter(topo, r);  
+  ASSERT_EQ(ControlMessage::ALTER_RESPONSE, r.type());
+  ASSERT_EQ(node.operator_count(), 1U);  //should have started just once
+  cout << "second alter sent ok " << endl;
 
 }
 

@@ -53,7 +53,7 @@ TEST(Operator, QuantileAndCountOperators) {
   ASSERT_EQ((size_t)1, tuples.size());
   boost::shared_ptr<Tuple> result = tuples[0];
   ASSERT_EQ(2, result->e(0).i_val());  //first element preserved
-  ASSERT_EQ(4, result->e(1).i_val()); //median is 4
+  ASSERT_EQ(4, result->e(1).i_val()); //median is 4; 0.6th quantile is between 4 and 6
   ASSERT_EQ(3, result->e(2).i_val()); //three values
 }
 

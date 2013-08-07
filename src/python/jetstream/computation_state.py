@@ -23,7 +23,7 @@ class CWorker (object):
   
   def __init__ (self, endpoint, hbInterval=DEFAULT_HB_INTERVAL_SECS,
                hbDeadIntervals=DEFAULT_HB_DEAD_INTERVALS):
-    self.endpoint = endpoint  #this is the 
+    self.endpoint = endpoint  #this is the OUTGOING endpoint, visible here.
     self.hbInterval = hbInterval
     self.hbDeadIntervals = hbDeadIntervals
     self.state = CWorker.DEAD
@@ -58,6 +58,24 @@ class CWorker (object):
 
   def cleanup_computation(self, compID):
     del self.assignments[compID]
+
+
+  def pruneStarted(self, alter_response):
+    compID = alter_response.computationID
+    if compID in self.assignments:
+      resp_as_assign = WorkerAssignment(compID, alter_response.toStart, alter_response.toCreate)
+      if self.assignments[compID] == resp_as_assign:
+        del self.assignments[compID]
+        print "Successfully pruned started work for %d" % compID
+      else:
+        print "WARN: Trying to prune pending with a response that doesn't quite match."+ \
+               "Computation ID is %d" % compID
+        print "Existing assignment: ",self.assignments[compID]
+        print "\n\n\nNew assignment",alter_response
+#      self.assignments[compID].prune(alter_response)
+#    else:  #this happens if there was no failure and it's a response to a first create
+#      print "Internal error: got an alter response started un-pending"
+
     
   def get_all_cubes(self):
     """Returns a list of CubeMetas"""
@@ -65,6 +83,12 @@ class CWorker (object):
     for a in self.assignments.values():
       cubes.extend(a.cubes)
     return cubes
+    
+  def __str__(self):
+    cubes = sum([ len(a.cubes) for a in self.assignments.values()])
+    ops = sum([ len(a.operators) for a in self.assignments.values()])
+    ep = self.get_dataplane_ep()
+    return "CWorker(%d operators, %d cubes on %s:%d)" % (cubes, ops, ep[0], ep[1])
 
 class Computation (object):
   """Controller's view of a running computation. Maps worker ID to assignment"""
@@ -73,7 +97,7 @@ class Computation (object):
     # Save the controller interface so we can communicate with workers
     self.compID = compID
     # Maps a worker endpoint to an assignment
-    self.workerAssignments = {} # worker ID -> WorkerAssignment object
+    self.workerAssignments = {} # node ID -> WorkerAssignment object
 
 
   def assign_worker (self, workerID, assignment):
@@ -90,6 +114,7 @@ class Computation (object):
     else:
       intendedAssignment.state = WorkerAssignment.STOPPED
       #TODO Handle failed assignment here
+
 
   def workers_in_use(self):
     return [workerID for workerID, worker in self.workerAssignments.items() if len(worker.operators) > 0]

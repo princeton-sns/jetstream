@@ -8,7 +8,7 @@
 #include "dataplane_comm.h"
 #include "jetstream_types.pb.h"
 #include "subscriber.h"
-
+#include <typeinfo>
 
 using namespace jetstream;
 //using namespace std;
@@ -190,7 +190,7 @@ void Node::log_statistics()
   while(!iosrv->stopped())
   {
     boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
-    LOG(INFO) << "Node Statistics: bytes_in="  << bytes_in.read() << " bytes_out=" <<bytes_out.read() ; 
+    LOG(INFO) << "Node Statistics: bytes_in="  << bytes_in.read() << " bytes_out=" <<bytes_out.read() ;
   }
 }
 
@@ -235,8 +235,8 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
   switch (msg.type ()) {
   case ControlMessage::ALTER:
     {
-      const AlterTopo &alter = msg.alter();
-      handle_alter(alter, response);
+      for (int i = 0; i < msg.alter_size(); ++i)
+        handle_alter(msg.alter(i), response);
       break;
     }
   case ControlMessage::STOP_COMPUTATION:
@@ -291,6 +291,17 @@ Node::incoming_conn_handler (boost::shared_ptr<ConnectedSocket> sock,
 
 }
 
+shared_ptr<OperatorChain> 
+Node::clone_chain_from(std::map<operator_id_t, boost::shared_ptr<jetstream::OperatorChain> >& chainMap, operator_id_t dest_operator_id) {
+  shared_ptr<OperatorChain> new_chain;
+  if (chainMap.count(dest_operator_id) > 0) {
+    new_chain = shared_ptr<OperatorChain>(new OperatorChain());
+    new_chain->add_member();
+    new_chain->clone_from(chainMap[dest_operator_id]);
+    LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
+  }
+  return new_chain;
+}
 
 /**
  * This is only invoked for a "new" connection. We change the signal handler
@@ -317,13 +328,10 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
       if (e.has_dest()) { //already exists
         operator_id_t dest_operator_id (e.computation(), e.dest());
         dest_as_str = dest_operator_id.to_string();
-        if (sourcelessChain.count(dest_operator_id) > 0) {
-          new_chain = shared_ptr<OperatorChain>(new OperatorChain());
-          new_chain->add_member();
-          new_chain->clone_from(sourcelessChain[dest_operator_id]);
-          LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
-          LOG(INFO) << new_chain->chain_name();
-        }
+        
+        new_chain = clone_chain_from(sourcelessChain, dest_operator_id);
+        if (!new_chain)
+          new_chain = clone_chain_from(chainSources, dest_operator_id);
       } else if (e.has_dest_cube()) {
         dest_as_str = e.dest_cube();
         boost::shared_ptr<DataCube> dest = cubeMgr.get_cube(dest_as_str);
@@ -381,7 +389,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
-  AlterTopo *respTopo = response.mutable_alter();
+  AlterTopo *respTopo = response.add_alter();
   respTopo->set_computationid(topo.computationid());
 
     //a whole handle_alter is atomic with respect to incoming connections
@@ -402,21 +410,36 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
         const TaskMeta &task = topo.tostart(i);
         operator_id_t id = unparse_id(task.id());
         const string &cmd = task.op_typename();
-        map<string,string> config;
-        for (int j=0; j < task.config_size(); ++j) {
-          const TaskMeta_DictEntry &cfg_param = task.config(j);
-          config[cfg_param.opt_name()] = cfg_param.val();
-        }    
-        VLOG(1) << "calling create operator " << id;
 
-        shared_ptr<COperator> op = create_operator(cmd, id, config);
-        operators_to_start.push_back( op);
-        operator_ids_to_start.push_back(id);
-        LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";      
+        
+        if ( operators.count(id) > 0) {
+          vector <operator_id_t>::iterator objPos = find (operator_ids_to_start.begin(),
+                                                          operator_ids_to_start.end(), id);
+          if (objPos != operator_ids_to_start.end())
+            throw operator_err_t("Operator " + id.to_string() + " already defined in this alter");
+          boost::shared_ptr<COperator> prev_op = operators[id].lock();
+          const string& existing_typename = typeid(*prev_op).name();
+          if (existing_typename.find(cmd) == string::npos)
+            throw operator_err_t("operator " + id.to_string() + " clashes with " + prev_op->long_description());
+          else
+            LOG(INFO) << "Already got an operator " << id << "of type " << existing_typename;
+        } else {
+          map<string,string> config;
+          for (int j=0; j < task.config_size(); ++j) {
+            const TaskMeta_DictEntry &cfg_param = task.config(j);
+            config[cfg_param.opt_name()] = cfg_param.val();
+          }    
+          VLOG(1) << "calling create operator " << id;
+
+          shared_ptr<COperator> op = create_operator(cmd, id, config);
+          operators_to_start.push_back( op);
+          operator_ids_to_start.push_back(id);
+          LOG(INFO) << "configured operator " << id << " of type " << cmd << " ok";
+          operators[id] = op;
+        }
         TaskMeta *started_task = respTopo->add_tostart();
         started_task->mutable_id()->CopyFrom(task.id());
         started_task->set_op_typename(task.op_typename());
-        operators[id] = op;
       }
     }
 
@@ -692,7 +715,7 @@ Node::establish_congest_policies( const AlterTopo & topo,
 void
 Node::make_stop_comput_response(ControlMessage& response, std::vector<int32_t> stopped_operators, int32_t compID) {
   response.set_type(ControlMessage::ALTER_RESPONSE);
-  AlterTopo *respTopo = response.mutable_alter();
+  AlterTopo *respTopo = response.add_alter();
   respTopo->set_computationid(compID);
   for (unsigned int i = 0; i < stopped_operators.size(); ++i) {
     TaskID * tID = respTopo->add_tasktostop();
@@ -769,6 +792,7 @@ shared_ptr<COperator>
 Node::create_operator (string op_typename, operator_id_t name, map<string,string> cfg)
 throw(operator_err_t)
 {
+  
   if (operators.count(name) > 0) {
     throw operator_err_t("operator "  + name.to_string() + "  already exists");
   }

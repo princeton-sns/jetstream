@@ -200,7 +200,9 @@ message ControlMessage {
   optional Error error_msg = 2;
   optional Heartbeat heartbeat = 3;
   optional int32 node_count = 5;  // present if type is NODE_COUNT_REQ
-  optional AlterTopo alter = 6;   // present if type is ALTER or ALTER_RESPONSE
+  repeated AlterTopo alter = 6;   // present if type is ALTER or ALTER_RESPONSE
+        // It is legal for the controller to start multiple computations at a time
+        // for failure recovery, but for now NOT legal for clients to do this directly.
   repeated NodeID nodes = 7;      // present if type is NODES_RESPONSE
   optional int32 started_comp_id = 8; // present in an OK sent back from controller in response to an alter
   optional int32 comp_to_stop = 9;  // present if type is STOP_COMPUTATION

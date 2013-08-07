@@ -71,6 +71,8 @@ class TestQueryPlanner(unittest.TestCase):
     dim.type = Element.INT32
     alter.toCreate.extend([newCube])
     err = planner.validate_raw_topo(alter).lower()
+    if len(err) > 0:
+      print err    
     self.assertTrue(len(err) > 0)
     self.assertTrue(("cube" in err) and ("more than once" in err))
 
@@ -125,9 +127,9 @@ class TestQueryPlanner(unittest.TestCase):
     reader = jsapi.FileRead(qGraph, "file name")
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    qGraph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter.add())
 
-    err = planner.take_raw_topo(req.alter).lower()
+    err = planner.take_raw_topo(req.alter[0]).lower()
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
@@ -151,9 +153,11 @@ class TestQueryPlanner(unittest.TestCase):
     
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    qGraph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter.add())
 
-    err = planner.take_raw_topo(req.alter).lower()
+    err = planner.take_raw_topo(req.alter[0]).lower()
+    if len(err) > 0:
+      print err
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
@@ -163,25 +167,25 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(plan[dummyNode].cubes), 1)
         
     pbToNode = plan[dummyNode].get_pb()
-    self.assertEquals(len(pbToNode.alter.edges), 1)
+    self.assertEquals(len(pbToNode.alter[0].edges), 1)
 
   def test_external_edge_plan(self):
     qGraph = jsapi.QueryGraph()
     reader = jsapi.FileRead(qGraph, "file name")
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
-    qGraph.add_to_PB(req.alter)
+    qGraph.add_to_PB(req.alter.add())
     
     MY_PORTNO = 1000
-    e = req.alter.edges.add()
-    e.src = req.alter.toStart[0].id.task
+    e = req.alter[0].edges.add()
+    e.src = req.alter[0].toStart[0].id.task
     e.computation = 0
     e.dest_addr.address = "myhost"
     e.dest_addr.portno = MY_PORTNO
 
     dummyNode = ("host",123)
     planner = QueryPlanner( {dummyNode:dummyNode} )
-    err = planner.take_raw_topo(req.alter).lower()
+    err = planner.take_raw_topo(req.alter[0]).lower()
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
@@ -190,8 +194,8 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(plan[dummyNode].operators), 1)
         
     pbToNode = plan[dummyNode].get_pb()
-    self.assertEquals(len(pbToNode.alter.edges), 1)
-    self.assertEquals(pbToNode.alter.edges[0].dest_addr.portno, MY_PORTNO)
+    self.assertEquals(len(pbToNode.alter[0].edges), 1)
+    self.assertEquals(pbToNode.alter[0].edges[0].dest_addr.portno, MY_PORTNO)
 
   def test_with_subscriber(self):
     dummyNode = ("host",123)
@@ -207,7 +211,7 @@ class TestQueryPlanner(unittest.TestCase):
     subscriber = jsapi.TimeSubscriber(qGraph, {"hostname":"http://foo.com"}, 1000)
     qGraph.connect(cube, subscriber)
     
-    err = planner.take_raw_topo(qGraph.get_deploy_pb().alter).lower()
+    err = planner.take_raw_topo(qGraph.get_deploy_pb().alter[0]).lower()
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
@@ -252,11 +256,11 @@ class TestQueryPlanner(unittest.TestCase):
 
     g.validate_schemas()
 
-    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter[0])
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     
-    pb1 = plan[dummyNode1].get_pb().alter
+    pb1 = plan[dummyNode1].get_pb().alter[0]
     
     subscribers = [x for x in pb1.toStart if "Subscriber" in x.op_typename]
     self.assertEquals(len(subscribers),  len(pb1.toCreate))
@@ -310,14 +314,14 @@ class TestQueryPlanner(unittest.TestCase):
     g.validate_schemas()
 
     # Pin nothing: everything should be placed on one node
-    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter[0])
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     self.assertEquals(len(plan), 1)
 
     # Pin source (src): everything should be placed on the source node
     src.instantiate_on(node2ID)
-    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter[0])
     self.assertEquals(len(err), 0)  
     plan = planner.get_assignments(1)
     self.assertEquals(len(plan), 1)
@@ -326,7 +330,7 @@ class TestQueryPlanner(unittest.TestCase):
     # Pin source (src) and sink (remoteCube): everything except sink should be on source node
     src.instantiate_on(node2ID)
     remoteCube.instantiate_on(node1ID)
-    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter[0])
     self.assertEquals(len(err), 0)
     plan = planner.get_assignments(1)
     self.assertEquals(len(plan), 2)
@@ -344,7 +348,7 @@ class TestQueryPlanner(unittest.TestCase):
     src.instantiate_on(node2ID)
     localCube.instantiate_on(node3ID)
     remoteCube.instantiate_on(node1ID)
-    err = planner.take_raw_topo(g.get_deploy_pb().alter)
+    err = planner.take_raw_topo(g.get_deploy_pb().alter[0])
     self.assertEquals(len(err), 0)
     plan = planner.get_assignments(1)
     self.assertEquals(len(plan), 3)
@@ -353,7 +357,7 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(node3Plan.cubes[0].name, localCube.name)
     self.assertEquals(len(node3Plan.operators), 3)
     # In particular, the cube subscriber should be on the same node as the cube!
-    pb3 = node3Plan.get_pb().alter
+    pb3 = node3Plan.get_pb().alter[0]
     subscribers = [x for x in pb3.toStart if "Subscriber" in x.op_typename]
     self.assertEquals(len(subscribers), 1)
 
@@ -376,8 +380,8 @@ class TestQueryPlanner(unittest.TestCase):
 
     try: 
       pb =  qGraph.get_deploy_pb()
-      self.assertEquals( len (pb.alter.congest_policies), 1)
-      oid = pb.alter.congest_policies[0].op[0].task
+      self.assertEquals( len (pb.alter[0].congest_policies), 1)
+      oid = pb.alter[0].congest_policies[0].op[0].task
       self.assertEquals( oid, sub.id)
 
 #      print str(pb.alter)

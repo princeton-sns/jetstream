@@ -231,6 +231,14 @@ TEST(QuantReservoirSample, SerDe) {
 
 }
 
+TEST(QuantLogHistogram, Empty) {
+
+  LogHistogram no_data(30);
+//  ASSERT_EQ(0, no_data.bucket_with(0))
+  int q = no_data.quantile(0.5);
+  ASSERT_EQ(0, q);
+}
+
 TEST(QuantLogHistogram, SerDe) {
 
   LogHistogram summary(30);

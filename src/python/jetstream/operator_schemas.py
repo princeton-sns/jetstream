@@ -59,6 +59,9 @@ class OpType (object):
 
   SEQ_TO_RATIO = "SeqToRatio"
   
+  BLOB_READ = "BlobReader"
+  INTERVAL_SAMPLING = "IntervalSamplingOperator"
+  IMAGE_QUALITY = "ImageQualityReporter"
   
 def check_ts_field(in_schema, cfg):
   if 'ts_field' in cfg:
@@ -100,6 +103,11 @@ def validate_FileRead(in_schema, cfg):
   if len(in_schema) > 0:
     raise SchemaError("File Read should take no inputs, but got %s" % str(in_schema))
   return [("S","")]
+
+def validate_BlobRead(in_schema, cfg):
+  if len(in_schema) > 0:
+    raise SchemaError("Blob Read should take no inputs, but got %s" % str(in_schema))
+  return [("S","filename"), ('B', "contents")]
 
 def validate_grep(in_schema, cfg):
   fld = cfg['id']
@@ -305,6 +313,7 @@ def validate_SeqToRatio(schema,cfg):
 # and the second field is a name for that element.
 SCHEMAS = {} 
 SCHEMAS[OpType.FILE_READ] = validate_FileRead
+SCHEMAS[OpType.BLOB_READ] = validate_BlobRead
 SCHEMAS[OpType.STRING_GREP] = validate_grep
 SCHEMAS[OpType.PARSE] = validate_parse
 SCHEMAS[OpType.EXTEND] = validate_extend
@@ -319,6 +328,8 @@ SCHEMAS[OpType.RATIO_FILTER] = lambda schema,cfg: schema if \
 
 
 SCHEMAS[OpType.VARIABLE_SAMPLING] = lambda schema,cfg: schema 
+SCHEMAS[OpType.INTERVAL_SAMPLING] = lambda schema,cfg: schema 
+
 SCHEMAS[OpType.CONGEST_CONTROL] = lambda schema,cfg: schema 
 
 
@@ -353,7 +364,7 @@ SCHEMAS[OpType.TPUT_WORKER] = lambda schema,cfg: schema
 
 SCHEMAS[OpType.SEQ_TO_RATIO] = validate_SeqToRatio
 SCHEMAS[OpType.WINDOW_CUTOFF] = lambda schema,cfg: schema
-
+SCHEMAS[OpType.IMAGE_QUALITY] = lambda schema,cfg: schema
 
 #SCHEMAS[OpType.FILTER_SUBSCRIBER] = validate_FilterSubscriber
 # is a special case
