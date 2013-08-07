@@ -82,7 +82,7 @@ configure_file (${SRC_DIR}/utils/js_version.h.in ${SRC_DIR}/utils/js_version.h)
 
 
 # Requires Boost
-find_package (Boost COMPONENTS system thread chrono regex program_options filesystem REQUIRED)
+find_package (Boost 1.50 REQUIRED COMPONENTS system thread chrono regex program_options filesystem REQUIRED)
 if (APPLE)
   set (Boost_USE_STATIC_LIBS ON)
   set (Boost_USE_MULTITHREADED ON)
