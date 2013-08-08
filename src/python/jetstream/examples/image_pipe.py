@@ -22,6 +22,8 @@ ch.setFormatter(formatter)
 def main():
 
   parser = standard_option_parser()
+  parser.add_option("--rate", dest="img_per_sec",
+  default="2", help="number of images to send per second")
 
   (options, args) = parser.parse_args()
 
@@ -30,7 +32,7 @@ def main():
   
   print "%d worker nodes in system" % len(all_nodes)
   g= jsapi.QueryGraph()
-  
+  ms_per_img = 1000 / float(options.img_per_sec)
   collector = jsapi.ImageQuality(g)
   collector.instantiate_on(root_node)
 
@@ -41,7 +43,7 @@ def main():
   for node in all_nodes:
     if node == root_node and not options.generate_at_union:
       continue
-    reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file="500")
+    reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file=ms_per_img)
     filter = jsapi.IntervalSampling(g, max_interval=4)
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)

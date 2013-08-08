@@ -41,7 +41,7 @@ boost::shared_ptr<jetstream::CubeSchema> get_example_schema()
   return sc;
 }
 
-TEST(MTCube, CreateAndStore) {
+TEST(MTCube, DISABLED_CreateAndStore) {
   shared_ptr<CubeSchema> sc = get_example_schema();
   MasstreeCube cube(*sc, "web_requests", true);
   
@@ -132,7 +132,7 @@ TEST(MTCube, DISABLED_PerfTest) {
 }
 
 
-TEST(MTCube, PerfTest4) {
+TEST(MTCube, DISABLED_PerfTest4) {
   run_test(4);
 
 }
