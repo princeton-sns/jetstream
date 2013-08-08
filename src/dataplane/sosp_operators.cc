@@ -165,7 +165,7 @@ ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
     boost::unique_lock<boost::mutex> l(mutex);
     bytes_this_period += t->ByteSize();
     int latency_ms = int(get_usec()/1000 - t->e(ts_field).d_val());
-    if (latency_ms > 0)
+    if (latency_ms >= 0)
       latencies_this_period.add_item(latency_ms, 1);
     else if (latency_ms < 0)
       LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;

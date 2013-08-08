@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+ulimit -c unlimited
 VICCI=`hostname | grep 'vicci'`
 if [ x$VICCI != x ]; then 
 LOGNAME=/jetstream/log.out
