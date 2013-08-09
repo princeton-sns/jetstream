@@ -196,6 +196,7 @@ class AvgCongestLogger: public CEachOperator {
   void report();
 
   virtual bool is_source() {return true;} //so we get a chain of our own, even without incoming connections
+      // Needed to make sure we get stopped properly; chains == threads, and we have a strand.
 
   virtual void add_chain(boost::shared_ptr<OperatorChain>);
   virtual void chain_stopping(OperatorChain * );

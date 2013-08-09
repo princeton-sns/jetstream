@@ -165,26 +165,36 @@ ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
     boost::unique_lock<boost::mutex> l(mutex);
     bytes_this_period += t->ByteSize();
     int latency_ms = int(get_usec()/1000 - t->e(ts_field).d_val());
-    if (latency_ms >= 0)
+    if (latency_ms >= 0) {
       latencies_this_period.add_item(latency_ms, 1);
+      latencies_total.add_item(latency_ms, 1);
+    }
     else if (latency_ms < 0)
       LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
   }
 }
 
+static const double GLOBAL_QUANT = 0.999;
 void
 ImageQualityReporter::emit_stats() {
 
+  uint64_t bytes, median, total, this_95th, global_quant;
   {
     boost::unique_lock<boost::mutex> l(mutex);
-    LOG(INFO) << "IMGREPORT: " << bytes_this_period << " bytes and "
-        << latencies_this_period.pop_seen()  << " total images. Median latency "
-        << latencies_this_period.quantile(0.5) << " and 95th percentile is "
-        << latencies_this_period.quantile(0.95);
-    
+    bytes = bytes_this_period;
+    total = latencies_this_period.pop_seen();
+    median =latencies_this_period.quantile(0.5);
+    this_95th = latencies_this_period.quantile(0.95);
+    global_quant = latencies_total.quantile(GLOBAL_QUANT);
     latencies_this_period.clear();
     bytes_this_period = 0;
   }
+
+  LOG(INFO) << "IMGREPORT: " << bytes << " bytes and "
+      << total  << " total images. Median latency "
+      << median << " and 95th percentile is "
+      << this_95th << ". Overall " << (100*GLOBAL_QUANT) << "th percentile is " << global_quant;
+  
   if (running) {
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
@@ -200,8 +210,9 @@ ImageQualityReporter::configure(std::map<std::string,std::string> &config) {
 
 void
 ImageQualityReporter::chain_stopping(OperatorChain * ) {
-  if (chains == 0) {
-    LOG(INFO) << "Stopping image quality reporter";
+
+  LOG(INFO) << "Stopping image quality reporter; chain count is " << chains;
+  if (chains == 1) {
     running = false;
     timer->cancel();
   } else

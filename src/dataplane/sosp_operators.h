@@ -52,12 +52,15 @@ class ImageQualityReporter: public CEachOperator {
 
  public:
   ImageQualityReporter():
-    period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500) {}
+    period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500), latencies_total(1000) {}
   virtual void process_one(boost::shared_ptr<Tuple>& t);
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
   virtual void add_chain(boost::shared_ptr<OperatorChain>);
   virtual void chain_stopping(OperatorChain * );
+  virtual bool is_source() {return true;} //so we get a chain of our own, even without incoming connections
+      // Needed to make sure we get stopped properly; chains == threads, and we have a strand.
+
 
   void emit_stats();
 
@@ -71,7 +74,7 @@ class ImageQualityReporter: public CEachOperator {
   
 
   long long bytes_this_period;  
-  LogHistogram latencies_this_period;
+  LogHistogram latencies_this_period, latencies_total;
 
 GENERIC_CLNAME
 };  

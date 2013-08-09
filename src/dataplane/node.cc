@@ -241,6 +241,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
     }
   case ControlMessage::STOP_COMPUTATION:
     {
+      LOG(INFO) << "Got stop-computation message from server";
       int32_t compID = msg.comp_to_stop();
       vector<int32_t> stopped_operators = stop_computation(compID);
       make_stop_comput_response(response, stopped_operators, compID);

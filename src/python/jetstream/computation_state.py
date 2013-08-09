@@ -91,7 +91,8 @@ class CWorker (object):
     return "CWorker(%d operators, %d cubes on %s:%d)" % (cubes, ops, ep[0], ep[1])
 
 class Computation (object):
-  """Controller's view of a running computation. Maps worker ID to assignment"""
+  """Controller's view of a running computation. Maps worker DP address to assignment.
+    Note that this is the LISTENING port."""
   
   def __init__ (self, compID):  #, jsGraph
     # Save the controller interface so we can communicate with workers
@@ -117,7 +118,7 @@ class Computation (object):
 
 
   def workers_in_use(self):
-    return [workerID for workerID, worker in self.workerAssignments.items() if len(worker.operators) > 0]
+    return [workerID for workerID,worker in self.workerAssignments.items() if len(worker.operators) > 0]
     
 
   #TODO: Move this code to controller.py once we incorporate computation stop logic

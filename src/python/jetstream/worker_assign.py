@@ -39,13 +39,14 @@ class WorkerAssignment (object):
 #    elif isinstance(other, AlterTopo):     
     return NotImplemented
 
-
   def __ne__ (self, other):
     result = self.__eq__(other)
     if result is NotImplemented:
       return result
     return not result
 
+  def __str__(self):
+    return "Assignment for computation %d, with %d ops and %d cubes." % (compID, len(self.operators), len(self.cubes))
 
   def add_node (self, node):
     if isinstance(node, TaskMeta):

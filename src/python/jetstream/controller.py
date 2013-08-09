@@ -92,6 +92,7 @@ class Controller (ControllerAPI, JSServer):
   def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE, NOT the nodeID
+    self.nodeID_to_local = {}
     self.computations = {}  #maps ID to Computation
     self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
       # acknowledged. Note this is NODE ID, not local port!
@@ -226,12 +227,15 @@ class Controller (ControllerAPI, JSServer):
     Manipulates the worker list (caller must ensure thread-safety)."""
 
     if workerConnID in self.workers.keys():
-      worker_assignment = self.workers[workerConnID]
-      nodeID = worker_assignment.get_dataplane_ep()
+      worker_assignments = self.workers[workerConnID]
+      nodeID = worker_assignments.get_dataplane_ep()
+      if nodeID in self.nodeID_to_local:
+        del self.nodeID_to_local[nodeID]
+#      if len(worker_assignment.operators) + len(worker_assignment.cubes) > 0:
       logger.info("Saving pending work for disconnected node %s:%d" % nodeID)
-      logger.info("assignment is " + str(worker_assignment))
-      self.pending_work[nodeID] = worker_assignment
-      for c in worker_assignment.get_all_cubes():
+      logger.info("assignment is " + str(worker_assignments))
+      self.pending_work[nodeID] = worker_assignments
+      for c in worker_assignments.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
       del self.workers[workerConnID]
 
@@ -251,6 +255,9 @@ class Controller (ControllerAPI, JSServer):
       self.workers[clientEndpoint].receive_hb(hb)
       
       id_as_tuple = (hb.dataplane_addr.address, hb.dataplane_addr.portno)
+
+      self.nodeID_to_local[id_as_tuple] = clientEndpoint
+      
       if id_as_tuple in self.pending_work:
         prevAssignments = self.pending_work[id_as_tuple]
         if len(prevAssignments.assignments) > 0:
@@ -386,11 +393,19 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = "No such computation %d" % comp_to_stop
       return
       
-    for worker in self.computations[comp_to_stop].workers_in_use():
-      if worker in self.workers:
+      
+    print self.computations[comp_to_stop].workerAssignments
+    for nodeID in self.computations[comp_to_stop].workers_in_use():
+      if nodeID in self.nodeID_to_local:
+        worker = self.nodeID_to_local[nodeID]
         h = self.connect_to(worker)
         h.send_pb(req)         #we can re-use the existing stop message
         self.workers[worker].cleanup_computation(comp_to_stop)
+      else:
+        print "can't stop computation %d on %s:%d: not connected." % (comp_to_stop, nodeID[0], nodeID[1])
+        
+    #TODO    what about pending operators?
+        
     response.type = ControlMessage.OK
     del self.computations[comp_to_stop]
     #response value is passed by reference, not returned
