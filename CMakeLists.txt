@@ -118,8 +118,11 @@ include_directories (/opt/local/include/mysql5-connector-cpp/driver /opt/local/i
 ### Build Masstree
 #
 
-#add_custom_command(
-#     OUTPUT ${SRC_DIR}/utils/libmtree.a
+if(OMIT_MASSTREE)
+message (STATUS "omitting masstree")
+SET (CMAKE_CXX_FLAGS "-DNO_MASSTREE")
+
+else(MASSTREE)
 add_custom_target(masstree
    COMMENT "Building Masstree"
     COMMAND make libmtree.a
@@ -127,7 +130,7 @@ add_custom_target(masstree
     DEPENDS ${TOP_DIR}/masstree_source/*.cc ${TOP_DIR}/masstree_source/*.hh ${TOP_DIR}/masstree_source/*.h ${TOP_DIR}/masstree_source/*.c
     WORKING_DIRECTORY ${TOP_DIR}/masstree_source)
 include_directories (${TOP_DIR}/masstree_source)
-
+endif()
 
 #######################################################
 # Set library locations and sources
@@ -186,9 +189,12 @@ add_subdirectory (${SRC_DIR}/cube)
 link_directories (${BUILD_DIR}/cube)
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 include_directories (${SRC_DIR}/cube/mysql)
+
+if(OMIT_MASSTREE)
+else()
 include_directories (${SRC_DIR}/cube/masstree)
 add_dependencies (${LIBRARY_NAME} masstree)
-
+endif()
 
 set (LIBRARY_NAME jsdataplane)
 add_subdirectory (${SRC_DIR}/dataplane)
