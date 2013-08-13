@@ -11,7 +11,9 @@ import time
 import subprocess
 import random
 import uuid
-#import numpy
+import math
+import scipy as sp
+from scipy import stats
 
 PORT_DEFAULT = 40000
 IFACE_DEFAULT = "eth0"
@@ -23,9 +25,20 @@ def errorExit(error):
   sys.exit(1)
 
 def print_dist_stats(vals):
-  # Compute CDF
-  # Print out 5/95, 10/90, 1/99 percentiles, median, mode
-  pass
+  vals.sort()
+  n, minMax, mean, var, skew, kurt = stats.describe(vals)
+  print "Number of intervals: %d" % n
+  print "Average: %0.3f" % mean
+  print "Minimum: %f, Maximum: %0.3f" % (minMax[0], minMax[1])
+  print "Standard deviation: %0.3f" % math.sqrt(var)
+  
+  # Print out some percentiles
+  perc = [1, 5, 10, 50, 90, 95, 99]
+  percScores = ["%0.3f" % stats.scoreatpercentile(vals, p) for p in perc]
+  print "Percentiles " + str(perc) + ": " + str(percScores)
+
+  # Other stats?
+
 
 def traffic_shape_start(iface, port):
   subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
@@ -87,15 +100,15 @@ def main():
     count += 1
     # Compute bandwidth over this interval and shape traffic accordingly
     if count == interval:
-      # Currently we use only down bytes in bytes/sec
-      bwidthVals.append(int(downBytes * 1.0 / interval))
+      # Currently we use only down bytes in kilobytes/sec
+      bwidthVals.append(int(downBytes / (1024.0 * interval)))
       tCount += 1
       upBytes = downBytes = 0
       count = 0
 
   # Print statistics about the bandwidth distribution
   if options.stats:
-   print "Link bandwidth over %d-second intervals" % (interval)
+   print "\nLink bandwidth statistics (kilobytes/sec, %d-second intervals)" % (interval)
    print_dist_stats(bwidthVals)
 
   # Run the simulation
@@ -106,7 +119,7 @@ def main():
     if (simTime >= 0) and (count * interval >= simTime):
       break
     bwidth = bwidthVals[count % tCount]
-    print "Setting bandwidth to %d bps" % bwidth
+    print "Setting bandwidth to %d kbps" % bwidth
     traffic_shape(options.iface, bwidth)
     time.sleep(interval)
     count += 1
