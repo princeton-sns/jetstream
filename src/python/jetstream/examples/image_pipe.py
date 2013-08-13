@@ -24,6 +24,9 @@ def main():
   parser = standard_option_parser()
   parser.add_option("--rate", dest="img_per_sec",
   default="2", help="number of images to send per second")
+  parser.add_option("--dir", dest="dirname",
+  default="sample_images", help="where to read from")
+  parser.add_option("--prefix", dest="prefix", default = "l", help="prefix for images.")
 
   (options, args) = parser.parse_args()
 
@@ -43,7 +46,7 @@ def main():
   for node in all_nodes:
     if node == root_node and not options.generate_at_union:
       continue
-    reader = jsapi.BlobReader(g, dirname="sample_images", prefix="l", ms_per_file=ms_per_img)
+    reader = jsapi.BlobReader(g, dirname=options.dirname, prefix=options.prefix, ms_per_file=ms_per_img)
     filter = jsapi.IntervalSampling(g, max_interval=4)
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)
