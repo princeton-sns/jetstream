@@ -122,7 +122,7 @@ if(OMIT_MASSTREE)
 message (STATUS "omitting masstree")
 SET (CMAKE_CXX_FLAGS "-DNO_MASSTREE")
 
-else(MASSTREE)
+else(OMIT_MASSTREE)
 add_custom_target(masstree
    COMMENT "Building Masstree"
     COMMAND make libmtree.a
@@ -146,7 +146,11 @@ include_directories (SYSTEM ${SRC_DIR}/proto/cpp)
 set (LIBRARY_NAME jsutils)
 add_subdirectory (${SRC_DIR}/utils)
 link_directories (${BUILD_DIR}/utils)
+
+if(NOT OMIT_MASSTREE)
 add_dependencies (${LIBRARY_NAME} ${SRC_DIR}/utils/libmtree.a)
+endif()
+
 set (LIBRARIES ${LIBRARIES} ${LIBRARY_NAME})
 
 include_directories (${SRC_DIR}/utils)
