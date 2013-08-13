@@ -44,7 +44,7 @@ def plot_compressions(data):
   ticks = [2 ** x for x in range(9)]
   plt.yticks(ticks, ticks)
   
-  plt.ylim((1, 300))
+  plt.ylim((1, 500))
       
   offset = 0.5
   for series,series_name,c in zip([url_series, dom_series], ["URLs", "Domains"], colors):

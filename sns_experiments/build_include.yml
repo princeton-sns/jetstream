@@ -4,7 +4,7 @@
   - name: make sure jetstream build dir exists
     file: dest=${js_checkout}/build state=directory
   - name: cmake js
-    command: cmake -DUSE_CLANG=OFF
+    command: cmake -DUSE_CLANG=OFF -DOMIT_MASSTREE=True
               -DBOOST_ROOT=${js_deps}/boost_1_52_0/ -DBoost_NO_SYSTEM_PATHS=True
               -DPROTOBUF_LIBRARY=${js_deps}/protobufs/lib/libprotobuf.so
               -DPROTOBUF_INCLUDE_DIR=${js_deps}/protobufs/include/

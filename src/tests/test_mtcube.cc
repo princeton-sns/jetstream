@@ -7,7 +7,9 @@
 #include <gtest/gtest.h>
 
 #include "experiment_operators.h"
-//#include "
+
+
+#ifndef NO_MASSTREE
 #include "mt_cube.h"
 
 using namespace jetstream;
@@ -134,5 +136,7 @@ TEST(MTCube, DISABLED_PerfTest) {
 
 TEST(MTCube, DISABLED_PerfTest4) {
   run_test(4);
-
 }
+
+
+#endif

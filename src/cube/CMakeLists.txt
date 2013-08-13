@@ -18,15 +18,20 @@ endif()
 
 file (GLOB LIB_SRCS1 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cc")
 file (GLOB LIB_SRCS2 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "mysql/*.cc")
+
+if(OMIT_MASSTREE)
+else()
 file (GLOB LIB_SRCS3 RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "masstree/*.cc")
+endif()
 
 #set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2}) 
 set(LIB_SRCS ${LIB_SRCS1} ${LIB_SRCS2} ${LIB_SRCS3}) 
 
 add_library (jscube ${LIB_SRCS})
 
-#link_directories (${CMAKE_CURRENT_SOURCE_DIR})
+if(NOT OMIT_MASSTREE)
 target_link_libraries (jscube libmtree.a)
+endif()
 
 target_link_libraries (jscube ${Boost_LIBRARIES})
 target_link_libraries (jscube jsproto)
