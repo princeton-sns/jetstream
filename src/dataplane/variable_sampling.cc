@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 
 #include <boost/interprocess/detail/atomic.hpp>
-
+#include "net_congest_mon.h"
 
 using namespace ::std;
 using namespace boost;
@@ -132,7 +132,12 @@ bool
 IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
 
   int cur_step = steps.size() - drops_per_keep -1;
-  drops_per_keep -= congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+  int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+  if (delta != 0) {
+    NetCongestionMonitor * mon = dynamic_cast<NetCongestionMonitor*>(congest_policy->get_monitor());
+    LOG(INFO) << "Switching drop frequency by " << delta << ". Congest mon state: " << mon->long_description();
+  }
+  drops_per_keep -= delta; 
 
   cntr++;
   cntr %= (drops_per_keep +1);

@@ -228,6 +228,7 @@ ImageQualityReporter::emit_stats() {
     src_stddev = get_stddev(bytes_per_src_total);
     
     latencies_this_period.clear();
+    bytes_per_src_in_period.assign(bytes_per_src_in_period.size(), 0);
     bytes_this_period = 0;
   }
 /*

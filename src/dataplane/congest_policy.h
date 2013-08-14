@@ -46,6 +46,11 @@ class CongestionPolicy {
     void set_congest_monitor(boost::shared_ptr<CongestionMonitor> c) {
       congest = c;
     }
+
+    CongestionMonitor * get_monitor() {
+      return congest.get();
+    }
+
   
 //   void set_effect_delay(operator_id_t op, unsigned msecs);
 
