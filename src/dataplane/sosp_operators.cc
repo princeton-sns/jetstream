@@ -239,7 +239,8 @@ ImageQualityReporter::emit_stats() {
 */
   msec_t ts = get_msec();
   (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
-                << " (median) " << this_95th  << " (95th) " << src_stddev<< " (src_dev;global)" << endl;
+                << " (median) " << this_95th  << " (95th) " << global_quant <<
+                 " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global)" << endl;
   if (running) {
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
