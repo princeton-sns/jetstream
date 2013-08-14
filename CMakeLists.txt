@@ -222,6 +222,7 @@ set (LIBRARIES ${LIBRARIES}
     ${PROTOBUF_LIBRARY}
     ${GTEST_LIBRARY}
     ${GLOG_LIB}
+    "pthread"
 )
 
 message (STATUS "Linking libraries ${LIBRARIES}")
