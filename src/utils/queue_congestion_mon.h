@@ -50,6 +50,8 @@ class QueueCongestionMonitor: public NetCongestionMonitor {
     void set_queue_size(uint32_t s) {
       queueTarget = s;
     }
+  
+    virtual std::string long_description();  
 
 };
 

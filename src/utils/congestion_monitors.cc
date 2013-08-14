@@ -13,7 +13,7 @@ const int N_TO_LOG = 211;
 
 double
 QueueCongestionMonitor::capacity_ratio() {
-  boost::unique_lock<boost::mutex> lock(internals);
+  boost::unique_lock<boost::recursive_mutex> lock(internals);
   usec_t now = get_usec();
 
   double result;
@@ -52,16 +52,30 @@ QueueCongestionMonitor::capacity_ratio() {
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
     LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
  //   LOG(INFO) <<
-        "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << inserts <<
-         " inserts (configured max rate is " << max_per_sec << "); " << removes  <<" removes. Queue length "
-          << readQLen << "/" << queueTarget << ". Space Ratio is " << prevRatio <<
-            ", downstream is " << downstream_status<< " and final result is " << result;
+        "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << long_description();
     LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
     prevQueueLen = readQLen;
   } else
     result = prevRatio < downstream_status ? prevRatio : downstream_status;
 
   return result;
+}
+
+
+std::string
+QueueCongestionMonitor::long_description() {
+  boost::unique_lock<boost::recursive_mutex> lock(internals);
+
+  ostringstream buf;
+  int32_t removes = insertsInPeriod + prevQueueLen - queueLen;
+  
+  double result = prevRatio < downstream_status ? prevRatio : downstream_status;
+
+  buf << " inserts (configured max rate is " << max_per_sec << "); " << removes
+      <<" removes. Queue length " << atomic_read32(&queueLen) << "/" << queueTarget <<
+      ". Space Ratio is " << prevRatio <<
+            ", downstream is " << downstream_status<< " and final result is " << result;
+  return buf.str();
 }
 
 WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name):
@@ -73,7 +87,7 @@ WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name):
 
 void
 WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_start_time) {
-  boost::unique_lock<boost::mutex> lock(internals);
+  boost::unique_lock< boost::recursive_mutex> lock(internals);
   msec_t now = get_msec();
 
   if (processing_start_time != 0) {
@@ -84,10 +98,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
     last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
 //    window_start_time = 0;
-    LOG_EVERY_N(INFO, 20) << "End of window@ " << (now/1000) << " Capacity ratio at " << name() << " is now "
-      << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
-      << window_availtime_ms  <<" and window size was " << window_data_ms
-      <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, last_ratio);
+    LOG_EVERY_N(INFO, 20) << long_description() <<". Nominal window size was " << window_data_ms;
   } else { //no data in window; we are therefore UNCONSTRAINED
     last_ratio = 10;
   }
@@ -99,7 +110,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
 
 double
 WindowCongestionMonitor::capacity_ratio() {
-  boost::unique_lock<boost::mutex> lock(internals);    
+  boost::unique_lock<boost::recursive_mutex> lock(internals);    
   return fmin(downstream_status, last_ratio);
   //downstream status can change asynchronously. So can't roll it into last_ratio
 }               
@@ -108,7 +119,7 @@ void
 WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
   if (window_start_time == 0) {
 //      LOG(INFO) << "SAW A SEND";
-    boost::unique_lock<boost::mutex> lock(internals);
+    boost::unique_lock<boost::recursive_mutex> lock(internals);
     if (window_start_time == 0) //doublecheck now that we have lock
       window_start_time = get_msec();
   }
@@ -122,6 +133,28 @@ WindowCongestionMonitor::measurement_staleness_ms() {
   else
     return get_msec() - last_window_end;
 }
+
+std::string
+WindowCongestionMonitor::long_description() {
+  boost::unique_lock<boost::recursive_mutex> lock(internals);
+  ostringstream buf;
+
+  msec_t now = get_msec();
+
+  msec_t window_processtime_ms = now - window_start_time;
+  msec_t window_availtime_ms = now - last_window_end;
+  
+  double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
+  
+  
+  buf << "Capacity ratio at " << name() << " is now "
+      << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
+      << window_availtime_ms  // <<". Nominal window size was " << window_data_ms
+      <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, last_ratio);
+
+  return buf.str();
+}
+
   
   
 } //end namespace

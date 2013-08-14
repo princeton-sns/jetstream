@@ -71,9 +71,9 @@ class ImageQualityReporter: public CEachOperator {
   volatile bool running;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
   boost::mutex mutex;
-  
 
-  long long bytes_this_period;  
+  long long bytes_this_period;
+  
   LogHistogram latencies_this_period, latencies_total;
 
 GENERIC_CLNAME
@@ -99,7 +99,7 @@ class SeqToRatio: public CEachOperator {
   unsigned url_field;
   std::string cur_url;
   boost::shared_ptr<Tuple> targ_el;
-
+  std::ostream * out_stream;
 
 GENERIC_CLNAME
 };  

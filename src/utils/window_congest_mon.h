@@ -39,6 +39,8 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
   
     virtual msec_t measurement_staleness_ms();
   
+    virtual std::string long_description();
+  
 };
 
 }
