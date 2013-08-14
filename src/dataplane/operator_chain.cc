@@ -152,7 +152,7 @@ void
 OperatorChain::clone_from(boost::shared_ptr<OperatorChain> source) {
   for (unsigned i = 0; i < source->ops.size(); ++i) {
     ops.push_back(source->ops[i]);
-//    source->ops[i]->add_chain(newchain);
+//    source->ops[i]->add_chain(newchain); //can't do this here because we don't have a shared point
   }
 }
 

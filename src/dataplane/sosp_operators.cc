@@ -211,7 +211,7 @@ ImageQualityReporter::configure(std::map<std::string,std::string> &config) {
 void
 ImageQualityReporter::chain_stopping(OperatorChain * ) {
 
-  LOG(INFO) << "Stopping image quality reporter; chain count is " << chains;
+  LOG(INFO) << "Stopping chain with image quality reporter; chain count is " << chains;
   if (chains == 1) {
     running = false;
     timer->cancel();

@@ -299,6 +299,9 @@ Node::clone_chain_from(std::map<operator_id_t, boost::shared_ptr<jetstream::Oper
     new_chain = shared_ptr<OperatorChain>(new OperatorChain());
     new_chain->add_member();
     new_chain->clone_from(chainMap[dest_operator_id]);
+    for ( unsigned i = 1; i < new_chain->members(); ++i) {
+      new_chain->member(i)->add_chain(new_chain);
+    }
     LOG(INFO) << "Cloned a chain; now has " << new_chain->members() << " members";
   }
   return new_chain;

@@ -67,7 +67,7 @@ class ImageQualityReporter: public CEachOperator {
  private:
   unsigned period_ms;
   unsigned ts_field;
-  unsigned chains;
+  volatile unsigned chains;
   volatile bool running;
   boost::shared_ptr<boost::asio::deadline_timer> timer;
   boost::mutex mutex;
