@@ -34,6 +34,7 @@ def parse_infile(infile):
   t_series = []
   cur_period_lat = []
   bw_series = []
+  global_lat_series = []
   f = open(infile, 'r')
   t = 0
   for ln in f:
@@ -42,25 +43,33 @@ def parse_infile(infile):
     fields = ln.strip().split(" ")
     my_lat_quant = int(fields[FLD_MY99].strip('.'))
     my_bw = int(fields[FLD_BW])
+    global_quant = int(fields[FLD_999])
     t +=2
+    
     t_series.append(t)
     cur_period_lat.append(my_lat_quant)
+    global_lat_series.append(global_quant)
+    bw_series.append(my_bw / 2E6)
   f.close()
-  return t_series,cur_period_lat
+  return t_series,global_lat_series,bw_series
 
 
 def plot_data_over_time(data):
 
-  time,cur_period_lat = data
+  time,cur_period_lat,bw_series = data
   
   figure, ax = plt.subplots()
   ax.plot(time, cur_period_lat)
+  ax2 = ax.twinx()
+  ax2.plot(time, bw_series, "r.")  
+  
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
-  ax.set_ylabel('95th percentile latency (msec)', fontsize=22)
+  ax.set_ylabel('99.9th percentile latency (msec)', fontsize=22)
+  ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
 
   
   if OUT_TO_FILE:
-      plt.savefig("95th_percentile_lat.pdf")
+      plt.savefig("img_latency.pdf")
       plt.close(figure)  
 
 
