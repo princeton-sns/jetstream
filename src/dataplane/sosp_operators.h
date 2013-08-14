@@ -48,12 +48,17 @@ GENERIC_CLNAME
 
 
 
-class ImageQualityReporter: public CEachOperator {
+class ImageQualityReporter: public COperator {
 
  public:
   ImageQualityReporter():
-    period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500), latencies_total(1000) {}
-  virtual void process_one(boost::shared_ptr<Tuple>& t);
+    period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500),
+    latencies_total(1000), logging_filename("image_quality.out"){}
+
+  virtual void process ( OperatorChain * c,
+                         std::vector<boost::shared_ptr<Tuple> > & tuples,
+                        DataplaneMessage& msg);
+
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
   virtual void add_chain(boost::shared_ptr<OperatorChain>);
@@ -75,6 +80,14 @@ class ImageQualityReporter: public CEachOperator {
   long long bytes_this_period;
   
   LogHistogram latencies_this_period, latencies_total;
+  
+  std::string logging_filename;
+  std::ostream * out_stream;
+  std::map<OperatorChain *, unsigned> chain_indexes;
+  inline unsigned get_chain_index(OperatorChain *);
+  std::vector<long> bytes_per_src_in_period;
+  std::vector<long long> bytes_per_src_total;
+  
 
 GENERIC_CLNAME
 };  
@@ -99,8 +112,7 @@ class SeqToRatio: public CEachOperator {
   unsigned url_field;
   std::string cur_url;
   boost::shared_ptr<Tuple> targ_el;
-  std::ostream * out_stream;
-
+  
 GENERIC_CLNAME
 };  
 

@@ -26,40 +26,52 @@ def main():
   data = parse_infile(infile)
   plot_data_over_time(data)
 
+
 FLD_BW = 6
 FLD_999 = -1
 FLD_MY99 = -6
+FLD_MEDIAN = 14
+
+MEDIAN_LAT = "Median latency"
+MY_LAT = "95th percentile latency"
+FIELDS_TO_PLOT = {
+  "BW": 6,
+  MEDIAN_LAT: 14,
+  MY_LAT: -6,
+  "99.9th percentile latency": -1
+}
  
 def parse_infile(infile):
-  t_series = []
-  cur_period_lat = []
-  bw_series = []
-  global_lat_series = []
+  data = {}
+  for field,offset in FIELDS_TO_PLOT.items():
+    data[field] = []
   f = open(infile, 'r')
   t = 0
+  t_series = []
   for ln in f:
     if not 'IMGREPORT' in ln:
       continue
+      
     fields = ln.strip().split(" ")
-    my_lat_quant = int(fields[FLD_MY99].strip('.'))
-    my_bw = int(fields[FLD_BW])
-    global_quant = int(fields[FLD_999])
+    for field,offset in FIELDS_TO_PLOT.items():
+      val = int(fields[offset].strip('.'))
+      data[field].append( val)
     t +=2
     
     t_series.append(t)
-    cur_period_lat.append(my_lat_quant)
-    global_lat_series.append(global_quant)
-    bw_series.append(my_bw / 2E6)
   f.close()
-  return t_series,global_lat_series,bw_series
+  data['time'] = t_series
+  return data
 
 
 def plot_data_over_time(data):
 
-  time,cur_period_lat,bw_series = data
+  time = data['time']
+  med_series = data[MEDIAN_LAT]
+  bw_series = data['BW']
   
   figure, ax = plt.subplots()
-  ax.plot(time, cur_period_lat)
+  ax.plot(time, med_series)
   ax2 = ax.twinx()
   ax2.plot(time, bw_series, "r.")  
   

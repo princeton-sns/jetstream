@@ -32,6 +32,8 @@ from query_planner import QueryPlanner
 from optparse import OptionParser 
 #Could use ArgParse instead, but it's 2.7+ only.
 
+RESTART_FAILED_WORK = False
+
 NOSECTION = 'nosection'
 class FakeSecHead(object):
    def __init__(self, fp):
@@ -232,16 +234,16 @@ class Controller (ControllerAPI, JSServer):
       if nodeID in self.nodeID_to_local:
         del self.nodeID_to_local[nodeID]
 #      if len(worker_assignment.operators) + len(worker_assignment.cubes) > 0:
-      logger.info("Saving pending work for disconnected node %s:%d" % nodeID)
-      logger.info("assignment is " + str(worker_assignments))
-      self.pending_work[nodeID] = worker_assignments
+      if RESTART_FAILED_WORK:
+        logger.info("Saving pending work for disconnected node %s:%d" % nodeID)
+        logger.info("assignment is " + str(worker_assignments))
+        self.pending_work[nodeID] = worker_assignments
       for c in worker_assignments.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
       del self.workers[workerConnID]
 
     #TODO: Reschedule worker's assignments elsewhere, etc.
 
-  
   
   def handle_heartbeat (self, hb, clientEndpoint):
     t = long(time.time())

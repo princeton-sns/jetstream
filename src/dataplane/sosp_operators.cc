@@ -4,6 +4,9 @@
 #include <glog/logging.h>
 #include <boost/filesystem/fstream.hpp>
 #include "node.h"
+#include <algorithm>
+#include <numeric>
+
 
 using namespace ::std;
 using namespace boost;
@@ -157,21 +160,55 @@ ImageSampler::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-void
-ImageQualityReporter::process_one(boost::shared_ptr<Tuple>& t) {
+inline unsigned
+ImageQualityReporter::get_chain_index(OperatorChain * c) {
+  map<OperatorChain *, unsigned>::iterator index_iter = chain_indexes.find(c);
+  if (index_iter == chain_indexes.end()) {
+    unsigned new_offset = bytes_per_src_in_period.size();
+    chain_indexes[c] = new_offset;
+    bytes_per_src_in_period.push_back(0);
+    bytes_per_src_total.push_back(0);
+    return new_offset;
+  } else
+    return index_iter->second;
+}
 
-//  LOG(INFO) << "reporter got a tuple";
-  {
-    boost::unique_lock<boost::mutex> l(mutex);
-    bytes_this_period += t->ByteSize();
-    int latency_ms = int(get_usec()/1000 - t->e(ts_field).d_val());
-    if (latency_ms >= 0) {
-      latencies_this_period.add_item(latency_ms, 1);
-      latencies_total.add_item(latency_ms, 1);
+
+void
+ImageQualityReporter::process ( OperatorChain * c,
+                          std::vector<boost::shared_ptr<Tuple> > & tuples,
+                          DataplaneMessage& msg) {
+  
+  for (unsigned i =0 ; i < tuples.size(); ++i ) {
+    if(tuples[i]) {
+      const Tuple& t = *(tuples[i]);
+    
+      boost::unique_lock<boost::mutex> l(mutex);
+      bytes_this_period += t.ByteSize();
+      
+      unsigned chain_id = get_chain_index(c);
+      bytes_per_src_in_period[chain_id] +=  t.ByteSize();
+      bytes_per_src_total[chain_id] +=  t.ByteSize();
+      
+      int latency_ms = int(get_usec()/1000 - t.e(ts_field).d_val());
+      if (latency_ms >= 0) {
+        latencies_this_period.add_item(latency_ms, 1);
+        latencies_total.add_item(latency_ms, 1);
+      }
+      else if (latency_ms < 0)
+        LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
     }
-    else if (latency_ms < 0)
-      LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
   }
+}
+
+inline double get_stddev(const vector<long long>& v) {
+  double sum = std::accumulate(v.begin(), v.end(), 0.0);
+  double mean = sum / v.size();
+  std::vector<double> diff(v.size());
+  std::transform(v.begin(), v.end(), diff.begin(),
+                 std::bind2nd(std::minus<double>(), mean));
+  double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+  return std::sqrt(sq_sum / v.size());  
 }
 
 static const double GLOBAL_QUANT = 0.999;
@@ -179,6 +216,7 @@ void
 ImageQualityReporter::emit_stats() {
 
   uint64_t bytes, median, total, this_95th, global_quant;
+  double src_stddev;
   {
     boost::unique_lock<boost::mutex> l(mutex);
     bytes = bytes_this_period;
@@ -186,15 +224,21 @@ ImageQualityReporter::emit_stats() {
     median =latencies_this_period.quantile(0.5);
     this_95th = latencies_this_period.quantile(0.95);
     global_quant = latencies_total.quantile(GLOBAL_QUANT);
+    
+    src_stddev = get_stddev(bytes_per_src_total);
+    
     latencies_this_period.clear();
     bytes_this_period = 0;
   }
-
+/*
   LOG(INFO) << "IMGREPORT: " << bytes << " bytes and "
       << total  << " total images. Median latency "
       << median << " and 95th percentile is "
       << this_95th << ". Overall " << (100*GLOBAL_QUANT) << "th percentile is " << global_quant;
-  
+*/
+  msec_t ts = get_msec();
+  (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
+                << " (median) " << this_95th  << " (95th) " << src_stddev<< " (src_dev;global)" << endl;
   if (running) {
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
@@ -215,6 +259,7 @@ ImageQualityReporter::chain_stopping(OperatorChain * ) {
   if (chains == 1) {
     running = false;
     timer->cancel();
+    out_stream ->flush();
   } else
     chains --;
 }
@@ -224,6 +269,7 @@ ImageQualityReporter::add_chain(boost::shared_ptr<OperatorChain>) {
   if (++chains == 1) { //added first chain
     running = true;
     LOG(INFO) << "reporter started";
+    out_stream = new std::ofstream(logging_filename.c_str());
     timer = node->get_timer();
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
