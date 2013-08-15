@@ -31,7 +31,7 @@ QueueCongestionMonitor::capacity_ratio() {
         readQLen = atomic_read32(&queueLen); //prevents readQLen from being too low => causes prevQueueLen to be too low on next iteration => queueDelta too high => removes negative.
       inserts = newi;
     }
-
+    prev_inserts = inserts;
 
     int32_t queueDelta = readQLen - prevQueueLen; //negative implies queue is shrinking
     int32_t availRoom = queueTarget - readQLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
@@ -42,7 +42,7 @@ QueueCongestionMonitor::capacity_ratio() {
 
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
     prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
-    int32_t removes = inserts - queueDelta;
+    removes = inserts - queueDelta;
     if (removes < 0) {
       LOG(WARNING) << "Shouldn't have data leaking out of " << name()    
         <<  ". Inserts: " << inserts <<" queueDelta: " <<queueDelta << " readQLen: " << readQLen << " prevQueueLen: "<<prevQueueLen;
@@ -67,12 +67,12 @@ QueueCongestionMonitor::long_description() {
   boost::unique_lock<boost::recursive_mutex> lock(internals);
 
   ostringstream buf;
-  int32_t removes = insertsInPeriod + prevQueueLen - queueLen;
+//  int32_t removes = insertsInPeriod + prevQueueLen - queueLen;
   
   double result = prevRatio < downstream_status ? prevRatio : downstream_status;
 
-  buf << insertsInPeriod << " inserts (configured max rate is " << max_per_sec << "); " << removes
-      <<" removes. Queue length " << atomic_read32(&queueLen) << "/" << queueTarget <<
+  buf << prev_inserts << " inserts (configured max rate is " << max_per_sec << "); " << removes
+      <<" removes. Final queue length " << prevQueueLen << "/" << queueTarget <<
       ". Space Ratio is " << prevRatio <<
             ", downstream is " << downstream_status<< " and final result is " << result;
   return buf.str();

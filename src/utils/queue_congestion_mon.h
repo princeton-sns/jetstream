@@ -21,6 +21,9 @@ class QueueCongestionMonitor: public NetCongestionMonitor {
   usec_t lastQueryTS;
   double prevRatio;
 
+  //purely for monitoring
+  uint32_t prev_inserts;
+  int32_t removes;
   
  public:
     QueueCongestionMonitor(uint32_t qTarg, const std::string& nm):
