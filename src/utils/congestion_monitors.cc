@@ -71,7 +71,7 @@ QueueCongestionMonitor::long_description() {
   
   double result = prevRatio < downstream_status ? prevRatio : downstream_status;
 
-  buf << " inserts (configured max rate is " << max_per_sec << "); " << removes
+  buf << insertsInPeriod << " inserts (configured max rate is " << max_per_sec << "); " << removes
       <<" removes. Queue length " << atomic_read32(&queueLen) << "/" << queueTarget <<
       ". Space Ratio is " << prevRatio <<
             ", downstream is " << downstream_status<< " and final result is " << result;

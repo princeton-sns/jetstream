@@ -216,6 +216,7 @@ void
 ImageQualityReporter::emit_stats() {
 
   uint64_t bytes, median, total, this_95th, global_quant;
+  vector<long long> counts_by_node;
   double src_stddev;
   {
     boost::unique_lock<boost::mutex> l(mutex);
@@ -230,6 +231,7 @@ ImageQualityReporter::emit_stats() {
     latencies_this_period.clear();
     bytes_per_src_in_period.assign(bytes_per_src_in_period.size(), 0);
     bytes_this_period = 0;
+    counts_by_node = bytes_per_src_total;
   }
 /*
   LOG(INFO) << "IMGREPORT: " << bytes << " bytes and "
@@ -241,6 +243,12 @@ ImageQualityReporter::emit_stats() {
   (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
                 << " (median) " << this_95th  << " (95th) " << global_quant <<
                  " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global)" << endl;
+  if (counts_by_node.size() > 0) {
+    (*out_stream) << "BYNODE: " << counts_by_node[0];
+    for (unsigned i = 1; i < counts_by_node.size(); ++i)
+       (*out_stream) << " " << counts_by_node[i];
+    (*out_stream) << endl;
+  }
   if (running) {
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
