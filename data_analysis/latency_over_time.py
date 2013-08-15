@@ -1,4 +1,6 @@
 from collections import defaultdict
+import datetime
+
 import re
 import sys
 import numpy
@@ -8,6 +10,10 @@ from numpy import array
 
 
 OUT_TO_FILE = True
+
+
+DATE = True
+
 
 import matplotlib
 if OUT_TO_FILE:
@@ -47,7 +53,7 @@ def main():
   
   data = parse_infile(infile)
   data["BW"]  = smooth_seq(data["BW"], window=20)
-  plot_data_over_time(data, LAT_999)
+  plot_data_over_time(data, MY_LAT)
 
 
 def smooth_seq(my_seq, window=10):
@@ -71,8 +77,8 @@ def parse_infile(infile):
   t = 0
   t_series = []
   for ln in f:
-#    if not 'IMGREPORT' in ln:
-#      continue
+    if 'BYNODE' in ln:
+      continue
       
     fields = ln.strip().split(" ")
     for field,offset in FIELDS_TO_PLOT.items():
@@ -82,20 +88,34 @@ def parse_infile(infile):
   return data
 
 
+def get_x_from_time(t):
+  if DATE:
+    return datetime.datetime.fromtimestamp(t )
+  else:
+    return t
+
+
 def plot_data_over_time(data, seriesname):
 
-  time = [x / 1000 for x in data['Time']]
+  time = [get_x_from_time(x / 1000) for x in data['Time']]
   myquant = data[seriesname]
   bw_series = [x / 1000000 for x in data['BW']]
+  legend_artists = []
   
   figure, ax = plt.subplots()
-  ax.plot(time, myquant)
+  line, = ax.plot_date(time, myquant, 'b-')
+  legend_artists.append( line )
+  
   ax2 = ax.twinx()
-  ax2.plot(time, bw_series, "r.")  
+  line, = ax2.plot_date(time, bw_series, "r.")  
+  legend_artists.append( line )  
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
+
+
+  plt.legend(legend_artists, [seriesname, "Bandwidth"], loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
 
   
   if OUT_TO_FILE:
