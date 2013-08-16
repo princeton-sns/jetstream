@@ -181,7 +181,7 @@ ImageQualityReporter::get_chain_index(OperatorChain * c) {
     return index_iter->second;
 }
 
-const unsigned VERYLATE_THRESH = 10 * 1000; //in milliseconds
+const int VERYLATE_THRESH = 10 * 1000; //in milliseconds
 
 void
 ImageQualityReporter::process ( OperatorChain * c,
