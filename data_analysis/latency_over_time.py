@@ -32,6 +32,7 @@ MY_LAT = "95th percentile latency (msec)"
 LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
+COEF_VAR = "Coefficient of variation"
 FIELDS_TO_PLOT_OLD = {
   "BW": 6,
   MEDIAN_LAT: 14,
@@ -56,9 +57,23 @@ def main():
   data = parse_infile(infile)
   data["BW"]  = smooth_seq(data["BW"], window=20)
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
+  data[COEF_VAR] = stddev_to_c_of_v(data)
 
-  plot_data_over_time(data, IMAGE_COUNT)
+  plot_data_over_time(data, MY_LAT, "latency_local.pdf")
+  plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
+  plot_data_over_time(data, COEF_VAR, "internode_variation.pdf")
 
+
+def stddev_to_c_of_v(data):
+  r = []
+  cumsum_bw = 0
+  for bw, dev in zip(data["BW"], data[GLOBAL_DEVIATION]):
+    cumsum_bw += bw
+    if cumsum_bw == 0:
+      r.append(0)
+    else:
+      r.append(  dev / cumsum_bw) 
+  return r
 
 def smooth_seq(my_seq, window=10):
   val_list = []
@@ -81,8 +96,8 @@ def parse_infile(infile):
   t = 0
   t_series = []
   for ln in f:
-    if 'BYNODE' in ln:
-      continue
+    if 'BYNODE' in ln or 'VERYLATE' in ln:
+       continue
       
     fields = ln.strip().split(" ")
     for field,offset in FIELDS_TO_PLOT.items():
@@ -99,7 +114,7 @@ def get_x_from_time(t):
     return t
 
 
-def plot_data_over_time(data, seriesname):
+def plot_data_over_time(data, seriesname, filename):
 
   time = [get_x_from_time(x / 1000) for x in data['Time']]
   myquant = data[seriesname]
@@ -123,7 +138,7 @@ def plot_data_over_time(data, seriesname):
 
   
   if OUT_TO_FILE:
-      plt.savefig("img_latency.pdf")
+      plt.savefig(filename)
       plt.close(figure)  
 
 
