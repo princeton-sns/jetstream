@@ -57,7 +57,7 @@ def main():
   
   data = parse_infile(infile)
   data[TDELTA] = get_time_deltas(data['Time'])  
-  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=20), data[TDELTA])]
+  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=10), data[TDELTA])]
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
 
@@ -106,8 +106,12 @@ def parse_infile(infile):
   f = open(infile, 'r')
   t = 0
   t_series = []
+  last_by_node = None
   for ln in f:
-    if 'BYNODE' in ln or 'VERYLATE' in ln:
+    if 'BYNODE' in ln:
+      last_by_node = ln
+      continue
+    if 'VERYLATE' in ln:
        continue
       
     fields = ln.strip().split(" ")
@@ -115,8 +119,16 @@ def parse_infile(infile):
       val = float(fields[offset].strip('.'))
       data[field].append( val)
   f.close()
+  
+  if last_by_node:
+    print "Asymmetry ratio %0.2f %%" % asymmetry(last_by_node[8:])
+  
   return data
 
+def asymmetry(s):
+  data = [int(x) for x in s.split()]
+  data.sort()
+  return (data[-1] - data[0]) / float(data[-1]) * 100.0
 
 def get_x_from_time(t):
   if DATE:
