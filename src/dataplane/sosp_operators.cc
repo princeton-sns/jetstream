@@ -168,11 +168,13 @@ ImageQualityReporter::get_chain_index(OperatorChain * c) {
     chain_indexes[c] = new_offset;
     bytes_per_src_in_period.push_back(0);
     bytes_per_src_total.push_back(0);
+    verylate_by_chain.push_back(0);
     return new_offset;
   } else
     return index_iter->second;
 }
 
+const unsigned VERYLATE_THRESH = 10 * 1000; //in milliseconds
 
 void
 ImageQualityReporter::process ( OperatorChain * c,
@@ -194,6 +196,10 @@ ImageQualityReporter::process ( OperatorChain * c,
       if (latency_ms >= 0) {
         latencies_this_period.add_item(latency_ms, 1);
         latencies_total.add_item(latency_ms, 1);
+        
+        if (latency_ms > VERYLATE_THRESH) {
+          verylate_by_chain[chain_id] += 1;
+        }
       }
       else if (latency_ms < 0)
         LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
@@ -211,12 +217,21 @@ inline double get_stddev(const vector<long long>& v) {
   return std::sqrt(sq_sum / v.size());  
 }
 
+template <typename T>
+void print_vec( ostream * out_stream , const string& label, vector<T> v) {
+  (*out_stream) << label << v[0];
+  for (unsigned i = 1; i < v.size(); ++i)
+     (*out_stream) << " " << v[i];
+  (*out_stream) << endl;
+}
+
 static const double GLOBAL_QUANT = 0.999;
 void
 ImageQualityReporter::emit_stats() {
 
   uint64_t bytes, median, total, this_95th, global_quant;
   vector<long long> counts_by_node;
+  vector<long> verylate_by_chain_copy;
   double src_stddev;
   {
     boost::unique_lock<boost::mutex> l(mutex);
@@ -232,6 +247,7 @@ ImageQualityReporter::emit_stats() {
     bytes_per_src_in_period.assign(bytes_per_src_in_period.size(), 0);
     bytes_this_period = 0;
     counts_by_node = bytes_per_src_total;
+    verylate_by_chain_copy = verylate_by_chain;
   }
 /*
   LOG(INFO) << "IMGREPORT: " << bytes << " bytes and "
@@ -243,12 +259,16 @@ ImageQualityReporter::emit_stats() {
   (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
                 << " (median) " << this_95th  << " (95th) " << global_quant <<
                  " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global)" << endl;
+  
   if (counts_by_node.size() > 0) {
-    (*out_stream) << "BYNODE: " << counts_by_node[0];
-    for (unsigned i = 1; i < counts_by_node.size(); ++i)
-       (*out_stream) << " " << counts_by_node[i];
-    (*out_stream) << endl;
+    print_vec(out_stream, "BYNODE: ", counts_by_node);
+
   }
+  
+  if (this_95th > VERYLATE_THRESH / 2) {
+    print_vec(out_stream, "VERYLATE: ", verylate_by_chain_copy);
+  }
+  
   if (running) {
     timer->expires_from_now(boost::posix_time::seconds(2));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));

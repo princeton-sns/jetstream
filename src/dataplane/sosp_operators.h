@@ -87,7 +87,7 @@ class ImageQualityReporter: public COperator {
   inline unsigned get_chain_index(OperatorChain *);
   std::vector<long> bytes_per_src_in_period;
   std::vector<long long> bytes_per_src_total;
-  
+  std::vector<long> verylate_by_chain;
 
 GENERIC_CLNAME
 };  

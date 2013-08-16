@@ -31,6 +31,7 @@ MEDIAN_LAT = "Median latency"
 MY_LAT = "95th percentile latency (msec)"
 LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
+IMAGE_COUNT = "Images per period"
 FIELDS_TO_PLOT_OLD = {
   "BW": 6,
   MEDIAN_LAT: 14,
@@ -41,6 +42,7 @@ FIELDS_TO_PLOT_OLD = {
 FIELDS_TO_PLOT = {
   "Time": 0,
   "BW": 1,
+  IMAGE_COUNT: 3,
   MEDIAN_LAT: 5,
   MY_LAT: 7,
   LAT_999: 9,
@@ -53,7 +55,9 @@ def main():
   
   data = parse_infile(infile)
   data["BW"]  = smooth_seq(data["BW"], window=20)
-  plot_data_over_time(data, MY_LAT)
+  data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
+
+  plot_data_over_time(data, IMAGE_COUNT)
 
 
 def smooth_seq(my_seq, window=10):
