@@ -33,6 +33,7 @@ LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
 COEF_VAR = "Coefficient of variation"
+TDELTA = "Time deltas"
 FIELDS_TO_PLOT_OLD = {
   "BW": 6,
   MEDIAN_LAT: 14,
@@ -55,7 +56,8 @@ def main():
   infile = sys.argv[1]
   
   data = parse_infile(infile)
-  data["BW"]  = smooth_seq(data["BW"], window=20)
+  data[TDELTA] = get_time_deltas(data['Time'])  
+  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=20), data[TDELTA])]
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
 
@@ -74,7 +76,16 @@ def stddev_to_c_of_v(data):
     else:
       r.append(  dev / cumsum_bw) 
   return r
-
+  
+def get_time_deltas(timeseries):
+  deltas = []
+  prev = timeseries[0]
+  for t in timeseries[1:]:
+    deltas.append(t - prev)
+    prev = t
+  deltas.append( timeseries[-1] ) #pad at end
+  return deltas
+  
 def smooth_seq(my_seq, window=10):
   val_list = []
   res = []
@@ -118,7 +129,7 @@ def plot_data_over_time(data, seriesname, filename):
 
   time = [get_x_from_time(x / 1000) for x in data['Time']]
   myquant = data[seriesname]
-  bw_series = [x / 1000000 for x in data['BW']]
+  bw_series = [x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   legend_artists = []
   
   figure, ax = plt.subplots()
