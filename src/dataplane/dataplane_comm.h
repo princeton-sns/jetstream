@@ -189,6 +189,8 @@ public:
   virtual std::string id_as_str() const {
     std::ostringstream o;
     o << "Connection from " << remote_op;
+    if (conn)
+      o << " on " << conn->get_remote_endpoint();
     return o.str();
   }
   

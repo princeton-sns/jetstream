@@ -239,6 +239,9 @@ static const double GLOBAL_QUANT = 0.999;
 void
 ImageQualityReporter::emit_stats() {
 
+  if (!running)
+    return;
+
   uint64_t bytes, median, total, this_95th, global_quant;
   vector<long long> counts_by_node;
   vector<long> verylate_by_chain_copy;
@@ -279,10 +282,9 @@ ImageQualityReporter::emit_stats() {
     print_vec(out_stream, "VERYLATE: ", verylate_by_chain_copy);
   }
   
-  if (running) {
-    timer->expires_from_now(boost::posix_time::seconds(2));
-    timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
-  }
+
+  timer->expires_from_now(boost::posix_time::seconds(2));
+  timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
 
 }
 
@@ -300,6 +302,7 @@ ImageQualityReporter::chain_stopping(OperatorChain * ) {
     running = false;
     timer->cancel();
     out_stream ->flush();
+    LOG(INFO) << "stopped";
   } else
     chains --;
 }
