@@ -176,6 +176,9 @@ ImageQualityReporter::get_chain_index(OperatorChain * c) {
     bytes_per_src_in_period.push_back(0);
     bytes_per_src_total.push_back(0);
     verylate_by_chain.push_back(0);
+    
+    (*out_stream) << "INDEX " << new_offset << " " << c->member(0)->id_as_str() << endl;
+    
     return new_offset;
   } else
     return index_iter->second;
