@@ -111,8 +111,9 @@ def parse_infile(infile):
     if 'BYNODE' in ln:
       last_by_node = ln
       continue
-    if 'VERYLATE' in ln:
+    if 'VERYLATE' in ln or 'INDEX' in ln:
        continue
+      
       
     fields = ln.strip().split(" ")
     for field,offset in FIELDS_TO_PLOT.items():

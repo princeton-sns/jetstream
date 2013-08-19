@@ -184,7 +184,9 @@ ImageQualityReporter::get_chain_index(OperatorChain * c) {
     return index_iter->second;
 }
 
-const int VERYLATE_THRESH = 10 * 1000; //in milliseconds
+static const int VERYLATE_THRESH = 10 * 1000; //in milliseconds
+static const double GLOBAL_QUANT = 0.999;
+static const int PERIOD_SECS = 8; //want to see "prolonged" spikes in quantiles.
 
 void
 ImageQualityReporter::process ( OperatorChain * c,
@@ -235,7 +237,6 @@ void print_vec( ostream * out_stream , const string& label, vector<T> v) {
   (*out_stream) << endl;
 }
 
-static const double GLOBAL_QUANT = 0.999;
 void
 ImageQualityReporter::emit_stats() {
 
@@ -283,7 +284,7 @@ ImageQualityReporter::emit_stats() {
   }
   
 
-  timer->expires_from_now(boost::posix_time::seconds(2));
+  timer->expires_from_now(boost::posix_time::seconds(PERIOD_SECS));
   timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
 
 }
@@ -314,7 +315,7 @@ ImageQualityReporter::add_chain(boost::shared_ptr<OperatorChain>) {
     LOG(INFO) << "reporter started";
     out_stream = new std::ofstream(logging_filename.c_str());
     timer = node->get_timer();
-    timer->expires_from_now(boost::posix_time::seconds(2));
+    timer->expires_from_now(boost::posix_time::seconds(PERIOD_SECS));
     timer->async_wait(boost::bind(&ImageQualityReporter::emit_stats, this));
   }
 }
