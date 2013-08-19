@@ -53,7 +53,7 @@ class ImageQualityReporter: public COperator {
  public:
   ImageQualityReporter():
     period_ms(5000),  ts_field(2), chains(0), bytes_this_period(0), latencies_this_period(500),
-    latencies_total(1000), logging_filename("image_quality.out"){}
+    latencies_total(1000), max_latency(0), logging_filename("image_quality.out"){}
 
   virtual void process ( OperatorChain * c,
                          std::vector<boost::shared_ptr<Tuple> > & tuples,
@@ -80,6 +80,7 @@ class ImageQualityReporter: public COperator {
   long long bytes_this_period;
   
   LogHistogram latencies_this_period, latencies_total;
+  long max_latency; //latency, ms
   
   std::string logging_filename;
   std::ostream * out_stream;

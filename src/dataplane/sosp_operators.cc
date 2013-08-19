@@ -184,7 +184,7 @@ ImageQualityReporter::get_chain_index(OperatorChain * c) {
     return index_iter->second;
 }
 
-static const int VERYLATE_THRESH = 10 * 1000; //in milliseconds
+static const int VERYLATE_THRESH = 5 * 1000; //in milliseconds
 static const double GLOBAL_QUANT = 0.999;
 static const int PERIOD_SECS = 8; //want to see "prolonged" spikes in quantiles.
 
@@ -204,7 +204,10 @@ ImageQualityReporter::process ( OperatorChain * c,
       bytes_per_src_in_period[chain_id] +=  t.ByteSize();
       bytes_per_src_total[chain_id] +=  t.ByteSize();
       
-      int latency_ms = int(get_usec()/1000 - t.e(ts_field).d_val());
+      int latency_ms = int(get_msec() - t.e(ts_field).d_val());
+      
+      max_latency = max<long>(max_latency, latency_ms);
+      
       if (latency_ms >= 0) {
         latencies_this_period.add_item(latency_ms, 1);
         latencies_total.add_item(latency_ms, 1);
@@ -244,10 +247,12 @@ ImageQualityReporter::emit_stats() {
   if (!running)
     return;
 
-  uint64_t bytes, median, total, this_95th, global_quant;
+  uint64_t bytes;
+  long median, total, this_95th, global_quant, period_max;
   vector<long long> counts_by_node;
   vector<long> verylate_by_chain_copy;
   double src_stddev;
+  
   {
     boost::unique_lock<boost::mutex> l(mutex);
     bytes = bytes_this_period;
@@ -255,12 +260,13 @@ ImageQualityReporter::emit_stats() {
     median =latencies_this_period.quantile(0.5);
     this_95th = latencies_this_period.quantile(0.95);
     global_quant = latencies_total.quantile(GLOBAL_QUANT);
-    
+    period_max = max_latency;
     src_stddev = get_stddev(bytes_per_src_total);
     
     latencies_this_period.clear();
     bytes_per_src_in_period.assign(bytes_per_src_in_period.size(), 0);
     bytes_this_period = 0;
+    max_latency = 0;
     counts_by_node = bytes_per_src_total;
     verylate_by_chain_copy = verylate_by_chain;
   }
@@ -273,14 +279,15 @@ ImageQualityReporter::emit_stats() {
   msec_t ts = get_msec();
   (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
                 << " (median) " << this_95th  << " (95th) " << global_quant <<
-                 " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global)" << endl;
+                 " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global) "
+                 << period_max << " (max)" << endl;
   
   if (counts_by_node.size() > 0) {
     print_vec(out_stream, "BYNODE: ", counts_by_node);
 
   }
   
-  if (this_95th > VERYLATE_THRESH / 2) {
+  if (period_max > VERYLATE_THRESH) {
     print_vec(out_stream, "VERYLATE: ", verylate_by_chain_copy);
   }
   
