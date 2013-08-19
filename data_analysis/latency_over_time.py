@@ -8,8 +8,6 @@ import numpy
 import numpy.linalg
 from numpy import array
 
-
-
 OUT_TO_FILE = True
 
 
@@ -20,7 +18,7 @@ import matplotlib
 if OUT_TO_FILE:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.dates as mdates
 
 #    matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
@@ -153,7 +151,11 @@ def plot_data_over_time(data, seriesname, filename):
   legend_artists = []
   
   figure, ax = plt.subplots()
+
+  figure.autofmt_xdate()
   line, = ax.plot_date(time, myquant, 'b-')
+  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+
   legend_artists.append( line )
   
   ax2 = ax.twinx()

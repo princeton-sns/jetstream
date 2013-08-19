@@ -215,6 +215,7 @@ ImageQualityReporter::process ( OperatorChain * c,
       }
       else if (latency_ms < 0)
         LOG(INFO) << "no measured latency, clocks are skewed by " << latency_ms;
+      //NOTE: Lock gets released here
     }
   }
 }
