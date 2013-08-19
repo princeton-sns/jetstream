@@ -1,8 +1,9 @@
 from collections import defaultdict
 import datetime
-
 import re
 import sys
+import time
+
 import numpy
 import numpy.linalg
 from numpy import array
@@ -104,14 +105,17 @@ def parse_infile(infile):
   for field,offset in FIELDS_TO_PLOT.items():
     data[field] = []
   f = open(infile, 'r')
-  t = 0
+  verylates = 0
   t_series = []
   last_by_node = None
   for ln in f:
     if 'BYNODE' in ln:
       last_by_node = ln
       continue
-    if 'VERYLATE' in ln or 'INDEX' in ln:
+    if 'VERYLATE' in ln:
+      verylates +=1
+      continue
+    if 'INDEX' in ln:
        continue
       
       
@@ -122,7 +126,10 @@ def parse_infile(infile):
   f.close()
   
   if last_by_node:
-    print "Asymmetry ratio %0.2f %%" % asymmetry(last_by_node[8:])
+    print "Asymmetry ratio %0.2f%%; %d periods with very late data"  %\
+        (asymmetry(last_by_node[8:]), verylates)
+  
+  print "Data ends at %s." % (time.ctime(data['Time'][-1]/1000))
   
   return data
 

@@ -32,7 +32,7 @@ struct operator_id_t {
 
   bool operator< (const operator_id_t& rhs) const {
     return computation_id < rhs.computation_id
-      || task_id < rhs.task_id;
+      || ((computation_id == rhs.computation_id) && task_id < rhs.task_id);
   }
 
   bool operator== (const operator_id_t& rhs) const {
