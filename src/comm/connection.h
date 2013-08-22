@@ -120,7 +120,7 @@ class ClientConnection {
 
   size_t send_count() { return connSock->send_count(); }
   size_t bytes_queued() { return connSock->bytes_queued(); }
-  boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return connSock->congestion_monitor();}
+  boost::shared_ptr< GenericQCongestionMonitor> congestion_monitor() {return connSock->congestion_monitor();}
   
   void close_now(); 
 

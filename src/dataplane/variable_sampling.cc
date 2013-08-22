@@ -135,14 +135,16 @@ IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
   int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
   if (delta != 0) {
     NetCongestionMonitor * mon = dynamic_cast<NetCongestionMonitor*>(congest_policy->get_monitor());
-    if (mon)
-      LOG(INFO) << "Switching drop frequency by " << delta << ". Congest mon state: " << mon->long_description();
+    if (mon) {
+      LOG(INFO) << "Switching drop frequency by " << delta << " to " <<
+          (drops_per_keep - delta)<< ". Congest mon state: " << mon->long_description();
+    }
   }
   drops_per_keep -= delta; 
 
   cntr++;
-  cntr %= (drops_per_keep +1);
-  return cntr == 0;
+  //cntr %= drops_per_keep +1;
+  return cntr % (drops_per_keep + 1) == 0;
 }
 
 /*

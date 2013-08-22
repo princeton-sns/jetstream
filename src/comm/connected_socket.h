@@ -143,7 +143,7 @@ friend class ClientConnection;
   void close_now (); //Not thread safe
   void close_on_strand (const close_cb_t& cb);
 
-  boost::shared_ptr< QueueCongestionMonitor> mon;
+  boost::shared_ptr< GenericQCongestionMonitor> mon;
 
 
  public:
@@ -195,7 +195,7 @@ friend class ClientConnection;
     send_counter = s;
     recv_counter = r;
   }
-  boost::shared_ptr< QueueCongestionMonitor> congestion_monitor() {return mon;}
+  boost::shared_ptr< GenericQCongestionMonitor> congestion_monitor() {return mon;}
 
 };
 

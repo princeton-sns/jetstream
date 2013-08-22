@@ -33,6 +33,8 @@ GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
 COEF_VAR = "Coefficient of variation"
 TDELTA = "Time deltas"
+LAT_MAX = "Max latency in period"
+
 FIELDS_TO_PLOT_OLD = {
   "BW": 6,
   MEDIAN_LAT: 14,
@@ -47,7 +49,8 @@ FIELDS_TO_PLOT = {
   MEDIAN_LAT: 5,
   MY_LAT: 7,
   LAT_999: 9,
-  GLOBAL_DEVIATION: 11
+  GLOBAL_DEVIATION: 11,
+  LAT_MAX: 13
 }
  
 
@@ -63,7 +66,8 @@ def main():
   plot_data_over_time(data, MY_LAT, "latency_local.pdf")
   plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
   plot_data_over_time(data, COEF_VAR, "internode_variation.pdf")
-  plot_data_over_time(data, LAT_999, "latency_extremum.pdf")
+  plot_data_over_time(data, LAT_999, "latency_highquant.pdf")
+  plot_data_over_time(data, LAT_MAX, "latency_extremum.pdf")
 
 
 def stddev_to_c_of_v(data):

@@ -17,7 +17,7 @@ ConnectedSocket::ConnectedSocket (boost::shared_ptr<boost::asio::io_service> srv
   
   std::ostringstream mon_name;
   mon_name << "connection to " << get_remote_endpoint();
-  mon = boost::shared_ptr<QueueCongestionMonitor>(new QueueCongestionMonitor(10 * 1000, mon_name.str()));
+  mon = boost::shared_ptr<GenericQCongestionMonitor>(new SmoothingQCongestionMonitor(10 * 1000, mon_name.str()));
   
 }
 
