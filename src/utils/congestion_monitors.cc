@@ -171,7 +171,7 @@ static const unsigned PROJECT_STEPS = 4;
 
 SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm): 
       GenericQCongestionMonitor(qTarg, nm), insertsInPeriod(0), removesInPeriod(0),
-        last_QLen(0), v_idx(0), lastQueryTS(0)  {
+        v_idx(0), lastQueryTS(0)  {
   for (unsigned i = 0; i < WIND_SIZE; ++i) {
     inserts.push_back(0);
     removes.push_back(0);
@@ -197,7 +197,8 @@ SmoothingQCongestionMonitor::capacity_ratio() {
   unsigned my_inserts = write_and_clear(&insertsInPeriod);
   unsigned my_removes = write_and_clear(&removesInPeriod);
 
-  last_QLen = last_QLen + my_inserts - my_removes;
+  unsigned newQLen = queueLen + my_inserts - my_removes;
+  atomic_write32(&queueLen, newQLen);
   inserts[v_idx] = my_inserts;
   removes[v_idx] = my_removes;
   v_idx = (v_idx + 1) % WIND_SIZE;
@@ -205,12 +206,15 @@ SmoothingQCongestionMonitor::capacity_ratio() {
   total_inserts = std::accumulate(inserts.begin(),inserts.end(),0);
   total_removes = std::accumulate(removes.begin(),removes.end(),0);
   long growth_per_timestep = (total_inserts - total_removes) / WIND_SIZE;
-  long future_queue_size = last_QLen + growth_per_timestep * PROJECT_STEPS;
+  long future_queue_size = newQLen + growth_per_timestep * PROJECT_STEPS;
   long delta_to_achieve = queueTarget - future_queue_size; //positive delta means "ramp up";
             //negative delta means to shrink
             //inserts per timestep would be total_inserts / WIND_SIZE.
               //ratio is (delta_to_achieve / PROJECT_STEPS) / inserts_per_timestep
-  ratio = ( delta_to_achieve / total_inserts) * (WIND_SIZE / PROJECT_STEPS);
+  if (total_inserts == 0)
+    ratio = INFINITY;
+  else
+    ratio = ( delta_to_achieve / total_inserts) * (WIND_SIZE / PROJECT_STEPS);
   
 //  double rate_per_sec = inserts * 1000.0 / tdelta;
 //  ratio = fmin(ratio, max_per_sec / rate_per_sec);
@@ -230,7 +234,7 @@ SmoothingQCongestionMonitor::long_description() {
 
   ostringstream buf;
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
-    << " inserts " << total_removes << "removes. Qsize " << last_QLen << " Ratio is " << ratio;
+    << " inserts " << total_removes << "removes. Qsize " << queue_length() << " Ratio is " << ratio;
   return buf.str();
 }
 

@@ -14,14 +14,20 @@ class GenericQCongestionMonitor: public NetCongestionMonitor {
 
    public:
     GenericQCongestionMonitor(uint32_t qTarg, const std::string& nm):
-      NetCongestionMonitor(nm), queueTarget(qTarg) {}
+      NetCongestionMonitor(nm), queueTarget(qTarg),queueLen(0) {}
 
     void set_queue_size(uint32_t s) {
       queueTarget = s;
     }
   
+    int queue_length() {
+      int qLen =  boost::interprocess::ipcdetail::atomic_read32(&queueLen);
+      return qLen;
+    }
+  
   protected:
     boost::uint32_t queueTarget;
+    boost::uint32_t queueLen;
   
 
 };
@@ -31,7 +37,6 @@ class QueueCongestionMonitor: public GenericQCongestionMonitor {
  static const int SAMPLE_INTERVAL_MS = 100;
 
  private:
-  boost::uint32_t queueLen;
   boost::uint32_t prevQueueLen;
   boost::uint32_t insertsInPeriod;
   usec_t lastQueryTS;
@@ -43,15 +48,10 @@ class QueueCongestionMonitor: public GenericQCongestionMonitor {
   
  public:
     QueueCongestionMonitor(uint32_t qTarg, const std::string& nm):
-      GenericQCongestionMonitor(qTarg, nm), queueLen(0), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
+      GenericQCongestionMonitor(qTarg, nm), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
         prevRatio(INFINITY)  { }
     
     virtual double capacity_ratio();
-  
-    int queue_length() {
-      int qLen =  boost::interprocess::ipcdetail::atomic_read32(&queueLen);
-      return qLen;
-    }
   
     virtual ~QueueCongestionMonitor() {};
   
@@ -79,10 +79,6 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
     SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm);
   
     virtual double capacity_ratio();
-  
-    int queue_length() {
-      return last_QLen;
-    }
 
     virtual void report_insert(void * item, uint32_t weight) {
       boost::interprocess::ipcdetail::atomic_add32(&insertsInPeriod, weight);
@@ -99,7 +95,6 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
   private:
     boost::uint32_t insertsInPeriod;
     boost::uint32_t removesInPeriod;
-    boost::uint32_t last_QLen;
     std::vector<int> inserts;
     std::vector<int> removes;
     int v_idx;

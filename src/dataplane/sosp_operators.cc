@@ -98,7 +98,7 @@ BlobReader::emit_data()  {
       std::vector<boost::shared_ptr<Tuple> > buf;
       buf.push_back(t);
       
-      QueueCongestionMonitor * mon = dynamic_cast<QueueCongestionMonitor*>(chain->congestion_monitor().get());
+      GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
       if ( mon ) {
         int queue_len = mon->queue_length();
         LOG(INFO) << "Qlen: " << queue_len;
