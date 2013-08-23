@@ -242,8 +242,11 @@ SmoothingQCongestionMonitor::long_description() {
   boost::unique_lock<boost::recursive_mutex> lock(internals);
 
   ostringstream buf;
+  msec_t tdelta =  tstamps[v_idx] - tstamps[(v_idx+1) % WIND_SIZE];
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
-    << " inserts " << total_removes << " removes. Qsize " << queue_length() << " Ratio is " << ratio;
+    << " inserts " << total_removes << " removes. Qsize " << queue_length()
+    << ". TDelta is " << tdelta
+    << " Ratio is " << ratio;
   return buf.str();
 }
 
