@@ -175,6 +175,7 @@ SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const s
   for (unsigned i = 0; i < WIND_SIZE; ++i) {
     inserts.push_back(0);
     removes.push_back(0);
+    tstamps.push_back(0);
   }
 }
 
