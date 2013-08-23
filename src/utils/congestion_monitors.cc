@@ -207,7 +207,7 @@ SmoothingQCongestionMonitor::capacity_ratio() {
   total_removes = std::accumulate(removes.begin(),removes.end(),0);
   long growth_per_timestep = (total_inserts - total_removes) / WIND_SIZE;
   long future_queue_size = newQLen + growth_per_timestep * PROJECT_STEPS;
-  long delta_to_achieve = queueTarget - future_queue_size; //positive delta means "ramp up";
+  double delta_to_achieve = queueTarget - future_queue_size; //positive delta means "ramp up";
             //negative delta means to shrink
             //inserts per timestep would be total_inserts / WIND_SIZE.
               //ratio is (delta_to_achieve / PROJECT_STEPS) / inserts_per_timestep
@@ -234,7 +234,7 @@ SmoothingQCongestionMonitor::long_description() {
 
   ostringstream buf;
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
-    << " inserts " << total_removes << "removes. Qsize " << queue_length() << " Ratio is " << ratio;
+    << " inserts " << total_removes << " removes. Qsize " << queue_length() << " Ratio is " << ratio;
   return buf.str();
 }
 

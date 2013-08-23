@@ -22,7 +22,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
 
   unsigned staleness = congest->measurement_staleness_ms();
-  double congest_level = congest->capacity_ratio();
+  double congest_level = congest->capacity_ratio();   //do this unconditionally; triggers congest-monitor update
   
   OperatorState * status = NULL;
   msec_t now = get_msec();
@@ -82,7 +82,8 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   int delta =  targ_step - curLevel;
   
   if (delta != 0) {
-    LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)<< ", capacity-ratio: " << congest_level << " at " << congest->name() << " TS " << now/1000;
+    LOG(INFO) << "setting degradation level for " <<op << " to " << (curLevel+delta)
+      << "/"<<levelsLen << ", capacity-ratio: " << congest_level << " at " << congest->name() << " TS " << now/1000;
     status->last_state_change = now;
   }
   status->availStepsDown = targ_step;
