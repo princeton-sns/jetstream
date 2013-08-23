@@ -97,8 +97,9 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
     boost::uint32_t removesInPeriod;
     std::vector<int> inserts;
     std::vector<int> removes;
+    std::vector<msec_t> tstamps;
+
     int v_idx;
-    usec_t lastQueryTS;
 //    double prevRatio;
     double ratio;
     long total_inserts, total_removes;
