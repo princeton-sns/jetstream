@@ -7,7 +7,7 @@ using namespace ::std;
 
 namespace jetstream {
 
-const unsigned int MIN_MS_BETWEEN_ACTIONS = 50;
+const unsigned int MIN_MS_BETWEEN_ACTIONS = 1000;
 
 int
 CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel) {
