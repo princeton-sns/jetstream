@@ -63,7 +63,7 @@ class RemoteDestAdaptor : public ChainMember {
   boost::asio::deadline_timer timer;
   BWReporter reporter;
   std::vector<boost::shared_ptr<OperatorChain> > chains;
-  
+  bool no_window_started;
   
   void conn_created_cb (boost::shared_ptr<ClientConnection> conn,
                         boost::system::error_code error);

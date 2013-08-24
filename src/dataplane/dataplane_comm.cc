@@ -11,7 +11,8 @@ using namespace boost;
 using namespace boost::asio::ip;
 
 #undef REPORT_BW
-
+#undef ACK_WINDOW_END
+#define STATUS_ON_WINDOW_END 1
 
 IncomingConnectionState::IncomingConnectionState(boost::shared_ptr<ClientConnection> c,
                           boost::shared_ptr<OperatorChain> d,
@@ -68,13 +69,13 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
   switch (msg.type ()) {
   case DataplaneMessage::DATA:
     {
-      if (dest_side_congest->is_congested()) {
+//      if (dest_side_congest->is_congested()) {
 //        VLOG(1) << "reporting downstream congestion at " << dest->chain_name();
-        report_congestion_upstream(dest_side_congest->capacity_ratio());
-        register_congestion_recheck();
-      }
+//        report_congestion_upstream(dest_side_congest->capacity_ratio());
+//        register_congestion_recheck();
+ //     }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      dest_side_congest->report_insert(NULL, data_size_bytes);
+      dest_side_congest->report_insert(NULL, data_size_bytes); //this might start the timer
       dest->process(data, msg);
       
       /* FIXME CHAINS
@@ -118,9 +119,15 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
       boost::system::error_code err;
       conn->send_msg(resp, err); // just echo back what we got
 #endif
+#ifdef STATUS_ON_WINDOW_END
+      DataplaneMessage resp;
+      resp.set_type(DataplaneMessage::CONGEST_STATUS);
+      resp.set_congestion_level(dest_side_congest->capacity_ratio());
+      boost::system::error_code err;
+      conn->send_msg(resp, err);
       break;
     }
-  
+#endif
   default:
 //      LOG(WARNING) << "unexpected dataplane message: "<<msg.type() <<  " from "
 //                   << conn->get_remote_endpoint() << " for existing dataplane connection";
@@ -512,6 +519,16 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
 
   {
     unique_lock<boost::mutex> lock(mutex); //lock around buffers
+    
+    if (no_window_started) {
+      no_window_started = false;
+      DataplaneMessage window_start;
+      window_start.set_type(DataplaneMessage::DATA);
+      boost::system::error_code err;
+      conn->send_msg(window_start, err);
+        //send an empty message
+    }
+    
     out_buffer_msg.set_type(DataplaneMessage::DATA);
 
     bool buffer_was_empty = (this_buf_size == 0);
@@ -639,6 +656,10 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
 
   boost::system::error_code err;
   LOG_IF(FATAL, msg_in.type() == DataplaneMessage::NO_MORE_DATA)  << "Shouldn't get no-more-data as routine meta";
+  
+  if (msg_in.type() == DataplaneMessage::END_OF_WINDOW)
+    no_window_started = true;
+  
 #ifdef ACK_WINDOW_END
   if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
       msg_in.has_window_length_ms()) {
