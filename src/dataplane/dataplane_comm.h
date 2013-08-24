@@ -289,7 +289,7 @@ Internally, we identify endpoints by a string consisting of either an operator I
   
     void deferred_cleanup_in(boost::asio::ip::tcp::endpoint);
 
-    size_t maxQueueSize() { return cfg.sendQueueSize; }
+    size_t maxQueueSize() { return cfg.send_queue_size; }
 
     Counter * send_counter, *recv_counter;
     void set_counters(Counter * s, Counter * r) {

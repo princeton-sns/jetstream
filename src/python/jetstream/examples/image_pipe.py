@@ -18,6 +18,7 @@ ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 
+window_len_sec = 1.0
 
 def main():
 
@@ -35,7 +36,7 @@ def main():
   
   print "%d worker nodes in system" % len(all_nodes)
   g= jsapi.QueryGraph()
-  ms_per_img = 1000 / float(options.img_per_sec)
+  files_per_window = float(options.img_per_sec) * window_len_sec
   collector = jsapi.ImageQuality(g)
   collector.instantiate_on(root_node)
 
@@ -46,7 +47,7 @@ def main():
   for node in all_nodes:
     if node == root_node and not options.generate_at_union:
       continue
-    reader = jsapi.BlobReader(g, dirname=options.dirname, prefix=options.prefix, ms_per_file=ms_per_img)
+    reader = jsapi.BlobReader(g, dirname=options.dirname, prefix=options.prefix, files_per_window=files_per_window, ms_per_window = 1000 * window_len_sec)
     filter = jsapi.IntervalSampling(g, max_interval=4)
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)

@@ -66,7 +66,7 @@ TEST(Operator, BlobReader) {
   operator_config_t cfg;
   cfg["dirname"] = "src/tests/data";
   cfg["prefix"] = "base";
-  cfg["ms_per_file"] = "500";
+  cfg["files_per_window"] = "1";
   operator_err_t err = reader.configure(cfg);
   ASSERT_EQ(NO_ERR, err);
   reader.add_chain(chain);

@@ -56,12 +56,13 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
     LOG(FATAL) << "got data but no operator to receive it";
 
   vector< shared_ptr<Tuple> > data;
+  long data_size_bytes = 0;
   for(int i=0; i < msg.data_size(); ++i) {
     shared_ptr<Tuple> d (new Tuple);
     d->MergeFrom (msg.data(i));
     assert (d->e_size() > 0);
     data.push_back(d);
-
+    data_size_bytes += d->ByteSize();
   }
 
   switch (msg.type ()) {
@@ -73,7 +74,7 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
         register_congestion_recheck();
       }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      dest_side_congest->report_insert(NULL, data.size());
+      dest_side_congest->report_insert(NULL, data_size_bytes);
       dest->process(data, msg);
       
       /* FIXME CHAINS

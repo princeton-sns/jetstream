@@ -571,8 +571,9 @@ def filter_subsc_validate(filter_op, input_schemas):
 
 
 
-def BlobReader(graph, dirname, prefix, ms_per_file):
-   cfg = {"dirname":dirname, "prefix":prefix, 'ms_per_file':ms_per_file}
+def BlobReader(graph, dirname, prefix, files_per_window, ms_per_window = 1000):
+   cfg = {"dirname":dirname, "prefix":prefix, 'files_per_window':files_per_window, \
+              'ms_per_window':ms_per_window}
    return graph.add_operator(OpType.BLOB_READ, cfg)
 
 def IntervalSampling(graph, max_interval):

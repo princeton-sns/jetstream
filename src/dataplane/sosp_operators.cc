@@ -80,44 +80,49 @@ SeqToRatio::meta_from_upstream(const DataplaneMessage & msg, const operator_id_t
 int
 BlobReader::emit_data()  {
 
-  boost::filesystem::path& p = paths[cur_path];
-  if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p)) {
-    VLOG(1) << "reading from " << p;
-    uintmax_t len = boost::filesystem::file_size(p);
-    if (len < MAX_READ_SIZE) {
-      char* data_buf = new char[len];
-      boost::filesystem::ifstream in(p);
-      in.read(data_buf, len);
-      len = in.gcount();
+  std::vector<boost::shared_ptr<Tuple> > buf;
+  for (unsigned i = 0; i < files_per_window; ++i) {
+    boost::filesystem::path& p = paths[cur_path];
+    if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p)) {
+      VLOG(1) << "reading from " << p;
+      uintmax_t len = boost::filesystem::file_size(p);
+      if (len < MAX_READ_SIZE) {
+        char* data_buf = new char[len];
+        boost::filesystem::ifstream in(p);
+        in.read(data_buf, len);
+        len = in.gcount();
+        
+        boost::shared_ptr<Tuple> t = boost::shared_ptr<Tuple>(new Tuple);
+        extend_tuple(*t, p.string());
+        Element * e = t->add_e();
+        e->set_blob(data_buf, len);
+        
+        buf.push_back(t);
+        
+        GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
+        if ( mon ) {
+          int queue_len = mon->queue_length();
+          LOG(INFO) << "Qlen: " << queue_len;
+        }
+        delete[] data_buf;
       
-      boost::shared_ptr<Tuple> t = boost::shared_ptr<Tuple>(new Tuple);
-      extend_tuple(*t, p.string());
-      Element * e = t->add_e();
-      e->set_blob(data_buf, len);
+      } else
+        LOG(WARNING) << "Omitting " << p << "because too big";
       
-      std::vector<boost::shared_ptr<Tuple> > buf;
-      buf.push_back(t);
-      
-      GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
-      if ( mon ) {
-        int queue_len = mon->queue_length();
-        LOG(INFO) << "Qlen: " << queue_len;
-      }
-      
-      chain->process(buf);
-      
-      delete[] data_buf;
-    
     } else
-      LOG(WARNING) << "Omitting " << p << "because too big";
-    
-  } else
-    LOG(INFO) << "omitting non-file " << p;
-    
-  cur_path++;
-  if (cur_path >= paths.size())
-    cur_path = 0;
-  return ms_per_file;
+      LOG(INFO) << "omitting non-file " << p;
+    cur_path++;
+    if (cur_path >= paths.size())
+      cur_path = 0;
+  }
+  
+  DataplaneMessage window_end;
+  window_end.set_type(DataplaneMessage::END_OF_WINDOW);
+  window_end.set_window_length_ms(ms_per_window);
+  chain->process(buf, window_end);
+        
+  
+  return ms_per_window;
 }
 
 operator_err_t
@@ -148,8 +153,13 @@ BlobReader::configure(std::map<std::string,std::string> &config) {
   if (paths.size() == 0)
       return "Can't scan an empty directory";
   
-  if ( !(istringstream(config["ms_per_file"]) >> ms_per_file)) {
-    return operator_err_t("must specify an int as ms_per_file; got " + config["ms_per_file"] +  " instead");
+  if ( !(istringstream(config["files_per_window"]) >> files_per_window)) {
+    return operator_err_t("must specify an int as files_per_window; got " + config["files_per_window"] +  " instead");
+  }
+  
+  ms_per_window = 1000;
+  if (config.count("ms_per_window") && !(istringstream(config["ms_per_window"]) >> ms_per_window)) {
+    return operator_err_t("must specify an int as ms_per_window; got " + config["ms_per_window"] +  " instead");
   }
 
   return NO_ERR;
