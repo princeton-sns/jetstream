@@ -195,8 +195,9 @@ const msec_t SMOOTH_STEP_MS = 50;
 double
 SmoothingQCongestionMonitor::capacity_ratio() {
   msec_t now = get_msec();
+    msec_t tdelta = now - tstamps[v_idx];
   
-  if (now >=  (tstamps[v_idx] + SMOOTH_STEP_MS)) {
+  if (tdelta >=  SMOOTH_STEP_MS) {
     boost::unique_lock<boost::recursive_mutex> lock(internals);
     
     unsigned my_inserts = write_and_clear(&insertsInPeriod);
@@ -225,11 +226,12 @@ SmoothingQCongestionMonitor::capacity_ratio() {
     if (ratio < 0)
       ratio = 0;
     
-  //  double rate_per_sec = inserts * 1000.0 / tdelta;
-  //  ratio = fmin(ratio, max_per_sec / rate_per_sec);
+    msec_t tdelta_full_window =  tstamps[v_idx] - tstamps[(v_idx+1) % WIND_SIZE];
+    
+    double rate_per_sec = total_inserts *  1000.0 / tdelta_full_window;
+    ratio = fmin(ratio, max_per_sec / rate_per_sec);
   }
-  
-  return ratio;
+  return (ratio < downstream_status) ? ratio : downstream_status;
 }
 
 msec_t
@@ -245,8 +247,8 @@ SmoothingQCongestionMonitor::long_description() {
   msec_t tdelta =  tstamps[v_idx] - tstamps[(v_idx+1) % WIND_SIZE];
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
     << " inserts " << total_removes << " removes. Qsize " << queue_length() << "/"<<queueTarget
-    << ". TDelta is " << tdelta
-    << " Ratio is " << ratio;
+    << ". TDelta: " << tdelta
+    << " Local-ratio: " << ratio << " Downstream: " << downstream_status;
   return buf.str();
 }
 
