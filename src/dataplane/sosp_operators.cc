@@ -81,6 +81,7 @@ int
 BlobReader::emit_data()  {
 
   std::vector<boost::shared_ptr<Tuple> > buf;
+  
   for (unsigned i = 0; i < files_per_window; ++i) {
     boost::filesystem::path& p = paths[cur_path];
     if (boost::filesystem::exists(p) && boost::filesystem::is_regular(p)) {
@@ -98,12 +99,6 @@ BlobReader::emit_data()  {
         e->set_blob(data_buf, len);
         
         buf.push_back(t);
-        
-        GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
-        if ( mon ) {
-          int queue_len = mon->queue_length();
-          LOG(INFO) << "Qlen: " << queue_len;
-        }
         delete[] data_buf;
       
       } else
@@ -114,6 +109,14 @@ BlobReader::emit_data()  {
     cur_path++;
     if (cur_path >= paths.size())
       cur_path = 0;
+  }
+  
+    
+  GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
+  if ( mon ) {
+    int queue_len = mon->queue_length();
+    LOG(INFO) << "Qlen: " << queue_len;
+    LOG_EVERY_N(INFO, 10)  << "(every 10) "<< mon->long_description();
   }
   
   DataplaneMessage window_end;
