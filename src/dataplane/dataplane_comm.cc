@@ -75,7 +75,7 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
 //        register_congestion_recheck();
  //     }
 //      LOG(INFO) << "GOT DATA; length is " << msg.data_size() << "tuples";
-      dest_side_congest->report_insert(NULL, data_size_bytes); //this might start the timer
+      dest_side_congest->report_insert(NULL, data_size_bytes); //this will start the timer if not yet started
       dest->process(data, msg);
       
       /* FIXME CHAINS
@@ -329,7 +329,7 @@ RemoteDestAdaptor::RemoteDestAdaptor (DataplaneConnManager &dcm,
                                       const Edge &e,
                                       msec_t wait)
   : mgr(dcm), chainIsReady(false), this_buf_size(0), is_stopping(false), 
-    timer(io), wait_for_conn(wait) {
+    timer(io),no_window_started(true), wait_for_conn(wait) {
   int32_t portno = e.dest_addr().portno();
 
   remoteAddr = e.dest_addr().address()+ ":" + lexical_cast<string>(portno);
@@ -433,7 +433,7 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
     case DataplaneMessage::CONGEST_STATUS:
     {
       double status = msg.congestion_level();
-      VLOG(1) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
+      LOG(INFO) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
 
       local_congestion->set_downstream_congestion(status);
       break;
@@ -526,7 +526,7 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
       window_start.set_type(DataplaneMessage::DATA);
       boost::system::error_code err;
       conn->send_msg(window_start, err);
-        //send an empty message
+        //send an empty message as a header for the window
     }
     
     out_buffer_msg.set_type(DataplaneMessage::DATA);
