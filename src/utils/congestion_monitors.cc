@@ -81,11 +81,11 @@ QueueCongestionMonitor::long_description() {
 
 
 msec_t
-QueueCongestionMonitor::measurement_staleness_ms() {
-  if (downstream_status < lastQueryTS)
-    return get_msec() - downstream_report_time;
+QueueCongestionMonitor::measurement_time() {
+  if (downstream_status < prevRatio)
+    return downstream_report_time;
   else
-    return get_msec() - lastQueryTS;
+    return lastQueryTS;
 }
 
 
@@ -138,11 +138,11 @@ WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
 }
 
 msec_t
-WindowCongestionMonitor::measurement_staleness_ms() {
+WindowCongestionMonitor::measurement_time() {
   if (downstream_status < last_ratio)
-    return get_msec() - downstream_report_time;
+    return downstream_report_time;
   else
-    return get_msec() - last_window_end;
+    return last_window_end;
 }
 
 std::string
@@ -235,9 +235,12 @@ SmoothingQCongestionMonitor::capacity_ratio() {
 }
 
 msec_t
-SmoothingQCongestionMonitor::measurement_staleness_ms() {
+SmoothingQCongestionMonitor::measurement_time() {
   boost::unique_lock<boost::recursive_mutex> lock(internals);
-  return  get_msec() - tstamps[(v_idx+1) % WIND_SIZE];
+  if (downstream_status < ratio)
+    return downstream_report_time;
+  else
+    return tstamps[(v_idx+1) % WIND_SIZE];
 }
    
 string

@@ -26,10 +26,10 @@ class NetCongestionMonitor : public CongestionMonitor {
   
     virtual void end_of_window(int window_ms, msec_t start_time) {}
 
-    void set_downstream_congestion(double d) {
+    void set_downstream_congestion(double d, msec_t report_time) {
       boost::unique_lock<boost::recursive_mutex> lock(internals);
       downstream_status = d;
-      downstream_report_time = get_msec();
+      downstream_report_time = report_time;
     }
   
     void set_max_rate(double d) {max_per_sec = d;}

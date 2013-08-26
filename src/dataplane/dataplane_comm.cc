@@ -108,22 +108,22 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
     {
       dest->meta_from_upstream(msg); //note that msg is a const param; can't mutate
       dest_side_congest->end_of_window(msg.window_length_ms());
+
+      DataplaneMessage resp;
+      boost::system::error_code err;      
+      resp.set_timestamp(msg.timestamp());
+      
 #ifdef ACK_WINDOW_END
       LOG_EVERY_N(INFO, 40) << " got an end-of-window marker, acking it; ts was " << msg.timestamp()
        << " and window size was " << msg.window_length_ms();
-      DataplaneMessage resp;
       resp.set_type(DataplaneMessage::ACK);
       resp.set_window_length_ms(msg.window_length_ms());
-      resp.set_timestamp(msg.timestamp());
       
-      boost::system::error_code err;
       conn->send_msg(resp, err); // just echo back what we got
 #endif
 #ifdef STATUS_ON_WINDOW_END
-      DataplaneMessage resp;
       resp.set_type(DataplaneMessage::CONGEST_STATUS);
       resp.set_congestion_level(dest_side_congest->capacity_ratio());
-      boost::system::error_code err;
       conn->send_msg(resp, err);
       break;
     }
@@ -139,7 +139,6 @@ IncomingConnectionState::got_data_cb (DataplaneMessage &msg,
       dest->meta_from_upstream(msg);
     }
     break;
-
   }
 
   // Wait for the next data message
@@ -180,7 +179,8 @@ IncomingConnectionState::congestion_recheck_cb(const boost::system::error_code& 
 
 //  VLOG(1) << "rechecking congestion at "<< dest->id_as_str();
   double downstream_level = chain_mon->capacity_ratio();
-  dest_side_congest->set_downstream_congestion(downstream_level);
+  msec_t measurement_age = chain_mon->measurement_time();
+  dest_side_congest->set_downstream_congestion(downstream_level, measurement_age);
   if (conn->is_connected()) {
     report_congestion_upstream(dest_side_congest->capacity_ratio());
 //  if (!mon->is_congested()) // only report if congestion went away
@@ -433,9 +433,12 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
     case DataplaneMessage::CONGEST_STATUS:
     {
       double status = msg.congestion_level();
-      LOG(INFO) << "Received remote congestion report from " <<  dest_as_str <<" : status is " << status;
+      msec_t age_ms = get_msec() - msg.timestamp();
+      LOG(INFO) << "Received remote congestion report from " <<  dest_as_str
+        <<" : status is " << status << " at " << msg.timestamp()<< " (age = "
+        << age_ms << " ms)";
 
-      local_congestion->set_downstream_congestion(status);
+      local_congestion->set_downstream_congestion(status, msg.timestamp());
       break;
     }
 

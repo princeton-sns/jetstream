@@ -21,7 +21,8 @@ class ChainedQueueMonitor: public  QueueCongestionMonitor {
   virtual double capacity_ratio() {
     if(dest) {
       double downstream = dest->capacity_ratio();
-      set_downstream_congestion(downstream);
+      msec_t measurement_age = dest->measurement_time();
+      set_downstream_congestion(downstream, measurement_age);
     }
 
     return QueueCongestionMonitor::capacity_ratio();

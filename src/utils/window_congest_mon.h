@@ -37,7 +37,7 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
   
     virtual void new_window_start() { window_start_time = 0; }
   
-    virtual msec_t measurement_staleness_ms();
+    virtual msec_t measurement_time();
   
     virtual std::string long_description();
   

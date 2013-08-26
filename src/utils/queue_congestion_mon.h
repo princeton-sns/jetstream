@@ -67,7 +67,7 @@ class QueueCongestionMonitor: public GenericQCongestionMonitor {
   
     virtual std::string long_description();
   
-    virtual msec_t measurement_staleness_ms();
+    virtual msec_t measurement_time();
 
 
 };
@@ -90,7 +90,7 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
   
     virtual std::string long_description();
   
-    virtual msec_t measurement_staleness_ms();
+    virtual msec_t measurement_time();
 
   private:
     boost::uint32_t insertsInPeriod;

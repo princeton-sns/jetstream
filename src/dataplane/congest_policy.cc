@@ -20,17 +20,16 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   if (statuses.size() == 0) //monitor not hooked up
     return 0;
   
-
-  unsigned staleness = congest->measurement_staleness_ms();
+  msec_t now = get_msec();
+  msec_t measurement_time = congest->measurement_time();
   double congest_level = congest->capacity_ratio();   //do this unconditionally; triggers congest-monitor update
   
   OperatorState * status = NULL;
-  msec_t now = get_msec();
   size_t op_pos;
   for (op_pos = 0; op_pos < statuses.size(); ++ op_pos) {
     status = &statuses[op_pos];
 
-    if ( (status->last_state_change + MIN_MS_BETWEEN_ACTIONS > now - staleness)
+    if ( (status->last_state_change + MIN_MS_BETWEEN_ACTIONS > measurement_time)
      && (congest_level > 0))
       return 0; //did something recently
 
@@ -50,7 +49,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     for (size_t back_op_pos = statuses.size() -1 ; back_op_pos > op_pos ; --back_op_pos) {
       if(statuses[back_op_pos].availStepsUp > 0)
         return 0;
-      if (statuses[back_op_pos].last_state_change + MIN_MS_BETWEEN_ACTIONS > now - staleness)
+      if (statuses[back_op_pos].last_state_change + MIN_MS_BETWEEN_ACTIONS > measurement_time)
         return 0; //did something recently
     }
   }
