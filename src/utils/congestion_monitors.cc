@@ -236,7 +236,8 @@ SmoothingQCongestionMonitor::capacity_ratio() {
 
 msec_t
 SmoothingQCongestionMonitor::measurement_staleness_ms() {
-  return 0;
+  boost::unique_lock<boost::recursive_mutex> lock(internals);
+  return  get_msec() - tstamps[(v_idx+1) % WIND_SIZE];
 }
    
 string

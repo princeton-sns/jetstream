@@ -545,12 +545,12 @@ RemoteDestAdaptor::process ( OperatorChain * chain,
     }
     
     if (msg.has_type()) {
-      do_send_unlocked();
+      do_send_unlocked();   //saw a meta marker, so force out the data
       meta_from_upstream(msg); 
     } else if (this_buf_size > SIZE_TO_SEND) {
       do_send_unlocked();
     } else {
-      if (buffer_was_empty) {
+      if (buffer_was_empty) {  //no meta, and buffer isn't full
         timer.expires_from_now(boost::posix_time::millisec(WAIT_FOR_DATA));
         timer.async_wait(boost::bind(&RemoteDestAdaptor::force_send, this));
       }

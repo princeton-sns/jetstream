@@ -147,11 +147,13 @@ ConnectedSocket::perform_send (boost::shared_ptr<SerializedMessageOut> msg)
 {
   if (!sock->is_open())
     return;
-  else if (sending) {
+
+  mon->report_insert(msg.get(), msg->nbytes);
+  
+  if (sending) {
     VLOG(2) << "send is busy in perform_send, queueing" <<endl;
 
     bytesQueued += msg->nbytes;
-    mon->report_insert(msg.get(), msg->nbytes);
 
     sendQueue.push_back(msg);
     sendStrand.post(bind(&ConnectedSocket::perform_queued_send, 
@@ -166,6 +168,7 @@ ConnectedSocket::perform_send (boost::shared_ptr<SerializedMessageOut> msg)
 		      asio::buffer(msg->msg, msg->nbytes),
 		      sendStrand.wrap(bind(&ConnectedSocket::sent, 
 					    shared_from_this(), msg, _1, _2)));
+    mon->report_delete(msg.get(), msg->nbytes);
   }
 }
 

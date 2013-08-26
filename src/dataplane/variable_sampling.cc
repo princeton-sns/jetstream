@@ -140,7 +140,7 @@ IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
     NetCongestionMonitor * mon = dynamic_cast<NetCongestionMonitor*>(congest_policy->get_monitor());
     if (mon) {
       LOG(INFO) << "Switching drop frequency by " << delta << " to " << drop_fraction
-          << "%. Congest mon state: " << mon->long_description();
+          << "%."; // Congest mon state: " << mon->long_description();
     }
   }
 

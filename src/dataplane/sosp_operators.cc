@@ -114,9 +114,9 @@ BlobReader::emit_data()  {
     
   GenericQCongestionMonitor * mon = dynamic_cast<GenericQCongestionMonitor*>(chain->congestion_monitor().get());
   if ( mon ) {
-    int queue_len = mon->queue_length();
-    LOG(INFO) << "Qlen: " << queue_len;
-    LOG_EVERY_N(INFO, 10)  << "(every 10) "<< mon->long_description();
+//    int queue_len = mon->queue_length();
+//    LOG(INFO) << "Qlen: " << queue_len;
+    LOG_EVERY_N(INFO, 1)  << "(every 1) "<< mon->long_description();
   }
   
   DataplaneMessage window_end;
