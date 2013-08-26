@@ -660,32 +660,30 @@ RemoteDestAdaptor::meta_from_upstream(const DataplaneMessage & msg_in) {
   boost::system::error_code err;
   LOG_IF(FATAL, msg_in.type() == DataplaneMessage::NO_MORE_DATA)  << "Shouldn't get no-more-data as routine meta";
   
-  if (msg_in.type() == DataplaneMessage::END_OF_WINDOW)
-    no_window_started = true;
-  
-#ifdef ACK_WINDOW_END
+#ifdef STATUS_ON_WINDOW_END
   if (msg_in.type() == DataplaneMessage::END_OF_WINDOW &&
       msg_in.has_window_length_ms()) {
-    if (remote_processing->get_window_start() > 0) { //data in window
+    
+    if (no_window_started) { //no data in window
+    
+      LOG(INFO) << "end of window with no data";
+      conn->send_msg(msg_in, err);
+    } else {
+      no_window_started = true; //window over, so we reset the flag
+    
       DataplaneMessage msg_out;
       msg_out.CopyFrom(msg_in);
-      msg_out.set_timestamp(  remote_processing->get_window_start()  );
+      msg_out.set_timestamp(  get_msec()  );
 //      LOG(INFO) << "Sending out end-of-window. window start ts = " << msg_out.timestamp();
       //we are on caller's thread so this is thread-safe.
       conn->send_msg(msg_out, err);
-      remote_processing->new_window_start(); //reset clock
-    } else {
-      LOG(INFO) << "end of window with no data";
-      remote_processing->end_of_window(msg_in.window_length_ms(), 0);
-      conn->send_msg(msg_in, err);      
-    } 
+    }
   }
   else {
 #endif
-
     //we are on caller's thread so this is thread-safe.
     conn->send_msg(msg_in, err);
-#ifdef ACK_WINDOW_END
+#ifdef STATUS_ON_WINDOW_END
   }
 #endif
 }
