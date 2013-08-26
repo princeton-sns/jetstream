@@ -151,14 +151,14 @@ def get_x_from_time(t):
 def plot_data_over_time(data, seriesname, filename):
 
   time = [get_x_from_time(x / 1000) for x in data['Time']]
-  myquant = data[seriesname]
+  series_to_plot = data[seriesname]
   bw_series = [x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   legend_artists = []
   
   figure, ax = plt.subplots()
 
   figure.autofmt_xdate()
-  line, = ax.plot_date(time, myquant, 'b-')
+  line, = ax.plot_date(time, series_to_plot, 'b-')
   ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
   legend_artists.append( line )
@@ -169,7 +169,10 @@ def plot_data_over_time(data, seriesname, filename):
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
+  ax.set_ylim( 0, 1.2 * max(series_to_plot))  
+
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
+  ax2.set_ylim( 0, 1.2 * max(bw_series))  
 
 
   plt.legend(legend_artists, [seriesname, "Bandwidth"], loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
