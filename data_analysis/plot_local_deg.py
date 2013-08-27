@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 import datetime
 import re
@@ -23,47 +22,44 @@ def main():
   infile = sys.argv[1]
   
   data = parse_infile(infile)
-  series_timelen = (data[TIME][-1] - data[TIME][0])/1000
-  print "Done, %d data points over %d secs" % (len(data[TIME]),series_timelen)
-  plot_series(data, PACKETS_IN, 'packets_in.pdf')
-  plot_series(data, SIGNAL, 'signal.pdf')
-  
-    
+  series_timelen = (data[TIME][-1] - data[TIME][0])
+  print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
+  avg_time_at_level = series_timelen / float(len(data[TIME]))
+  print "Average time-at-level %0.2f secs" % (avg_time_at_level)
+  plot_series(data, LEVEL, "local_deg.pdf")
 
 TIME = "Time"
-SIGNAL = "Signal"
-PACKETS_IN = "Packets received"
+LEVEL = "Level"
 FIELDS_TO_PLOT = {
-  TIME: 0,
-  SIGNAL: 2,
-  PACKETS_IN: -3
-}
+  TIME: -1,
+  LEVEL: 10
+}  
 
 def parse_infile(infile):
   data = {}
   for field,offset in FIELDS_TO_PLOT.items():
     data[field] = []
-  f = open(infile, 'r')
-  for ln in f:      
-      
-    fields = ln.strip().split(" ")
-    for field,offset in FIELDS_TO_PLOT.items():
-      val = float(fields[offset].strip('.'))
-      data[field].append( val)
-  f.close()
-  return data
 
+
+  f = open(infile, 'r')
+  for ln in f:
+    if not 'setting degradation level' in ln:
+      continue
+      
+    fields = ln.strip().replace("/"," ").split(" ")
+    for field,offset in FIELDS_TO_PLOT.items():
+      val = float(fields[offset])
+      data[field].append(val)
+  f.close()  
+  return data
+  
 
 def get_x_from_time(t):
-  if X_AXIS_WITH_DATES:
-    return datetime.datetime.fromtimestamp(t )
-  else:
-    return t
-
-
+  return datetime.datetime.fromtimestamp(t )
+  
 def plot_series(data, seriesname, filename):  
 
-  time = [get_x_from_time(x / 1000) for x in data['Time']]
+  time = [get_x_from_time(x ) for x in data['Time']]
   series_to_plot = data[seriesname]
 
 #  legend_artists = []
@@ -77,10 +73,6 @@ def plot_series(data, seriesname, filename):
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
   ax.set_ylim( 0, 1.2 * max(series_to_plot))  
-
-#  legend_artists.append( line )
-
-
   
   if OUT_TO_FILE:
       plt.savefig(filename)
@@ -89,3 +81,4 @@ def plot_series(data, seriesname, filename):
 
 if __name__ == '__main__':
   main()
+  
