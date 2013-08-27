@@ -169,9 +169,9 @@ WindowCongestionMonitor::long_description() {
 static const unsigned WIND_SIZE = 4;
 static const unsigned PROJECT_STEPS = 4;
 
-SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm): 
+SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm, msec_t step_ms):
       GenericQCongestionMonitor(qTarg, nm), insertsInPeriod(0), removesInPeriod(0),
-        v_idx(0)  {
+        v_idx(0), SMOOTH_STEP_MS(step_ms)  {
   for (unsigned i = 0; i < WIND_SIZE; ++i) {
     inserts.push_back(0);
     removes.push_back(0);
@@ -190,7 +190,6 @@ inline unsigned write_and_clear(uint32_t *targ) {
   return final_val;
 }
 
-const msec_t SMOOTH_STEP_MS = 50;
 
 double
 SmoothingQCongestionMonitor::capacity_ratio() {
@@ -213,8 +212,8 @@ SmoothingQCongestionMonitor::capacity_ratio() {
     
     total_inserts = std::accumulate(inserts.begin(),inserts.end(),0);
     total_removes = std::accumulate(removes.begin(),removes.end(),0);
-    long growth_per_timestep = (total_inserts - total_removes) / WIND_SIZE;
-    long future_queue_size = newQLen + growth_per_timestep * PROJECT_STEPS;
+    long growth = (total_inserts - total_removes);
+    long future_queue_size = newQLen + growth  * PROJECT_STEPS / WIND_SIZE;
     double delta_to_achieve = queueTarget - future_queue_size; //positive delta means "ramp up";
               //negative delta means to shrink
               //inserts per timestep would be total_inserts / WIND_SIZE.
@@ -222,7 +221,7 @@ SmoothingQCongestionMonitor::capacity_ratio() {
     if (total_inserts == 0)
       ratio = INFINITY;
     else
-      ratio = ( delta_to_achieve / total_inserts) * (WIND_SIZE / PROJECT_STEPS);
+      ratio = 1 + ( delta_to_achieve / total_inserts) * (WIND_SIZE / PROJECT_STEPS);
     if (ratio < 0)
       ratio = 0;
     
