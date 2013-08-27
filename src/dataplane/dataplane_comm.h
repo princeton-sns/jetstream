@@ -11,7 +11,7 @@
 
 #include "connection.h"
 #include "node_config.h"
-#include "queue_congestion_mon.h"
+#include "net_congest_mon.h"
 #include "window_congest_mon.h"
 #include "counter.h"
 #include "operator_chain.h"
