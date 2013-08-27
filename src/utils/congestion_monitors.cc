@@ -91,7 +91,7 @@ QueueCongestionMonitor::measurement_time() {
 
 
 WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name, double smoothing_prev_value):
-  NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0),
+  NetCongestionMonitor(name), last_ratio(10), window_start_time(0),
       last_window_end(get_msec()), bytes_in_window(0), smoothing_factor(smoothing_prev_value) {
 }
 
@@ -110,6 +110,9 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
     unsmoothed_ratio =  std::min(window_ratio, max_per_sec / bytes_per_sec) ;
     LOG_EVERY_N(INFO, 20) << long_description() <<". Nominal window size was " << window_data_ms;
+
+  if (unsmoothed_ratio > 10)
+    unsmoothed_ratio = 10;      //limit ramp-up and avoid confusing the sliding window
   } else { //no data in window; we are therefore UNCONSTRAINED
     unsmoothed_ratio = 10;
   }
