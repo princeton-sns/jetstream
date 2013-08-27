@@ -137,6 +137,7 @@ def parse_infile(infile):
   return data
 
 def asymmetry(s):
+  """ Result is (max - min) / max or 1 - min/max. 50% means max is twice min."""
   data = [int(x) for x in s.split()]
   data.sort()
   return (data[-1] - data[0]) / float(data[-1]) * 100.0
