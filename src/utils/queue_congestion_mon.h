@@ -76,7 +76,8 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
 
   public:
 
-    SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm);
+    SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm,
+                                  msec_t step_ms = 50);
   
     virtual double capacity_ratio();
 
@@ -103,6 +104,7 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
 //    double prevRatio;
     double ratio;
     long total_inserts, total_removes;
+    const msec_t SMOOTH_STEP_MS;
 
 
 };
