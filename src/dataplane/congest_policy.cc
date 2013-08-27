@@ -55,7 +55,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   }
   
   bool check_since_action  =  (status->last_check > status->last_state_change); // no action since state change
-  status->last_check = now;
+  status->last_check = measurement_time;
   if (! check_since_action)
     return 0;
   
