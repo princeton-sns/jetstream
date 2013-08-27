@@ -19,9 +19,13 @@ class WindowCongestionMonitor: public NetCongestionMonitor {
     msec_t last_window_end;
     volatile unsigned bytes_in_window;
   
+    double smoothing_factor;
+  
   public:
   
-    WindowCongestionMonitor(const std::string& name);
+    WindowCongestionMonitor(const std::string& name, double smoothing_prev_value = 0);
+    //smoothing applies an exponential-weighted window, with "smoothing_prev_value"
+      // as the weight on the prevous value. So value 0 means no smoothing
   
     virtual double capacity_ratio();
   

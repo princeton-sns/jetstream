@@ -90,9 +90,9 @@ QueueCongestionMonitor::measurement_time() {
 
 
 
-WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name):
+WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name, double smoothing_prev_value):
   NetCongestionMonitor(name), last_ratio(INFINITY), window_start_time(0),
-      last_window_end(get_msec()), bytes_in_window(0) {
+      last_window_end(get_msec()), bytes_in_window(0), smoothing_factor(smoothing_prev_value) {
 }
 
 
@@ -101,18 +101,19 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
   boost::unique_lock< boost::recursive_mutex> lock(internals);
   msec_t now = get_msec();
 
+  double unsmoothed_ratio;
   if (processing_start_time != 0) {
     msec_t window_processtime_ms = now - processing_start_time;
     msec_t window_availtime_ms = now - last_window_end;
     
     double window_ratio = double(window_data_ms) / window_processtime_ms;
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
-    last_ratio = std::min(window_ratio, max_per_sec / bytes_per_sec);
-//    window_start_time = 0;
+    unsmoothed_ratio =  std::min(window_ratio, max_per_sec / bytes_per_sec) ;
     LOG_EVERY_N(INFO, 20) << long_description() <<". Nominal window size was " << window_data_ms;
   } else { //no data in window; we are therefore UNCONSTRAINED
-    last_ratio = 10;
+    unsmoothed_ratio = 10;
   }
+  last_ratio = (1 - smoothing_factor) * unsmoothed_ratio + smoothing_factor * last_ratio;
   bytes_in_window = 0;
   last_window_end = now;
   window_start_time = 0;
