@@ -70,14 +70,9 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)
       targ_step --;
   } else {
-//    targ_step = should_upgrade(congest_level, curLevel,
+    targ_step = should_upgrade(congest_level, levels, levelsLen, curLevel, *status);
     //jump up one step, if room
-     if ( targ_step < (levelsLen -1) &&
-      // ( should_upgrade(congest_level, levelsLen, curLevel, *status)
-       (congest_level / levels[targ_step+1] * levels[curLevel] > 1.1
-            || (levels[curLevel] == 0) ) ) {
-       targ_step ++;
-     }
+    
   }
   
   int delta =  int(targ_step) - int(curLevel);
@@ -92,17 +87,24 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   status->availStepsUp = levelsLen - targ_step -1;
   return delta;
 }
-/*
-bool
+
+int
 CongestionPolicy::should_upgrade(double capacity, 
-                                 double proposed_send_ratio, 
-                                 int avail_up,
+                                 const double * const levels,
+                                 unsigned levelsLen,
+                                 unsigned curLevel, 
                                  OperatorState& status) {
-  //send ratio is proposed/current
+  if (curLevel == levelsLen -1)
+      return curLevel; //at max
+  if (curLevel == 0 && capacity > 0)
+    return 1;
+  
+  double next_step_ratio = levels[curLevel+1]/ levels[curLevel];
+  if (next_step_ratio > capacity)
+    return curLevel +1;
 
-
-}*/
-
+  return curLevel;
+}
 /*
 void
 CongestionPolicy::set_effect_delay(operator_id_t op, unsigned msecs) {

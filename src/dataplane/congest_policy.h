@@ -35,6 +35,13 @@ class CongestionPolicy {
     std::vector<OperatorState> statuses;
     boost::shared_ptr<CongestionMonitor> congest;
   
+
+    int should_upgrade(double capacity,
+                       const double * const levels,
+                       unsigned levelsLen,
+                       unsigned curLevel, 
+                       OperatorState& status);
+  
   public:
     //-1 means "lower send rate", +1 means "raise send rate, and "0" means no shift
     int get_step(operator_id_t op, const double* const levels, unsigned levelsLen, unsigned curLevel); 

@@ -28,6 +28,7 @@ def main():
   data = parse_infile(infile)
   series_timelen = (data[TIME][-1] - data[TIME][0])
   print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
+  print "Data series ends at %s" % time.ctime(data[TIME][-1])
   avg_time_at_level = series_timelen / float(len(data[TIME]))
   print "Average time-at-level %0.2f secs" % (avg_time_at_level)
   data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
@@ -74,7 +75,8 @@ def flatten_lines(time, series):
     newseries.append(v)
     newtime.append(t)
 
-  return newtime[0:90], newseries[0:90]
+  return newtime, newseries
+#  return newtime[0:90], newseries[0:90]
 
 def get_x_from_time(t):
   return datetime.datetime.fromtimestamp(t )

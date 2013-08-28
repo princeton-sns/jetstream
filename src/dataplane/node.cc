@@ -867,7 +867,7 @@ NodeConfig::NodeConfig ()
     cube_db_host("localhost"), cube_db_user("root"), cube_db_pass(""), cube_db_name("test_cube"),
     cube_processor_threads(1), cube_congestion_process_limit(10000), cube_congestion_flush_limit(1000000),
     cube_mysql_innodb(false), cube_mysql_engine_memory(false),cube_mysql_transactions(false), cube_mysql_insert_batch_pw2(8), 
-    cube_mysql_query_batch_pw2(5), cube_max_stage(10), connection_buffer_size(256 * 1024)
+    cube_mysql_query_batch_pw2(5), cube_max_stage(10), connection_buffer_size(512 * 1024)
     {}
 
 
