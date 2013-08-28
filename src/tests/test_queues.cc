@@ -68,18 +68,18 @@ TEST(CongestMon, SmoothQueueMon) {
   mon.report_insert(NULL, 50);
   
   double c_ratio = mon.capacity_ratio();
-  ASSERT_EQ(1, c_ratio);
+  ASSERT_EQ(0.5, c_ratio);
 
   mon.report_delete(NULL, 25);
   c_ratio = mon.capacity_ratio();
-  ASSERT_EQ(2, c_ratio);
+  ASSERT_EQ(1.25, c_ratio);
 
   mon.report_delete(NULL, 25);
   c_ratio = mon.capacity_ratio();
     //50 inserts, 50 deletes, queue size empty.
     //To fill the queue, we need an extra 25 inserts per period.
     //this is triple the 12.5 per period we currently have.
-  ASSERT_EQ(3, c_ratio);
+  ASSERT_EQ(INFINITY, c_ratio);
 
   
 }
