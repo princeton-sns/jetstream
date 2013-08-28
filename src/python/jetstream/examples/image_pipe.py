@@ -20,6 +20,8 @@ ch.setFormatter(formatter)
 
 window_len_sec = 1.0
 
+INTERVAL = False
+
 def main():
 
   parser = standard_option_parser()
@@ -48,7 +50,10 @@ def main():
     if node == root_node and not options.generate_at_union:
       continue
     reader = jsapi.BlobReader(g, dirname=options.dirname, prefix=options.prefix, files_per_window=files_per_window, ms_per_window = 1000 * window_len_sec)
-    filter = jsapi.IntervalSampling(g, max_interval=4)
+    if INTERVAL:
+      filter = jsapi.IntervalSampling(g, max_interval=4)
+    else:
+      filter = jsapi.VariableSampling(g, field=0, type='I')
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)
     

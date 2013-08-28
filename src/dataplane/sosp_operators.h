@@ -18,7 +18,7 @@ dir) and then a blob with the contents.
 class BlobReader: public TimerSource {
 
  public:
-  BlobReader(): cur_path(0) {}
+  BlobReader(): cur_path(0),emit_count(0) {}
   
   virtual int emit_data();
   virtual operator_err_t configure(std::map<std::string,std::string> &config);
@@ -32,6 +32,7 @@ class BlobReader: public TimerSource {
     unsigned cur_path;
     unsigned files_per_window;
     unsigned ms_per_window;
+    unsigned emit_count;
 //    unsigned ms_per_file;  //read interval
 GENERIC_CLNAME
 };  

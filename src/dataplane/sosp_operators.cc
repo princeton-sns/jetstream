@@ -95,6 +95,7 @@ BlobReader::emit_data()  {
         
         boost::shared_ptr<Tuple> t = boost::shared_ptr<Tuple>(new Tuple);
         extend_tuple(*t, p.string());
+        t->mutable_e(0)->set_i_val( emit_count++ );
         Element * e = t->add_e();
         e->set_blob(data_buf, len);
         

@@ -57,10 +57,7 @@ class VariableSamplingOperator: public HashSampleOperator {
   
     VariableSamplingOperator(): num_steps(11){}
   
-  
     virtual operator_err_t configure(std::map<std::string,std::string> &config);
-    
-    virtual void start();
   
     virtual void end_of_window( DataplaneMessage & msg);
     //needs to respond to congestion signals

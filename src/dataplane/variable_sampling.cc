@@ -51,23 +51,18 @@ VariableSamplingOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("steps must be an int");
   }
   LOG(INFO) << "Configured VariableSamplingOperator. num_steps="<<num_steps;
+
+  for( unsigned i =0; i < num_steps ; ++i) {
+    steps.push_back( double(i) / (num_steps - 1) );
+  }
+  cur_step = num_steps-1;
+  threshold = 0;
+//  reporter.set_dest(get_dest());
+//  reporter.start(get_timer());
+
   return HashSampleOperator::configure(config);
 }
 
-
-void
-VariableSamplingOperator::start() {
-    for( unsigned i =0; i < num_steps ; ++i) {
-      steps.push_back( double(i) / (num_steps - 1) );
-    }
-    cur_step = num_steps-1;
-//  reporter.set_dest(get_dest());
-//  reporter.start(get_timer());
-    cur_step += congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
-    unsigned thresh = (1 - steps[cur_step]) * numeric_limits<uint32_t>::max();
-    VLOG(1) << " Initial step for " << id() << " is " << cur_step << " thresh is " << thresh;
-    atomic_write32(&threshold, thresh); //start sending everything
-}
 
 /*
 
