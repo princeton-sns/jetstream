@@ -14,6 +14,11 @@ ClientConnection::ClientConnection (boost::shared_ptr<asio::io_service> srv,
   : connected (false), iosrv (srv), sock (new tcp::socket(*iosrv)),
     remote (remoteEndpoint), timer (*iosrv)
 {
+  // Limit the send buffer size so we get faster congestion feedback
+  //SID: Make this a constructor option.
+  boost::asio::socket_base::send_buffer_size option(8192);
+  sock->set_option(option);
+
   if (remote.address().is_v4())
     sock->open(tcp::v4(), error);
   else if (remote.address().is_v6())
@@ -21,6 +26,7 @@ ClientConnection::ClientConnection (boost::shared_ptr<asio::io_service> srv,
   else
     error = asio::error::address_family_not_supported;
   VLOG(1) << "Client connection via endpoint ctor";
+
 }
 
 
