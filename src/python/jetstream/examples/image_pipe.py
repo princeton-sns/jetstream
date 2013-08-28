@@ -54,6 +54,7 @@ def main():
       filter = jsapi.IntervalSampling(g, max_interval=4)
     else:
       filter = jsapi.VariableSampling(g, field=0, type='I')
+      filter.set_cfg("steps", "20")
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)
     
