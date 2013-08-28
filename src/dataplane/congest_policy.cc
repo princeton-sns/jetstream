@@ -78,7 +78,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
      }
   }
   
-  int delta =  targ_step - curLevel;
+  int delta =  int(targ_step) - int(curLevel);
   
   if (delta != 0) {
     LOG(INFO) << "setting degradation level for " <<op << " to " << (targ_step+1)
