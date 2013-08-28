@@ -20,8 +20,6 @@ ch.setFormatter(formatter)
 
 window_len_sec = 1.0
 
-INTERVAL = False
-
 def main():
 
   parser = standard_option_parser()
@@ -30,6 +28,9 @@ def main():
   parser.add_option("--dir", dest="dirname",
   default="sample_images", help="where to read from")
   parser.add_option("--prefix", dest="prefix", default = "l", help="prefix for images.")
+  parser.add_option("--degradation", dest="deg",
+  default="interval", help="which degradation to use; can be hash, interval")
+
 
   (options, args) = parser.parse_args()
 
@@ -45,6 +46,13 @@ def main():
   if len(all_nodes) < 1 or (len(all_nodes) == 1 and options.generate_at_union):
     print "FAIL: not enough nodes"
     sys.exit(0)
+  
+  if options.deg == "interval":
+    INTERVAL = True
+    print "Using interval sampling (Coarse-grained)"
+  else:
+    INTERVAL = False
+    print "Using hash-sampling. (Fine-grained)"
   
   for node in all_nodes:
     if node == root_node and not options.generate_at_union:

@@ -171,7 +171,7 @@ WindowCongestionMonitor::long_description() {
 }
 
 static const unsigned WIND_SIZE = 2;
-static const unsigned PROJECT_STEPS = 4;
+static const double PROJECT_STEPS = 4.0;
 
 SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm, msec_t step_ms):
       GenericQCongestionMonitor(qTarg, nm), insertsInPeriod(0), removesInPeriod(0),
