@@ -90,7 +90,8 @@ class ClientConnection {
  public:
   ClientConnection (boost::shared_ptr<boost::asio::io_service> srv,
 		    const boost::asio::ip::tcp::endpoint &remoteEndpoint,
-		    boost::system::error_code &error);
+		    boost::system::error_code &error,
+        unsigned buffer_size);
   ClientConnection (boost::shared_ptr<ConnectedSocket> connSock);
   ~ClientConnection () { close(); }
 
@@ -140,7 +141,8 @@ class ConnectionManager {
  private:
   boost::shared_ptr<boost::asio::io_service> iosrv;
   boost::asio::ip::tcp::resolver resolv;
-  msec_t connTimeout; 
+  msec_t connTimeout;
+  unsigned bufsize;
 
   void domain_resolved (cb_clntconn_t cb,
 			const boost::system::error_code &error,
@@ -153,8 +155,8 @@ class ConnectionManager {
   
  public:
   ConnectionManager (boost::shared_ptr<boost::asio::io_service> srv,
-		     msec_t connTmo = 10000)
-    : iosrv (srv), resolv (*iosrv), connTimeout (connTmo) {}
+		     msec_t connTmo = 10000, unsigned b= 256 * 1024)
+    : iosrv (srv), resolv (*iosrv), connTimeout (connTmo),bufsize(b) {}
   
   void create_connection (const std::string &domain, port_t port,
 			  cb_clntconn_t cb);

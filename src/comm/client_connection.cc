@@ -10,20 +10,21 @@ using namespace jetstream;
 
 ClientConnection::ClientConnection (boost::shared_ptr<asio::io_service> srv,
 				    const tcp::endpoint &remoteEndpoint,
-				    boost::system::error_code &error)
+				    boost::system::error_code &error,
+            unsigned buffer_size)
   : connected (false), iosrv (srv), sock (new tcp::socket(*iosrv)),
     remote (remoteEndpoint), timer (*iosrv)
 {
   // Limit the send buffer size so we get faster congestion feedback
   //SID: Make this a constructor option.
-  boost::asio::socket_base::send_buffer_size option(8192);
+  boost::asio::socket_base::send_buffer_size bufsize_option(buffer_size);
 
   if (remote.address().is_v4()) {
     sock->open(tcp::v4(), error);
-    sock->set_option(option, error);
+    sock->set_option(bufsize_option, error);
   } else if (remote.address().is_v6()) {
     sock->open(tcp::v6(), error);
-    sock->set_option(option, error); 
+    sock->set_option(bufsize_option, error); 
   } else
     error = asio::error::address_family_not_supported;
   VLOG(1) << "Client connection via endpoint ctor";

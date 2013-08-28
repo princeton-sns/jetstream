@@ -70,8 +70,10 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)
       targ_step --;
   } else {
+//    targ_step = should_upgrade(congest_level, curLevel,
     //jump up one step, if room
-     if ( targ_step < (levelsLen -1) && 
+     if ( targ_step < (levelsLen -1) &&
+      // ( should_upgrade(congest_level, levelsLen, curLevel, *status)
        (congest_level / levels[targ_step+1] * levels[curLevel] > 1.1
             || (levels[curLevel] == 0) ) ) {
        targ_step ++;
@@ -92,7 +94,11 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
 }
 /*
 bool
-CongestionPolicy::should_upgrade() {
+CongestionPolicy::should_upgrade(double capacity, 
+                                 double proposed_send_ratio, 
+                                 int avail_up,
+                                 OperatorState& status) {
+  //send ratio is proposed/current
 
 
 }*/

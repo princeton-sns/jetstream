@@ -67,7 +67,7 @@ ConnectionManager::create_connection (tcp::resolver::iterator resolved,
 
   boost::system::error_code error;
   boost::shared_ptr<ClientConnection> c 
-    (new ClientConnection (iosrv, remote, error));
+    (new ClientConnection (iosrv, remote, error, bufsize));
 
   if (!error)
     c->connect(connTimeout,
