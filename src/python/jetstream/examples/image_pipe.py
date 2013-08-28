@@ -50,10 +50,13 @@ def main():
   if options.deg == "interval":
     INTERVAL = True
     print "Using interval sampling (Coarse-grained)"
-  else:
+  elif options.deg == "hash":
     INTERVAL = False
     print "Using hash-sampling. (Fine-grained)"
-  
+  else:
+    print "unknown degradation %s. Aborting" % options.deg
+    sys.exit(0)
+    
   for node in all_nodes:
     if node == root_node and not options.generate_at_union:
       continue
