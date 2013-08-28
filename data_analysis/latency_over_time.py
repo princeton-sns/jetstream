@@ -57,11 +57,15 @@ FIELDS_TO_PLOT = {
 def main():
   infile = sys.argv[1]
   
-  data = parse_infile(infile)
+  data,counts_by_name = parse_infile(infile)
   data[TDELTA] = get_time_deltas(data['Time'])  
   data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=10), data[TDELTA])]
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
+
+  print "   Worker               Bytes\n" + "-"* 40
+  for c,name in counts_by_name:
+    print " %s    %d" % (name,c)
 
   plot_data_over_time(data, MY_LAT, "latency_local.pdf")
   plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
@@ -110,6 +114,7 @@ def parse_infile(infile):
   f = open(infile, 'r')
   verylates = 0
   t_series = []
+  names = {}
   last_by_node = None
   for ln in f:
     if 'BYNODE' in ln:
@@ -119,6 +124,8 @@ def parse_infile(infile):
       verylates +=1
       continue
     if 'INDEX' in ln:
+       fields = ln.strip().split(" ")
+       names[int(fields[1])] = fields[-1]
        continue
       
       
@@ -129,16 +136,25 @@ def parse_infile(infile):
   f.close()
   
   if last_by_node:
+    counts_by_node = [int(x) for x in last_by_node[8:].split()]
+    counts_by_name = make_counts_by_name(names, counts_by_node)
     print "Asymmetry ratio %0.2f%%; %d periods with very late data"  %\
-        (asymmetry(last_by_node[8:]), verylates)
+        (asymmetry(counts_by_node), verylates)
   
   print "Data ends at %s." % (time.ctime(data['Time'][-1]/1000))
   
-  return data
+  return data, counts_by_name
 
-def asymmetry(s):
+
+def make_counts_by_name(names, counts_by_node):
+  named_tuples = []
+  for count, idx in zip(counts_by_node, range(0,len(counts_by_node))):
+    named_tuples.append( (count, names[idx]))
+  named_tuples.sort()
+  return named_tuples
+
+def asymmetry(data):
   """ Result is (max - min) / max or 1 - min/max. 50% means max is twice min."""
-  data = [int(x) for x in s.split()]
   data.sort()
   return (data[-1] - data[0]) / float(data[-1]) * 100.0
 
