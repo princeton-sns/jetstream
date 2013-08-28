@@ -155,7 +155,7 @@ class ConnectionManager {
   
  public:
   ConnectionManager (boost::shared_ptr<boost::asio::io_service> srv,
-		     msec_t connTmo = 10000, unsigned b= 256 * 1024)
+		      unsigned b, msec_t connTmo = 10000)
     : iosrv (srv), resolv (*iosrv), connTimeout (connTmo),bufsize(b) {}
   
   void create_connection (const std::string &domain, port_t port,

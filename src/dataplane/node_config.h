@@ -28,14 +28,10 @@ class NodeConfig {
   u_int cube_mysql_insert_batch_pw2;
   u_int cube_mysql_query_batch_pw2;
   u_int cube_max_stage;
-  NodeConfig () //move ctor contents to node.cc to allow changes without recompiling?
-    : dataplane_ep("0.0.0.0", 0), webinterface_port (0),
-    heartbeat_time (0), thread_pool_size (1), data_conn_wait(5000),send_queue_size(1E6),
-    cube_db_host("localhost"), cube_db_user("root"), cube_db_pass(""), cube_db_name("test_cube"),
-    cube_processor_threads(1), cube_congestion_process_limit(10000), cube_congestion_flush_limit(1000000),
-    cube_mysql_innodb(false), cube_mysql_engine_memory(false),cube_mysql_transactions(false), cube_mysql_insert_batch_pw2(8), 
-    cube_mysql_query_batch_pw2(5), cube_max_stage(10)
-    {}
+  unsigned connection_buffer_size;
+  
+  NodeConfig (); //moved ctor contents to node.cc to allow changes without recompiling
+
 };
 
 };

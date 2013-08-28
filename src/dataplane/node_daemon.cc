@@ -61,6 +61,7 @@ parse_config (program_options::variables_map *inputopts,
      "Maximum stage of processing")
    ("data_conn_wait", value<msec_t>(), "wait [in ms] for outgoing data connection before timing out")
     ("send_queue_size", value<u_int32_t>(),"size of dataplane send queues")
+    ("connection_buffer_size",  value<u_int32_t>(),"size of dataplane TCP buffers")
     ;
 
 
@@ -153,7 +154,10 @@ parse_config (program_options::variables_map *inputopts,
 
   if (input_opts.count("send_queue_size"))
     config.send_queue_size = input_opts["send_queue_size"].as<u_int32_t>();
-
+  
+  if (input_opts.count("connection_buffer_size"))
+    config.connection_buffer_size = input_opts["connection_buffer_size"].as<u_int32_t>();
+  
   //if (input_opts.count("dataplane_port"))
   //  config.dataplane_myport = input_opts["dataplane_port"].as<port_t>();
 
