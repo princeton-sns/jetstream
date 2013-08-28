@@ -25,10 +25,10 @@ def main():
   data = parse_infile(infile)
   series_timelen = (data[TIME][-1] - data[TIME][0])/1000
   print "Done, %d data points over %d secs" % (len(data[TIME]),series_timelen)
+  
   plot_series(data, PACKETS_IN, 'packets_in.pdf')
   plot_series(data, SIGNAL, 'signal.pdf')
-  
-    
+  plot_predict_accuracy(data[TIME], data[SIGNAL], 'accuracy_cdf.pdf')
 
 TIME = "Time"
 SIGNAL = "Signal"
@@ -77,14 +77,40 @@ def plot_series(data, seriesname, filename):
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
   ax.set_ylim( 0, 1.2 * max(series_to_plot))  
-
-#  legend_artists.append( line )
-
-
-  
   if OUT_TO_FILE:
       plt.savefig(filename)
       plt.close(figure)  
+
+
+TRAIL_WIN = 5
+HEAD_WIN = 10
+def  plot_predict_accuracy(timeseries, dataseries, filename):
+
+  ratios = []
+  for i in range(TRAIL_WIN, len(timeseries) - HEAD_WIN):
+    past_avg = sum( dataseries[i-TRAIL_WIN:i] ) / TRAIL_WIN
+    future_avg = sum( dataseries[i:i+HEAD_WIN] )/ HEAD_WIN
+    if past_avg == 0:
+      if future_avg > 0:
+        ratios.append(10)
+      else:
+        ratios.append(1)
+    else:
+      ratios.append( float(future_avg) / past_avg )
+    
+  figure, ax = plt.subplots()
+  ratios.sort()
+  xseries = [ x * 100.0/ len(ratios) for x in range(0, len(ratios))]  
+  ax.plot( xseries, ratios)
+  ax.set_xlim(0, 100)
+  ax.set_ylim(0, 4)
+
+  ax.set_ylabel("Future/past bw ratio")
+  ax.set_xlabel("Percentile")
+
+  plt.savefig(filename)
+  plt.close(figure)  
+
 
 
 if __name__ == '__main__':

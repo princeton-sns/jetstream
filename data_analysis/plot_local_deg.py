@@ -30,7 +30,9 @@ def main():
   print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
   avg_time_at_level = series_timelen / float(len(data[TIME]))
   print "Average time-at-level %0.2f secs" % (avg_time_at_level)
+  data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
   plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
+
 
 TIME = "Time"
 LEVEL = "Level"
@@ -56,7 +58,23 @@ def parse_infile(infile):
       data[field].append(val)
   f.close()  
   return data
+
+
+def flatten_lines(time, series):
+  newtime = []
+  newseries = []
   
+  prev_val = series[0]
+  newtime.append(time[0])
+  newseries.append(series[0])
+  for t,v in zip(time, series)[1:]:
+    newseries.append(prev_val)
+    newtime.append(t-1)
+    prev_val = v
+    newseries.append(v)
+    newtime.append(t)
+
+  return newtime[0:90], newseries[0:90]
 
 def get_x_from_time(t):
   return datetime.datetime.fromtimestamp(t )
