@@ -21,12 +21,16 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 def main():
   infile = sys.argv[1]
   
+  suffix = ""
+  if len(sys.argv) > 2:
+    suffix = sys.argv[2]
+  
   data = parse_infile(infile)
   series_timelen = (data[TIME][-1] - data[TIME][0])
   print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
   avg_time_at_level = series_timelen / float(len(data[TIME]))
   print "Average time-at-level %0.2f secs" % (avg_time_at_level)
-  plot_series(data, LEVEL, "local_deg.pdf")
+  plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
 
 TIME = "Time"
 LEVEL = "Level"
@@ -70,6 +74,7 @@ def plot_series(data, seriesname, filename):
   line, = ax.plot_date(time, series_to_plot, 'b-')
   ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
+  ax.set_title("Degradation level (lower = more degraded)")
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
   ax.set_ylim( 0, 1.2 * max(series_to_plot))  
