@@ -2,6 +2,7 @@
 #include "js_utils.h"
 
 #include <glog/logging.h>
+//#
 
 using namespace ::std;
 
@@ -100,11 +101,18 @@ CongestionPolicy::should_upgrade(double capacity,
   if (curLevel == 0 && capacity > 0)
     return 1;
   
-  double next_step_ratio = levels[curLevel+1]/ levels[curLevel];
-  if (next_step_ratio < capacity)
-    return curLevel +1;
+  unsigned max_supported_step = curLevel;
+  while ((levels[max_supported_step]/ levels[curLevel]  < capacity) &&
+    (max_supported_step < levelsLen))
+        max_supported_step ++;
+  
+  unsigned half_supported = (max_supported_step + curLevel + 1) /2;
+  return half_supported;
+//  double next_step_ratio = ;
+//  if (next_step_ratio )
+//    return curLevel +1;
 
-  return curLevel;
+//  return curLevel;
 }
 /*
 void
