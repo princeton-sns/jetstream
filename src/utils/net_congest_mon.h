@@ -15,10 +15,12 @@ class NetCongestionMonitor : public CongestionMonitor {
     double max_per_sec;  //bytes per sec
     msec_t downstream_report_time;
 
+    double ratio;
   
   public:
     NetCongestionMonitor(const std::string& n) : CongestionMonitor(n),
-            downstream_status(INFINITY),  max_per_sec(INFINITY), downstream_report_time(0) {}
+            downstream_status(INFINITY),  max_per_sec(INFINITY), downstream_report_time(0),
+            ratio(10) {}
   
     virtual void report_insert(void * item, uint32_t weight) = 0;
   
@@ -39,6 +41,10 @@ class NetCongestionMonitor : public CongestionMonitor {
     virtual void new_window_start() { }
   
     virtual std::string long_description() = 0;
+  
+    bool limit_is_remote() {
+      return downstream_status < ratio;
+    }
   
 };
 

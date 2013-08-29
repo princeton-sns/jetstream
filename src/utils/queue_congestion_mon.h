@@ -40,7 +40,6 @@ class QueueCongestionMonitor: public GenericQCongestionMonitor {
   boost::uint32_t prevQueueLen;
   boost::uint32_t insertsInPeriod;
   usec_t lastQueryTS;
-  double prevRatio;
 
   //purely for monitoring
   uint32_t prev_inserts;
@@ -48,8 +47,8 @@ class QueueCongestionMonitor: public GenericQCongestionMonitor {
   
  public:
     QueueCongestionMonitor(uint32_t qTarg, const std::string& nm):
-      GenericQCongestionMonitor(qTarg, nm), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0),
-        prevRatio(INFINITY)  { }
+      GenericQCongestionMonitor(qTarg, nm), prevQueueLen(0), insertsInPeriod(0), lastQueryTS(0)
+        { }
     
     virtual double capacity_ratio();
   
@@ -102,7 +101,6 @@ class SmoothingQCongestionMonitor: public GenericQCongestionMonitor {
 
     int v_idx;
 //    double prevRatio;
-    double ratio;
     long total_inserts, total_removes;
     const msec_t SMOOTH_STEP_MS;
 

@@ -2,7 +2,7 @@
 #include "js_utils.h"
 
 #include <glog/logging.h>
-//#
+#include <stdlib.h>
 
 using namespace ::std;
 
@@ -89,6 +89,8 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   return delta;
 }
 
+double PROB_TO_WAIT_FOR_UPGRADE = 0.25;
+
 int
 CongestionPolicy::should_upgrade(double capacity, 
                                  const double * const levels,
@@ -107,7 +109,10 @@ CongestionPolicy::should_upgrade(double capacity,
         max_supported_step ++;
   
   unsigned half_supported = (max_supported_step + curLevel + 1) /2;
-  return half_supported;
+  if (rand() < RAND_MAX * PROB_TO_WAIT_FOR_UPGRADE)
+    return half_supported;
+  else
+    return curLevel;
 //  double next_step_ratio = ;
 //  if (next_step_ratio )
 //    return curLevel +1;

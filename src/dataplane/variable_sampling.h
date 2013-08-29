@@ -90,8 +90,6 @@ public:
   virtual void set_congestion_policy(boost::shared_ptr<CongestionPolicy> p) {
     congest_policy = p;
   }
-  
-  virtual void start();
 
   
 private:

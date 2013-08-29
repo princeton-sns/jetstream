@@ -116,11 +116,6 @@ IntervalSamplingOperator::configure(std::map<std::string,std::string> &config) {
   return NO_ERR;
 }
 
-void
-IntervalSamplingOperator::start() {
-
-}
-
 
 
 bool

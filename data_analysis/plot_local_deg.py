@@ -25,7 +25,7 @@ def main():
   if len(sys.argv) > 2:
     suffix = sys.argv[2]
   
-  data = parse_infile(infile)
+  data,bottlenecks = parse_infile(infile)
   series_timelen = (data[TIME][-1] - data[TIME][0])
   print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
   print "Data series ends at %s" % time.ctime(data[TIME][-1])
@@ -33,6 +33,7 @@ def main():
   print "Average time-at-level %0.2f secs" % (avg_time_at_level)
   data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
   plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
+  print_bottlenecks(bottlenecks)
 
 
 TIME = "Time"
@@ -47,9 +48,16 @@ def parse_infile(infile):
   for field,offset in FIELDS_TO_PLOT.items():
     data[field] = []
 
-
+  bottlenecks = {(True,False):0, (True,True):0, (False,False):0, (False,True):0}
   f = open(infile, 'r')
   for ln in f:
+    if "Local-ratio:" in ln:
+      fields = ln.strip().split(" ")
+      local,remote = float(fields[-3]), float(fields[-1])
+      congested = (min(local,remote) < 1)
+      l = (local < remote)
+      bottlenecks[(l,congested)] += 1
+      continue
     if not 'setting degradation level' in ln:
       continue
       
@@ -58,7 +66,23 @@ def parse_infile(infile):
       val = float(fields[offset])
       data[field].append(val)
   f.close()  
-  return data
+  return data,bottlenecks
+
+
+def  print_bottlenecks(bottlenecks):
+#  local = bottlenecks[ (True,True) ] + bottlenecks[ (False, True)]
+  local_congest = bottlenecks[ (True,True) ]
+  remote_congest = bottlenecks[ (False, True)]
+  total_congested = local_congest + remote_congest
+  
+  local = bottlenecks[ (True,True) ] + bottlenecks[ (True,False) ]
+  all = sum(bottlenecks.values())
+  
+  print bottlenecks
+  print "When congested, bottleneck is local %0.2f percent of the time" % \
+        (100.0 * local_congest / total_congested)
+  print "Overall, bottleneck is local %0.2f percent of the time" % \
+        (100.0 * local / all)
 
 
 def flatten_lines(time, series):

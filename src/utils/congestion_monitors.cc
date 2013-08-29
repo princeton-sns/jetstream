@@ -17,7 +17,6 @@ QueueCongestionMonitor::capacity_ratio() {
   boost::unique_lock<boost::recursive_mutex> lock(internals);
   usec_t now = get_usec();
 
-  double result;
     //only sample every 100 ms
   if (now > lastQueryTS + SAMPLE_INTERVAL_MS * 1000) {
 //    usec_t sample_period = now - lastQueryTS;
@@ -37,12 +36,12 @@ QueueCongestionMonitor::capacity_ratio() {
     int32_t queueDelta = readQLen - prevQueueLen; //negative implies queue is shrinking
     int32_t availRoom = queueTarget - readQLen - queueDelta; //negative 'availRoom' implies we need to cut the rate
     if (  ((int32_t)inserts ) < -availRoom) // Signed compare: queue won't drain fast enough enough room even with no inserts
-      prevRatio = 0; //should stop sends altogether to let things drain
+      ratio = 0; //should stop sends altogether to let things drain
     else
-      prevRatio = availRoom /(double) inserts + 1.0;
+      ratio = availRoom /(double) inserts + 1.0;
 
     double rate_per_sec = inserts * 1000.0 / SAMPLE_INTERVAL_MS;
-    prevRatio = fmin(prevRatio, max_per_sec / rate_per_sec);
+    ratio = fmin(ratio, max_per_sec / rate_per_sec);
     removes = inserts - queueDelta;
     if (removes < 0) {
       LOG(WARNING) << "Shouldn't have data leaking out of " << name()    
@@ -50,16 +49,14 @@ QueueCongestionMonitor::capacity_ratio() {
       removes = 0;
     }
 
-    result = prevRatio < downstream_status ? prevRatio : downstream_status;
-    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
+//    LOG_IF_EVERY_N(INFO, readQLen > 0 || inserts > 0 || prevRatio == 0 , N_TO_LOG) <<
  //   LOG(INFO) <<
-        "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << long_description();
-    LOG_IF(FATAL, prevRatio < 0) << "ratio should never be negative";
+//        "(logged every "<<N_TO_LOG<<") Queue for " << name() << ": " << long_description();
+    LOG_IF(FATAL, ratio < 0) << "ratio should never be negative";
     prevQueueLen = readQLen;
-  } else
-    result = prevRatio < downstream_status ? prevRatio : downstream_status;
+  } 
 
-  return result;
+  return fmin(ratio, downstream_status);
 }
 
 
@@ -70,11 +67,12 @@ QueueCongestionMonitor::long_description() {
   ostringstream buf;
 //  int32_t removes = insertsInPeriod + prevQueueLen - queueLen;
   
-  double result = prevRatio < downstream_status ? prevRatio : downstream_status;
+  
+  double result = fmin(ratio,downstream_status);
 
   buf << prev_inserts << " inserts (configured max rate is " << max_per_sec << "); " << removes
       <<" removes. Final queue length " << prevQueueLen << "/" << queueTarget <<
-      ". Space Ratio is " << prevRatio <<
+      ". Space Ratio is " << result <<
             ", downstream is " << downstream_status<< " and final result is " << result;
   return buf.str();
 }
@@ -82,7 +80,7 @@ QueueCongestionMonitor::long_description() {
 
 msec_t
 QueueCongestionMonitor::measurement_time() {
-  if (downstream_status < prevRatio)
+  if (downstream_status < ratio)
     return downstream_report_time;
   else
     return lastQueryTS;
@@ -91,7 +89,7 @@ QueueCongestionMonitor::measurement_time() {
 
 
 WindowCongestionMonitor::WindowCongestionMonitor(const std::string& name, double smoothing_prev_value):
-  NetCongestionMonitor(name), last_ratio(10), window_start_time(0),
+  NetCongestionMonitor(name), window_start_time(0),
       last_window_end(get_msec()), bytes_in_window(0), smoothing_factor(smoothing_prev_value) {
 }
 
@@ -116,7 +114,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
   } else { //no data in window; we are therefore UNCONSTRAINED
     unsmoothed_ratio = 10;
   }
-  last_ratio = (1 - smoothing_factor) * unsmoothed_ratio + smoothing_factor * last_ratio;
+  ratio = (1 - smoothing_factor) * unsmoothed_ratio + smoothing_factor * ratio;
   bytes_in_window = 0;
   last_window_end = now;
   window_start_time = 0;
@@ -126,7 +124,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
 double
 WindowCongestionMonitor::capacity_ratio() {
   boost::unique_lock<boost::recursive_mutex> lock(internals);    
-  return fmin(downstream_status, last_ratio);
+  return fmin(downstream_status, ratio);
   //downstream status can change asynchronously. So can't roll it into last_ratio
 }               
 
@@ -143,7 +141,7 @@ WindowCongestionMonitor::report_insert(void * item, uint32_t weight) {
 
 msec_t
 WindowCongestionMonitor::measurement_time() {
-  if (downstream_status < last_ratio)
+  if (downstream_status < ratio)
     return downstream_report_time;
   else
     return last_window_end;
@@ -163,9 +161,9 @@ WindowCongestionMonitor::long_description() {
   
   
   buf << "Capacity ratio at " << name() << " is now "
-      << last_ratio <<  ". Durations were " << window_processtime_ms << "/"
+      << ratio <<  ". Durations were " << window_processtime_ms << "/"
       << window_availtime_ms  // <<". Nominal window size was " << window_data_ms
-      <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, last_ratio);
+      <<", saw " << bytes_per_sec << " bytes/sec. Final ratio " <<  fmin(downstream_status, ratio);
 
   return buf.str();
 }
@@ -255,7 +253,8 @@ SmoothingQCongestionMonitor::long_description() {
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
     << " inserts " << total_removes << " removes. Qsize " << queue_length() << "/"<<queueTarget
     << ". TDelta: " << tdelta
-    << " Local-ratio: " << ratio << " Downstream: " << downstream_status;
+    << " Local-ratio: " << ratio << " Downstream: " << downstream_status
+//    << " Limit is " << (limit_is_remote() ? "Remote" : "Local");
   return buf.str();
 }
 
