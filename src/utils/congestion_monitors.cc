@@ -253,7 +253,7 @@ SmoothingQCongestionMonitor::long_description() {
   buf << "In last " << WIND_SIZE << " timesteps, " << total_inserts
     << " inserts " << total_removes << " removes. Qsize " << queue_length() << "/"<<queueTarget
     << ". TDelta: " << tdelta
-    << " Local-ratio: " << ratio << " Downstream: " << downstream_status
+    << " Local-ratio: " << ratio << " Downstream: " << downstream_status;
 //    << " Limit is " << (limit_is_remote() ? "Remote" : "Local");
   return buf.str();
 }
