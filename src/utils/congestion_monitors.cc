@@ -168,8 +168,8 @@ WindowCongestionMonitor::long_description() {
   return buf.str();
 }
 
-static const unsigned WIND_SIZE = 2;
-static const double PROJECT_STEPS = 6.0;
+static const unsigned WIND_SIZE = 4;    //seconds of history to use for projection
+static const double PROJECT_STEPS = 12.0;  //seconds ahead to forecast
 
 SmoothingQCongestionMonitor::SmoothingQCongestionMonitor(uint32_t qTarg, const std::string& nm, msec_t step_ms):
       GenericQCongestionMonitor(qTarg, nm), insertsInPeriod(0), removesInPeriod(0),

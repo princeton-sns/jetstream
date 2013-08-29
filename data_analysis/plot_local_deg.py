@@ -24,7 +24,8 @@ def main():
   suffix = ""
   if len(sys.argv) > 2:
     suffix = sys.argv[2]
-  
+    print "\n\n\nAnalyzing data from",suffix
+    print "----------------------"
   data,bottlenecks = parse_infile(infile)
   series_timelen = (data[TIME][-1] - data[TIME][0])
   print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
