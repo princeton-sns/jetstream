@@ -64,18 +64,18 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
       << "policy for " << op << ". Queue " <<congest->name() <<
         " capacity-ratio level was " << congest_level << endl;
   
-  unsigned int targ_step = curLevel;
+  int targ_step = curLevel;
 
   if ( congest_level < 0.95) {
     while ( congest_level / levels[targ_step] * levels[curLevel] < 0.95 && targ_step > 0)
       targ_step --;
-  } else {
+  } else if (congest_level > 1.1){
     targ_step = should_upgrade(congest_level, levels, levelsLen, curLevel, *status);
     //jump up one step, if room
     
   }
   
-  int delta =  int(targ_step) - int(curLevel);
+  int delta =  targ_step - curLevel;
   
   if (delta != 0) {
     LOG(INFO) << "setting degradation level for " <<op << " to " << (targ_step+1)
@@ -94,13 +94,14 @@ CongestionPolicy::should_upgrade(double capacity,
                                  unsigned levelsLen,
                                  unsigned curLevel, 
                                  OperatorState& status) {
-  if (curLevel == levelsLen -1)
+  if (curLevel >= levelsLen -1)
       return curLevel; //at max
+//  LOG(INFO) << "Considering taking step up. Level =" << curLevel<< " cap-ratio " << capacity;
   if (curLevel == 0 && capacity > 0)
     return 1;
   
   double next_step_ratio = levels[curLevel+1]/ levels[curLevel];
-  if (next_step_ratio > capacity)
+  if (next_step_ratio < capacity)
     return curLevel +1;
 
   return curLevel;
