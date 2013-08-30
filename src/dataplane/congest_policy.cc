@@ -110,14 +110,13 @@ CongestionPolicy::should_upgrade(double capacity,
         max_supported_step ++;
   
   unsigned half_supported = (max_supported_step + curLevel + 1) /2;
-  int rv = rand();
-  if (rv < RAND_MAX * PROB_TO_WAIT_FOR_UPGRADE) {
-    LOG(INFO) << "Saw rand = " << rv << "/" << (RAND_MAX) << "; jumping up to " << half_supported;
+
+//  int rv = rand();
+//  if (rv < RAND_MAX * PROB_TO_WAIT_FOR_UPGRADE) {
     return half_supported;
-  } else {
-    LOG(INFO) << "Saw rand = " << rv << "/" << (RAND_MAX) << "; staying put";
-    return curLevel;
-  }
+//  } else {
+//    return curLevel;
+//  }
 //  double next_step_ratio = ;
 //  if (next_step_ratio )
 //    return curLevel +1;
