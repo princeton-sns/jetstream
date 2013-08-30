@@ -74,7 +74,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     targ_step = should_upgrade(congest_level, levels, levelsLen, curLevel, *status);
     //jump up one step, if room
     
-    status->last_state_change = now; //but pause before next action regardless
+//    status->last_state_change = now; //but pause before next action regardless
   }
   
   int delta =  targ_step - curLevel;
