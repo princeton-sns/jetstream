@@ -25,7 +25,8 @@ WindowMonFacade::capacity_ratio() {
 //void WindowMonFacade::end_of_window(int window_ms, msec_t start_time) {}
 
 
-const static double TARGET_QUANT = 0.75;
+const static double TARGET_QUANT = 0.25; //NOTE: list is sorted
+  //least to greatest, so lower TARGET_QUANT means more cautious reporting.
 
 double
 SharedWindowMonitor::update_from_mon(WindowMonFacade * src, double congest) {
@@ -36,6 +37,8 @@ SharedWindowMonitor::update_from_mon(WindowMonFacade * src, double congest) {
     last_period_end = now;
     std::sort (measurements_in_period.begin(), measurements_in_period.end());
     ratio_this_period = measurements_in_period[ TARGET_QUANT * measurements_in_period.size()];
+    LOG(INFO) << "SharedCongest: " << measurements_in_period.size()
+      << " measurements, " << TARGET_QUANT<< "-quant was " <<  ratio_this_period;
     measurements_in_period.clear();
   }
 
