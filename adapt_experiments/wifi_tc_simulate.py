@@ -17,8 +17,9 @@ from scipy import stats
 
 PORT_DEFAULT = 40000
 IFACE_DEFAULT = "eth0"
-INTERVAL_DEFAULT = 1
+INTERVAL_DEFAULT = 10
 TIME_DEFAULT = -1
+MIN_BWIDTH_DEFAULT = 1000
 
 def errorExit(error):
   print "\n" + error + "\n"
@@ -41,10 +42,10 @@ def print_dist_stats(vals):
 
 
 def traffic_shape_start(iface, port):
-  subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
+  print "Starting traffic shaping rules on interface %s, port %d..." % (iface, port)
   # The default htb class is 0, which causes unclassified traffic to be dequeued at hardware speed
   subprocess.call("tc qdisc add dev %s root handle 1:0 htb" % iface, shell=True, stderr=subprocess.STDOUT)
-  subprocess.call("iptables -A OUTPUT -t mangle -p tcp --sport %d -j MARK --set-mark 10" % port, shell=True, stderr=subprocess.STDOUT)
+  subprocess.call("iptables -A OUTPUT -t mangle -p tcp --dport %d -j MARK --set-mark 10" % port, shell=True, stderr=subprocess.STDOUT)
   #subprocess.call("service iptables save", shell=True, stderr=subprocess.STDOUT)
   subprocess.call("tc filter add dev %s parent 1:0 prio 0 protocol ip handle 10 fw flowid 1:10" % iface, shell=True, stderr=subprocess.STDOUT)
 
@@ -52,7 +53,8 @@ def traffic_shape_start(iface, port):
   #except subprocess.CalledProcessError as e:
   #  errorExit("Error: The following command failed: " + e.cmd + ";\n" + "output was: " + e.output)
 
-def traffic_shape_stop(iface):
+def traffic_shape_clear(iface):
+  print "Clearing prior traffic shaping rules on interface %s..." % (iface)
   subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -F", shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -X", shell=True, stderr=subprocess.STDOUT)
@@ -69,42 +71,59 @@ def traffic_shape(iface, bwidth):
 
 def main():
   parser = OptionParser()
-  parser.add_option("-f", "--file_name", dest="fname", help="name of input trace file", default="")
+  parser.add_option("-f", "--file_name", dest="fname", help="input trace file of bandwidth allocations", default="")
   parser.add_option("-i", "--interval", dest="interval", help="traffic shaping interval (seconds)", default=INTERVAL_DEFAULT)
   parser.add_option("-t", "--time", dest="time", help="simulation time (seconds) [-1=infinite]", default=TIME_DEFAULT)
   parser.add_option("-p", "--port", dest="port", help="port to apply traffic shaping", default=PORT_DEFAULT)
   parser.add_option("-e", "--interface", dest="iface", help="interface to apply traffic shaping", default=IFACE_DEFAULT)
+  parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (bytes/sec)", default=0)
+  parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (bytes/sec)", default=MIN_BWIDTH_DEFAULT)
+  parser.add_option("-x", "--clear", dest="clear", help="clear any prior rules", action="store_true", default=False)
   parser.add_option("-s", "--stats", dest="stats", help="show traffic shaping statistics", action="store_true", default=False)
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
-  if options.fname == "":
-    errorExit("Error: Must specify a trace file.")
+  if options.clear:
+    traffic_shape_clear(options.iface)
+    return
+
+  fbwidth = int(options.fbwidth)
+  if (options.fname == "") and (fbwidth == 0):
+    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
   interval = int(options.interval)
   simTime = int(options.time)
   port = int(options.port)
+  mbwidth = int(options.mbwidth)
+
+  random.seed(uuid.uuid4())
 
   # Clear prior rules before and after running
+  traffic_shape_clear(options.iface)
   traffic_shape_start(options.iface, port)
 
-  # Read trace file and calculate link bandwidth over tumbling intervals
-  # File format: [timestamp flow_id iface up_bytes down_bytes wifi_signal ...]
-  traceFile = open(str(options.fname), 'r')
-  tCount = count = 0
-  upBytes = downBytes = 0
   bwidthVals = []
-  for line in traceFile:
-    linkStats = line.split()
-    upBytes += int(linkStats[3])
-    downBytes += int(linkStats[4])
-    count += 1
-    # Compute bandwidth over this interval and shape traffic accordingly
-    if count == interval:
-      # Currently we use only down bytes in kilobytes/sec
-      bwidthVals.append(int(downBytes / (1024.0 * interval)))
-      tCount += 1
-      upBytes = downBytes = 0
-      count = 0
+  if options.fname != "":
+    # Read trace file and calculate link bandwidth over tumbling intervals
+    # File format: [timestamp flow_id iface up_bytes down_bytes wifi_signal ...]
+    traceFile = open(str(options.fname), 'r')
+    upBytes = downBytes = 0
+    count = 0
+    for line in traceFile:
+      linkStats = line.split()
+      upBytes += int(linkStats[3])
+      downBytes += int(linkStats[4])
+      count += 1
+      # Compute bandwidth over this interval and shape traffic accordingly
+      if count == interval:
+        # Currently we use only down bytes in bytes/sec
+        bwidthVals.append(int(downBytes*1.0 / interval))
+        upBytes = downBytes = 0
+        count = 0
+  else:
+    # Use the specified (fixed) bandwidth
+    assert fbwidth > 0
+    bwidthVals.append(fbwidth)
+        
 
   # Print statistics about the bandwidth distribution
   if options.stats:
@@ -112,19 +131,24 @@ def main():
    print_dist_stats(bwidthVals)
 
   # Run the simulation
-  random.seed(uuid.uuid4())
-  count = random.randint(0, tCount - 1)
+  tCount = len(bwidthVals)
+  count = 0
+  # Pick a random starting point if there are multiple intervals
+  if tCount > 1:
+    count = random.randint(0, tCount - 1)
   print "Simulating link bandwidth..."
   while True:
     if (simTime >= 0) and (count * interval >= simTime):
       break
-    bwidth = bwidthVals[count % tCount]
-    print "Setting bandwidth to %d kbps" % bwidth
+    # Never set bandwidth to less than the minimum
+    bwidth = max(bwidthVals[count % tCount], mbwidth)
+    if options.verbose:
+      print "Setting bandwidth to %d bps" % (bwidth)
     traffic_shape(options.iface, bwidth)
     time.sleep(interval)
     count += 1
 
-  traffic_shape_stop(options.iface)
+  traffic_shape_clear(options.iface)
 
 
 if __name__ == '__main__':
