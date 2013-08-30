@@ -41,7 +41,7 @@ TIME = "Time"
 LEVEL = "Level"
 FIELDS_TO_PLOT = {
   TIME: -1,
-  LEVEL: 10
+  LEVEL: -14
 }  
 
 def parse_infile(infile):
