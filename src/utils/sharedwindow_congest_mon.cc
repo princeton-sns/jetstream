@@ -25,7 +25,7 @@ WindowMonFacade::capacity_ratio() {
 //void WindowMonFacade::end_of_window(int window_ms, msec_t start_time) {}
 
 
-const static double TARGET_QUANT = 0.10; //NOTE: list is sorted
+const static double TARGET_QUANT = 0.25; //NOTE: list is sorted
   //least to greatest, so lower TARGET_QUANT means more cautious reporting.
 
 double

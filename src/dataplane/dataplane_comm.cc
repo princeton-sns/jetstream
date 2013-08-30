@@ -24,7 +24,9 @@ IncomingConnectionState::IncomingConnectionState(boost::shared_ptr<ClientConnect
   dest = d;
   string name = "local processing for remote from " + srcOpID.to_string();
   dest_side_congest = boost::shared_ptr<WindowCongestionMonitor>
-    (new WindowMonFacade(name, 0.5));
+//    (new WindowMonFacade(name, 0.5));
+    (new WindowCongestionMonitor(name, 0.5));
+
   chain_mon = d->congestion_monitor();
 }
 
