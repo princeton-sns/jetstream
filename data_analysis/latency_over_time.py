@@ -63,7 +63,7 @@ def main():
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
 
-  print "   Worker               Bytes\n" + "-"* 40
+  print "   Worker               Total Bytes Sent\n" + "-"* 40
   for c,name in counts_by_name:
     print " %s    %d" % (name,c)
 
