@@ -73,7 +73,7 @@ def exit_gracefully(signo, frame):
   sys.exit(0)
 
 def traffic_shape_clear(iface):
-  print "Clearing prior traffic shaping rules on interface %s..." % (iface)
+  print "%s: Clearing prior traffic shaping rules on interface %s..." % (time.ctime(), iface)
   subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -F", shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -X", shell=True, stderr=subprocess.STDOUT)

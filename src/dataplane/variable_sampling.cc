@@ -108,6 +108,7 @@ IntervalSamplingOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("max_drops must be an int");
   }
   
+//  steps.push_back(0);
   for( int drops_per =max_drops; drops_per >= 0; --drops_per) {
     steps.push_back(  1.0 / (1+drops_per) );
   }
