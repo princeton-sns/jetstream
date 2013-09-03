@@ -186,7 +186,9 @@ def plot_data_over_time(data, seriesname, filename):
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
-  ax.set_ylim( 0, 1.2 * max(series_to_plot))  
+  MAXY = 1.2 * max(series_to_plot) if max(series_to_plot) > 0 else 1
+  ax.set_ylim( 0, MAXY)  
+  
 
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  

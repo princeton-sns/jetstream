@@ -12,9 +12,6 @@ import subprocess
 import random
 import uuid
 import math
-import scipy as sp
-from scipy import stats
-
 PORT_DEFAULT = 3451
 IFACE_DEFAULT = "eth0"
 INTERVAL_DEFAULT = 10
@@ -25,21 +22,29 @@ def errorExit(error):
   print "\n" + error + "\n"
   sys.exit(1)
 
-def print_dist_stats(vals):
-  vals.sort()
-  n, minMax, mean, var, skew, kurt = stats.describe(vals)
-  print "Number of intervals: %d" % n
-  print "Average: %0.3f" % mean
-  print "Minimum: %f, Maximum: %0.3f" % (minMax[0], minMax[1])
-  print "Standard deviation: %0.3f" % math.sqrt(var)
+MAYBE_STATS = False
+
+if MAYBE_STATS:
+  import scipy as sp
+  from scipy import stats
+
+  def print_dist_stats(vals):
+    vals.sort()
+    n, minMax, mean, var, skew, kurt = stats.describe(vals)
+    print "Number of intervals: %d" % n
+    print "Average: %0.3f" % mean
+    print "Minimum: %f, Maximum: %0.3f" % (minMax[0], minMax[1])
+    print "Standard deviation: %0.3f" % math.sqrt(var)
   
-  # Print out some percentiles
-  perc = [1, 5, 10, 50, 90, 95, 99]
-  percScores = ["%0.3f" % stats.scoreatpercentile(vals, p) for p in perc]
-  print "Percentiles " + str(perc) + ": " + str(percScores)
+    # Print out some percentiles
+    perc = [1, 5, 10, 50, 90, 95, 99]
+    percScores = ["%0.3f" % stats.scoreatpercentile(vals, p) for p in perc]
+    print "Percentiles " + str(perc) + ": " + str(percScores)
 
-  # Other stats?
-
+    # Other stats?
+else:
+  def print_dist_stats(vals):
+    print "stats disabled"  
 
 def traffic_shape_start(iface, port):
   print "Starting traffic shaping rules on interface %s, port %d..." % (iface, port)
