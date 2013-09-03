@@ -15,7 +15,7 @@ import math
 import scipy as sp
 from scipy import stats
 
-PORT_DEFAULT = 40000
+PORT_DEFAULT = 3451
 IFACE_DEFAULT = "eth0"
 INTERVAL_DEFAULT = 10
 TIME_DEFAULT = -1
