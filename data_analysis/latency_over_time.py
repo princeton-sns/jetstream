@@ -140,7 +140,8 @@ def parse_infile(infile):
     counts_by_name = make_counts_by_name(names, counts_by_node)
     print "Asymmetry ratio %0.2f%%; %d periods with very late data"  %\
         (asymmetry(counts_by_node), verylates)
-  
+  else:
+    counts_by_name = {}
   print "Data ends at %s." % (time.ctime(data['Time'][-1]/1000))
   
   return data, counts_by_name

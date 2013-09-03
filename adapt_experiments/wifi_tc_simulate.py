@@ -68,7 +68,7 @@ def traffic_shape_start(iface, port):
   #  errorExit("Error: The following command failed: " + e.cmd + ";\n" + "output was: " + e.output)
 
 
-def exit_gracefully():
+def exit_gracefully(signo, frame):
   traffic_shape_clear(IFACE)
   sys.exit(0)
 
@@ -96,8 +96,8 @@ def main():
   parser.add_option("-t", "--time", dest="time", help="simulation time (seconds) [-1=infinite]", default=TIME_DEFAULT)
   parser.add_option("-p", "--port", dest="port", help="port to apply traffic shaping", default=PORT_DEFAULT)
   parser.add_option("-e", "--interface", dest="iface", help="interface to apply traffic shaping", default=IFACE_DEFAULT)
-  parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (bytes/sec)", default=0)
-  parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (bytes/sec)", default=MIN_BWIDTH_DEFAULT)
+  parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (Kbytes/sec)", default=0)
+  parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (Kbytes/sec)", default=MIN_BWIDTH_DEFAULT)
   parser.add_option("-x", "--clear", dest="clear", help="clear any prior rules", action="store_true", default=False)
   parser.add_option("-s", "--stats", dest="stats", help="show traffic shaping statistics", action="store_true", default=False)
   parser.add_option( "--scale", dest="scale", help="multiply values by x", default=1.0)
