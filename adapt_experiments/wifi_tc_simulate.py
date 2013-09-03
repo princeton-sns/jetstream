@@ -8,14 +8,13 @@
 from optparse import OptionParser
 import sys
 import time
+import signal
 import subprocess
 import random
 import uuid
 import math
-import scipy as sp
-from scipy import stats
 
-PORT_DEFAULT = 40000
+PORT_DEFAULT = 3451
 IFACE_DEFAULT = "eth0"
 INTERVAL_DEFAULT = 10
 TIME_DEFAULT = -1
@@ -25,21 +24,37 @@ def errorExit(error):
   print "\n" + error + "\n"
   sys.exit(1)
 
-def print_dist_stats(vals):
-  vals.sort()
-  n, minMax, mean, var, skew, kurt = stats.describe(vals)
-  print "Number of intervals: %d" % n
-  print "Average: %0.3f" % mean
-  print "Minimum: %f, Maximum: %0.3f" % (minMax[0], minMax[1])
-  print "Standard deviation: %0.3f" % math.sqrt(var)
+USE_SCIPY = False
+
+if USE_SCIPY:
+  import scipy as sp
+  from scipy import stats
+
+  def print_dist_stats(vals):
+    vals.sort()
+    n, minMax, mean, var, skew, kurt = stats.describe(vals)
+    print "Number of intervals: %d" % n
+    print "Average: %0.3f" % mean
+    print "Minimum: %f, Maximum: %0.3f" % (minMax[0], minMax[1])
+    print "Standard deviation: %0.3f" % math.sqrt(var)
   
-  # Print out some percentiles
-  perc = [1, 5, 10, 50, 90, 95, 99]
-  percScores = ["%0.3f" % stats.scoreatpercentile(vals, p) for p in perc]
-  print "Percentiles " + str(perc) + ": " + str(percScores)
+    # Print out some percentiles
+    perc = [1, 5, 10, 50, 90, 95, 99]
+    percScores = ["%0.3f" % stats.scoreatpercentile(vals, p) for p in perc]
+    print "Percentiles " + str(perc) + ": " + str(percScores)
 
-  # Other stats?
-
+    # Other stats?
+else:
+  def print_dist_stats(vals):
+    vals.sort()
+    n, min, max, mean =  len(vals), vals[0], vals[-1], float(sum(vals))/len(vals)
+    print "Number of intervals: %d" % n
+    print "Average: %0.3f" % mean
+    print "Minimum: %f, Maximum: %0.3f" % (min, max)
+    perc = [1, 5, 10, 50, 90, 95, 99]
+    percScores = ["%0.3f" % vals[ int(n * p /100.0)] for p in perc]
+    print "Percentiles " + str(perc) + ": " + str(percScores)
+    
 
 def traffic_shape_start(iface, port):
   print "Starting traffic shaping rules on interface %s, port %d..." % (iface, port)
@@ -53,8 +68,13 @@ def traffic_shape_start(iface, port):
   #except subprocess.CalledProcessError as e:
   #  errorExit("Error: The following command failed: " + e.cmd + ";\n" + "output was: " + e.output)
 
+
+def exit_gracefully(signo, frame):
+  traffic_shape_clear(IFACE)
+  sys.exit(0)
+
 def traffic_shape_clear(iface):
-  print "Clearing prior traffic shaping rules on interface %s..." % (iface)
+  print "%s: Clearing prior traffic shaping rules on interface %s..." % (time.ctime(), iface)
   subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -F", shell=True, stderr=subprocess.STDOUT)
   subprocess.call("iptables -t mangle -X", shell=True, stderr=subprocess.STDOUT)
@@ -70,6 +90,7 @@ def traffic_shape(iface, bwidth):
 
 
 def main():
+  global IFACE
   parser = OptionParser()
   parser.add_option("-f", "--file_name", dest="fname", help="input trace file of bandwidth allocations", default="")
   parser.add_option("-i", "--interval", dest="interval", help="traffic shaping interval (sec) [default = %d]" % (INTERVAL_DEFAULT), default=INTERVAL_DEFAULT)
@@ -80,6 +101,8 @@ def main():
   parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (bytes/sec) [default = %d]" % (MIN_BWIDTH_DEFAULT), default=MIN_BWIDTH_DEFAULT)
   parser.add_option("-x", "--clear", dest="clear", help="clear any prior rules", action="store_true", default=False)
   parser.add_option("-s", "--stats", dest="stats", help="show traffic shaping statistics", action="store_true", default=False)
+  parser.add_option( "--scale", dest="scale", help="multiply values by x", default=1.0)
+
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
@@ -87,19 +110,21 @@ def main():
     traffic_shape_clear(options.iface)
     return
 
+  IFACE = options.iface
+  signal.signal(signal.SIGINT, exit_gracefully)
+
   fbwidth = int(options.fbwidth)
   if (options.fname == "") and (fbwidth == 0):
-    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
+    print "No options specified, so clearing traffic shaping"
+    traffic_shape_clear(options.iface)  
+    sys.exit(0)
+#    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
   interval = int(options.interval)
   simTime = int(options.time)
   port = int(options.port)
   mbwidth = int(options.mbwidth)
 
   random.seed(uuid.uuid4())
-
-  # Clear prior rules before and after running
-  traffic_shape_clear(options.iface)
-  traffic_shape_start(options.iface, port)
 
   bwidthVals = []
   if options.fname != "":
@@ -128,7 +153,14 @@ def main():
   # Print statistics about the bandwidth distribution
   if options.stats:
    print "\nLink bandwidth statistics (kilobytes/sec, %d-second intervals)" % (interval)
-   print_dist_stats(bwidthVals)
+   print_dist_stats([x for x in bwidthVals])
+
+  bwidthVals = [x* 1000.0 * options.scale for x in bwidthVals]
+  print bwidthVals
+  
+  # Clear prior rules before and after running
+  traffic_shape_clear(options.iface)
+  traffic_shape_start(options.iface, port)
 
   # Run the simulation
   tCount = len(bwidthVals)
@@ -136,7 +168,7 @@ def main():
   # Pick a random starting point if there are multiple intervals
   if tCount > 1:
     count = random.randint(0, tCount - 1)
-  print "Simulating link bandwidth..."
+  print "%s: Simulating link bandwidth..." % time.ctime()
   while True:
     if (simTime >= 0) and (count * interval >= simTime):
       break

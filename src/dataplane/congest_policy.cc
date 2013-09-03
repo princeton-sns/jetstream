@@ -74,6 +74,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
     targ_step = should_upgrade(congest_level, levels, levelsLen, curLevel, *status);
     //jump up one step, if room
     
+//    status->last_state_change = now; //but pause before next action regardless
   }
   
   int delta =  targ_step - curLevel;
@@ -89,7 +90,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   return delta;
 }
 
-static double PROB_TO_WAIT_FOR_UPGRADE = 0.05;
+//static double PROB_TO_WAIT_FOR_UPGRADE = 0.1;
 
 int
 CongestionPolicy::should_upgrade(double capacity, 
@@ -109,10 +110,13 @@ CongestionPolicy::should_upgrade(double capacity,
         max_supported_step ++;
   
   unsigned half_supported = (max_supported_step + curLevel + 1) /2;
-  if (rand() < RAND_MAX * PROB_TO_WAIT_FOR_UPGRADE)
+
+//  int rv = rand();
+//  if (rv < RAND_MAX * PROB_TO_WAIT_FOR_UPGRADE) {
     return half_supported;
-  else
-    return curLevel;
+//  } else {
+//    return curLevel;
+//  }
 //  double next_step_ratio = ;
 //  if (next_step_ratio )
 //    return curLevel +1;

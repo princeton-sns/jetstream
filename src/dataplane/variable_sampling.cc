@@ -108,10 +108,12 @@ IntervalSamplingOperator::configure(std::map<std::string,std::string> &config) {
     return operator_err_t("max_drops must be an int");
   }
   
+  steps.push_back(0);
   for( int drops_per =max_drops; drops_per >= 0; --drops_per) {
     steps.push_back(  1.0 / (1+drops_per) );
   }
   
+  deg_level = max_drops +1;
   LOG(INFO) << "Configured " << my_type_name <<  ". max_drops="<<max_drops;
   return NO_ERR;
 }
@@ -121,12 +123,18 @@ IntervalSamplingOperator::configure(std::map<std::string,std::string> &config) {
 bool
 IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
 
-  int cur_step = steps.size() - drops_per_keep -1;
-  int delta = congest_policy->get_step(id(), steps.data(), steps.size(), cur_step);
+//  int cur_step = steps.size() - drops_per_keep -1;
+  int delta = congest_policy->get_step(id(), steps.data(), steps.size(), deg_level);
+  unsigned drops_per_keep = 0;
   if (delta != 0) {
-    drops_per_keep -= delta;
-    double drop_fraction = 100.0 * drops_per_keep / (drops_per_keep + 1);
-
+    deg_level += delta;
+    double drop_fraction;
+    if (deg_level == 0)
+      drop_fraction = 100;
+    else {
+      drops_per_keep = steps.size() - deg_level - 1;
+      drop_fraction = 100.0 * drops_per_keep / (drops_per_keep + 1);
+    }
     NetCongestionMonitor * mon = dynamic_cast<NetCongestionMonitor*>(congest_policy->get_monitor());
     if (mon) {
       LOG(INFO) << "Switching drop frequency by " << delta << " to " << drop_fraction
@@ -136,7 +144,7 @@ IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
 
   cntr++;
   //cntr %= drops_per_keep +1;
-  return cntr % (drops_per_keep + 1) == 0;
+  return deg_level > 0 && (cntr % (drops_per_keep + 1) == 0);
 }
 
 /*

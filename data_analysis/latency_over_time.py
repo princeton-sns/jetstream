@@ -140,7 +140,8 @@ def parse_infile(infile):
     counts_by_name = make_counts_by_name(names, counts_by_node)
     print "Asymmetry ratio %0.2f%%; %d periods with very late data"  %\
         (asymmetry(counts_by_node), verylates)
-  
+  else:
+    counts_by_name = {}
   print "Data ends at %s." % (time.ctime(data['Time'][-1]/1000))
   
   return data, counts_by_name
@@ -186,7 +187,9 @@ def plot_data_over_time(data, seriesname, filename):
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
   ax.set_ylabel(seriesname, fontsize=22)
-  ax.set_ylim( 0, 1.2 * max(series_to_plot))  
+  MAXY = 1.2 * max(series_to_plot) if max(series_to_plot) > 0 else 1
+  ax.set_ylim( 0, MAXY)  
+  
 
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  

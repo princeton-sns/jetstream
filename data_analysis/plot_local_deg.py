@@ -27,13 +27,16 @@ def main():
     print "\n\n\nAnalyzing data from",suffix
     print "----------------------"
   data,bottlenecks = parse_infile(infile)
-  series_timelen = (data[TIME][-1] - data[TIME][0])
-  print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
-  print "Data series ends at %s" % time.ctime(data[TIME][-1])
-  avg_time_at_level = series_timelen / float(len(data[TIME]))
-  print "Average time-at-level %0.2f secs" % (avg_time_at_level)
-  data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
-  plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
+  if len(data[TIME]) == 0:
+    print "No degradation seen."
+  else:
+    series_timelen = (data[TIME][-1] - data[TIME][0])
+    print "Done, %d level changes over %d secs" % (len(data[TIME]),series_timelen)
+    print "Data series ends at %s" % time.ctime(data[TIME][-1])
+    avg_time_at_level = series_timelen / float(len(data[TIME]))
+    print "Average time-at-level %0.2f secs" % (avg_time_at_level)
+    data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
+    plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
   print_bottlenecks(bottlenecks)
 
 
@@ -80,7 +83,8 @@ def  print_bottlenecks(bottlenecks):
   all = sum(bottlenecks.values())
   
   print bottlenecks
-  print "When congested, bottleneck is local %0.2f percent of the time" % \
+  if total_congested > 0:
+    print "When congested, bottleneck is local %0.2f percent of the time" % \
         (100.0 * local_congest / total_congested)
   print "Overall, bottleneck is local %0.2f percent of the time" % \
         (100.0 * local / all)
