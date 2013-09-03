@@ -8,6 +8,7 @@
 from optparse import OptionParser
 import sys
 import time
+import signal
 import subprocess
 import random
 import uuid
@@ -58,6 +59,11 @@ def traffic_shape_start(iface, port):
   #except subprocess.CalledProcessError as e:
   #  errorExit("Error: The following command failed: " + e.cmd + ";\n" + "output was: " + e.output)
 
+
+def exit_gracefully():
+  traffic_shape_clear(IFACE)
+  sys.exit(0)
+
 def traffic_shape_clear(iface):
   print "Clearing prior traffic shaping rules on interface %s..." % (iface)
   subprocess.call("tc qdisc del dev %s root" % (iface), shell=True, stderr=subprocess.STDOUT)
@@ -75,6 +81,7 @@ def traffic_shape(iface, bwidth):
 
 
 def main():
+  global IFACE
   parser = OptionParser()
   parser.add_option("-f", "--file_name", dest="fname", help="input trace file of bandwidth allocations", default="")
   parser.add_option("-i", "--interval", dest="interval", help="traffic shaping interval (seconds)", default=INTERVAL_DEFAULT)
@@ -92,9 +99,15 @@ def main():
     traffic_shape_clear(options.iface)
     return
 
+  IFACE = options.iface
+  signal.signal(signal.SIGINT, exit_gracefully)
+
   fbwidth = int(options.fbwidth)
   if (options.fname == "") and (fbwidth == 0):
-    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
+    print "No options specified, so clearing traffic shaping"
+    traffic_shape_clear(options.iface)  
+    sys.exit(0)
+#    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
   interval = int(options.interval)
   simTime = int(options.time)
   port = int(options.port)
@@ -141,7 +154,7 @@ def main():
   # Pick a random starting point if there are multiple intervals
   if tCount > 1:
     count = random.randint(0, tCount - 1)
-  print "Simulating link bandwidth..."
+  print "%s: Simulating link bandwidth..." % time.ctime()
   while True:
     if (simTime >= 0) and (count * interval >= simTime):
       break
