@@ -23,9 +23,9 @@ def errorExit(error):
   print "\n" + error + "\n"
   sys.exit(1)
 
-MAYBE_STATS = False
+USE_SCIPY = False
 
-if MAYBE_STATS:
+if USE_SCIPY:
   import scipy as sp
   from scipy import stats
 
@@ -45,7 +45,15 @@ if MAYBE_STATS:
     # Other stats?
 else:
   def print_dist_stats(vals):
-    print "stats disabled"  
+    vals.sort()
+    n, min, max, mean =  len(vals), vals[0], vals[-1], float(sum(vals))/len(vals)
+    print "Number of intervals: %d" % n
+    print "Average: %0.3f" % mean
+    print "Minimum: %f, Maximum: %0.3f" % (min, max)
+    perc = [1, 5, 10, 50, 90, 95, 99]
+    percScores = ["%0.3f" % vals[ int(n * p /100.0)] for p in perc]
+    print "Percentiles " + str(perc) + ": " + str(percScores)
+    
 
 def traffic_shape_start(iface, port):
   print "Starting traffic shaping rules on interface %s, port %d..." % (iface, port)
@@ -92,6 +100,8 @@ def main():
   parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (bytes/sec)", default=MIN_BWIDTH_DEFAULT)
   parser.add_option("-x", "--clear", dest="clear", help="clear any prior rules", action="store_true", default=False)
   parser.add_option("-s", "--stats", dest="stats", help="show traffic shaping statistics", action="store_true", default=False)
+  parser.add_option( "--scale", dest="scale", help="multiply values by x", default=1.0)
+
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
@@ -114,10 +124,6 @@ def main():
   mbwidth = int(options.mbwidth)
 
   random.seed(uuid.uuid4())
-
-  # Clear prior rules before and after running
-  traffic_shape_clear(options.iface)
-  traffic_shape_start(options.iface, port)
 
   bwidthVals = []
   if options.fname != "":
@@ -146,7 +152,14 @@ def main():
   # Print statistics about the bandwidth distribution
   if options.stats:
    print "\nLink bandwidth statistics (kilobytes/sec, %d-second intervals)" % (interval)
-   print_dist_stats(bwidthVals)
+   print_dist_stats([x for x in bwidthVals])
+
+  bwidthVals = [x* 1000.0 * options.scale for x in bwidthVals]
+  print bwidthVals
+  
+  # Clear prior rules before and after running
+  traffic_shape_clear(options.iface)
+  traffic_shape_start(options.iface, port)
 
   # Run the simulation
   tCount = len(bwidthVals)
