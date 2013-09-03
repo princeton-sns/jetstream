@@ -90,7 +90,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   return delta;
 }
 
-static double PROB_TO_WAIT_FOR_UPGRADE = 0.1;
+//static double PROB_TO_WAIT_FOR_UPGRADE = 0.1;
 
 int
 CongestionPolicy::should_upgrade(double capacity, 
