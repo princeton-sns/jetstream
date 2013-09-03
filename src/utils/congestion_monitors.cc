@@ -107,7 +107,7 @@ WindowCongestionMonitor::end_of_window(int window_data_ms, msec_t processing_sta
     double window_ratio = double(window_data_ms) / window_processtime_ms;
     double bytes_per_sec = bytes_in_window * 1000.0 / window_availtime_ms;
     unsmoothed_ratio =  std::min(window_ratio, max_per_sec / bytes_per_sec) ;
-    LOG_EVERY_N(INFO, 20) << long_description() <<". Nominal window size was " << window_data_ms;
+    LOG_EVERY_N(INFO, 20) << "(every 20) " << long_description() <<". Nominal window size was " << window_data_ms;
 
   if (unsmoothed_ratio > 10)
     unsmoothed_ratio = 10;      //limit ramp-up and avoid confusing the sliding window
