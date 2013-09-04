@@ -26,8 +26,8 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
 
-MEDIAN_LAT = "Median latency"
-MY_LAT = "95th percentile latency (msec)"
+MEDIAN_LAT = "Median"
+MY_LAT = "95th percentile in period"
 LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
@@ -67,11 +67,12 @@ def main():
   for c,name in counts_by_name:
     print " %s    %d" % (name,c)
 
-  plot_data_over_time(data, MY_LAT, "latency_local.pdf")
-  plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
-  plot_data_over_time(data, COEF_VAR, "internode_variation.pdf")
-  plot_data_over_time(data, LAT_999, "latency_highquant.pdf")
-  plot_data_over_time(data, LAT_MAX, "latency_extremum.pdf")
+#  plot_data_over_time(data, MY_LAT, "latency_local.pdf")
+#  plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
+  plot_data_over_time(data, [COEF_VAR], "internode_variation.pdf")
+  plot_data_over_time(data, [LAT_999], "latency_highquant.pdf")
+  plot_data_over_time(data, [LAT_MAX], "latency_extremum.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], "latency_multi.pdf")
 
 
 def stddev_to_c_of_v(data):
@@ -165,42 +166,42 @@ def get_x_from_time(t):
   else:
     return t
 
+linelabels = ['b-', 'gx']
 
-def plot_data_over_time(data, seriesname, filename):
+def plot_data_over_time(data, seriesnames, filename):
 
   time = [get_x_from_time(x / 1000) for x in data['Time']]
-  series_to_plot = data[seriesname]
   bw_series = [x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   legend_artists = []
+#  series_to_plot = 
   
   figure, ax = plt.subplots()
 
   figure.autofmt_xdate()
-  line, = ax.plot_date(time, series_to_plot, 'b-')
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-
-  legend_artists.append( line )
+  ax.set_ylim( 0, 1.2 * max([max(data[sname]) for sname in seriesnames]))  
+  
+  for seriesname,linelabel in zip(seriesnames, linelabels):
+    line, = ax.plot_date(time, data[seriesname], linelabel)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    legend_artists.append( line )
   
   ax2 = ax.twinx()
   line, = ax2.plot_date(time, bw_series, "r.")  
   legend_artists.append( line )  
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
-  ax.set_ylabel(seriesname, fontsize=22)
-  MAXY = 1.2 * max(series_to_plot) if max(series_to_plot) > 0 else 1
-  ax.set_ylim( 0, MAXY)  
-  
+  if len(seriesname) == 1:
+    ax.set_ylabel("Latency (msec)", fontsize=22)
+  else:
+    ax.set_ylabel("Latency (msec)", fontsize=22)
 
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  
 
-
   plt.legend(legend_artists, [seriesname, "Bandwidth"], loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
-
   
-  if OUT_TO_FILE:
-      plt.savefig(filename)
-      plt.close(figure)  
+  plt.savefig(filename)
+  plt.close(figure)  
 
 
 if __name__ == '__main__':
