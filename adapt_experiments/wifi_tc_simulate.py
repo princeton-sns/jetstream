@@ -152,10 +152,10 @@ def main():
 
   # Print statistics about the bandwidth distribution
   if options.stats:
-   print "\nLink bandwidth statistics (kilobytes/sec, %d-second intervals)" % (interval)
+   print "\nLink bandwidth statistics (bytes/sec, %d-second intervals)" % (interval)
    print_dist_stats([x for x in bwidthVals])
 
-  bwidthVals = [x* 1000.0 * options.scale for x in bwidthVals]
+  bwidthVals = [x * options.scale for x in bwidthVals]
   print bwidthVals
   
   # Clear prior rules before and after running
