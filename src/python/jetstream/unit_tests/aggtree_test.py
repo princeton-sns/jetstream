@@ -30,14 +30,17 @@ class TestAggTree (unittest.TestCase):
     ucube.add_dim("state", Element.STRING, 0)
     ucube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
 
+    readers = []
     for node in [dummyNode, dummy2]:
       reader = jsapi.FileRead(g, "file name")
+      readers.append(reader)
       nID = NodeID()
       nID.address, nID.portno = node
       reader.instantiate_on(nID)
-      g.connect(reader, ucube) #agg tree test, so we don't need this
+#      g.connect(reader, ucube) #agg tree test, so we don't need this
 
-    
+    g.agg_tree(readers, ucube)
+    self.assertEquals(6, len(g.edges))  # 2x (op --> cube --> subscriber --> union)
 
     req = ControlMessage()
     req.type = ControlMessage.ALTER    
