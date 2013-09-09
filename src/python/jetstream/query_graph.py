@@ -6,6 +6,7 @@ from jetstream_types_pb2 import *
 Dimension = CubeSchema.Dimension
 from operator_schemas import SCHEMAS, OpType,SchemaError,check_ts_field
 from base_constructs import *
+import regions
 
 # from python itertools recipes
 def pairwise(iterable):
@@ -264,6 +265,48 @@ class QueryGraph(object):
       l.append( op.id )
     self.policies.append(l)
     pass
+
+
+###### Agg tree builder ##########
+
+
+
+def agg_tree(self, src_list, union_cube, region_list = None):
+  """Preconditions: The sources should be pinned.
+   Postcondition: extra cubes have been added to build an aggregation tree
+  """
+  
+  if regions is not None:
+    cube_in_r = {}
+    for (name, defn) in region_list.items():
+      node_in_r = regions.get_1_from_region(defn, all_nodes)
+      if node_in_r:
+        print "for region %s, aggregation is on %s:%d" % (name, node_in_r.address, node_in_r.portno)
+        cube_in_r[name] = self.copy_dest(union_cube)
+        cube_in_r[name].name = "partial_agg"
+        cube_in_r[name].instantiate_on(node_in_r)
+    for op in ops:
+      rgn = regions.get_region(r_list, op.location())
+      if not rgn:
+        print "No region for node %s:%d" % (op.location().address, op.location().portno)
+      g.connect(op, cube_in_r[rgn])
+
+    ops = []
+    for cube in cube_in_r.values():
+      sub = jsapi.TimeSubscriber(g, filter={})
+      sub.set_cfg("window_offset", 2* 1000) #...trailing by a few
+#      sub.set_cfg("simulation_rate", options.warp_factor)
+#      sub.set_cfg("ts_field", 0)
+#      sub.set_cfg("start_ts", options.start_ts)
+        #TODO offset
+      g.connect(cube, sub)
+      ops.append(sub)      
+        
+  
+
+
+
+
 
 ##### Useful operators #####
 

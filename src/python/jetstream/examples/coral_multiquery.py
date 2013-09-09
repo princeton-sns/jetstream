@@ -116,31 +116,7 @@ def main():
     print "can't run, no [non-union] nodes"
     sys.exit(0) 
     
-  if MULTI_LEVEL:
-    r_list = regions.read_regions('regions.txt') 
-    cube_in_r = {}
-    for (name, defn) in r_list.items():
-      node_in_r = regions.get_1_from_region(defn, all_nodes)
-      if node_in_r:
-        print "for region %s, aggregation is on %s:%d" % (name, node_in_r.address, node_in_r.portno)
-        cube_in_r[name] = define_internal_cube(g, "partial_agg", node_in_r)
-    for op in ops:
-      rgn = regions.get_region(r_list, op.location())
-      if not rgn:
-        print "No region for node %s:%d" % (op.location().address, op.location().portno)
-      g.connect(op, cube_in_r[rgn])
 
-    ops = []
-    for cube in cube_in_r.values():
-      sub = jsapi.TimeSubscriber(g, filter={})
-      sub.set_cfg("window_offset", 2* 1000) #...trailing by a few
-#      sub.set_cfg("simulation_rate", options.warp_factor)
-#      sub.set_cfg("ts_field", 0)
-#      sub.set_cfg("start_ts", options.start_ts)
-        #TODO offset
-      g.connect(cube, sub)
-      ops.append(sub)      
-      
   union_cube = define_internal_cube (g, "union_cube", union_node)
   for op in ops:
     g.connect(op, union_cube)
