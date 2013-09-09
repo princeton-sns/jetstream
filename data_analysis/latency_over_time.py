@@ -198,7 +198,10 @@ def plot_data_over_time(data, seriesnames, filename):
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  
 
-  plt.legend(legend_artists, [seriesname, "Bandwidth"], loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
+  leg_labels = []
+  leg_labels.extend(seriesnames)
+  leg_labels.append("Bandwidth")
+  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
   
   plt.savefig(filename)
   plt.close(figure)  
