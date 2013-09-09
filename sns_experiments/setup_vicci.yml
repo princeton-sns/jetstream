@@ -1,34 +1,15 @@
 ---
-# Instructions:
-# 1) install ansible 
-# 2) install ssh forward-agent so that you can pass your key along for git 
-# 3) add hosts you are working with to ansible_hosts file under [setup] section 
-# 4) run the following:
-#ANSIBLE_SSH_ARGS=""  ansible-playbook  -i ansible_hosts_vicci setup_vicci.yml -u princeton_jetstream -M "`pwd`/modules/"
-#
-# This file takes an sns box, installs all dependencies for jetstream on it, installs and configures
-# mysql, checks out jetstream, and builds jetstream. Pretty much it take an sns box to a position where
-# it could run unit test.
-
-
-
-###initial packages###
-- hosts: new
-  gather_facts: no
-  connection: paramiko
-  tasks:
-      - action: fireball bind_address=${public_ip}
-
-- hosts: new
-  vars:
-    js_deps: /jetstream/deps
-    js_checkout: /jetstream/js
-    js_results: /jetstream/results
-  connection: fireball
+- hosts: setup
+  accelerate: true
+  vars_files:
+    - base_vars.yml
   tasks:
   - name: install packages
     yum: name=$item state=present
     with_items:
+      - gcc
+      - gcc-c++
+      - make
       - cmake
       - gtest
       - python-setuptools
