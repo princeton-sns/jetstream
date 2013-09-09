@@ -97,8 +97,8 @@ def main():
   parser.add_option("-t", "--time", dest="time", help="simulation time (sec, -1=infinite) [default = %d]" % (TIME_DEFAULT), default=TIME_DEFAULT)
   parser.add_option("-p", "--port", dest="port", help="port to apply traffic shaping [default = %d]" % (PORT_DEFAULT), default=PORT_DEFAULT)
   parser.add_option("-e", "--interface", dest="iface", help="interface to apply traffic shaping [default = %s]" % (IFACE_DEFAULT), default=IFACE_DEFAULT)
-  parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (bytes/sec)", default=0)
-  parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (bytes/sec) [default = %d]" % (MIN_BWIDTH_DEFAULT), default=MIN_BWIDTH_DEFAULT)
+  parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (Kbytes/sec)", default=0)
+  parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (Kbytes/sec) [default = %d]" % (MIN_BWIDTH_DEFAULT), default=MIN_BWIDTH_DEFAULT)
   parser.add_option("-x", "--clear", dest="clear", help="clear any prior rules", action="store_true", default=False)
   parser.add_option("-s", "--stats", dest="stats", help="show traffic shaping statistics", action="store_true", default=False)
   parser.add_option( "--scale", dest="scale", help="multiply values by x", default=1.0)
@@ -147,16 +147,16 @@ def main():
   else:
     # Use the specified (fixed) bandwidth
     assert fbwidth > 0
-    bwidthVals.append(fbwidth)
+    bwidthVals.append(fbwidth * 1024)
         
+  bwidthVals = [x * options.scale for x in bwidthVals]
+  print bwidthVals
 
   # Print statistics about the bandwidth distribution
   if options.stats:
    print "\nLink bandwidth statistics (bytes/sec, %d-second intervals)" % (interval)
    print_dist_stats([x for x in bwidthVals])
 
-  bwidthVals = [x * options.scale for x in bwidthVals]
-  print bwidthVals
   
   # Clear prior rules before and after running
   traffic_shape_clear(options.iface)

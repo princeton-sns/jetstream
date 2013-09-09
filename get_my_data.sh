@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUN=903_group
+RUN=908_shaped
 mkdir $RUN
 scp sns48:/disk/local/asr_jetstream/image_quality.out $RUN/sns48_$RUN.log
 scp princeton_jetstream@node20.mpisws.vicci.org:/jetstream/log.out $RUN/mpi20_$RUN.log
