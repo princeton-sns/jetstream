@@ -1,6 +1,6 @@
 ---
 - hosts: setup
-  accelerate: true
+#  accelerate: true
   vars_files:
     - base_vars.yml
   tasks:

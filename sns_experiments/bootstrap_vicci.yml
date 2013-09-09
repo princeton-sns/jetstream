@@ -1,25 +1,15 @@
 ---
-#ansible-playbook  -i ansible_hosts_vicci bootstrap_vicci.yml -u princeton_jetstream --module-path=modules/ -f 100; date
-
-###initial packages###
-- hosts: new
-  vars:
-    js_deps: /jetstream/deps
-    js_checkout: /jetstream/js
+- hosts: setup
+#  serial: 2
   tasks:
+    - service: name=network state=restarted
     - name: install packages
       yum: name=$item state=present
       with_items:
         - python-setuptools
         - gcc
-        - gcc-c++
-        - make
-        - python-devel
     - action: easy_install name=pip
-    - action: pip name=$item state=present
+    - action: pip name=$item state=present extra_args='--pre'
       with_items:
-        - pyzmq
-        - pyasn1
-        - PyCrypto
         - python-keyczar
 
