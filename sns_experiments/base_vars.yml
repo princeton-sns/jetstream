@@ -1,0 +1,5 @@
+---
+js_deps: /jetstream/deps
+js_checkout: /jetstream/js
+js_results: /jetstream/results
+
