@@ -27,7 +27,7 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
 MEDIAN_LAT = "Median"
-MY_LAT = "95th percentile in period"
+MY_LAT = "95th percentile"
 LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
@@ -197,11 +197,21 @@ def plot_data_over_time(data, seriesnames, filename):
 
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  
+  
+  ax.tick_params(axis='both', which='major', labelsize=16)
+  ax2.tick_params(axis='both', which='major', labelsize=16)
+
 
   leg_labels = []
   leg_labels.extend(seriesnames)
   leg_labels.append("Bandwidth")
-  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.05), frameon=False, ncol=2);
+  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.07), frameon=False, ncol=2);
+
+  figure.subplots_adjust(left=0.15)
+  figure.subplots_adjust(bottom=0.18)  
+  figure.subplots_adjust(right=0.9)  
+  figure.subplots_adjust(top=0.88)
+
   
   plt.savefig(filename)
   plt.close(figure)  
