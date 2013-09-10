@@ -2,4 +2,5 @@
 js_deps: /jetstream/deps
 js_checkout: /jetstream/js
 js_results: /jetstream/results
-
+num_cores: 24
+mysqld_name: mysqld.service

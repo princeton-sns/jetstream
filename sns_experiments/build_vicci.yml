@@ -1,20 +1,8 @@
 ---
-#ansible-playbook  -i ansible_hosts_vicci build_vicci.yml -u princeton_jetstream --module-path=modules/ -f 20; date
-
-### download and build js###
-- hosts: workers
-  gather_facts: no
-  connection: paramiko
-  tasks:
-      - action: fireball bind_address=${public_ip}
-
-- hosts: workers
-  vars:
-    js_deps: /jetstream/deps
-    js_checkout: /jetstream/js
-    num_cores: 24
-    mysqld_name: mysqld.service
-  connection: fireball
+- hosts: workers  
+  accelerate: true
+  vars_files:
+    - base_vars.yml
   tags: build
   tasks:
   - include: build_include_sudo_ntp.yml
