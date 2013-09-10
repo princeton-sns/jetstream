@@ -110,7 +110,9 @@ def main():
     traffic_shape_clear(options.iface)
     return
 
-  IFACE = options.iface
+  print "%s: Script starting." % time.ctime()
+
+  IFACE = options.iface  #used by signal handler
   signal.signal(signal.SIGINT, exit_gracefully)
 
   fbwidth = int(options.fbwidth)
@@ -156,7 +158,6 @@ def main():
   if options.stats:
    print "\nLink bandwidth statistics (bytes/sec, %d-second intervals)" % (interval)
    print_dist_stats([x for x in bwidthVals])
-
   
   # Clear prior rules before and after running
   traffic_shape_clear(options.iface)
