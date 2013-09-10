@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUN=910_big2
+RUN=910_shaped
 mkdir $RUN
 scp sns48:/disk/local/asr_jetstream/image_quality.out $RUN/sns48_$RUN.log
 

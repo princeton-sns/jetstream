@@ -174,8 +174,8 @@ def main():
   tCount = len(bwidthVals)
   # Pick a random starting point if there are multiple intervals
   if tCount == 1:
-    traffic_shape_multi(options.iface, bwidth)
-    print "Set bandwidth to %d bps. Exiting." % bwidth
+    traffic_shape_multi(options.iface, bwidthVals[0])
+    print "Set bandwidth to %d bps. Exiting." % bwidthVals[0]
     sys.exit(0)  
   else:
     count = random.randint(0, tCount - 1)
