@@ -4,15 +4,14 @@ import re
 import sys
 import time
 
+from optparse import OptionParser
+
 import numpy
 import numpy.linalg
 from numpy import array
 
 OUT_TO_FILE = True
-
-
 DATE = True
-
 
 import matplotlib
 if OUT_TO_FILE:
@@ -55,7 +54,17 @@ FIELDS_TO_PLOT = {
  
 
 def main():
-  infile = sys.argv[1]
+
+  parser = OptionParser()
+  parser.add_option("-o", "--output", dest="out_dir",
+                  help="output directory name", default="")
+  (options, args) = parser.parse_args()
+
+  out_dir = options.out_dir
+  if len(out_dir) > 0 and out_dir[-1] != '/':
+     out_dir =  out_dir + "/" 
+
+  infile = args[0]
   
   data,counts_by_name = parse_infile(infile)
   data[TDELTA] = get_time_deltas(data['Time'])  
@@ -69,10 +78,10 @@ def main():
 
 #  plot_data_over_time(data, MY_LAT, "latency_local.pdf")
 #  plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
-  plot_data_over_time(data, [COEF_VAR], "internode_variation.pdf")
-  plot_data_over_time(data, [LAT_999], "latency_highquant.pdf")
-  plot_data_over_time(data, [LAT_MAX], "latency_extremum.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], "latency_multi.pdf")
+  plot_data_over_time(data, [COEF_VAR], out_dir+ "internode_variation.pdf")
+  plot_data_over_time(data, [LAT_999], out_dir + "latency_highquant.pdf")
+  plot_data_over_time(data, [LAT_MAX], out_dir + "latency_extremum.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi.pdf")
 
 
 def stddev_to_c_of_v(data):

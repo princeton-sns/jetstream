@@ -4,6 +4,7 @@ import re
 import sys
 import time
 
+from optparse import OptionParser
 
 OUT_TO_FILE = True
 X_AXIS_WITH_DATES = True
@@ -19,11 +20,21 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
 def main():
-  infile = sys.argv[1]
+
+  parser = OptionParser()
+  parser.add_option("-o", "--output", dest="out_dir",
+                  help="output directory name", default="")
+  (options, args) = parser.parse_args()
+
+  out_dir = options.out_dir
+  if len(out_dir) > 0 and out_dir[-1] != '/':
+     out_dir =  out_dir + "/" 
+
+  infile = args[0]
   
   suffix = ""
-  if len(sys.argv) > 2:
-    suffix = sys.argv[2]
+  if len(args) > 1:
+    suffix = args[1]
     print "\n\n\nAnalyzing data from",suffix
     print "----------------------"
   data,bottlenecks = parse_infile(infile)
@@ -36,7 +47,7 @@ def main():
     avg_time_at_level = series_timelen / float(len(data[TIME]))
     print "Average time-at-level %0.2f secs" % (avg_time_at_level)
     data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
-    plot_series(data, LEVEL, "local_deg_" + suffix + ".pdf")
+    plot_series(data, LEVEL, out_dir + "local_deg_" + suffix + ".pdf")
   print_bottlenecks(bottlenecks)
 
 
