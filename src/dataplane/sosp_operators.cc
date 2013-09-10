@@ -266,6 +266,8 @@ ImageQualityReporter::emit_stats() {
   vector<long long> counts_by_node;
   vector<long> verylate_by_chain_copy;
   double src_stddev;
+  vector<long> by_node_in_period;
+
   
   {
     boost::unique_lock<boost::mutex> l(mutex);
@@ -278,6 +280,7 @@ ImageQualityReporter::emit_stats() {
     src_stddev = get_stddev(bytes_per_src_total);
     
     latencies_this_period.clear();
+    by_node_in_period = bytes_per_src_in_period;
     bytes_per_src_in_period.assign(bytes_per_src_in_period.size(), 0);
     bytes_this_period = 0;
     max_latency = 0;
@@ -290,11 +293,16 @@ ImageQualityReporter::emit_stats() {
       << median << " and 95th percentile is "
       << this_95th << ". Overall " << (100*GLOBAL_QUANT) << "th percentile is " << global_quant;
 */
+  unsigned nodes = 0;
+  for (unsigned i= 0; i < by_node_in_period.size(); ++i)
+    if (by_node_in_period[i] > 0)
+      nodes ++;
+  
   msec_t ts = get_msec();
   (*out_stream) << ts << " "<< bytes << " bytes. " << total << " images. " << median
                 << " (median) " << this_95th  << " (95th) " << global_quant <<
                  " (global-"<< (100*GLOBAL_QUANT) <<") " << src_stddev<< " (src_dev;global) "
-                 << period_max << " (max)" << endl;
+                 << period_max << " (max) " << nodes <<  " nodes"<< endl;
   
   if (counts_by_node.size() > 0) {
     print_vec(out_stream, "BYNODE: ", counts_by_node);

@@ -17,7 +17,7 @@ LOGNAME=/disk/local/asr_js_logs/`hostname`-jslog
 fi
 
 if [ -f ${PID_DIR}/jsnode.pid ]; then
-  echo "Killing any previous run"
+  echo "Killing previous run"
   kill `cat ${PID_DIR}/jsnode.pid`
 fi
 
