@@ -1,0 +1,19 @@
+---
+- hosts: setup
+#  serial: 2
+  tasks:
+    - name: install packages
+      yum: name=$item state=present
+      with_items:
+        - python-setuptools
+        - gcc
+        - gcc-c++
+        - make
+        - python-devel
+    - action: easy_install name=pip
+    - action: pip name=$item state=present extra_args='--pre'
+      with_items:
+        - pyzmq
+        - pyasn1
+        - PyCrypto
+        - python-keyczar

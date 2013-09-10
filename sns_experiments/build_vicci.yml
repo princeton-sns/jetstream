@@ -1,6 +1,12 @@
 ---
+#- hosts: workers
+#  gather_facts: no
+#  tasks:
+#      - action: fireball bind_address=${public_ip}
+
 - hosts: workers  
-  accelerate: true
+#  accelerate: true
+#  connection: fireball
   vars_files:
     - base_vars.yml
   tags: build
