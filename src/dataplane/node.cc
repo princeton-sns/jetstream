@@ -684,7 +684,7 @@ Node::establish_congest_policies( const AlterTopo & topo,
         LOG(FATAL) << "can't set policy for nonexistent operator " << id;
       }
     }
-    policy->set_congest_monitor( chain->congestion_monitor() );
+    policy->set_chain(chain);
     string mon_name = chain->congestion_monitor() ? chain->congestion_monitor()->name()
         : "no-monitor";
     LOG(INFO) << "Policy " << i << ":" << op_list.str() << " " << mon_name;

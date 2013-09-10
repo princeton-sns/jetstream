@@ -17,6 +17,8 @@
 
 namespace jetstream {
 
+class OperatorChain;
+  
 class CongestionPolicy {
 
   struct OperatorState {
@@ -34,7 +36,8 @@ class CongestionPolicy {
     mutable boost::mutex stateLock; //no need for locking if access all within a chain?
     std::vector<OperatorState> statuses;
     boost::shared_ptr<CongestionMonitor> congest;
-  
+    boost::weak_ptr<OperatorChain> my_chain;
+
 
     int should_upgrade(double capacity,
                        const double * const levels,
@@ -54,6 +57,11 @@ class CongestionPolicy {
       congest = c;
     }
 
+    void set_chain(boost::weak_ptr<OperatorChain> c) {
+      my_chain = c;
+    }
+  
+  
     CongestionMonitor * get_monitor() {
       return congest.get();
     }

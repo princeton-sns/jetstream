@@ -1,5 +1,6 @@
 #include "congest_policy.h"
 #include "js_utils.h"
+#include "operator_chain.h"
 
 #include <glog/logging.h>
 #include <stdlib.h>
@@ -16,7 +17,14 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
   if (!congest) {
 //    LOG(WARNING) << "no congestion monitor ahead of " << op;
-    return 0;
+    boost::shared_ptr<OperatorChain> chain = my_chain.lock();
+    if (chain) {  //might take a while for chain monitor to be ready
+                  //if we're pending on a network connection
+      congest = chain->congestion_monitor();
+    }
+    
+    if (!congest)
+      return 0;
   }
   if (statuses.size() == 0) //monitor not hooked up
     return 0;

@@ -47,10 +47,11 @@ TEST(Operator, IntervalSamplingOperator) {
 
   Tuple t;
   extend_tuple(t, 2);
-
+  bool emitted_last = degrade_op.should_emit(t);
   for(int i = 0; i < 10; ++i) {
-    bool should_emit = degrade_op.should_emit(t);
-    ASSERT_EQ( should_emit, i%2 != 0);
+    bool this_emit = degrade_op.should_emit(t);
+    EXPECT_EQ( !emitted_last, this_emit);
+    emitted_last = this_emit;
   }
 }
 
