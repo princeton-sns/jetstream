@@ -95,7 +95,7 @@ def main():
   parser.add_option("-f", "--file_name", dest="fname", help="input trace file of bandwidth allocations", default="")
   parser.add_option("-i", "--interval", dest="interval", help="traffic shaping interval (sec) [default = %d]" % (INTERVAL_DEFAULT), default=INTERVAL_DEFAULT)
   parser.add_option("-t", "--time", dest="time", help="simulation time (sec, -1=infinite) [default = %d]" % (TIME_DEFAULT), default=TIME_DEFAULT)
-  parser.add_option("-p", "--port", dest="port", help="port to apply traffic shaping [default = %d]" % (PORT_DEFAULT), default=PORT_DEFAULT)
+  parser.add_option("-p", "--port", dest="port", help="remote port to apply traffic shaping [default = %d]" % (PORT_DEFAULT), default=PORT_DEFAULT)
   parser.add_option("-e", "--interface", dest="iface", help="interface to apply traffic shaping [default = %s]" % (IFACE_DEFAULT), default=IFACE_DEFAULT)
   parser.add_option("-b", "--fixed_bwidth", dest="fbwidth", help="fixed bandwidth allocation (Kbytes/sec)", default=0)
   parser.add_option("-m", "--min_bwidth", dest="mbwidth", help="minimum bandwidth allocation (Kbytes/sec) [default = %d]" % (MIN_BWIDTH_DEFAULT), default=MIN_BWIDTH_DEFAULT)

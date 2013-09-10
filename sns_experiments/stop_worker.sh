@@ -7,5 +7,6 @@ else
 PID_DIR=/disk/local/asr_js_logs
 fi
 kill `cat ${PID_DIR}/jsnode.pid`
+rm ${PID_DIR}/jsnode.pid
 
 # killall jsnoded # a more extreme version

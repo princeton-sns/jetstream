@@ -190,8 +190,8 @@ def plot_data_over_time(data, seriesnames, filename):
   legend_artists.append( line )  
   
   ax.set_xlabel('Experiment time (sec)', fontsize=22)  
-  if len(seriesname) == 1:
-    ax.set_ylabel("Latency (msec)", fontsize=22)
+  if len(seriesnames) == 1:
+    ax.set_ylabel(seriesnames[0], fontsize=22)
   else:
     ax.set_ylabel("Latency (msec)", fontsize=22)
 
