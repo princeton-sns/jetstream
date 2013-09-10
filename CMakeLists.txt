@@ -245,7 +245,7 @@ file (GLOB_RECURSE TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/test_*.cc")
 
 set (TESTS ${SRC_DIR}/js_unit_tests.cc ${TESTS})
 
-add_executable (js_unit_tests ${TESTS})
+add_executable (js_unit_tests EXCLUDE_FROM_ALL ${TESTS})
 target_link_libraries (js_unit_tests ${CMAKE_DL_LIBS})
 target_link_libraries (js_unit_tests ${LIBRARIES})
 target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
