@@ -128,8 +128,10 @@ def main():
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
-  if options.clear:
-    traffic_shape_clear(options.iface)
+  for iface in options.iface.split():
+    traffic_shape_clear(iface)
+  if options.clear or ((options.fname == "") and (fbwidth == 0)):
+    print "Clearing traffic shaping and exiting"
     return
 
   print "%s: Script starting." % time.ctime()
@@ -138,10 +140,6 @@ def main():
   signal.signal(signal.SIGINT, exit_gracefully)
 
   fbwidth = int(options.fbwidth)
-  if (options.fname == "") and (fbwidth == 0):
-    print "No options specified, so clearing traffic shaping"
-    traffic_shape_clear(options.iface)  
-    sys.exit(0)
 #    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
   interval = int(options.interval)
   simTime = int(options.time)
@@ -165,9 +163,8 @@ def main():
    print "\nLink bandwidth statistics (bytes/sec, %d-second intervals)" % (interval)
    print_dist_stats([x for x in bwidthVals])
   
-  # Clear prior rules before and after running
+  
   for iface in options.iface.split():
-    traffic_shape_clear(iface)
     traffic_shape_start(iface, port)
 
   # Run the simulation
