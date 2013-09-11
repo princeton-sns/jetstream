@@ -130,7 +130,8 @@ def main():
 
   for iface in options.iface.split():
     traffic_shape_clear(iface)
-  if options.clear or ((options.fname == "") and (fbwidth == 0)):
+    
+  if options.clear or ((options.fname == "") and (options.fbwidth == 0)):
     print "Clearing traffic shaping and exiting"
     return
 
