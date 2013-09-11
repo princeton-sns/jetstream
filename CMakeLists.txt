@@ -37,17 +37,22 @@ else (FULL_STATIC)
     set(Boost_USE_STATIC_LIBS OFF)
 endif (FULL_STATIC)
 
-SET (CMAKE_C_FLAGS                "-Wall -Werror -std=c99 -DNO_SSL ")
-SET (CMAKE_C_FLAGS_DEBUG          "-g -O0")
-SET (CMAKE_C_FLAGS_RELEASE        "-O4 -DNDEBUG")
-SET (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-SET (CMAKE_CXX_FLAGS                "-Wall -DNO_SSL -fPIC -DGTEST_HAS_TR1_TUPLE=0 -pthread")
+SET (CMAKE_C_COMMON                "-std=c99 -DNO_SSL")
+SET (CMAKE_C_FLAGS                "-Wall -Werror ${CMAKE_C_COMMON}")
+SET (CMAKE_C_FLAGS_DEBUG          "-g -O0 ${CMAKE_C_COMMON}")
+SET (CMAKE_C_FLAGS_RELEASE        "-O4 -DNDEBUG ${CMAKE_C_COMMON}")
+SET (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g ${CMAKE_C_COMMON}")
+
+
+SET (CMAKE_CXX_COMMON                "-DNO_SSL -fPIC -DGTEST_HAS_TR1_TUPLE=0 -pthread")
+
+SET (CMAKE_CXX_FLAGS                "-Wall ${CMAKE_CXX_COMMON}")
 #  -std=c++11 -DBOOST_NO_CXX11_RVALUE_REFERENCES
 #  -D BOOST_NO_CXX11_NUMERIC_LIMITS=1  -DBOOST_NO_CXX11_RVALUE_REFERENCES
-SET (CMAKE_CXX_FLAGS_DEBUG          "-g -O0 -Werror")
-SET (CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG")
-SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+SET (CMAKE_CXX_FLAGS_DEBUG          "-g -O0 -Werror  ${CMAKE_CXX_COMMON}")
+SET (CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG  ${CMAKE_CXX_COMMON}")
+SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g  ${CMAKE_CXX_COMMON}")
 
 # NOTE: can't use -Werror in release mode since it means asserts don't count as
 # variable uses, and that results in spurious warnings/errors.
@@ -245,7 +250,12 @@ file (GLOB_RECURSE TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "src/test_*.cc")
 
 set (TESTS ${SRC_DIR}/js_unit_tests.cc ${TESTS})
 
-add_executable (js_unit_tests EXCLUDE_FROM_ALL ${TESTS})
+if(CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
+  add_executable (js_unit_tests EXCLUDE_FROM_ALL ${TESTS})
+else(CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
+  add_executable (js_unit_tests ${TESTS})
+endif(CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
+
 target_link_libraries (js_unit_tests ${CMAKE_DL_LIBS})
 target_link_libraries (js_unit_tests ${LIBRARIES})
 target_link_libraries (js_unit_tests ${LIBRARY_NAME}) #the js node library
