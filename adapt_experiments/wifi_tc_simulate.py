@@ -128,7 +128,7 @@ def main():
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
-  for iface in options.iface.split():
+  for iface in options.iface.split(","):
     traffic_shape_clear(iface)
     
   if options.clear or ((options.fname == "") and (options.fbwidth == 0)):
@@ -165,7 +165,7 @@ def main():
    print_dist_stats([x for x in bwidthVals])
   
   
-  for iface in options.iface.split():
+  for iface in options.iface.split(","):
     traffic_shape_start(iface, port)
 
   # Run the simulation
@@ -191,7 +191,7 @@ def main():
     count += 1
     
     #called if we break out of the loop after reaching simTime
-  for iface in options.iface.split():
+  for iface in options.iface.split(","):
     traffic_shape_clear(iface)
 
 
