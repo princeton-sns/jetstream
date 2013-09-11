@@ -50,6 +50,7 @@ TEST(Operator, IntervalSamplingOperator) {
   bool emitted_last = degrade_op.should_emit(t);
   for(int i = 0; i < 10; ++i) {
     bool this_emit = degrade_op.should_emit(t);
+//    cout << this_emit << endl;
     EXPECT_EQ( !emitted_last, this_emit);
     emitted_last = this_emit;
   }
