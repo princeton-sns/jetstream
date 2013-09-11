@@ -83,7 +83,7 @@ GENERIC_CLNAME
 class IntervalSamplingOperator: public CFilterOperator {
 
 public:
-  IntervalSamplingOperator():deg_level(0),max_drops(0) {}
+  IntervalSamplingOperator():cntr(0),deg_level(0),max_drops(0) {}
   
   virtual bool should_emit (const Tuple& t);
   virtual operator_err_t configure (std::map<std::string,std::string> &config);

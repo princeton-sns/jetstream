@@ -125,14 +125,15 @@ IntervalSamplingOperator::should_emit(const jetstream::Tuple &t) {
 
 //  int cur_step = steps.size() - drops_per_keep -1;
   int delta = congest_policy->get_step(id(), steps.data(), steps.size(), deg_level);
-  unsigned drops_per_keep = 0;
+  deg_level += delta;
+
+  unsigned drops_per_keep = steps.size() - deg_level - 1;
   if (delta != 0) {
-    deg_level += delta;
+  
     double drop_fraction;
     if (deg_level == 0)
       drop_fraction = 100;
     else {
-      drops_per_keep = steps.size() - deg_level - 1;
       drop_fraction = 100.0 * drops_per_keep / (drops_per_keep + 1);
     }
     NetCongestionMonitor * mon = dynamic_cast<NetCongestionMonitor*>(congest_policy->get_monitor());
