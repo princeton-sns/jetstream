@@ -16,8 +16,10 @@ PID_DIR=/disk/local/asr_js_logs
 LOGNAME=/disk/local/asr_js_logs/`hostname`-jslog
 fi
 
-echo "Killing any previous run"
-kill `cat ${PID_DIR}/jsnode.pid`
+if [ -f ${PID_DIR}/jsnode.pid ]; then
+  echo "Killing previous run"
+  kill `cat ${PID_DIR}/jsnode.pid`
+fi
 
 echo "logging to ${LOGNAME}; libpath is ${LD_LIBRARY_PATH}"
 CMD="${JS_DIR}/jsnoded --start ${CFG}"
