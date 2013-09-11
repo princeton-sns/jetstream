@@ -17,6 +17,7 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
   
   if (!congest) {
     boost::shared_ptr<OperatorChain> chain = my_chain.lock();
+    LOG(INFO) << "No monitor. Chain is " << chain.get();
     if (chain) {  //might take a while for chain monitor to be ready
                   //if we're pending on a network connection
       congest = chain->congestion_monitor();
