@@ -83,7 +83,7 @@ def traffic_shape_clear(iface):
 def traffic_shape_multi(ifaces, bwidth):
   # Rate must be non-zero
   bwidth = max(bwidth, 1)
-  for iface in ifaces.split():
+  for iface in ifaces.split(","):
     cmd = "tc class replace dev %s parent 1:0 classid 1:10 htb rate %s ceil %s prio 0" % (iface, str(bwidth) + "bps", str(bwidth) + "bps")
     subprocess.call(cmd, shell=True, stderr=subprocess.STDOUT)
 
