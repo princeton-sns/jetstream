@@ -1,24 +1,7 @@
 ---
-# Instructions:
-# 1) install ansible
-# 2) install ssh forward-agent so that you can pass your key along for git
-# 3) add hosts you are working with to ansible_hosts file under [setup] section
-# 4) run the following:
-# safe: ANSIBLE_SSH_ARGS="-o ForwardAgent=yes" ansible-playbook  -i ansible_hosts_vicci config_vicci.yml --connection=ssh -f 1 -u princeton_jetstream
-#
-# also works: ansible-playbook  -i ansible_hosts_vicci config_vicci.yml  -u princeton_jetstream
-#
-#
-# This file checks out and build jetstrem on a host.
-
-
-### download and build js###
 - hosts: workers
-  vars:
-    js_deps: /jetstream/deps
-    js_checkout: /jetstream/js
-    js_data: /jetstream/data
-    num_cores: 24
+  vars_files:
+    - base_vars.yml
   tasks:
   - name: make sure jetstream data dir exists
     file: dest=${js_data} state=directory
