@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUN=911_bigimg
+RUN=911_smallimg_interval
 mkdir $RUN
 scp sns48:/disk/local/asr_jetstream/image_quality.out $RUN/sns48_$RUN.log
 

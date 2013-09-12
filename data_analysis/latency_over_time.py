@@ -68,7 +68,7 @@ def main():
   
   data,counts_by_name = parse_infile(infile)
   data[TDELTA] = get_time_deltas(data['Time'])  
-  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=4), data[TDELTA])]
+  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=2), data[TDELTA])]
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
 

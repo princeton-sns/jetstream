@@ -135,7 +135,7 @@ def main():
     print "Clearing traffic shaping and exiting"
     return
 
-  print "%s: Script starting." % time.ctime()
+#  print "%s: Script starting." % time.ctime()
 
   IFACE = options.iface  #used by signal handler
   signal.signal(signal.SIGINT, exit_gracefully)
@@ -157,7 +157,7 @@ def main():
     bwidthVals.append(fbwidth * 1024)
         
   bwidthVals = [x * options.scale for x in bwidthVals]
-  print "Bandwidths:", bwidthVals
+#  print "Bandwidths:", bwidthVals
 
   # Print statistics about the bandwidth distribution
   if options.stats:
