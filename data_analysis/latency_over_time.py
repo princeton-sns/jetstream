@@ -12,6 +12,7 @@ from numpy import array
 
 OUT_TO_FILE = True
 DATE = True
+EXPERIMENT_TIME = False #plot time from start of experiment, instead of wall time
 
 import matplotlib
 if OUT_TO_FILE:
@@ -67,6 +68,14 @@ def main():
   infile = args[0]
   
   data,counts_by_name = parse_infile(infile)
+  
+  if EXPERIMENT_TIME:
+    t_offset = data['Time'][0] - 5 * 60 * 60 * 1000 #change time zone
+    data['Time'] = [x -t_offset for x in data['Time']]
+  
+  for lat in [LAT_999, MEDIAN_LAT, MY_LAT, LAT_MAX]:
+    data[lat] = [x/1000.0 for x in data[lat]]
+  
   data[TDELTA] = get_time_deltas(data['Time'])  
   data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=2), data[TDELTA])]
   data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
@@ -202,7 +211,7 @@ def plot_data_over_time(data, seriesnames, filename):
   if len(seriesnames) == 1:
     ax.set_ylabel(seriesnames[0], fontsize=22)
   else:
-    ax.set_ylabel("Latency (msec)", fontsize=22)
+    ax.set_ylabel("Latency (sec)", fontsize=22)
 
   ax2.set_ylabel('Bandwidth (mbytes/sec)', fontsize=22)
   ax2.set_ylim( 0, 1.2 * max(bw_series))  
