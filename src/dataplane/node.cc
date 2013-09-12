@@ -701,6 +701,8 @@ Node::establish_congest_policies( const AlterTopo & topo,
       policy->add_operator(toStart[i]);
       shared_ptr<CongestionMonitor> mon = chain->congestion_monitor();
       policy->set_congest_monitor(mon);
+      policy->set_chain(chain);
+      
       boost::shared_ptr<COperator> op = get_operator(toStart[i]);
       op->set_congestion_policy(policy);
       string monitor_name = "undefined";

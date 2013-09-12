@@ -83,7 +83,7 @@ def traffic_shape_clear(iface):
 def traffic_shape_multi(ifaces, bwidth):
   # Rate must be non-zero
   bwidth = max(bwidth, 1)
-  for iface in ifaces.split():
+  for iface in ifaces.split(","):
     cmd = "tc class replace dev %s parent 1:0 classid 1:10 htb rate %s ceil %s prio 0" % (iface, str(bwidth) + "bps", str(bwidth) + "bps")
     subprocess.call(cmd, shell=True, stderr=subprocess.STDOUT)
 
@@ -128,20 +128,19 @@ def main():
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose output", action="store_true", default=False)
   (options, args) = parser.parse_args()
 
-  if options.clear:
-    traffic_shape_clear(options.iface)
+  for iface in options.iface.split(","):
+    traffic_shape_clear(iface)
+    
+  if options.clear or ((options.fname == "") and (options.fbwidth == 0)):
+    print "Clearing traffic shaping and exiting"
     return
 
-  print "%s: Script starting." % time.ctime()
+#  print "%s: Script starting." % time.ctime()
 
   IFACE = options.iface  #used by signal handler
   signal.signal(signal.SIGINT, exit_gracefully)
 
   fbwidth = int(options.fbwidth)
-  if (options.fname == "") and (fbwidth == 0):
-    print "No options specified, so clearing traffic shaping"
-    traffic_shape_clear(options.iface)  
-    sys.exit(0)
 #    errorExit("Error: Must specify a trace file or a fixed bandwidth.")
   interval = int(options.interval)
   simTime = int(options.time)
@@ -158,16 +157,15 @@ def main():
     bwidthVals.append(fbwidth * 1024)
         
   bwidthVals = [x * options.scale for x in bwidthVals]
-  print "Bandwidths:", bwidthVals
+#  print "Bandwidths:", bwidthVals
 
   # Print statistics about the bandwidth distribution
   if options.stats:
    print "\nLink bandwidth statistics (bytes/sec, %d-second intervals)" % (interval)
    print_dist_stats([x for x in bwidthVals])
   
-  # Clear prior rules before and after running
-  for iface in options.iface.split():
-    traffic_shape_clear(iface)
+  
+  for iface in options.iface.split(","):
     traffic_shape_start(iface, port)
 
   # Run the simulation
@@ -193,7 +191,7 @@ def main():
     count += 1
     
     #called if we break out of the loop after reaching simTime
-  for iface in options.iface.split():
+  for iface in options.iface.split(","):
     traffic_shape_clear(iface)
 
 

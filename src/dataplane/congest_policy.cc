@@ -16,11 +16,15 @@ CongestionPolicy::get_step(operator_id_t op, const double* const levels, unsigne
 //  boost::lock_guard<boost::mutex> lock (stateLock);
   
   if (!congest) {
-//    LOG(WARNING) << "no congestion monitor ahead of " << op;
     boost::shared_ptr<OperatorChain> chain = my_chain.lock();
+    LOG(INFO) << "No monitor. Chain is " << chain.get();
     if (chain) {  //might take a while for chain monitor to be ready
                   //if we're pending on a network connection
       congest = chain->congestion_monitor();
+      if (congest)
+        LOG(INFO) << "added new congestion monitor on chain " <<chain->chain_name();
+      else
+        LOG(WARNING) << "still no congestion monitor on chain " <<chain->chain_name();
     }
     
     if (!congest)
