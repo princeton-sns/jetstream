@@ -113,7 +113,9 @@ class Controller (ControllerAPI, JSServer):
     wID = cHandler.cli_addr
 #    logger.info("Marking worker %s:%d as dead due to closed connection" % (wID[0],wID[1]))  #Note not all sockets are with workers. There's also the client.
     with self.stateLock:
-      self.worker_died(wID)
+      if wID in self.workers:
+        logger.info("Deleting worker %s:%d due to connection close" % (wID[0],wID[1]))
+        self.worker_died(wID)
       JSServer.handle_connection_close(self, cHandler)
     
   
@@ -228,7 +230,7 @@ class Controller (ControllerAPI, JSServer):
     """Called when a worker stops heartbeating and should be treated as dead.
     Manipulates the worker list (caller must ensure thread-safety)."""
 
-    if workerConnID in self.workers.keys():
+    if workerConnID in self.workers:
       worker_assignments = self.workers[workerConnID]
       nodeID = worker_assignments.get_dataplane_ep()
       if nodeID in self.nodeID_to_local:
@@ -241,7 +243,7 @@ class Controller (ControllerAPI, JSServer):
       for c in worker_assignments.get_all_cubes():
         self.cube_locations[c.name] = None #cube no longer visible
       del self.workers[workerConnID]
-
+    logger.info("%d nodes in system" % len(self.workers))
     #TODO: Reschedule worker's assignments elsewhere, etc.
 
   
@@ -250,9 +252,9 @@ class Controller (ControllerAPI, JSServer):
     response = None #but might be non-none if there's a reconnect
     with self.stateLock:
       if clientEndpoint not in self.workers:
-        logger.info("Added worker %s; dp addr %s:%d" % 
-            (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno))
         self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+        logger.info("Added worker %s; dp addr %s:%d. %d nodes in system." % \
+          (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno, len(self.workers)))
       node_count = len(self.workers)
       self.workers[clientEndpoint].receive_hb(hb)
       
@@ -270,7 +272,7 @@ class Controller (ControllerAPI, JSServer):
             self.workers[clientEndpoint].add_assignment(a)
 
       if t > self.last_HB_ts:
-        logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
+#        logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
         self.last_HB_ts = t
     return response
 

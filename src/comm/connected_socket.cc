@@ -163,13 +163,14 @@ ConnectedSocket::perform_send (boost::shared_ptr<SerializedMessageOut> msg)
     sending = true;
 
     VLOG(2) << "async send in perform_send" <<endl;
+    
+    mon->report_delete(msg.get(), msg->nbytes);
+
     // Keep hold of message until callback so not cleaned up until sent
     asio::async_write(*sock, 
 		      asio::buffer(msg->msg, msg->nbytes),
 		      sendStrand.wrap(bind(&ConnectedSocket::sent, 
-					    shared_from_this(), msg, _1, _2)));
-    mon->report_delete(msg.get(), msg->nbytes);
-  }
+					    shared_from_this(), msg, _1, _2)));  }
 }
 
 void

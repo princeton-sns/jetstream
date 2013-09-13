@@ -18,14 +18,14 @@ class CWorker (object):
   DEAD = 2
 
   DEFAULT_HB_INTERVAL_SECS = 2
-  # Number of heartbeat intervals of silence before declared dead
-  DEFAULT_HB_DEAD_INTERVALS = 3
+  # Number of seconds of silence before declared dead
+  DEFAULT_HB_TIMEOUT = 30
   
   def __init__ (self, endpoint, hbInterval=DEFAULT_HB_INTERVAL_SECS,
-               hbDeadIntervals=DEFAULT_HB_DEAD_INTERVALS):
+               hbTimeout=DEFAULT_HB_TIMEOUT):
     self.endpoint = endpoint  #this is the OUTGOING endpoint, visible here.
     self.hbInterval = hbInterval
-    self.hbDeadIntervals = hbDeadIntervals
+    self.hbTimeout = hbTimeout
     self.state = CWorker.DEAD
     self.lastHeard = 0
     self.lastHB = None
@@ -41,7 +41,7 @@ class CWorker (object):
 
   def update_state (self):
     t = long(time.time())
-    if t - self.lastHeard > long(self.hbInterval * self.hbDeadIntervals):
+    if t - self.lastHeard > self.hbTimeout:
       self.state = CWorker.DEAD
     return self.state
 

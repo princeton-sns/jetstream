@@ -116,10 +116,10 @@ def main():
     print "can't run, no [non-union] nodes"
     sys.exit(0) 
     
-
   union_cube = define_internal_cube (g, "union_cube", union_node)
-  for op in ops:
-    g.connect(op, union_cube)
+
+  g.agg_tree(ops, union_cube)
+
   if options.bw_cap:
     union_cube.set_inlink_bwcap(float(options.bw_cap))
 
@@ -156,7 +156,7 @@ def src_to_quant(g, raw_cube_sub, node, options):
     pull_from_local.set_cfg("start_ts", options.start_ts)
   pull_from_local.set_cfg("window_offset", 2000)
   
-  g.chain( [raw_cube_sub, project, to_summary1, to_summary2, local_cube, pull_from_local] )
+  g.chain([raw_cube_sub, project, to_summary1, to_summary2, local_cube, pull_from_local] )
   return pull_from_local
 
 

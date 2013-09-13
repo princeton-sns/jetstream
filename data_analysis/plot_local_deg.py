@@ -8,6 +8,8 @@ from optparse import OptionParser
 
 OUT_TO_FILE = True
 X_AXIS_WITH_DATES = True
+EXPERIMENT_TIME = True #plot time from start of experiment, instead of wall time
+
 
 import matplotlib
 if OUT_TO_FILE:
@@ -24,6 +26,9 @@ def main():
   parser = OptionParser()
   parser.add_option("-o", "--output", dest="out_dir",
                   help="output directory name", default="")
+  parser.add_option("-e", "--etime", dest="experiment_time", action="store_true",
+                  help="experiment starts at t = 0", default=False)
+                  
   (options, args) = parser.parse_args()
 
   out_dir = options.out_dir
@@ -46,7 +51,14 @@ def main():
     print "Data series ends at %s" % time.ctime(data[TIME][-1])
     avg_time_at_level = series_timelen / float(len(data[TIME]))
     print "Average time-at-level %0.2f secs" % (avg_time_at_level)
+
+    if options.experiment_time:
+      t_offset = data[TIME][0] - 5 * 60 * 60 #change time zone
+      data[TIME] = [x -t_offset for x in data[TIME]]    
+    
     data[TIME], data[LEVEL] = flatten_lines(data[TIME], data[LEVEL])
+
+        
     plot_series(data, LEVEL, out_dir + "local_deg_" + suffix + ".pdf")
   print_bottlenecks(bottlenecks)
 

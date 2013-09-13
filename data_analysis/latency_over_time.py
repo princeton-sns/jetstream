@@ -12,7 +12,6 @@ from numpy import array
 
 OUT_TO_FILE = True
 DATE = True
-EXPERIMENT_TIME = False #plot time from start of experiment, instead of wall time
 
 import matplotlib
 if OUT_TO_FILE:
@@ -22,8 +21,6 @@ import matplotlib.dates as mdates
 
 #    matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
-
-
 
 
 MEDIAN_LAT = "Median"
@@ -55,10 +52,12 @@ FIELDS_TO_PLOT = {
  
 
 def main():
-
   parser = OptionParser()
   parser.add_option("-o", "--output", dest="out_dir",
                   help="output directory name", default="")
+  parser.add_option("-e", "--etime", dest="experiment_time", action="store_true",
+                  help="experiment starts at t = 0", default=False)
+                  
   (options, args) = parser.parse_args()
 
   out_dir = options.out_dir
@@ -69,7 +68,7 @@ def main():
   
   data,counts_by_name = parse_infile(infile)
   
-  if EXPERIMENT_TIME:
+  if options.experiment_time:
     t_offset = data['Time'][0] - 5 * 60 * 60 * 1000 #change time zone
     data['Time'] = [x -t_offset for x in data['Time']]
   
