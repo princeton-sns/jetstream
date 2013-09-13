@@ -327,12 +327,12 @@ ImageQualityReporter::configure(std::map<std::string,std::string> &config) {
 
 void
 ImageQualityReporter::chain_stopping(OperatorChain * ) {
-
+  boost::unique_lock<boost::mutex> l(mutex);
+  out_stream ->flush();
   LOG(INFO) << "Stopping chain with image quality reporter; chain count is " << chains;
   if (chains == 1) {
     running = false;
     timer->cancel();
-    out_stream ->flush();
     LOG(INFO) << "stopped";
   } else
     chains --;
