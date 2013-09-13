@@ -30,8 +30,9 @@ MULTI_LEVEL = False
 #  NOTES
 #  Raw cube uses source timestamps.
 # We then apply a time-warp operator and all other cubes use warped timestamps.
+# Should probably specify a start time. For our coral logs, --start-ts=1371163421
 
-MODE_LIST = "quantiles, domains, slow_reqs"
+MODE_LIST = "quantiles, domains, urls, slow_reqs, bad_domains"
 
 def main():
 
@@ -49,7 +50,7 @@ def main():
       sys.exit(0)
   else:
     if len(args) == 0:
-      print "Must specify a mode."
+      print "Must specify a mode. Should be one of %s" % MODE_LIST
       sys.exit(0)
     mode = args[0]
   
@@ -93,9 +94,6 @@ def main():
   ops = []
   union_node = find_root_node(options, all_nodes)
 
-# TODO: refactor the below as
-#  build_hierarchy(g, define_internal_cube, src_to_internal, options)
-
   for node in all_nodes:
     if node == union_node and not options.generate_at_union:
       continue
@@ -118,7 +116,7 @@ def main():
     
   union_cube = define_internal_cube (g, "union_cube", union_node)
 
-  g.agg_tree(ops, union_cube)
+  g.agg_tree(ops, union_cube, start_ts =options.start_ts, sim_rate=options.warp_factor)
 
   if options.bw_cap:
     union_cube.set_inlink_bwcap(float(options.bw_cap))
@@ -131,7 +129,7 @@ def main():
     pull_q.set_cfg("start_ts", options.start_ts)
   pull_q.set_cfg("rollup_levels", final_rollup_levels)
   pull_q.set_cfg("simulation_rate", options.warp_factor)
-  pull_q.set_cfg("window_offset", 4* 1000) #...trailing by a few
+  pull_q.set_cfg("window_offset", 8* 1000) #...trailing by a few
 
   g.connect(union_cube, pull_q)
   last_op = process_results(g, pull_q)  
@@ -147,17 +145,16 @@ def src_to_quant(g, raw_cube_sub, node, options):
   to_summary1 = jsapi.ToSummary(g, field=2, size=5000)
   to_summary2 = jsapi.ToSummary(g, field=3, size=5000)
   project = jsapi.Project(g, field=2)
-  local_cube = quant_cube(g, "summarized_local", node)
-  query_rate = 1000
-  pull_from_local = jsapi.TimeSubscriber(g, filter={}, interval=query_rate)
-  pull_from_local.set_cfg("ts_field", 0)
-  if options.start_ts:
-    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
-    pull_from_local.set_cfg("start_ts", options.start_ts)
-  pull_from_local.set_cfg("window_offset", 2000)
+#  local_cube = quant_cube(g, "summarized_local", node)
+#  query_rate = 1000
+#  pull_from_local = jsapi.TimeSubscriber(g, filter={}, interval=query_rate)
+#  pull_from_local.set_cfg("ts_field", 0)
+#  if options.start_ts:
+#    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
+#    pull_from_local.set_cfg("start_ts", options.start_ts)
+#  pull_from_local.set_cfg("window_offset", 2000)
   
-  g.chain([raw_cube_sub, project, to_summary1, to_summary2, local_cube, pull_from_local] )
-  return pull_from_local
+  return g.chain([raw_cube_sub, project, to_summary1, to_summary2] )
 
 
 def quant_cube(g, cube_name, cube_node):  

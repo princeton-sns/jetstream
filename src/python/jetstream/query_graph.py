@@ -270,7 +270,8 @@ class QueryGraph(object):
 ###### Agg tree builder ##########
 
 
-  def agg_tree(self, src_list, union_cube, region_list = None, subscriber_interval=2000):
+  def agg_tree(self, src_list, union_cube, region_list = None, subscriber_interval=2000,\
+    sim_rate=0, start_ts=None, ts_field=0):
     """Preconditions: The sources should be pinned.
    Postcondition: extra cubes have been added to build an aggregation tree
 """  
@@ -280,10 +281,12 @@ class QueryGraph(object):
       local_cube.instantiate_on(src.location())
       local_cube.name = local_cube.name + "_local"
       sub = TimeSubscriber(self, filter={}, interval=subscriber_interval)
-      sub.set_cfg("window_offset", 2* 1000) #...trailing by a few
-#      sub.set_cfg("simulation_rate", options.warp_factor)
-#      sub.set_cfg("ts_field", 0)
-#      sub.set_cfg("start_ts", options.start_ts)
+      sub.set_cfg("window_offset", 5* 1000) #...trailing by a few
+      sub.set_cfg("ts_field", ts_field)
+
+      if sim_rate != 0:
+        sub.set_cfg("simulation_rate", sim_rate)
+        sub.set_cfg("start_ts", start_ts)
         #TODO offset
       self.chain([src, local_cube, sub])
       ops.append(sub)  
@@ -306,11 +309,11 @@ class QueryGraph(object):
       ops = []
       for cube in cube_in_r.values():
         sub = TimeSubscriber(self, filter={}, interval=subscriber_interval)
-        sub.set_cfg("window_offset", 2* 1000) #...trailing by a few
-  #      sub.set_cfg("simulation_rate", options.warp_factor)
-  #      sub.set_cfg("ts_field", 0)
-  #      sub.set_cfg("start_ts", options.start_ts)
-          #TODO offset
+        sub.set_cfg("window_offset", 10* 1000) #...trailing by a few
+        sub.set_cfg("ts_field", ts_field)      
+        if sim_rate is not None:
+          sub.set_cfg("simulation_rate", sim_rate)
+          sub.set_cfg("start_ts", start_ts)          #TODO offset
         g.connect(cube, sub)
         ops.append(sub)      
         

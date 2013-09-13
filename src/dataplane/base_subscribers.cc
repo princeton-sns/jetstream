@@ -174,7 +174,7 @@ TimeBasedSubscriber::post_insert(boost::shared_ptr<jetstream::Tuple> const &upda
       <<" Process q: "<< cube->process_congestion_monitor()->queue_length();
 
     if (tuple_time < next_window_start_time) {
-      LOG_EVERY_N(INFO, 1001) << id() << "DANGEROUS CASE (every 1001): tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time 
+      LOG_EVERY_N(INFO, 5) << id() << "DANGEROUS CASE (every 5): tuple was supposed to be insert but is actually a backfill. Tuple time: "<< tuple_time
         << ". Next window: " << next_window_start_time << ". Diff: "<< (next_window_start_time-tuple_time)
         <<" Window Offset(s): "<< get_window_offset_sec() << " Process q: "<< cube->process_congestion_monitor()->queue_length();
 
@@ -352,14 +352,17 @@ TimeBasedSubscriber::update_backfill_stats(int elems) {
   VLOG(1) << id() << " read " << elems << " tuples from cube. Total backfill: " << backfill_tuples << " Total regular: "<<regular_tuples;
 }
 
-    
+  
 
 shared_ptr<FlushInfo>
 TimeBasedSubscriber::incoming_meta(const OperatorChain& c,
                                    const DataplaneMessage& msg) {
-  if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_timestamp()) {
+  if (msg.type() == DataplaneMessage::END_OF_WINDOW && msg.has_window_end()) {
       unique_lock<boost::mutex> lock(stateLock);
-      times[&c] = std::max( time_t(msg.timestamp()/(1000 * 1000)), times[&c]);
+      time_t t =  times.count(&c) > 0 ? times[&c] : 0;
+      time_t msg_ts = time_t(msg.window_end());
+//      LOG(INFO) << "End-of-window timestampped " << msg_ts << " ( "  << (tt->now() - msg_ts) << " secs ago)";
+      times[&c] = std::max( msg_ts, t);
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {
       unique_lock<boost::mutex> lock(stateLock);
       times.erase(&c);
@@ -388,7 +391,7 @@ TimeBasedSubscriber::emit_batch() {
         min_window_seen = std::min(min_window_seen, it->second);
         it++;
       }
-      VLOG_IF(1, newMax != min_window_seen) << "Subscriber " << id_as_str() <<" on "
+      VLOG_IF(1,newMax < min_window_seen) << "Subscriber " << id_as_str() <<" on "
          << cube->id_as_str() << " has some end markers; fast-forwarding from " <<
         newMax <<" to "<< min_window_seen;
       
@@ -414,7 +417,7 @@ TimeBasedSubscriber::post_flush(unsigned newMax) {
   end_msg.set_type(DataplaneMessage::END_OF_WINDOW);
 
   if (newMax > 0) {
-    end_msg.set_timestamp( newMax * usec_t(1000 * 1000) );
+    end_msg.set_window_end( newMax ); //timestamp is last time inside window, in usec
     querier.max.mutable_e(ts_field)->set_t_val(newMax);
     VLOG(1) << id() << "Updated query times to "<< ts_to_str(next_window_start_time)
       << "-" << ts_to_str(newMax);

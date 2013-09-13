@@ -37,6 +37,7 @@ class SubscriberTest : public ::testing::Test {
     NodeConfig cfg;
     boost::system::error_code error;
     cfg.thread_pool_size = 3;
+    cfg.cube_processor_threads = 4;
     node = new Node(cfg, error);
     node->start();
     ASSERT_TRUE(error == 0);
@@ -276,7 +277,7 @@ TEST_F(SubscriberTest,TimeSubscriberLowLatency) {
     
     DataplaneMessage window_marker;
     window_marker.set_type(DataplaneMessage::END_OF_WINDOW);
-    window_marker.set_timestamp( usec_t(1000 * 1000) * time(NULL));
+    window_marker.set_window_end(time(NULL));
     std::vector< boost::shared_ptr<Tuple> > no_tuples;
     OperatorChain chain;
     cube->process(&chain, no_tuples, window_marker);
