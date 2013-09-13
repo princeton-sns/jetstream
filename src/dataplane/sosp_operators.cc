@@ -331,6 +331,7 @@ ImageQualityReporter::chain_stopping(OperatorChain * ) {
   out_stream ->flush();
   LOG(INFO) << "Stopping chain with image quality reporter; chain count is " << chains;
   if (chains == 1) {
+    dynamic_cast<std::ofstream*>(out_stream)->close();
     running = false;
     timer->cancel();
     LOG(INFO) << "stopped";
