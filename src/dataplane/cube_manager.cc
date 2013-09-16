@@ -20,9 +20,22 @@ CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
 }
 
 
+inline std::string to_canonical(const string& raw_name) {
+  int slashpos = raw_name.find('/');
+  string name;
+  if ( slashpos != string::npos)
+    name = raw_name.substr (slashpos+1);
+  else
+    name = raw_name;
+  return name;
+}
+
+
 boost::shared_ptr<DataCube>
-CubeManager::get_cube (const std::string &name)
+CubeManager::get_cube (const std::string &raw_name)
 {
+  string name = to_canonical(raw_name);
+
   boost::lock_guard<boost::mutex> lock (mapMutex);
   if (cubeMap.count(name) > 0)
     return cubeMap[name];
@@ -31,18 +44,12 @@ CubeManager::get_cube (const std::string &name)
     return c;
   }
 }
-
 boost::shared_ptr<DataCube>
 CubeManager::create_cube ( const std::string &raw_name,
                            const CubeSchema &schema,
                            bool overwrite_if_present) {
 
-  int slashpos = raw_name.find('/');
-  string name;
-  if ( slashpos != string::npos)
-    name = raw_name.substr (slashpos);
-  else
-    name = raw_name;
+  string name = to_canonical(raw_name);
 
   static const boost::regex NAME_PAT("[a-zA-Z0-9_]+$");
   boost::lock_guard<boost::mutex> lock (mapMutex);
@@ -84,8 +91,9 @@ CubeManager::create_cube ( const std::string &raw_name,
 }
 
 void
-CubeManager::destroy_cube (const std::string &name)
+CubeManager::destroy_cube (const std::string &raw_name)
 {
+  string name = to_canonical(raw_name);
   boost::lock_guard<boost::mutex> lock (mapMutex);
   cubeMap[name]->mark_as_deleted();
   cubeMap.erase(name);
