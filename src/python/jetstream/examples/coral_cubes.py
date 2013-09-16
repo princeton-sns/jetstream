@@ -36,7 +36,8 @@ def main():
 def get_graph(node, options):
   g= jsapi.QueryGraph()
 
-  start_ts = parse_ts(options.start_ts)
+#we don't use this here
+#  start_ts = parse_ts(options.start_ts)
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
      coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
