@@ -65,7 +65,7 @@ class QueryPlanner (object):
     return ""
   
 
-  CUBE_NAME_PAT = re.compile("[a-zA-Z0-9_]+$")
+  CUBE_NAME_PAT = re.compile("([0-9]+/)?[a-zA-Z0-9_]+$")
   def validate_raw_topo (self,altertopo):
     """Validates a topology. Should return an empty string if valid, else an error message."""
 
@@ -93,10 +93,10 @@ class QueryPlanner (object):
       if len(cube.schema.dimensions) == 0:
         return "Cubes must have at least one dimension"
       if cube.name in pinnedCubes:
-        if cube.name in pinnedCubes and pinnedCubes[cube.name] and cube.HasField("site"):
-          print "Cube %s was defined more than once. This is not fatal." % (cube.name)
-        else:
-          return "Cube %s is defined more than once and not pinned at each" % cube.name
+#        if cube.name in pinnedCubes and pinnedCubes[cube.name] and cube.HasField("site"):
+#          print "Cube %s was defined more than once. This is not fatal." % (cube.name)
+#        else:
+          return "Cube %s is defined more than once." % cube.name
       else:
         pinnedCubes[cube.name] = cube.HasField("site")
       validIDs.add(cube.name)
@@ -145,7 +145,6 @@ class QueryPlanner (object):
     toPin = []
     toPin.extend(self.alter.toStart)
     toPin.extend(self.alter.toCreate)
-    multiplyDefinedCubes = set({})
     for gNode in toPin:
       workerID = None
       if gNode.site.address != '':
@@ -165,15 +164,7 @@ class QueryPlanner (object):
       if workerID not in assignments:
         assignments[workerID] = WorkerAssignment(compID)
       assignments[workerID].add_node(gNode)
-      
-      id = get_oid(gNode)
-      if id in multiplyDefinedCubes:
-        continue
-      if id in taskToWorker:
-        del taskToWorker[id]
-        multiplyDefinedCubes.add(id)
-      else:
-        taskToWorker[id] = workerID
+      taskToWorker[get_oid(gNode)] = workerID
     
     # Find the first global union node, aka the LCA of all sources.
     #TODO:SOSP: USE THE SINK'S LOCATION AS THE DEFAULT FOR THE UNION NODE.
@@ -217,20 +208,17 @@ class QueryPlanner (object):
       workerID = taskToWorker[edge.src] if edge.HasField("src") else taskToWorker[edge.dest] 
       # If an edge lacks a src, then it's from a cube, and has a dest.
       # Since cube names can be ambiguous, we use the subscriber's location in that case.
-      
-      if not edge.HasField("dest_addr"):
-        if edge.HasField("dest"):
-          destWorkerID = taskToWorker[edge.dest]
-        else:  #by default, edges to cubes go to the local cube
-          assert( edge.HasField("dest_cube"))
-          destWorkerID =  taskToWorker.get(edge.dest_cube, workerID)
-#         taskToWorker[edge.dest_cube]
+      if edge.HasField("dest") or edge.HasField("dest_cube"):
+        destWorkerID = taskToWorker[edge.dest] if edge.HasField("dest") else taskToWorker[edge.dest_cube]
         # If the source/dest workers are different, this is a remote edge
         if destWorkerID != workerID:
           # Use the dataplane location of the destination worker
           destLoc = self.workerLocs[destWorkerID]
           edge.dest_addr.address = destLoc[0]
           edge.dest_addr.portno = destLoc[1]
+      else:
+        # This is an external edge that has its own destination endpoint information
+        assert(edge.HasField("dest_addr"))
     
       assignments[workerID].add_edge(edge)
 

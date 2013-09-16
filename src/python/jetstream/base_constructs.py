@@ -152,7 +152,7 @@ class Cube(Destination):
 
   def add_to_PB(self, alter):
     c_meta = alter.toCreate.add()
-    c_meta.name = self.name
+    c_meta.name = self.qualified_name()
     if self._location is not None:
       c_meta.site.CopyFrom(self._location)
 
@@ -179,6 +179,9 @@ class Cube(Destination):
     else:
       return self.name
 
+  def qualified_name(self):
+    return "%d/%s" % (self.id, self.name)
+    
     # maps from a dimension-type to a typecode. Note that dimensions can't be blobs
   typecode_for_dname = {Dimension.STRING: 'S', Dimension.INT32: 'I',
       Dimension.DOUBLE: 'D', Dimension.TIME: 'T', Dimension.TIME_CONTAINMENT: 'T'} #,  Element.BLOB: 'B' Element.TIME_HIERARCHY: 'H'}

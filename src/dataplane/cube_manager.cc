@@ -33,9 +33,16 @@ CubeManager::get_cube (const std::string &name)
 }
 
 boost::shared_ptr<DataCube>
-CubeManager::create_cube ( const std::string &name,
+CubeManager::create_cube ( const std::string &raw_name,
                            const CubeSchema &schema,
                            bool overwrite_if_present) {
+
+  int slashpos = raw_name.find('/');
+  string name;
+  if ( slashpos != string::npos)
+    name = raw_name.substr (slashpos);
+  else
+    name = raw_name;
 
   static const boost::regex NAME_PAT("[a-zA-Z0-9_]+$");
   boost::lock_guard<boost::mutex> lock (mapMutex);

@@ -137,8 +137,8 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(plan), 1)
     self.assertEquals(len(plan[dummyNode].operators), 1)
 
-  def test_2node_plan(self):
-
+  def test_2op_plan(self):
+    """This test creates an operator and a cube, attached."""
     dummyNode = ("host",123)
     planner = QueryPlanner( {dummyNode:dummyNode} )
 
@@ -157,7 +157,7 @@ class TestQueryPlanner(unittest.TestCase):
 
     err = planner.take_raw_topo(req.alter[0]).lower()
     if len(err) > 0:
-      print err
+      print "Test yielded unexpected error:",err
     self.assertEquals(len(err), 0)
     
     plan = planner.get_assignments(1)
@@ -337,10 +337,10 @@ class TestQueryPlanner(unittest.TestCase):
     node1Plan = plan[dummyNode1]
     node2Plan = plan[dummyNode2]
     self.assertEquals(len(node1Plan.cubes), 1)
-    self.assertEquals(node1Plan.cubes[0].name, remoteCube.name)
+    self.assertTrue(node1Plan.cubes[0].name.endswith(remoteCube.name))
     self.assertEquals(len(node1Plan.operators), 0)
     self.assertEquals(len(node2Plan.cubes), 1)
-    self.assertEquals(node2Plan.cubes[0].name, localCube.name)
+    self.assertTrue(node2Plan.cubes[0].name.endswith(localCube.name))
     self.assertEquals(len(node2Plan.operators), 4)
 
     # Pin source (src), source cube (localCube), and sink (remoteCube): regardless of where
@@ -354,7 +354,7 @@ class TestQueryPlanner(unittest.TestCase):
     self.assertEquals(len(plan), 3)
     node3Plan = plan[dummyNode3]
     self.assertEquals(len(node3Plan.cubes), 1)
-    self.assertEquals(node3Plan.cubes[0].name, localCube.name)
+    self.assertTrue(node3Plan.cubes[0].name.endswith(localCube.name))
     self.assertEquals(len(node3Plan.operators), 3)
     # In particular, the cube subscriber should be on the same node as the cube!
     pb3 = node3Plan.get_pb().alter[0]

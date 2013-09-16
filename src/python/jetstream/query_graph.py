@@ -120,7 +120,7 @@ class QueryGraph(object):
       if e[0] in self.operators:
         pb_e.src = e[0]
       else:
-        pb_e.src_cube=self.cubes[e[0]].name
+        pb_e.src_cube=self.cubes[e[0]].qualified_name()
 
       if e[1] in self.operators:
         pb_e.dest = e[1]
@@ -130,7 +130,7 @@ class QueryGraph(object):
           print "operators:",self.operators
           print "cubes:",self.cubes
         assert(e[1] in self.cubes)
-        pb_e.dest_cube = self.cubes[e[1]].name
+        pb_e.dest_cube = self.cubes[e[1]].qualified_name()
     for p in self.policies:    
       print "policy:", p
       pb_policy = alter.congest_policies.add()
