@@ -283,6 +283,7 @@ class QueryGraph(object):
       sub = TimeSubscriber(self, filter={}, interval=subscriber_interval)
       sub.set_cfg("window_offset", 5* 1000) #...trailing by a few
       sub.set_cfg("ts_field", ts_field)
+      sub.instantiate_on(src.location())      
 
       if sim_rate != 0:
         sub.set_cfg("simulation_rate", sim_rate)

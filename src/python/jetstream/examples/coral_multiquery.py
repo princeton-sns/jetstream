@@ -186,14 +186,6 @@ def url_cube(g, cube_name, cube_node):
 #  return cube
 
 def src_to_url(g, data_src, node, options):
-  raw_cube_sub = data_src.pred_list()[0]
-  raw_cube_sub.type = OpType.VAR_TIME_SUBSCRIBE
-  raw_cube_sub.set_cfg("max_window_size", options.max_rollup) 
-  raw_cube_sub.set_cfg("sort_order", "-count")
-
-#  project = jsapi.Project(g, field=2)  #drop response codes?
-#  g.chain([raw_cube_sub, project])
-#  return project
   return data_src
 
 

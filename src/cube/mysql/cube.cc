@@ -19,8 +19,9 @@ jetstream::cube::MysqlCube::MysqlCube (jetstream::CubeSchema const _schema,
   DataCubeImpl<MysqlDimension, MysqlAggregate>(_schema, _name, conf) {
 
   init_connection();
-  LOG(INFO) << "creating cube " << db_name << "." << name <<
-            (delete_if_exists ? " and deleting prior contents": ".");
+  LOG(INFO) << "creating cube " << db_name << "." << name << " with " << conf.cube_processor_threads
+      << " threads." <<
+            (delete_if_exists ? " Deleting prior contents.": "");
 
   if (delete_if_exists) {
     destroy();

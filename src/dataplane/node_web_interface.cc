@@ -29,7 +29,7 @@ NodeWebInterface::start ()
     mongoose_ctxt = mg_start(process_req, this, mg_config);
     //FIXME: iscube_iter safe for cfg to go out of scope here?
     if (mongoose_ctxt != 0)
-      LOG(INFO) << "Web server on port " << mg_get_option(mongoose_ctxt, "listening_ports") << " of ";
+      LOG(INFO) << "Web server on " << mg_get_option(mongoose_ctxt, "listening_ports");
     else
       LOG(WARNING) << "couldn't start web interface on " << port_as_str;
   }

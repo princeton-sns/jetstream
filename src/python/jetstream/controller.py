@@ -33,6 +33,7 @@ from optparse import OptionParser
 #Could use ArgParse instead, but it's 2.7+ only.
 
 RESTART_FAILED_WORK = False
+DEFAULT_HB_CHECK_INTERVAL_SECS = 10
 
 NOSECTION = 'nosection'
 class FakeSecHead(object):
@@ -88,10 +89,11 @@ def get_server_on_this_node (endpoint_i = "", bind_port = DEFAULT_BIND_PORT):
   return server
 
 
+
 class Controller (ControllerAPI, JSServer):
   """A JetStream controller"""
   
-  def __init__ (self, addr, hbInterval=CWorker.DEFAULT_HB_INTERVAL_SECS):
+  def __init__ (self, addr, hbInterval=DEFAULT_HB_CHECK_INTERVAL_SECS):
     JSServer.__init__(self, addr)
     self.workers = {}  # maps workerID = (hostid, port) -> CWorker. host and port are those visible HERE, NOT the nodeID
     self.nodeID_to_local = {}
@@ -99,14 +101,13 @@ class Controller (ControllerAPI, JSServer):
     self.cube_locations = {} #maps cube name to node ID. Only listed after cube create is
       # acknowledged. Note this is NODE ID, not local port!
     self.pending_work = {} #maps nodeID to an assignment.
-    self.hbInterval = hbInterval
+    self.hbCheckInterval = hbInterval
     self.running = False
     self.livenessThread = None
     
     # Given GIL, coarse-grained locking should be sufficient
     self.stateLock = threading.RLock()
     self.nextCompID = 1
-    self.last_HB_ts = 0 # we only print one HB per second
 
   def handle_connection_close (self, cHandler):
     """Overrides parent class method."""
@@ -187,7 +188,7 @@ class Controller (ControllerAPI, JSServer):
             self.worker_died(wID)
       # All workers reporting to a controller should have the same hb interval
       # (enforced via common config file)
-      time.sleep(self.hbInterval)
+      time.sleep(self.hbCheckInterval)
 
 
 
@@ -252,7 +253,7 @@ class Controller (ControllerAPI, JSServer):
     response = None #but might be non-none if there's a reconnect
     with self.stateLock:
       if clientEndpoint not in self.workers:
-        self.workers[clientEndpoint] = CWorker(clientEndpoint, self.hbInterval)
+        self.workers[clientEndpoint] = CWorker(clientEndpoint)
         logger.info("Added worker %s; dp addr %s:%d. %d nodes in system." % \
           (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno, len(self.workers)))
       node_count = len(self.workers)
@@ -271,9 +272,6 @@ class Controller (ControllerAPI, JSServer):
             a.fillin_alter(response.alter.add())
             self.workers[clientEndpoint].add_assignment(a)
 
-      if t > self.last_HB_ts:
-#        logger.info("got heartbeat from sender %s. %d nodes in system" % ( str(clientEndpoint), node_count))
-        self.last_HB_ts = t
     return response
 
 
@@ -397,8 +395,6 @@ class Controller (ControllerAPI, JSServer):
       response.error_msg.msg = "No such computation %d" % comp_to_stop
       return
       
-      
-    print self.computations[comp_to_stop].workerAssignments
     for nodeID in self.computations[comp_to_stop].workers_in_use():
       if nodeID in self.nodeID_to_local:
         worker = self.nodeID_to_local[nodeID]
@@ -406,7 +402,7 @@ class Controller (ControllerAPI, JSServer):
         h.send_pb(req)         #we can re-use the existing stop message
         self.workers[worker].cleanup_computation(comp_to_stop)
       else:
-        print "can't stop computation %d on %s:%d: not connected." % (comp_to_stop, nodeID[0], nodeID[1])
+        logger.warning("can't stop computation %d on %s:%d: not connected." % (comp_to_stop, nodeID[0], nodeID[1]))
         
     #TODO    what about pending operators?
         

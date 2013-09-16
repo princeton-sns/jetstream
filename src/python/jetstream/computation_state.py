@@ -17,14 +17,13 @@ class CWorker (object):
   ALIVE = 1
   DEAD = 2
 
-  DEFAULT_HB_INTERVAL_SECS = 2
   # Number of seconds of silence before declared dead
-  DEFAULT_HB_TIMEOUT = 30
+  DEFAULT_HB_TIMEOUT = 30 #seconds
+  DEFAULT_HB_INTERVAL_SECS = 3 #For unit tests
+
   
-  def __init__ (self, endpoint, hbInterval=DEFAULT_HB_INTERVAL_SECS,
-               hbTimeout=DEFAULT_HB_TIMEOUT):
+  def __init__ (self, endpoint, hbTimeout=DEFAULT_HB_TIMEOUT):
     self.endpoint = endpoint  #this is the OUTGOING endpoint, visible here.
-    self.hbInterval = hbInterval
     self.hbTimeout = hbTimeout
     self.state = CWorker.DEAD
     self.lastHeard = 0
