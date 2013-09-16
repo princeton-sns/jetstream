@@ -49,11 +49,7 @@ def get_graph(node, options):
   round.set_cfg("wait_for_catch_up", "false")
   f.instantiate_on(node)
   
-  local_raw_cube = g.add_cube("local_records")
-  local_raw_cube.instantiate_on(node)
-  local_raw_cube.set_overwrite(True)
-  
-  define_schema_for_raw_cube(local_raw_cube, parsed_field_offsets)
+  local_raw_cube = define_raw_cube(g, "local_records", node, parsed_field_offsets, True)
   if not options.full_url:
     url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
     g.chain( [f, csvp, round, url_to_dom, local_raw_cube] )
