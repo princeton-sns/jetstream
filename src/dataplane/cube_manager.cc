@@ -21,7 +21,7 @@ CubeManager::CubeManager (const NodeConfig &conf): config(conf) {
 
 
 inline std::string to_canonical(const string& raw_name) {
-  int slashpos = raw_name.find('/');
+  size_t slashpos = raw_name.find('/');
   string name;
   if ( slashpos != string::npos)
     name = raw_name.substr (slashpos+1);
