@@ -30,7 +30,7 @@ MULTI_LEVEL = False
 #  NOTES
 #  Raw cube uses source timestamps.
 # We then apply a time-warp operator and all other cubes use warped timestamps.
-# Should probably specify a start time. For our coral logs, --start-ts=1371163421
+# Should probably specify a start time. For our coral logs, --start-ts=1379306270
 
 MODE_LIST = "quantiles, domains, urls, slow_reqs, bad_domains"
 
@@ -135,6 +135,7 @@ def main():
   last_op = process_results(g, pull_q)  
 
   echo = jsapi.Echo(g)
+  echo.instantiate_on(union_node)
   g.connect(last_op, echo)
     
   deploy_or_dummy(options, server, g)
@@ -179,7 +180,7 @@ def process_quant(g, union_sub):
 
 
 def url_cube(g, cube_name, cube_node):  
-  return define_raw_cube(g, "url_intermed", cube_node, overwrite=True)
+  return define_raw_cube(g, cube_name, cube_node, overwrite=True)
 #  cube = g.add_cube(cube_name)
 #  cube.instantiate_on(cube_node)
 #  cube.set_overwrite(True)
@@ -188,9 +189,7 @@ def url_cube(g, cube_name, cube_node):
 def src_to_url(g, data_src, node, options):
   return data_src
 
-
 def src_to_domain(g, data_src, node, options):
-  data_src = src_to_url(g, data_src, node, options)
   url2dom = jsapi.URLToDomain(g, 2)
   g.chain([data_src, url2dom])
   return url2dom

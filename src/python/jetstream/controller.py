@@ -291,6 +291,7 @@ class Controller (ControllerAPI, JSServer):
     
     workerLocations = dict([ (wID, w.get_dataplane_ep() ) for (wID, w) in self.workers.items() ])
     planner = QueryPlanner(workerLocations)  # these should be the dataplane addresses
+        #since they get used for DP connections
     err = planner.take_raw_topo(altertopo)
     try:
       assignments = planner.get_assignments(compID)

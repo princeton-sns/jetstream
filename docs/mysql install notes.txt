@@ -41,3 +41,13 @@ sudo service mysql restart
 
 on SNS logs are in:
  /var/log/mysql/error.log
+
+
+To see if database works:
+use test_cube;
+
+describe test_cube.local_records;
+SELECT count(*) from test_cube.local_records
+
+select * from test_cube.local_records order by time_start limit 10;
+
