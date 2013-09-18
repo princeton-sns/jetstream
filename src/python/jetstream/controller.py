@@ -253,17 +253,20 @@ class Controller (ControllerAPI, JSServer):
     response = None #but might be non-none if there's a reconnect
     with self.stateLock:
       if clientEndpoint not in self.workers:
-        self.workers[clientEndpoint] = CWorker(clientEndpoint)
+        worker = CWorker(clientEndpoint)
+        self.workers[clientEndpoint] = worker
         logger.info("Added worker %s; dp addr %s:%d. %d nodes in system." % \
           (str(clientEndpoint), hb.dataplane_addr.address, hb.dataplane_addr.portno, len(self.workers)))
-      node_count = len(self.workers)
-      self.workers[clientEndpoint].receive_hb(hb)
+        worker.receive_hb(hb)
+        self.nodeID_to_local[worker.get_dataplane_ep()] = clientEndpoint
+      else:
+        self.workers[clientEndpoint].receive_hb(hb)
       
       id_as_tuple = (hb.dataplane_addr.address, hb.dataplane_addr.portno)
-
-      self.nodeID_to_local[id_as_tuple] = clientEndpoint
+            # get_dataplane_ep()
       
-      if id_as_tuple in self.pending_work:
+      
+      if self.workers[clientEndpoint].get_dataplane_ep() in self.pending_work:
         prevAssignments = self.pending_work[id_as_tuple]
         if len(prevAssignments.assignments) > 0:
           response = ControlMessage()
