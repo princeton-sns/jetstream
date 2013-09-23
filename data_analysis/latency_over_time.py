@@ -30,7 +30,7 @@ GLOBAL_DEVIATION = "BW-deviation"
 IMAGE_COUNT = "Images per period"
 COEF_VAR = "Coefficient of variation"
 TDELTA = "Time deltas"
-LAT_MAX = "Max latency in period"
+LAT_MAX = "Maximum in period"
 
 FIELDS_TO_PLOT_OLD = {
   "BW": 6,
@@ -76,8 +76,8 @@ def main():
     data[lat] = [x/1000.0 for x in data[lat]]
   
   data[TDELTA] = get_time_deltas(data['Time'])  
-  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=2), data[TDELTA])]
-  data[IMAGE_COUNT]  = smooth_seq(data[IMAGE_COUNT], window=5)
+  data["BW"]  = [x/d for x,d in zip(smooth_seq(data["BW"], window=5), data[TDELTA])]
+  data[MEDIAN_LAT]  = smooth_seq(data[MEDIAN_LAT], window=5)
   data[COEF_VAR] = stddev_to_c_of_v(data)
 
   print "   Worker               Total Bytes Sent\n" + "-"* 40
@@ -89,8 +89,8 @@ def main():
   plot_data_over_time(data, [COEF_VAR], out_dir+ "internode_variation.pdf")
   plot_data_over_time(data, [LAT_999], out_dir + "latency_highquant.pdf")
   plot_data_over_time(data, [LAT_MAX], out_dir + "latency_extremum.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi.pdf")
-  plot_bw(data, out_dir + "bw_over_time.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT, LAT_MAX], out_dir + "latency_multi.pdf")
+  plot_bw(data, out_dir + "img_bw_over_time.pdf")
 
 def stddev_to_c_of_v(data):
   r = []
@@ -183,7 +183,7 @@ def get_x_from_time(t):
   else:
     return t
 
-linelabels = ['b-', 'gx', 'r.']
+linelabels = ['k-', 'b.', 'gx']
 
 def plot_data_over_time(data, seriesnames, filename):
 
@@ -195,13 +195,13 @@ def plot_data_over_time(data, seriesnames, filename):
 
   figure.autofmt_xdate()
   ax.set_ylim( 0, 1.2 * max([max(data[sname]) for sname in seriesnames]))  
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
   
   for seriesname,linelabel in zip(seriesnames, linelabels):
     line, = ax.plot_date(time, data[seriesname], linelabel)
     legend_artists.append( line )
   
-  ax.set_xlabel('Experiment time (sec)', fontsize=18)  
+  ax.set_xlabel('Elapsed time (minutes)', fontsize=18)  
   if len(seriesnames) == 1:
     ax.set_ylabel(seriesnames[0], fontsize=18)
   else:
@@ -211,13 +211,13 @@ def plot_data_over_time(data, seriesnames, filename):
 
   leg_labels = []
   leg_labels.extend(seriesnames)
-  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.07), frameon=False, ncol=2);
+  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.1), frameon=False, ncol=2);
 
   figure.set_size_inches(6.25, 4.25)
   figure.subplots_adjust(left=0.15)
-  figure.subplots_adjust(bottom=0.23)  
+  figure.subplots_adjust(bottom=0.19)  
   figure.subplots_adjust(right=0.9)  
-  figure.subplots_adjust(top=0.88)
+  figure.subplots_adjust(top=0.86)
   
   plt.savefig(filename)
   plt.close(figure)  
@@ -225,19 +225,21 @@ def plot_data_over_time(data, seriesnames, filename):
 
 def plot_bw(data, filename):
   time = [get_x_from_time(x / 1000) for x in data['Time']]
-  bw_series = [x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
+  bw_series = [ 8 * x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   figure, ax = plt.subplots()
 
   figure.autofmt_xdate()
   line, = ax.plot_date(time, bw_series, "r.")  
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
 
   ax.set_xlabel('Experiment time (sec)', fontsize=18)  
-  ax.set_ylabel('Bandwidth (mbytes/sec)', fontsize=18)
+  ax.set_ylabel('Bandwidth (mbits/sec)', fontsize=18)
   ax.set_ylim( 0, 1.2 * max(bw_series))  
   ax.tick_params(axis='both', which='major', labelsize=15)
 
-  figure.set_size_inches(6.25, 3.5)  
+  figure.set_size_inches(6.25, 3.5) 
+  figure.subplots_adjust(bottom=0.23)  
+  figure.subplots_adjust(top=0.9)
   plt.savefig(filename)
   plt.close(figure)  
 
