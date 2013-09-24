@@ -11,7 +11,7 @@ import numpy.linalg
 from numpy import array
 
 OUT_TO_FILE = True
-DATE = True
+DATE = False
 
 import matplotlib
 if OUT_TO_FILE:
@@ -69,7 +69,7 @@ def main():
   data,counts_by_name = parse_infile(infile)
   
   if options.experiment_time:
-    t_offset = data['Time'][0] - 5 * 60 * 60 * 1000 #change time zone
+    t_offset = data['Time'][0] # - 5 * 60 * 60 * 1000 #change time zone
     data['Time'] = [x -t_offset for x in data['Time']]
   
   for lat in [LAT_999, MEDIAN_LAT, MY_LAT, LAT_MAX]:
@@ -187,18 +187,24 @@ linelabels = ['k-', 'b.', 'gx']
 
 def plot_data_over_time(data, seriesnames, filename):
 
-  time = [get_x_from_time(x / 1000) for x in data['Time']]
   legend_artists = []
 #  series_to_plot = 
   
   figure, ax = plt.subplots()
 
-  figure.autofmt_xdate()
-  ax.set_ylim( 0, 1.2 * max([max(data[sname]) for sname in seriesnames]))  
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+  
+  if DATE:
+    figure.autofmt_xdate()
+    time = [get_x_from_time(x / 1000) for x in data['Time']]
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+  else:
+    time = [ x / (60 * 1000) for x in data['Time']]
+    
+  MAX_Y = 1.15 * max([max(data[sname]) for sname in seriesnames])
+  ax.set_ylim( 0, MAX_Y)  
   
   for seriesname,linelabel in zip(seriesnames, linelabels):
-    line, = ax.plot_date(time, data[seriesname], linelabel)
+    line, = ax.plot(time, data[seriesname], linelabel)
     legend_artists.append( line )
   
   ax.set_xlabel('Elapsed time (minutes)', fontsize=18)  
@@ -207,33 +213,39 @@ def plot_data_over_time(data, seriesnames, filename):
   else:
     ax.set_ylabel("Latency (sec)", fontsize=18)
 
+  plt.yticks(numpy.arange(0, MAX_Y, 2))
   ax.tick_params(axis='both', which='major', labelsize=15)
 
   leg_labels = []
   leg_labels.extend(seriesnames)
-  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 1.1), frameon=False, ncol=2);
+  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
 
   figure.set_size_inches(6.25, 4.25)
   figure.subplots_adjust(left=0.15)
   figure.subplots_adjust(bottom=0.19)  
   figure.subplots_adjust(right=0.9)  
-  figure.subplots_adjust(top=0.86)
+  figure.subplots_adjust(top=0.98)
   
   plt.savefig(filename)
   plt.close(figure)  
 
 
 def plot_bw(data, filename):
-  time = [get_x_from_time(x / 1000) for x in data['Time']]
   bw_series = [ 8 * x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   figure, ax = plt.subplots()
 
-  figure.autofmt_xdate()
-  line, = ax.plot_date(time, bw_series, "r.")  
-  ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+  if DATE:
+    time = [get_x_from_time(x / 1000) for x in data['Time']]
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    figure.autofmt_xdate()
 
-  ax.set_xlabel('Experiment time (sec)', fontsize=18)  
-  ax.set_ylabel('Bandwidth (mbits/sec)', fontsize=18)
+  else:
+    time = [ x / (60 * 1000) for x in data['Time']]
+
+
+  line, = ax.plot(time, bw_series, "r.")  
+  ax.set_xlabel('Experiment time (minutes)', fontsize=18)  
+  ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=18)
   ax.set_ylim( 0, 1.2 * max(bw_series))  
   ax.tick_params(axis='both', which='major', labelsize=15)
 
