@@ -1082,7 +1082,8 @@ MysqlCube::do_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple c
 
 CubeIterator 
 MysqlCube::slice_and_rollup(std::vector<unsigned int> const &levels, jetstream::Tuple const &min, jetstream::Tuple const& max, std::list<std::string> const &sort, size_t limit)  const {
-  assert(levels.size() == dimensions.size());
+  LOG_IF(FATAL, levels.size() != dimensions.size()) << "Cube " << name << " has " <<
+   dimensions.size() << " dimensions, but rollup tuple had " << levels.size() << " elements";
   string sql = get_rollup_sql(levels, min, max);
   sql += get_sort_clause(sort);
   sql += get_limit_clause(limit);

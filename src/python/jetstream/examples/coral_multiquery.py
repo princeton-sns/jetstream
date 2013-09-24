@@ -62,29 +62,27 @@ def main():
   elif mode == "urls":
     define_internal_cube = url_cube
     src_to_internal = src_to_url
-    process_results = lambda x,y: y
+    process_results = lambda x,y,z: y
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
   elif mode == "domains":
     define_internal_cube = url_cube
     src_to_internal = src_to_domain
-    process_results = lambda x,y: y
+    process_results = lambda x,y,z: y
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
   elif mode == "slow_reqs":
     define_internal_cube = url_cube
     src_to_internal = src_slow_reqs
-    process_results = lambda x,y: y
+    process_results = lambda x,y,z: y
     final_rollup_levels = "9,1,1" #nothing rolled up.
   elif mode == "bad_domains":
-    print "NOT IMPLEMNETED"
-    sys.exit(1)
-    define_internal_cube = url_cube
-    src_to_internal = src_to_url
-    process_results = lambda x,y: y
+    define_internal_cube = bad_doms_cube
+    src_to_internal = src_to_bad_doms
+    process_results = bad_doms_postprocess
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
   elif mode == "total_bw":
     define_internal_cube = bw_cube
     src_to_internal = src_to_bw
-    process_results = lambda x,y: y
+    process_results = lambda x,y,z: y
     final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.    
   else:
     print "Unknown mode %s" % mode
@@ -138,7 +136,7 @@ def main():
   pull_q.set_cfg("window_offset", 8* 1000) #...trailing by a few
 
   g.connect(union_cube, pull_q)
-  last_op = process_results(g, pull_q)  
+  last_op = process_results(g, pull_q, options)  
 
   echo = jsapi.Echo(g)
   echo.instantiate_on(union_node)
@@ -165,7 +163,7 @@ def quant_cube(g, cube_name, cube_node):
   cube.add_agg("count", jsapi.Cube.AggType.COUNT, 4)
   return cube
 
-def process_quant(g, union_sub):
+def process_quant(g, union_sub, options):
   count_op = jsapi.SummaryToCount(g, 2)
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
@@ -203,6 +201,41 @@ def bw_cube(g, cube_name, cube_node):
   cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, 1)  
   cube.add_dim("hostname", CubeSchema.Dimension.STRING, 2)
   return cube
+
+
+def src_to_bad_doms(g, data_src, node, options):
+  return g.chain([data_src, jsapi.Project(g, 5), jsapi.Project(g, 4), \
+      jsapi.URLToDomain(g, 2)])
+
+def bad_doms_cube(g, cube_name, cube_node):
+  cube = g.add_cube(cube_name)
+  cube.instantiate_on(cube_node)
+  cube.set_overwrite(True)
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+  cube.add_dim("response_code", CubeSchema.Dimension.INT32, 1)
+  cube.add_dim("url", CubeSchema.Dimension.STRING, 2)
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)
+  return cube
+
+def bad_doms_postprocess(g, union_sub, options):
+  ratio_cube = g.add_cube("global_badreq_ratios")
+  ratio_cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+  ratio_cube.add_dim("response_code", CubeSchema.Dimension.INT32, 1)
+  ratio_cube.add_dim("domain", CubeSchema.Dimension.STRING, 2)
+  ratio_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)  
+  ratio_cube.add_agg("ratio", jsapi.Cube.AggType.MIN_D, 4)
+  ratio_cube.set_overwrite(True)
+  
+  compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 3, respcode_field = 1)
+  
+  pull_q = jsapi.TimeSubscriber(g, {}, 1000, num_results= 5, sort_order="-ratio")
+  pull_q.set_cfg("ts_field", 0)
+  pull_q.set_cfg("start_ts", options.start_ts)
+#  pull_q.set_cfg("rollup_levels", "8,1,1")
+  pull_q.set_cfg("simulation_rate", options.warp_factor)
+  pull_q.set_cfg("window_offset", 5* 1000) #but trailing by a few
+
+  return  g.chain( [union_sub, compute_ratio, ratio_cube, pull_q] )
 
 
 if __name__ == '__main__':
