@@ -154,14 +154,15 @@ def  add_latency_measure(g, central_cube, root_node, tti, hti, latencylog, inter
   g.chain([central_cube, latency_measure_op, echo_op])
 
 
-def define_raw_cube(g, cube_name, cube_node, ids = [0,1,2,3,4,5,6], overwrite=False):
+def define_raw_cube(g, cube_name, cube_node, ids = [0,1,2,3,4,5,6,7], overwrite=False):
   cube = g.add_cube(cube_name)
   cube.instantiate_on(cube_node)
   cube.set_overwrite(overwrite)
   cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, ids[0])
   cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
-  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])  #effectively a sum
-  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4]) # effectively a sum
-  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
+  cube.add_dim("referer", CubeSchema.Dimension.STRING, ids[3])
+  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[4])  #effectively a sum
+  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[5]) # effectively a sum
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[6])
   return cube

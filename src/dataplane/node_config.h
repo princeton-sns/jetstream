@@ -30,7 +30,7 @@ class NodeConfig {
   u_int cube_max_stage;
   unsigned connection_buffer_size;
   
-  NodeConfig (); //moved ctor contents to node.cc to allow changes without recompiling
+  NodeConfig (); //moved ctor contents to node.cc to allow changes without recompiling the universe.
 
 };
 

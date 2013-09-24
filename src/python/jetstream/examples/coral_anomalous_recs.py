@@ -5,7 +5,6 @@ import random
 import sys
 import time
 
-
 from jetstream_types_pb2 import *
 from remote_controller import *
 import query_graph as jsapi
@@ -15,9 +14,7 @@ from coral_parse import coral_fnames,coral_fidxs, coral_types
 from coral_util import *   #find_root_node, standard_option_parser,
 
 def main():
-
   parser = standard_option_parser()
-
   (options, args) = parser.parse_args()
 
   if not options.fname:
@@ -44,9 +41,7 @@ def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
   cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])
   cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4])
   cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
-
   cube.set_overwrite(True)
-
 
 def get_graph(source_nodes, root_node, options):
   g= jsapi.QueryGraph()
@@ -81,7 +76,6 @@ def get_graph(source_nodes, root_node, options):
   else:
     g.chain(  [q_op, thresh_cube] )  
 
-
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
      coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
 
@@ -89,10 +83,8 @@ def get_graph(source_nodes, root_node, options):
   define_schema_for_raw_cube(global_results, parsed_field_offsets)
   global_results.instantiate_on(root_node)
 
-
   FILTER_FIELD = coral_fidxs['nbytes']
-  for node, i in numbered(source_nodes, False):
-  
+  for node in source_nodes:
 ################ First do the data loading part
     f = jsapi.FileRead(g, options.fname, skip_empty=True)
     csvp = jsapi.CSVParse(g, coral_types)
@@ -101,13 +93,13 @@ def get_graph(source_nodes, root_node, options):
     round.set_cfg("wait_for_catch_up", "true")
     f.instantiate_on(node)
     
-    local_raw_cube = g.add_cube("local_coral_anamolous_all_%d" % i)
+    local_raw_cube = g.add_cube("local_coral_anamolous_all")
     define_schema_for_raw_cube(local_raw_cube, parsed_field_offsets)
     
     pass_raw = jsapi.FilterSubscriber(g) # to pass through to the summary and q-cube
     to_summary = jsapi.ToSummary(g, field=FILTER_FIELD, size=100)
 
-    local_q_cube = g.add_cube("local_coral_anamolous_quant_%d" %i)
+    local_q_cube = g.add_cube("local_coral_anamolous_quant")
     define_quant_cube(local_q_cube, [coral_fidxs['timestamp'],  FILTER_FIELD ])
 
     g.chain( [f, csvp, round, local_raw_cube, pass_raw,to_summary,local_q_cube] )
@@ -121,7 +113,6 @@ def get_graph(source_nodes, root_node, options):
 
     local_q_cube.instantiate_on(node)
     pull_from_local.instantiate_on(node)
-
     g.chain([local_q_cube, pull_from_local, central_cube])
 
 ################ Now do the second phase  
@@ -137,4 +128,3 @@ def get_graph(source_nodes, root_node, options):
 
 if __name__ == '__main__':
     main()
-

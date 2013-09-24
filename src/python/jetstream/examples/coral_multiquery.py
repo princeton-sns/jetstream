@@ -83,7 +83,9 @@ def main():
     define_internal_cube = bw_cube
     src_to_internal = src_to_bw
     process_results = lambda x,y,z: y
-    final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.    
+    final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.
+#  elif mode == "bad_referers"
+#    
   else:
     print "Unknown mode %s" % mode
     sys.exit(0)
@@ -145,12 +147,10 @@ def main():
   deploy_or_dummy(options, server, g)
   
 
-
 def src_to_quant(g, raw_cube_sub, node, options):
   to_summary1 = jsapi.ToSummary(g, field=2, size=5000)
   to_summary2 = jsapi.ToSummary(g, field=3, size=5000)
-  project = jsapi.Project(g, field=2)  
-  return g.chain([raw_cube_sub, project, to_summary1, to_summary2] )
+  return g.chain([raw_cube_sub, jsapi.Project(g, 3), jsapi.Project(g, 2), to_summary1, to_summary2] )
 
 def quant_cube(g, cube_name, cube_node):  
   cube = g.add_cube(cube_name)
@@ -179,7 +179,7 @@ def src_to_url(g, data_src, node, options):
 
 def src_to_domain(g, data_src, node, options):
   url2dom = jsapi.URLToDomain(g, 2)
-  g.chain([data_src, url2dom])
+  g.chain([data_src, jsapi.Project(g, 3), url2dom])
   return url2dom
   
 def src_slow_reqs(g, data_src, node, options):
@@ -205,7 +205,7 @@ def bw_cube(g, cube_name, cube_node):
 
 def src_to_bad_doms(g, data_src, node, options):
   return g.chain([data_src, jsapi.Project(g, 5), jsapi.Project(g, 4), \
-      jsapi.URLToDomain(g, 2)])
+      jsapi.Project(g, 3), jsapi.URLToDomain(g, 2)])
 
 def bad_doms_cube(g, cube_name, cube_node):
   cube = g.add_cube(cube_name)
@@ -225,16 +225,13 @@ def bad_doms_postprocess(g, union_sub, options):
   ratio_cube.add_agg("count", jsapi.Cube.AggType.COUNT, 3)  
   ratio_cube.add_agg("ratio", jsapi.Cube.AggType.MIN_D, 4)
   ratio_cube.set_overwrite(True)
-  
   compute_ratio = jsapi.SeqToRatio(g, url_field = 2, total_field = 3, respcode_field = 1)
-  
   pull_q = jsapi.TimeSubscriber(g, {}, 1000, num_results= 5, sort_order="-ratio")
   pull_q.set_cfg("ts_field", 0)
   pull_q.set_cfg("start_ts", options.start_ts)
 #  pull_q.set_cfg("rollup_levels", "8,1,1")
   pull_q.set_cfg("simulation_rate", options.warp_factor)
   pull_q.set_cfg("window_offset", 5* 1000) #but trailing by a few
-
   return  g.chain( [union_sub, compute_ratio, ratio_cube, pull_q] )
 
 
