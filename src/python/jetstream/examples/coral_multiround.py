@@ -17,12 +17,10 @@ def main():
 
   parser = standard_option_parser()
   (options, args) = parser.parse_args()
-
   all_nodes,server = get_all_nodes(options)
   
   root_node = find_root_node(options, all_nodes)
   source_nodes = get_source_nodes(options, all_nodes, root_node)
-
   g= jsapi.QueryGraph()
 
   start_ts = parse_ts(options.start_ts)
@@ -48,7 +46,6 @@ def main():
   tput_merge.set_cfg("min_window_size", 5)
   tput_merge.set_cfg("rollup_levels", "10,0,1") # roll up response codes
   tput_merge.instantiate_on(root_node)
-
   g.chain ( [tput_merge, central_cube])
 
   for node in source_nodes:

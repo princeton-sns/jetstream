@@ -123,18 +123,11 @@ void parse_with_types(Element * e, const std::string& s, char typecode);
  * configuration time. 
  
 */
-class ExtendOperator: public COperator {
+class ExtendOperator: public CEachOperator {
  public:
   std::vector< Element > new_data;
 
-  void mutate_tuple(Tuple& t);
-
-  virtual void process(OperatorChain * chain,
-                       std::vector<boost::shared_ptr<Tuple> > & tuples,
-                       DataplaneMessage& m) {
-    for (unsigned i = 0; i < tuples.size(); ++i)
-      mutate_tuple(*(tuples[i]));
-  }
+  virtual void process_one (boost::shared_ptr<Tuple>& t);
   
 //  virtual void process_delta (Tuple& oldV, boost::shared_ptr<Tuple> newV, const operator_id_t pred);
   

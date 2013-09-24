@@ -75,11 +75,17 @@ def main():
     process_results = lambda x,y: y
     final_rollup_levels = "9,1,1" #nothing rolled up.
   elif mode == "bad_domains":
+    print "NOT IMPLEMNETED"
+    sys.exit(1)
     define_internal_cube = url_cube
     src_to_internal = src_to_url
     process_results = lambda x,y: y
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
-    
+  elif mode == "total_bw":
+    define_internal_cube = bw_cube
+    src_to_internal = src_to_bw
+    process_results = lambda x,y: y
+    final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.    
   else:
     print "Unknown mode %s" % mode
     sys.exit(0)
@@ -182,6 +188,22 @@ def src_slow_reqs(g, data_src, node, options):
     #units are usec/byte, or sec/mb. So bound of 100 ==> < 10 kb/sec
   filter = jsapi.RatioFilter(g, numer=4, denom=3, bound = 100)
   return g.connect(data_src, filter)
+
+
+def src_to_bw(g, data_src, node, options):
+  hostname_extend_op = jsapi.ExtendOperator(g, "s", ["${HOSTNAME}"]) 
+  return   g.chain([data_src, jsapi.Project(g, 5), jsapi.Project(g, 4), \
+    jsapi.Project(g, 1), jsapi.Project(g, 1), hostname_extend_op])
+
+def bw_cube(g, cube_name, cube_node):
+  cube = g.add_cube(cube_name)
+  cube.instantiate_on(cube_node)
+  cube.set_overwrite(True)
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+  cube.add_agg("sizes", jsapi.Cube.AggType.COUNT, 1)  
+  cube.add_dim("hostname", CubeSchema.Dimension.STRING, 2)
+  return cube
+
 
 if __name__ == '__main__':
     main()

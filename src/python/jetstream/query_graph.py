@@ -292,6 +292,7 @@ class QueryGraph(object):
       self.chain([src, local_cube, sub])
       ops.append(sub)  
   
+    union_cube.canonical_order()
     if region_list is not None:
       cube_in_r = {}
       for (name, defn) in region_list.items():

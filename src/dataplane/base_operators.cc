@@ -107,9 +107,9 @@ CFileRead::configure(map<string,string> &config) {
 }
 
 void
-ExtendOperator::mutate_tuple (Tuple& t) {
+ExtendOperator::process_one(boost::shared_ptr<Tuple>& t) {
   for (u_int i = 0; i < new_data.size(); ++i) {
-    Element * e = t.add_e();
+    Element * e = t->add_e();
     e->CopyFrom(new_data[i]);
   }
 }

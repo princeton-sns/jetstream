@@ -1,10 +1,8 @@
-
 import os
 import os.path
 import pickle
 import sys
 import time
-
 
 from optparse import OptionParser
 from remote_controller import *
@@ -25,7 +23,6 @@ def parse_ts(start_ts):
 
 def standard_option_parser():
   parser = OptionParser()
-
   parser.add_option("-a", "--controller", dest="controller",
                   help="controller address", default="localhost:3456")
   parser.add_option("-d", "--dry-run", dest="DRY_RUN", action="store_true",
@@ -55,7 +52,6 @@ def standard_option_parser():
   action="store_true", default=False)
   parser.add_option("--max-rollup", dest="max_rollup",
   default = "30")
-  
   return parser
 
 

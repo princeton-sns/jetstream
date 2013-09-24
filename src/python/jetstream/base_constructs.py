@@ -202,12 +202,24 @@ class Cube(Destination):
     return r
 
 
+  def canonical_order(self):
+    i = 0
+    new_dims, new_aggs = [], []
+    for name, type, offset in self.desc['dims']:
+      new_dims.append( (name, type, i) )
+      i+=1
+    self.desc['dims'] = new_dims 
+    for name, type, offset in self.desc['aggs']:
+      new_aggs.append( (name, type, i) )
+      i+=1    
+    self.desc['aggs'] = new_aggs
+    
   def out_schema(self, in_schema):
     r = self.in_schema_map()
     messages = []
 
-#    print "in-schema", in_schema
-#    print "dims", self.desc['dims']
+    messages.append("in-schema: %s" % str(in_schema))
+    messages.append("dims: %s" % str(self.desc['dims']))
     max_dim = max([ off for _,_,off in self.desc['dims']])
     if max_dim >= len(in_schema) and len(in_schema) > 0:
       raise SchemaError ("Cube %s has %d dimensions; won't match input %s." % \
@@ -223,8 +235,9 @@ class Cube(Destination):
           continue
 
         if in_schema[field_id][0] != ty:
-          raise SchemaError ("Can't put value %s (type %s) into field %s of type %s" % \
-            (in_schema[field_id][1],in_schema[field_id][0], name, ty))
+          print messages
+          raise SchemaError ("Cube %s: Can't put value %s (type %s) into field %s of type %s" % \
+            (self.name, in_schema[field_id][1],in_schema[field_id][0], name, ty))
         if in_schema[field_id][1] != name:
           messages.append("Matching input-name %s to cube column %s"  % \
                      (in_schema[field_id][1], name))

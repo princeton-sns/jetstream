@@ -49,7 +49,6 @@ def define_schema_for_raw_cube(cube, ids = [0,1,2,3,4,5,6]):
 
 
 def get_graph(source_nodes, root_node, options):
-  ECHO_RESULTS = not options.no_echo
   g= jsapi.QueryGraph()
 
   start_ts = parse_ts(options.start_ts)
@@ -75,20 +74,13 @@ def get_graph(source_nodes, root_node, options):
   thresh_cube.set_overwrite(True)
   thresh_cube.instantiate_on(root_node)
 
-
-  if ECHO_RESULTS:
+  if not options.no_echo:
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
     g.chain( [q_op, echo, thresh_cube] )
   else:
     g.chain(  [q_op, thresh_cube] )  
 
-
-#   latency_measure_op = jsapi.LatencyMeasureSubscriber(g, time_tuple_index=4, hostname_tuple_index=5, interval_ms=100);
-#   echo_op = jsapi.Echo(g);
-#   echo_op.set_cfg("file_out", options.latencylog)
-#   echo_op.instantiate_on(root_node)
-#   g.chain([central_cube, latency_measure_op, echo_op])
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
      coral_fidxs['URL_requested'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
