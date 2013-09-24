@@ -145,18 +145,8 @@ def main():
 def src_to_quant(g, raw_cube_sub, node, options):
   to_summary1 = jsapi.ToSummary(g, field=2, size=5000)
   to_summary2 = jsapi.ToSummary(g, field=3, size=5000)
-  project = jsapi.Project(g, field=2)
-#  local_cube = quant_cube(g, "summarized_local", node)
-#  query_rate = 1000
-#  pull_from_local = jsapi.TimeSubscriber(g, filter={}, interval=query_rate)
-#  pull_from_local.set_cfg("ts_field", 0)
-#  if options.start_ts:
-#    pull_from_local.set_cfg("simulation_rate", options.warp_factor)
-#    pull_from_local.set_cfg("start_ts", options.start_ts)
-#  pull_from_local.set_cfg("window_offset", 2000)
-  
+  project = jsapi.Project(g, field=2)  
   return g.chain([raw_cube_sub, project, to_summary1, to_summary2] )
-
 
 def quant_cube(g, cube_name, cube_node):  
   cube = g.add_cube(cube_name)
@@ -170,21 +160,15 @@ def quant_cube(g, cube_name, cube_node):
   return cube
 
 def process_quant(g, union_sub):
-
   count_op = jsapi.SummaryToCount(g, 2)
   q_op = jsapi.Quantile(g, 0.95, 3)
   q_op2 = jsapi.Quantile(g, 0.95,2)
-
   g.chain([union_sub, count_op, q_op, q_op2] )
   return q_op2
 
-
 def url_cube(g, cube_name, cube_node):  
   return define_raw_cube(g, cube_name, cube_node, overwrite=True)
-#  cube = g.add_cube(cube_name)
-#  cube.instantiate_on(cube_node)
-#  cube.set_overwrite(True)
-#  return cube
+
 
 def src_to_url(g, data_src, node, options):
   return data_src
