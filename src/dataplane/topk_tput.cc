@@ -189,7 +189,7 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
   if (config.find("min_window_size") != config.end())
     min_window_size = boost::lexical_cast<unsigned>(config["min_window_size"]);
   else
-    min_window_size = 0;
+    min_window_size = 1;
 
   if (config.find("rollup_levels") != config.end()) {
     get_rollup_level_array(config["rollup_levels"], rollup_levels);
@@ -320,9 +320,7 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
     LOG(INFO) << "upwards metadata to " << pred;
     pred->upwards_metadata(start_proto, this);
     LOG(INFO) << "upwards metadata to " << pred <<  " complete";
-
   }
-
 }
 
 
@@ -332,7 +330,7 @@ MultiRoundCoordinator::process (
           OperatorChain * c,
           vector<boost::shared_ptr<Tuple> > & tuples,
           DataplaneMessage & msg) {
-  LOG(INFO) << "TPUT coordinator processing, from chain " << c;
+  LOG(INFO) << "TPUT coordinator processing in phase "<< phase <<", from chain " << c;
   boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
@@ -480,21 +478,21 @@ MultiRoundCoordinator::start_phase_3() {
 int
 MultiRoundCoordinator::emit_data() {
   boost::lock_guard<tput_mutex> lock (mutex);
-
+  LOG(INFO) << "TPUT coordinator is running. Phase is " << phase;
   time_t now = time(NULL);
   time_t window_end = max( now - window_offset, start_ts + min_window_size);
 
   if (phase == DONE)
     return -1;
-  if (window_end < now)
-    return 1000 * (now - window_end);
+  if (window_end > now)
+    return 1000 * (window_end - now);
   else {
     if (phase == NOT_STARTED) {
       start_phase_1(window_end);
+      return min_window_size;
     }
   }
-  return min_window_size;
-  
+  return 1000;
 //  LOG(INFO) << "Timer will expire in " << timer->expires_from_now();
 }
 
