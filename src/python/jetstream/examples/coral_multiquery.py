@@ -84,8 +84,11 @@ def main():
     src_to_internal = src_to_bw
     process_results = lambda x,y,z: y
     final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.
-#  elif mode == "bad_referers"
-#    
+  elif mode == "bad_referers":
+    define_internal_cube = badreferrer_cube
+    src_to_internal = src_to_badreferrer
+    process_results = badreferrer_out
+    final_rollup_levels = "8,1" #rollup time slightly, rest is unrolled.    
   else:
     print "Unknown mode %s" % mode
     sys.exit(0)
@@ -234,6 +237,24 @@ def bad_doms_postprocess(g, union_sub, options):
   pull_q.set_cfg("window_offset", 5* 1000) #but trailing by a few
   return  g.chain( [union_sub, compute_ratio, ratio_cube, pull_q] )
 
+
+def src_to_badreferrer(g, data_src, node, options):
+  only404s = jsapi.EqualsFilter(g, field= 1, targ=404)
+  return g.chain([data_src, only404s, jsapi.Project(g, 5), jsapi.Project(g, 4), \
+      jsapi.Project(g, 2), jsapi.Project(g, 1), jsapi.URLToDomain(g, 1)])
+
+def badreferrer_cube(g, cube_name, cube_node):
+  cube = g.add_cube(cube_name)
+  cube.instantiate_on(cube_node)
+  cube.set_overwrite(True)
+  cube.add_dim("time", CubeSchema.Dimension.TIME_CONTAINMENT, 0)
+  cube.add_dim("referer", CubeSchema.Dimension.STRING, 1)
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, 2)
+  return cube
+
+def badreferrer_out(g, union_sub, options):
+  union_sub.set_cfg("sort_order", "-count")  
+  return union_sub
 
 if __name__ == '__main__':
     main()

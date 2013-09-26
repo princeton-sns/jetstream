@@ -216,15 +216,18 @@ def plot_data_over_time(data, seriesnames, filename):
   plt.yticks(numpy.arange(0, MAX_Y, 2))
   ax.tick_params(axis='both', which='major', labelsize=15)
 
+
   leg_labels = []
   leg_labels.extend(seriesnames)
+  leg_labels.reverse()
+  legend_artists.reverse()
   plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
 
   figure.set_size_inches(6.25, 4.25)
-  figure.subplots_adjust(left=0.15)
-  figure.subplots_adjust(bottom=0.19)  
-  figure.subplots_adjust(right=0.9)  
-  figure.subplots_adjust(top=0.98)
+  figure.subplots_adjust(left=0.10)
+  figure.subplots_adjust(right=0.97)  
+  figure.subplots_adjust(bottom=0.16)
+  figure.subplots_adjust(top=0.99)
   
   plt.savefig(filename)
   plt.close(figure)  
@@ -250,8 +253,10 @@ def plot_bw(data, filename):
   ax.tick_params(axis='both', which='major', labelsize=15)
 
   figure.set_size_inches(6.25, 3.5) 
-  figure.subplots_adjust(bottom=0.23)  
-  figure.subplots_adjust(top=0.9)
+  figure.subplots_adjust(bottom=0.17)  
+  figure.subplots_adjust(top=0.98)
+  figure.subplots_adjust(left=0.12)
+  figure.subplots_adjust(right=0.97)
   plt.savefig(filename)
   plt.close(figure)  
 
