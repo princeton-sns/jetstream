@@ -30,15 +30,19 @@ INTERVAL_NAMES = {5: "5s", 60:"minute", 300:"5 m", 3600:"hour", 86400:"day"}
 
 def plot_compressions(data):
 
-  colors = ["blue", "red"]
+  colors = ["#5555FF", "#aa0000"]
   t_labels, url_series, dom_series = [], [], []
   for t, (u,d) in sorted(data.items()):
     url_series.append(u)
     dom_series.append(d)
     t_labels.append( INTERVAL_NAMES[t])
   
-  fig = plt.figure(figsize=(6,4))
-  fig.subplots_adjust(bottom=0.2)
+  fig = plt.figure(figsize=(6.25,3.5))
+  fig.subplots_adjust(bottom=0.13)
+  fig.subplots_adjust(top=0.99)
+  fig.subplots_adjust(left=0.1)
+  fig.subplots_adjust(right=0.98)
+  
   ax = fig.add_subplot(111)
   ax.set_yscale('log',basey=2)
   ticks = [2 ** x for x in range(9)]
@@ -47,7 +51,7 @@ def plot_compressions(data):
   plt.ylim((1, 500))
       
   offset = 0.5
-  for series,series_name,c in zip([url_series, dom_series], ["URLs", "Domains"], colors):
+  for series,series_name,c in zip([dom_series, url_series], ["Domains", "URLs"], colors):
     positions = [x * 1.2 + offset for x in range(len(data))]
     plt.bar(positions, series, width = 0.5, color = c, label=series_name, bottom=1) #log=True)
     offset += 0.5
@@ -55,6 +59,7 @@ def plot_compressions(data):
   plt.xlabel("Aggregation time period")
   plt.ylabel("Compression factor")
 
+  
   ax.legend(frameon=False, loc = "upper left")
   if OUT_TO_FILE:
     plt.savefig(OUT_FILE)

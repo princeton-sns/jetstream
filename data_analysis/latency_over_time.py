@@ -249,10 +249,10 @@ def plot_bw(data, filename):
   line, = ax.plot(time, bw_series, "r.")  
   ax.set_xlabel('Experiment time (minutes)', fontsize=18)  
   ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=18)
-  ax.set_ylim( 0, 1.2 * max(bw_series))  
+  ax.set_ylim( 0, 1.1 * max(bw_series))  
   ax.tick_params(axis='both', which='major', labelsize=15)
 
-  figure.set_size_inches(6.25, 3.5) 
+  figure.set_size_inches(6.25, 3.25) 
   figure.subplots_adjust(bottom=0.17)  
   figure.subplots_adjust(top=0.98)
   figure.subplots_adjust(left=0.12)
