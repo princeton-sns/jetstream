@@ -489,23 +489,18 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
       // TODO: Should we log whether the stop happened correctly?
     }
 
+    vector< OperatorChain* > newChains;
     map<operator_id_t, boost::shared_ptr<OperatorChain> > opToChain;
-    create_chains(topo, response, operator_ids_to_start, opToChain);
+    create_chains(topo, response, operator_ids_to_start, newChains, opToChain);
     establish_congest_policies(topo, response, operator_ids_to_start, opToChain);
     
   // Now start the operators
   //TODO: Should start() return an error? If so, update respTopo.
 
-    vector<operator_id_t >::iterator iter;
-    for (iter = operator_ids_to_start.begin(); iter != operator_ids_to_start.end(); iter++) {
-      const operator_id_t& name = *iter;
-      shared_ptr<COperator> op = get_operator(name);
-      LOG_IF(FATAL, !op) << "operator " << name << "vanished without exception thrown";
-      if (op->is_source()) {
-        shared_ptr<OperatorChain> chain = opToChain[name];
-        LOG_IF(FATAL, !chain) <<"Expected a chain starting from source op " << op;
-        chain->start();
-      }
+    vector<OperatorChain* >::iterator iter;
+    for (iter = newChains.begin(); iter != newChains.end(); iter++) {
+      OperatorChain * chain = *iter;
+      chain->start();
     }
   
     for (int i=0; i < topo.tocreate_size(); ++i) {
@@ -543,6 +538,7 @@ void
 Node::create_chains( const AlterTopo & topo,
                      ControlMessage & response,
                      const std::vector<operator_id_t>& toStart,
+                     vector< OperatorChain* >& newChains,
                      map<operator_id_t, boost::shared_ptr<OperatorChain> >& opToChain) throw(operator_err_t) {
   std::map<operator_id_t, const Edge *> op_to_outedge;
   std::map<operator_id_t, operator_id_t> op_to_pred;
@@ -640,7 +636,8 @@ Node::create_chains( const AlterTopo & topo,
       } while ( true );
 
       if (is_startable) {
-        chainSources[toStart[i] ] = chain;        
+        chainSources[toStart[i] ] = chain;
+        newChains.push_back(chain.get());
       } else {
         LOG(INFO) << "operator " << toStart[i] << " is start of pending chain";
         sourcelessChain[ toStart[i] ] = chain;

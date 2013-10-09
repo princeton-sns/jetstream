@@ -224,6 +224,8 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
 void
 MultiRoundCoordinator::start() {
+  LOG(INFO) << "MultiRoundCoordinator " << id() <<" starting";
+
   boost::lock_guard<tput_mutex> lock (mutex);
   
   chain = future_preds.begin()->second;
@@ -244,7 +246,6 @@ MultiRoundCoordinator::start() {
 
 void
 MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
-  LOG(INFO) << "Putting MultiRoundCoordinator into chain " << chain->chain_name();
   boost::lock_guard<tput_mutex> lock (mutex);
   if (chain->member(0).get() == this)
     return;

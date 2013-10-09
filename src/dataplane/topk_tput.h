@@ -115,6 +115,7 @@ class MultiRoundCoordinator: public TimerSource {
  
    virtual operator_err_t configure(std::map<std::string,std::string> &config);
 
+   virtual bool is_source() {return true;} //so we get a chain of our own, even without incoming connections
    virtual void start();
 //   virtual void stop();
 
