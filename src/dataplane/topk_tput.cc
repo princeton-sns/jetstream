@@ -70,6 +70,7 @@ void
 MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
 
   vector<  boost::shared_ptr<Tuple> > data_buf;
+  DataplaneMessage round_end_marker;
 
   int round  = 0;
   take_greatest = msg.tput_sort_key()[0] == '-';
@@ -139,8 +140,12 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
       
       if(v.numCells() == 1) {
         boost::shared_ptr<Tuple> val = *v;
-        if (time_col != -1)
+        if (time_col != -1) {
           val->mutable_e(time_col)->set_t_val(my_min.e(time_col).t_val());
+          round_end_marker.set_window_end(my_max.e(time_col).t_val());
+          //notice that the timestamp in the responses is the minimum of the window
+          // and the end-window is the MAX of the window.
+        }
         VLOG(1) << "R3 of " << id() << " emitting " << fmt( *(val));
         data_buf.push_back(val);
         emitted ++;
@@ -162,7 +167,6 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
     return; //no emit
   }
 
-  DataplaneMessage round_end_marker;
   round_end_marker.set_type(DataplaneMessage::END_OF_WINDOW);
   round_end_marker.set_tput_round(round);
 
@@ -386,6 +390,7 @@ MultiRoundCoordinator::process (
             LOG(INFO) << "TPUT complete, re-running";
             phase = NOT_STARTED;
           }
+          candidates.clear();
         } else {
           LOG(FATAL) << " TPUT should only be in phases 1-3, was " << phase;
           //done!
@@ -435,6 +440,7 @@ MultiRoundCoordinator::start_phase_2() {
   double t1 = tau_1 / predecessors.size();
   VLOG(1) << "tau at start of phase two is " << tau_1 << ". Threshold is " << t1
     << ". " << candidates.size()<< " candidates";
+  LOG(INFO) << "Starting processing for phase 2";
 
   phase = ROUND_2;
   DataplaneMessage start_phase;
@@ -445,7 +451,7 @@ MultiRoundCoordinator::start_phase_2() {
     shared_ptr<OperatorChain> pred = predecessors[i];
     pred->upwards_metadata(start_phase, this);
   }
-
+  LOG(INFO) << "Send out metadata for phase 2";
 }
 
 void

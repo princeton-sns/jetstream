@@ -27,7 +27,7 @@ def main():
   central_cube = define_raw_cube(g, "global_coral_urls", root_node, overwrite=True)
 
   if not options.no_echo:
-    pull_q = jsapi.TimeSubscriber(g, {}, 5000 , sort_order="-count", num_results=10)
+    pull_q = jsapi.TimeSubscriber(g, {}, 30000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
     pull_q.set_cfg("rollup_levels", "6,0,1,0")  # every five seconds to match subscription. Roll up counts.
