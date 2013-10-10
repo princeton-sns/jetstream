@@ -44,7 +44,7 @@ def main():
   tput_merge.set_cfg("num_results", 10)
   tput_merge.set_cfg("sort_column", "-count")
   tput_merge.set_cfg("min_window_size", 5)
-  tput_merge.set_cfg("rollup_levels", "10,0,1,0") # roll up response code and referer
+  tput_merge.set_cfg("rollup_levels", "10,0,1") # roll up response code and referer
   tput_merge.instantiate_on(root_node)
   g.chain ( [tput_merge, central_cube])
 
