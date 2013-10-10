@@ -18,6 +18,8 @@ def main():
 
   parser = standard_option_parser()
   parser.add_option("--full_url", dest="full_url", action="store_true", default=False)
+  parser.add_option("--table", dest="cube_name", action="store", default="local_records")
+
 
   (options, args) = parser.parse_args()
 
@@ -40,7 +42,8 @@ def get_graph(node, options):
 #  start_ts = parse_ts(options.start_ts)
 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
-     coral_fidxs['URL_requested'], coral_fidxs['Referrer_URL'], coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
+     coral_fidxs['URL_requested'], \#coral_fidxs['Referrer_URL'], 
+     coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
 
   f = jsapi.FileRead(g, options.fname, skip_empty=True)
   csvp = jsapi.CSVParse(g, coral_types)
@@ -49,7 +52,7 @@ def get_graph(node, options):
   round.set_cfg("wait_for_catch_up", "false")
   f.instantiate_on(node)
   
-  local_raw_cube = define_raw_cube(g, "local_records", node, parsed_field_offsets, True)
+  local_raw_cube = define_raw_cube(g, options.cube_name, node, parsed_field_offsets, True)
   if not options.full_url:
     url_to_dom = jsapi.URLToDomain(g, field=coral_fidxs['URL_requested'])
     g.chain( [f, csvp, round, url_to_dom, local_raw_cube] )

@@ -30,7 +30,7 @@ def main():
     pull_q = jsapi.TimeSubscriber(g, {}, 30000 , sort_order="-count", num_results=10)
     pull_q.set_cfg("ts_field", 0)
     pull_q.set_cfg("start_ts", start_ts)
-    pull_q.set_cfg("rollup_levels", "6,0,1,0")  # every five seconds to match subscription. Roll up counts.
+    pull_q.set_cfg("rollup_levels", "6,0,1")  # every five seconds to match subscription. Roll up counts.
     pull_q.set_cfg("simulation_rate", 1)
     pull_q.set_cfg("window_offset", 6* 1000) #but trailing by a few
     echo = jsapi.Echo(g)

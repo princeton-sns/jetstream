@@ -464,8 +464,20 @@ class TimeSubscriber(Operator):
 
   def out_schema(self, in_schema):
     if len(in_schema) == 0:
-      raise SchemaError("subscriber %s has no inputs"  % self.id)
+      raise SchemaError("subscriber %s has no inputs"  % self.id)      
     check_ts_field(in_schema, self.cfg)
+    
+    if len(self.preds) != 1:
+      raise SchemaError("Subscriber %s has %d inputs" % (self.id, len(self.preds)))
+    pred_cube = list(self.preds)[0]
+    
+    num_dims =  len(pred_cube.get_output_dimensions())
+    if "rollup_levels" in self.cfg:
+      rollup_dims = len(self.cfg['rollup_levels'].split(","))
+      if rollup_dims != num_dims:
+        raise SchemaError("Subscriber %s had %d rollup levels, but cube %s has %d dims" %\
+            (self.id, rollup_dims, pred_cube.name, num_dims))
+    
 #    print "time subscriber schema"
     return in_schema  #everything is just passed through
 
@@ -590,9 +602,7 @@ def filter_subsc_validate(filter_op, input_schemas):
   if len(filter_op.preds) == 0:
       raise SchemaError("subscriber %s has no inputs"  % filter_op.id)  
 
-
   for pred in filter_op.preds:
-
     if isinstance(pred, Cube):
       if saw_cube:
         raise SchemaError("filter should have a cube input and at most one other")
