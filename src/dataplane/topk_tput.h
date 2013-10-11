@@ -79,7 +79,6 @@ class MultiRoundCoordinator: public TimerSource {
    Tuple dim_filter_end;
    std::vector<unsigned> rollup_levels;
   
-  
    time_t start_ts;
    int ts_field;
    int window_offset;
@@ -90,6 +89,8 @@ class MultiRoundCoordinator: public TimerSource {
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
    double tau_1;
+   long long bw_start;
+  
    double calculate_tau();
 
 //   std::string downstream_cube_name;

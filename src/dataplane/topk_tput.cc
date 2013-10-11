@@ -178,6 +178,8 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
 operator_err_t
 MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
+  bw_start = 0;
+  
   if (config.find("num_results") != config.end()) {
     num_results = boost::lexical_cast<int32_t>(config["num_results"]);
   } else
@@ -384,6 +386,10 @@ MultiRoundCoordinator::process (
         } else if (phase == 2) {
           start_phase_3();
         } else if (phase == 3) {
+          long long bw_now = node->bytes_in.read() + node->bytes_out.read();
+          LOG(INFO) << "At end of " << id() << ". k: " <<  num_results << " BW-used: " << bw_now - bw_start;
+          bw_start = bw_now;
+      
           if(just_once)
             phase = DONE;
           else {
