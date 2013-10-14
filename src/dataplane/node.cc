@@ -228,6 +228,7 @@ Node::received_ctrl_msg (shared_ptr<ClientConnection> conn,
     return;
   }
   
+  unique_lock<boost::mutex> lock(jobStartLock);
   
   boost::system::error_code send_error;
   ControlMessage response;
@@ -319,6 +320,8 @@ Node::received_data_msg (shared_ptr<ClientConnection> c,
   boost::system::error_code send_error;
 
   VLOG(1) << "Received data message of type " << msg.type();
+  unique_lock<boost::mutex> lock(jobStartLock);
+
 
   switch (msg.type ()) {
   case DataplaneMessage::CHAIN_CONNECT:
@@ -390,6 +393,7 @@ unparse_id (const TaskID& id) {
 
 void
 Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
+  
   // Create a response indicating which operators and cubes were successfully
   // started/stopped
   response.set_type(ControlMessage::ALTER_RESPONSE);
@@ -701,6 +705,7 @@ Node::establish_congest_policies( const AlterTopo & topo,
       policy->set_chain(chain);
       
       boost::shared_ptr<COperator> op = get_operator(toStart[i]);
+      LOG_IF(FATAL, !op)  << "can't set policy for nonexistent operator " << toStart[i];
       op->set_congestion_policy(policy);
       string monitor_name = "undefined";
       if(mon) {

@@ -38,6 +38,7 @@ class Node {
   mutable boost::mutex threadpoolLock; // a mutex to make sure concurrent thread starts/stops
             //don't interfere
   mutable boost::shared_mutex operatorTableLock; // protects list of operators
+  mutable boost::mutex jobStartLock;
   
   boost::condition_variable startStopCond;
                                                     

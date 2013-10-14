@@ -41,9 +41,10 @@ def get_graph(node, options):
 #we don't use this here
 #  start_ts = parse_ts(options.start_ts)
 
+#coral_fidxs['Referrer_URL'], 
   parsed_field_offsets = [coral_fidxs['timestamp'], coral_fidxs['HTTP_stat'],\
-     coral_fidxs['URL_requested'], \#coral_fidxs['Referrer_URL'], 
-     coral_fidxs['nbytes'], coral_fidxs['dl_utime'], len(coral_types) ]
+    coral_fidxs['URL_requested'], coral_fidxs['nbytes'], \
+    coral_fidxs['dl_utime'], len(coral_types) ]
 
   f = jsapi.FileRead(g, options.fname, skip_empty=True)
   csvp = jsapi.CSVParse(g, coral_types)

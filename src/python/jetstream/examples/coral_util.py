@@ -162,7 +162,7 @@ def define_raw_cube(g, cube_name, cube_node, ids = [0,1,2,3,4,5,6,7], overwrite=
   cube.add_dim("response_code", CubeSchema.Dimension.INT32, ids[1])
   cube.add_dim("url", CubeSchema.Dimension.STRING, ids[2])
 #  cube.add_dim("referer", CubeSchema.Dimension.STRING, ids[3])
-  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[4])  #effectively a sum
-  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[5]) # effectively a sum
-  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[6])
+  cube.add_agg("size", jsapi.Cube.AggType.COUNT, ids[3])  #effectively a sum
+  cube.add_agg("latency", jsapi.Cube.AggType.COUNT, ids[4]) # effectively a sum
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, ids[5])
   return cube
