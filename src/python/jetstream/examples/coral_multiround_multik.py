@@ -52,12 +52,12 @@ def generate_and_run(options, all_nodes, server, k):
     g.chain([central_cube,pull_q, echo] )
 
   tput_merge = jsapi.MultiRoundCoord(g)
-  tput_merge.set_cfg("start_ts", start_ts)
-  tput_merge.set_cfg("window_offset", 5 * 1000)
-  tput_merge.set_cfg("ts_field", 0)
+#  tput_merge.set_cfg("start_ts", start_ts)
+#  tput_merge.set_cfg("window_offset", 5 * 1000)
+#  tput_merge.set_cfg("ts_field", 0)
   tput_merge.set_cfg("num_results", k)
   tput_merge.set_cfg("sort_column", "-count")
-  tput_merge.set_cfg("min_window_size", 5)
+#  tput_merge.set_cfg("min_window_size", 5)
   tput_merge.set_cfg("rollup_levels", "10,0,1") # roll up response code and referer
   tput_merge.instantiate_on(root_node)
   g.chain ( [tput_merge, central_cube])
