@@ -417,7 +417,7 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
   }
 
   LOG_IF(FATAL, !chainIsReady && msg.type() != DataplaneMessage::CHAIN_READY) <<
-    "Chain-is-ready must be first message on connection after creation";
+    "Chain-is-ready must be first message on connection after creation. Got " << msg.type() << " instead";
   switch (msg.type ()) {
     case DataplaneMessage::CHAIN_READY:
     {

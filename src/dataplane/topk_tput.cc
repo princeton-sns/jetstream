@@ -252,11 +252,12 @@ MultiRoundCoordinator::start() {
 
 void
 MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> ch) {
+    //  LOG(INFO) << "adding chain " << ch.get();
   boost::lock_guard<tput_mutex> lock (mutex);
   if (ch->member(0).get() == this)
     chain = ch;
   else
-    future_preds[chain.get()] = ch;
+    future_preds[ch.get()] = ch;
 }
 
 void
@@ -338,7 +339,10 @@ MultiRoundCoordinator::process (
           OperatorChain * c,
           vector<boost::shared_ptr<Tuple> > & tuples,
           DataplaneMessage & msg) {
-  LOG(INFO) << "TPUT coordinator processing in phase "<< phase <<", from chain " << c;
+  
+    //  if (tuples->size == 0 && msg.type )
+  LOG(INFO) << "TPUT coordinator processing in phase "<< phase <<", from chain " << c <<
+    ". message-type: " << msg.type();
   boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
