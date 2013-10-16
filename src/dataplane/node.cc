@@ -511,7 +511,7 @@ Node::handle_alter (const AlterTopo& topo, ControlMessage& response) {
       const CubeMeta &task = topo.tocreate(i);
       shared_ptr<DataCube> c = cubeMgr.get_cube(task.name());
       assert (c);
-      shared_ptr<OperatorChain> chain(new OperatorChain);
+      shared_ptr<OperatorChain> chain(new OperatorChain); //for incoming connections to cubes
       chain->add_member(c);
       dataConnMgr.created_chain(chain);
     }

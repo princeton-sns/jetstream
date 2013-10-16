@@ -234,10 +234,10 @@ MultiRoundCoordinator::start() {
 
   boost::lock_guard<tput_mutex> lock (mutex);
   
-  chain = future_preds.begin()->second;
-  LOG_IF(FATAL, !chain) << "Can't have a coordinator with no chain";
+    //  chain = future_preds.begin()->second;
+  LOG_IF(FATAL, !chain) << "Can't have a coordinator with no chains";
 
-  if (!destcube) {
+  if (!destcube) {  //note this uses the chain starting at this
     boost::shared_ptr<ChainMember> dest = chain->member(chain->members() -1);
     destcube = boost::dynamic_pointer_cast<DataCube>(dest);
     if (!destcube) {
@@ -251,11 +251,12 @@ MultiRoundCoordinator::start() {
 }
 
 void
-MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> chain) {
+MultiRoundCoordinator::add_chain(boost::shared_ptr<OperatorChain> ch) {
   boost::lock_guard<tput_mutex> lock (mutex);
-  if (chain->member(0).get() == this)
-    return;
-  future_preds[chain.get()] = chain;
+  if (ch->member(0).get() == this)
+    chain = ch;
+  else
+    future_preds[chain.get()] = ch;
 }
 
 void
