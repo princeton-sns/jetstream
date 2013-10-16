@@ -224,7 +224,7 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
   wait_for_start = 0;
   if (config.find("wait_for_start") != config.end()) {
-    wait_for_start = boost::lexical_cast<time_t>(config["window_offset"]);
+    wait_for_start = boost::lexical_cast<time_t>(config["wait_for_start"]);
   }
 
   just_once = true;

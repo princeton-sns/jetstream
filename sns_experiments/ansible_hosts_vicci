@@ -88,7 +88,7 @@ node42.mpisws.vicci.org public_ip=141.39.220.52 server_index=82
 ##node42.gt.vicci.org public_ip=130.207.98.51 server_index=83
 node43.mpisws.vicci.org public_ip=141.39.220.53 server_index=84
 node43.gt.vicci.org public_ip=130.207.98.52 server_index=85
-node44.mpisws.vicci.org public_ip=141.39.220.54 server_index=86
+#node44.mpisws.vicci.org public_ip=141.39.220.54 server_index=86
 node44.gt.vicci.org public_ip=130.207.98.53 server_index=87
 node45.mpisws.vicci.org public_ip=141.39.220.55 server_index=88
 ##node45.gt.vicci.org public_ip=130.207.98.54 server_index=89
