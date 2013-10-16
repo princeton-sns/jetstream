@@ -587,7 +587,7 @@ DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
                                             const DataplaneMessage& msg) {
   unique_lock<boost::mutex> lock(stateLock);
   LOG(INFO) << "Incoming meta " << msg.type() << " to delayed-one-shot " << id()
-    << " from " << (&chain);
+    << " from " << chain.chain_name();
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
     times[&chain] = get_msec();
   } else if (msg.type() == DataplaneMessage::NO_MORE_DATA ) {

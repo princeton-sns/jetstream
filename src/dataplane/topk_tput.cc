@@ -222,6 +222,11 @@ MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
     window_offset = 0;
   }
 
+  wait_for_start = 0;
+  if (config.find("wait_for_start") != config.end()) {
+    wait_for_start = boost::lexical_cast<time_t>(config["window_offset"]);
+  }
+
   just_once = true;
   phase = NOT_STARTED;
   return NO_ERR;
@@ -306,7 +311,7 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   
   
   LOG(INFO) << "starting TPUT, k = " << num_results << " and col is " << sort_column << " (id " << total_col << "). "
-      << predecessors.size() << " predecessors";
+      << predecessors.size() << " predecessors. TS field is " << ts_field;
 
   //todo should set tput_r1_start and tput_r2_start
   if (ts_field > -1) {
@@ -375,11 +380,13 @@ MultiRoundCoordinator::process (
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
    // check what phase source was in; increment label and counter.
    // If we're done with phase, proceed!
+   
     LOG_IF(FATAL, !msg.has_tput_round()) << " a valid end-of-window to a tput controller must have a phase number";
     int sender_round = msg.tput_round();
     if (sender_round == phase) {
       responses_this_phase ++;
       if (responses_this_phase == predecessors.size()) {
+      
         LOG(INFO) << id() << " completed TPUT round " << phase << " with " << candidates.size()<< " candidates";
         if (candidates.size() == 0) {          
           phase = ROUND_3; //move directly to round 3 and done
@@ -406,8 +413,11 @@ MultiRoundCoordinator::process (
           LOG(FATAL) << " TPUT should only be in phases 1-3, was " << phase;
           //done!
         }
-
       }
+      if  (phase == 1 || phase == 2)
+        msg.clear_type(); //don't forward end-of-window unless we're done;
+
+      
     }
   }
 
@@ -500,10 +510,34 @@ MultiRoundCoordinator::emit_data() {
   time_t now = time(NULL);
   time_t window_end = max( now - window_offset, start_ts + min_window_size);
 
-  if (phase == DONE)
+  if (phase == DONE) {
+  
+    DataplaneMessage msg;
+    
+    for (unsigned int i = 0; i < predecessors.size(); ++i) {
+      shared_ptr<OperatorChain> pred = predecessors[i];
+      pred->stop();
+    }
+    /*
+    map<OperatorChain *, boost::shared_ptr<OperatorChain> >::iterator preds;
+    for (preds =future_preds.begin(); preds != future_preds.end(); ++preds) {
+      preds->second->stop();
+    }*/
+
+      //signal that this chain is really done.
+//    msg.set_type(DataplaneMessage::NO_MORE_DATA);
+ //   std::vector<shared_ptr<Tuple> > no_tuples;
+ //   chain->process(no_tuples, msg);
+  
     return -1;
+  }
   if (window_end > now)
     return 1000 * (window_end - now);
+  else if (wait_for_start > 0) {
+    msec_t wait = 1000 * wait_for_start;
+    wait_for_start = 0;
+      return wait;
+  }
   else {
     if (phase == NOT_STARTED) {
       start_phase_1(window_end);

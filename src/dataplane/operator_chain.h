@@ -51,7 +51,7 @@ protected:
 //  CSrcOperator * chain_head;
   std::vector< boost::shared_ptr<ChainMember> > ops;
   volatile bool running;
-  std::string cached_chain_name;
+  mutable std::string cached_chain_name;
 
 
 public:
@@ -84,7 +84,7 @@ public:
     //unregister();
   }
 
-  const std::string& chain_name();  
+  const std::string& chain_name() const;
   
   boost::shared_ptr<CongestionMonitor> congestion_monitor();
   

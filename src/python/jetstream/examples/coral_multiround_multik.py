@@ -42,11 +42,10 @@ def generate_and_run(options, all_nodes, server, k):
   central_cube = define_raw_cube(g, "global_coral_urls", root_node, overwrite=True)
 
   if not options.no_echo:
-    pull_q = jsapi.TimeSubscriber(g, {}, 30000 , sort_order="-count", num_results=k)
+    pull_q = jsapi.DelayedSubscriber(g, {}, sort_order="-count", num_results=k)
 #    pull_q.set_cfg("ts_field", 0)
-    pull_q.set_cfg("start_ts", start_ts)
-    pull_q.set_cfg("rollup_levels", "6,0,1")  # every five seconds to match subscription. Roll up counts.
-    pull_q.set_cfg("simulation_rate", 1)
+#    pull_q.set_cfg("start_ts", start_ts)
+    pull_q.set_cfg("rollup_levels", "0,0,1")  
     pull_q.set_cfg("window_offset", 20* 1000) #but trailing by a few
     echo = jsapi.Echo(g)
     echo.instantiate_on(root_node)
@@ -56,10 +55,11 @@ def generate_and_run(options, all_nodes, server, k):
 #  tput_merge.set_cfg("start_ts", start_ts)
 #  tput_merge.set_cfg("window_offset", 5 * 1000)
 #  tput_merge.set_cfg("ts_field", 0)
+  tput_merge.set_cfg("wait_for_start", 10)
   tput_merge.set_cfg("num_results", k)
   tput_merge.set_cfg("sort_column", "-count")
 #  tput_merge.set_cfg("min_window_size", 5)
-  tput_merge.set_cfg("rollup_levels", "10,0,1") # roll up response code and referer
+  tput_merge.set_cfg("rollup_levels", "0,0,1") # roll up time, response code and referer
   tput_merge.instantiate_on(root_node)
   g.chain ( [tput_merge, central_cube])
 

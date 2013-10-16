@@ -90,6 +90,7 @@ class MultiRoundCoordinator: public TimerSource {
    boost::shared_ptr<DataCube> destcube;
    double tau_1;
    long long bw_start;
+   time_t wait_for_start;
   
    double calculate_tau();
 

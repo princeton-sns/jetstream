@@ -19,7 +19,7 @@ using namespace boost;
 namespace jetstream {
 
 const string&
-OperatorChain::chain_name() {
+OperatorChain::chain_name() const {
 
   if (cached_chain_name.size() == 0) {
     std::ostringstream buf;
