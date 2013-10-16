@@ -346,8 +346,8 @@ MultiRoundCoordinator::process (
           DataplaneMessage & msg) {
   
     //  if (tuples->size == 0 && msg.type )
-  LOG(INFO) << "TPUT coordinator processing in phase "<< phase <<", from chain " << c <<
-    ". message-type: " << msg.type();
+//  LOG(INFO) << "TPUT coordinator processing in phase "<< phase <<", from chain " << c <<
+ //   ". message-type: " << msg.type();
   boost::lock_guard<tput_mutex> lock (mutex);
 
   if ( (phase == ROUND_1)|| (phase == ROUND_2)) {
@@ -388,6 +388,12 @@ MultiRoundCoordinator::process (
       if (responses_this_phase == predecessors.size()) {
       
         LOG(INFO) << id() << " completed TPUT round " << phase << " with " << candidates.size()<< " candidates";
+
+        long long bw_now = node->bytes_in.read() + node->bytes_out.read();
+        LOG(INFO) << "At end of " << id() << " phase " << phase << ". k: " <<  num_results << " BW-used this phase: " << bw_now - bw_start;
+        bw_start = bw_now;
+        
+        
         if (candidates.size() == 0) {          
           phase = ROUND_3; //move directly to round 3 and done
         }
@@ -398,9 +404,6 @@ MultiRoundCoordinator::process (
         } else if (phase == 2) {
           start_phase_3();
         } else if (phase == 3) {
-          long long bw_now = node->bytes_in.read() + node->bytes_out.read();
-          LOG(INFO) << "At end of " << id() << ". k: " <<  num_results << " BW-used: " << bw_now - bw_start;
-          bw_start = bw_now;
       
           if(just_once)
             phase = DONE;
