@@ -28,7 +28,8 @@ def main():
   for k in kseq:
     print "\n---------- Trying with k = %d -----------" % k
     generate_and_run(options, all_nodes, server, k)
-    time.sleep(180)  #no immediate feedback on execution so we need to do it this way.
+    if len(kseq) > 1:
+      time.sleep(180)  #no immediate feedback on execution so we need to do it this way.
       #yuck
   
 

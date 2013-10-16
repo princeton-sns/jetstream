@@ -416,20 +416,30 @@ RemoteDestAdaptor::conn_ready_cb(DataplaneMessage &msg,
     return;
   }
 
-  LOG_IF(FATAL, !chainIsReady && msg.type() != DataplaneMessage::CHAIN_READY) <<
+  if (msg.type() == DataplaneMessage::ERROR) {
+    LOG(WARNING) << "Aborting connection due to remote error. " << msg.error_msg().msg();
+    return;
+  }
+  
+  if (!chainIsReady) {
+    LOG_IF(ERROR, msg.type() != DataplaneMessage::CHAIN_READY) <<
     "Chain-is-ready must be first message on connection after creation. Got " << msg.type() << " instead";
+    
+    LOG(INFO) << "got ready back from " << dest_as_str;
+    {
+      unique_lock<boost::mutex> lock(mutex);
+        // Indicate the chain is ready before calling notify to avoid a race condition
+      chainIsReady = true;
+    }
+      // Unblock any threads that are waiting for the chain to be ready; the mutex does
+      // not need to be locked across the notify call
+    chainReadyCond.notify_all();
+  }
+  
   switch (msg.type ()) {
     case DataplaneMessage::CHAIN_READY:
     {
-      LOG(INFO) << "got ready back from " << dest_as_str;
-      {
-        unique_lock<boost::mutex> lock(mutex);
-        // Indicate the chain is ready before calling notify to avoid a race condition
-        chainIsReady = true;
-      }
-      // Unblock any threads that are waiting for the chain to be ready; the mutex does
-      // not need to be locked across the notify call
-      chainReadyCond.notify_all();  
+
       break;
     }
     

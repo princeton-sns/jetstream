@@ -672,9 +672,9 @@ Node::establish_congest_policies( const AlterTopo & topo,
     shared_ptr<OperatorChain> chain;
     for (int t = 0;  t < p_spec.op_size(); ++t) {
       operator_id_t id = unparse_id(p_spec.op(t));
-      policy->add_operator(id);
       op = get_operator(id);
       if (op) {
+        policy->add_operator(id);
         chain = opToChain[id];
         if (!chain)
           throw operator_err_t("Operator " + id.to_string() + " not created in this Alter");
@@ -682,7 +682,8 @@ Node::establish_congest_policies( const AlterTopo & topo,
         operators_with_policies[id] = true;
         op_list << " " << op->id_as_str();
       } else {
-        LOG(FATAL) << "can't set policy for nonexistent operator " << id;
+        LOG(ERROR) << "can't set policy for nonexistent operator " << id;
+        continue;
       }
     }
     policy->set_chain(chain);
@@ -705,7 +706,10 @@ Node::establish_congest_policies( const AlterTopo & topo,
       policy->set_chain(chain);
       
       boost::shared_ptr<COperator> op = get_operator(toStart[i]);
-      LOG_IF(FATAL, !op)  << "can't set policy for nonexistent operator " << toStart[i];
+      if (!op) {
+        LOG(ERROR)  << "can't set policy for nonexistent operator " << toStart[i];
+        continue;
+      }
       op->set_congestion_policy(policy);
       string monitor_name = "undefined";
       if(mon) {
