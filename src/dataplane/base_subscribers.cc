@@ -573,7 +573,7 @@ DelayedOneShotSubscriber::action_on_tuple(OperatorChain * chain, boost::shared_p
   unique_lock<boost::mutex> lock(stateLock);
   if (times.find(chain) == times.end() &&
     (former_chains.find(chain) == former_chains.end())) {
-    LOG(INFO) << "new chain: " << chain;
+    VLOG(1) << "new chain: " << chain;
     msec_t t = get_msec();
     if (first_data == 0)
       first_data = t;
@@ -586,7 +586,7 @@ shared_ptr<FlushInfo>
 DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
                                             const DataplaneMessage& msg) {
   unique_lock<boost::mutex> lock(stateLock);
-  LOG(INFO) << "Incoming meta " << msg.type() << " to delayed-one-shot " << id()
+  VLOG(1) << "Incoming meta " << msg.type() << " to delayed-one-shot " << id()
     << " from " << chain.chain_name();
   if (msg.type() == DataplaneMessage::END_OF_WINDOW) {
     times[&chain] = get_msec();
@@ -597,7 +597,7 @@ DelayedOneShotSubscriber::incoming_meta(const OperatorChain& chain,
       first_close = get_msec();
   }
   unsigned chains_in = cube->in_chains();
-  LOG(INFO) << "Total of " << chains_in << " chains left for " << id();
+  VLOG(1) << "Total of " << chains_in << " chains left for " << id();
   shared_ptr<FlushInfo> p;
   if (chains_in == 0 ) {
     

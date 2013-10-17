@@ -437,13 +437,13 @@ MultiRoundCoordinator::print_stats() const {
   for (int i = 1; i < 4; ++i) {
     msec_t delay = round_end_times[i] - round_end_times[i-1];
     long long bytes = bw_after_round[i] -bw_after_round[i-1];
-    LOG(INFO) << "* Stats for " << id() << "k: " <<  num_results << " BW-used phase "
+    LOG(INFO) << "* Stats for " << id() << " k: " <<  num_results << " BW-used phase "
         << i << " : " << bytes << " bytes " << delay << " msec";
   }
-  LOG(INFO) << "* Stats for " << id() << "k: " <<  num_results << " BW-used total: "
+  LOG(INFO) << "* Stats for " << id() << " k: " <<  num_results << " BW-used total: "
       << (bw_after_round[3] -bw_after_round[0]) << " bytes "
       << (round_end_times[3] - round_end_times[0]) << " msec";
-  LOG(INFO) << "**********************************";  
+  LOG(INFO) << "**********************************";
 }
 
 

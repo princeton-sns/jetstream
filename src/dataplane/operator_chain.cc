@@ -74,7 +74,7 @@ OperatorChain::unblock(bool * stopped) {
 
 void
 OperatorChain::stop() {
-  LOG(INFO) << "Stopping "<< chain_name()<< "; running is " << running;
+  VLOG(1) << "Stopping "<< chain_name()<< "; running is " << running;
   // << typename_as_str() << " operator " << id() << ". Running is " << running;
   if (running) {
     running = false;

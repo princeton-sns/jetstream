@@ -291,7 +291,7 @@ void
 DataCube::chain_stopping(OperatorChain * c) {
   if (c->member(0).get() != this)
     boost::interprocess::ipcdetail::atomic_dec32(&in_chain_count);
-  LOG(INFO) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
+  VLOG(1) << "Cube " << name << " got chain-stopping; " << in_chain_count << " in-chains left"; // << c->chain_name();
   DataplaneMessage end_of_chain;
   end_of_chain.set_type(DataplaneMessage::NO_MORE_DATA);
   std::vector< boost::shared_ptr<Tuple> > no_tuples;
