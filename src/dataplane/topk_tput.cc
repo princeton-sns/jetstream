@@ -447,7 +447,10 @@ MultiRoundCoordinator::print_stats() const {
 }
 
 
-
+/**
+   Returns a lower bound on the value for the kth item, by checking
+ the kth item using only the partial data we already have.
+ */
 double
 MultiRoundCoordinator::calculate_tau() {
   double tau = 0;
@@ -501,7 +504,8 @@ MultiRoundCoordinator::start_phase_3() {
 
   phase = ROUND_3;
 
-  double tau = calculate_tau();
+  double tau = calculate_tau();  //called tau-2 in the Cao paper. We are guaranteed that
+                                 //it is lower than the true value associated with the kth item
   DataplaneMessage r3_start;
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
   r3_start.set_tput_r3_timecol(ts_field);
