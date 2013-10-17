@@ -88,7 +88,7 @@ class MultiRoundCoordinator: public TimerSource {
    unsigned int responses_this_phase;
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
-   double tau_1;
+   double T1;
    time_t wait_for_start;
 
 // For monitoring
