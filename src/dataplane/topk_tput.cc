@@ -178,7 +178,8 @@ MultiRoundSender::meta_from_downstream(DataplaneMessage & msg) {
 operator_err_t
 MultiRoundCoordinator::configure(std::map<std::string,std::string> &config) {
 
-  bw_start = 0;
+  memset(bw_after_round, 0, sizeof(bw_after_round));
+  memset(round_end_times, 0, sizeof(round_end_times));
   
   if (config.find("num_results") != config.end()) {
     num_results = boost::lexical_cast<int32_t>(config["num_results"]);
@@ -283,6 +284,11 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   phase = ROUND_1;
   responses_this_phase = 0;
   DataplaneMessage start_proto;
+  
+  
+  bw_after_round[0] = node->bytes_in.read() + node->bytes_out.read();
+  round_end_times[0] = get_msec();
+  
   start_proto.set_type(DataplaneMessage::TPUT_START);
   start_proto.set_tput_k(num_results);
   start_proto.set_tput_sort_key(sort_column);
@@ -331,9 +337,9 @@ MultiRoundCoordinator::start_phase_1(time_t window_end) {
   
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<OperatorChain> pred = predecessors[i];
-    LOG(INFO) << "upwards metadata to " << pred;
+//    LOG(INFO) << "upwards metadata to " << pred;
     pred->upwards_metadata(start_proto, this);
-    LOG(INFO) << "upwards metadata to " << pred <<  " complete";
+//    LOG(INFO) << "upwards metadata to " << pred <<  " complete";
   }
 }
 
@@ -389,10 +395,8 @@ MultiRoundCoordinator::process (
       
         LOG(INFO) << id() << " completed TPUT round " << phase << " with " << candidates.size()<< " candidates";
 
-        long long bw_now = node->bytes_in.read() + node->bytes_out.read();
-        LOG(INFO) << "At end of " << id() << " phase " << phase << ". k: " <<  num_results << " BW-used this phase: " << bw_now - bw_start;
-        bw_start = bw_now;
-        
+        bw_after_round[phase] = node->bytes_in.read() + node->bytes_out.read();
+        round_end_times[phase] = get_msec();
         
         if (candidates.size() == 0) {          
           phase = ROUND_3; //move directly to round 3 and done
@@ -404,7 +408,8 @@ MultiRoundCoordinator::process (
         } else if (phase == 2) {
           start_phase_3();
         } else if (phase == 3) {
-      
+          
+          print_stats();
           if(just_once)
             phase = DONE;
           else {
@@ -423,10 +428,23 @@ MultiRoundCoordinator::process (
       
     }
   }
-
-
 }
 
+void
+MultiRoundCoordinator::print_stats() const {
+
+  LOG(INFO) << "**********************************";
+  for (int i = 1; i < 4; ++i) {
+    msec_t delay = round_end_times[i] - round_end_times[i-1];
+    long long bytes = bw_after_round[i] -bw_after_round[i-1];
+    LOG(INFO) << "* Stats for " << id() << "k: " <<  num_results << " BW-used phase "
+        << i << " : " << bytes << " bytes " << delay << " msec";
+  }
+  LOG(INFO) << "* Stats for " << id() << "k: " <<  num_results << " BW-used total: "
+      << (bw_after_round[3] -bw_after_round[0]) << " bytes "
+      << (round_end_times[3] - round_end_times[0]) << " msec";
+  LOG(INFO) << "**********************************";  
+}
 
 
 

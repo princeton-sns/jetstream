@@ -89,9 +89,13 @@ class MultiRoundCoordinator: public TimerSource {
    unsigned int total_col;
    boost::shared_ptr<DataCube> destcube;
    double tau_1;
-   long long bw_start;
    time_t wait_for_start;
-  
+
+// For monitoring
+   long long bw_after_round[4];
+   msec_t round_end_times[4];
+
+
    double calculate_tau();
 
 //   std::string downstream_cube_name;
@@ -112,6 +116,8 @@ class MultiRoundCoordinator: public TimerSource {
   };
   
    std::map<DimensionKey, CandidateItem> candidates;
+  
+   void print_stats() const;
 
  public:
  
@@ -139,6 +145,8 @@ class MultiRoundCoordinator: public TimerSource {
    void start_phase_2();
    void start_phase_3();
 //   void wait_for_restart();
+
+
 
 GENERIC_CLNAME
 };
