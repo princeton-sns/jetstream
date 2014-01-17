@@ -447,7 +447,10 @@ MultiRoundCoordinator::print_stats() const {
 }
 
 
-
+/**
+   Returns a lower bound on the value for the kth item, by checking
+ the kth item using only the partial data we already have.
+ */
 double
 MultiRoundCoordinator::calculate_tau() {
   double tau = 0;
@@ -477,17 +480,17 @@ MultiRoundCoordinator::start_phase_2() {
 //	Controller takes partial sums; declare kth one as phase-1 bottom Tau-1.
 //	[Needs no per-source state at controller]
 
-  tau_1 = calculate_tau();
+  double tau_1 = calculate_tau();
 
-  double t1 = tau_1 / predecessors.size();
-  VLOG(1) << "tau at start of phase two is " << tau_1 << ". Threshold is " << t1
+  T1 = tau_1 / predecessors.size();
+  VLOG(1) << "tau at start of phase two is " << tau_1 << ". Threshold is " << T1
     << ". " << candidates.size()<< " candidates";
   LOG(INFO) << "Starting processing for phase 2";
 
   phase = ROUND_2;
   DataplaneMessage start_phase;
   start_phase.set_type(DataplaneMessage::TPUT_ROUND_2);
-  start_phase.set_tput_r2_threshold(t1);
+  start_phase.set_tput_r2_threshold(T1);
   start_phase.set_tput_r2_col(total_col);
   for (unsigned int i = 0; i < predecessors.size(); ++i) {
     shared_ptr<OperatorChain> pred = predecessors[i];
@@ -501,7 +504,8 @@ MultiRoundCoordinator::start_phase_3() {
 
   phase = ROUND_3;
 
-  double tau = calculate_tau();
+  double tau = calculate_tau();  //called tau-2 in the Cao paper. We are guaranteed that
+                                 //it is lower than the true value associated with the kth item
   DataplaneMessage r3_start;
   r3_start.set_type(DataplaneMessage::TPUT_ROUND_3);
   r3_start.set_tput_r3_timecol(ts_field);
@@ -509,7 +513,7 @@ MultiRoundCoordinator::start_phase_3() {
   std::map<DimensionKey, CandidateItem >::iterator iter;
   unsigned int pred_size = predecessors.size();
   for (iter = candidates.begin(); iter != candidates.end(); iter++) {
-    double upper_bound = (pred_size - iter->second.responses) * tau_1 + iter->second.val;
+    double upper_bound = (pred_size - iter->second.responses) * T1 + iter->second.val;
     if (upper_bound >= tau) {
       Tuple * t = r3_start.add_tput_r3_query();
       t->CopyFrom(iter->second.example);

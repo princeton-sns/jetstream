@@ -69,6 +69,11 @@ def main():
     src_to_internal = src_to_domain
     process_results = lambda x,y,z: y
     final_rollup_levels = "8,1,1" #rollup time slightly, rest is unrolled.
+  elif mode == "domains_all":
+    define_internal_cube = dom_notime
+    src_to_internal = drop_time_from_doms
+    process_results = lambda x,y,z: y
+    final_rollup_levels = "1,1" #rollup time slightly, rest is unrolled.    
   elif mode == "slow_reqs":
     define_internal_cube = url_cube
     src_to_internal = src_slow_reqs
@@ -189,6 +194,19 @@ def src_slow_reqs(g, data_src, node, options):
     #units are usec/byte, or sec/mb. So bound of 100 ==> < 10 kb/sec
   filter = jsapi.RatioFilter(g, numer=4, denom=3, bound = 100)
   return g.connect(data_src, filter)
+
+
+def drop_time_from_doms(, data_src, node, options):
+  return g.chain([raw_cube_sub, jsapi.Project(g, 4), jsapi.Project(g, 3), jsapi.Project(g, 1), jsapi.Project(g, 0)] )
+  
+
+def dom_notime(g, cube_name, cube_node):
+  cube = g.add_cube(cube_name)
+  cube.instantiate_on(cube_node)
+  cube.set_overwrite(True)
+  cube.add_dim("domain", CubeSchema.Dimension.STRING, 0)
+  cube.add_agg("count", jsapi.Cube.AggType.COUNT, 1)
+  return cube
 
 
 def src_to_bw(g, data_src, node, options):
