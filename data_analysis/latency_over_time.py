@@ -12,6 +12,9 @@ from numpy import array
 
 OUT_TO_FILE = True
 DATE = False
+SHORT_GRAPHS = True
+AXIS_LABEL_FONT = 13 if SHORT_GRAPHS else 18
+TICK_LABEL_FONT = 11 if SHORT_GRAPHS else 15
 
 import matplotlib
 if OUT_TO_FILE:
@@ -84,12 +87,14 @@ def main():
   for c,name in counts_by_name:
     print " %s    %d" % (name,c)
 
-#  plot_data_over_time(data, MY_LAT, "latency_local.pdf")
-#  plot_data_over_time(data, MEDIAN_LAT, "latency_median.pdf")
+#  plot_data_over_time(data, [MY_LAT], "latency_local.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT], out_dir+ "latency_median.pdf", MAX_Y = 16)
   plot_data_over_time(data, [COEF_VAR], out_dir+ "internode_variation.pdf")
   plot_data_over_time(data, [LAT_999], out_dir + "latency_highquant.pdf")
   plot_data_over_time(data, [LAT_MAX], out_dir + "latency_extremum.pdf")
   plot_data_over_time(data, [MEDIAN_LAT, MY_LAT, LAT_MAX], out_dir + "latency_multi.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi2.pdf", MAX_Y = 16)
+
   plot_bw(data, out_dir + "img_bw_over_time.pdf")
 
 def stddev_to_c_of_v(data):
@@ -185,7 +190,7 @@ def get_x_from_time(t):
 
 linelabels = ['k-', 'b.', 'gx']
 
-def plot_data_over_time(data, seriesnames, filename):
+def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
 
   legend_artists = []
 #  series_to_plot = 
@@ -200,33 +205,35 @@ def plot_data_over_time(data, seriesnames, filename):
   else:
     time = [ x / (60 * 1000) for x in data['Time']]
     
-  MAX_Y = 1.15 * max([max(data[sname]) for sname in seriesnames])
+  if MAX_Y == 0:
+    MAX_Y = 1.15 * max([max(data[sname]) for sname in seriesnames])
   ax.set_ylim( 0, MAX_Y)  
   
   for seriesname,linelabel in zip(seriesnames, linelabels):
     line, = ax.plot(time, data[seriesname], linelabel)
     legend_artists.append( line )
   
-  ax.set_xlabel('Elapsed time (minutes)', fontsize=18)  
+  ax.set_xlabel('Elapsed time (minutes)', fontsize=AXIS_LABEL_FONT)  
   if len(seriesnames) == 1:
-    ax.set_ylabel(seriesnames[0], fontsize=18)
+    ax.set_ylabel(seriesnames[0], fontsize=AXIS_LABEL_FONT)
   else:
-    ax.set_ylabel("Latency (sec)", fontsize=18)
+    ax.set_ylabel("Latency (sec)", fontsize=AXIS_LABEL_FONT)
 
   plt.yticks(numpy.arange(0, MAX_Y, 2))
-  ax.tick_params(axis='both', which='major', labelsize=15)
+  ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONT)
 
 
   leg_labels = []
-  leg_labels.extend(seriesnames)
-  leg_labels.reverse()
-  legend_artists.reverse()
-  plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
+  if len (seriesnames) > 1:
+    leg_labels.extend(seriesnames)
+    leg_labels.reverse()
+    legend_artists.reverse()
+    plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
 
-  figure.set_size_inches(6.25, 4.25)
+  figure.set_size_inches(6.25, 2.25  if SHORT_GRAPHS else 4.25)
   figure.subplots_adjust(left=0.10)
   figure.subplots_adjust(right=0.97)  
-  figure.subplots_adjust(bottom=0.16)
+  figure.subplots_adjust(bottom= (0.19 if SHORT_GRAPHS else 0.16))
   figure.subplots_adjust(top=0.99)
   
   plt.savefig(filename)
@@ -245,15 +252,14 @@ def plot_bw(data, filename):
   else:
     time = [ x / (60 * 1000) for x in data['Time']]
 
-
   line, = ax.plot(time, bw_series, "r.")  
-  ax.set_xlabel('Experiment time (minutes)', fontsize=18)  
-  ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=18)
+  ax.set_xlabel('Experiment time (minutes)', fontsize=AXIS_LABEL_FONT)  
+  ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=AXIS_LABEL_FONT)
   ax.set_ylim( 0, 1.1 * max(bw_series))  
-  ax.tick_params(axis='both', which='major', labelsize=15)
+  ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONT)
 
-  figure.set_size_inches(6.25, 3.25) 
-  figure.subplots_adjust(bottom=0.17)  
+  figure.set_size_inches(6.25, 2.25 if SHORT_GRAPHS else 3.25) 
+  figure.subplots_adjust(bottom=(0.23 if SHORT_GRAPHS else 0.17)) 
   figure.subplots_adjust(top=0.98)
   figure.subplots_adjust(left=0.12)
   figure.subplots_adjust(right=0.97)

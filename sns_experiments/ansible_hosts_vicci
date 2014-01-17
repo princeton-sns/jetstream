@@ -92,7 +92,7 @@ node43.gt.vicci.org public_ip=130.207.98.52 server_index=85
 node44.gt.vicci.org public_ip=130.207.98.53 server_index=87
 node45.mpisws.vicci.org public_ip=141.39.220.55 server_index=88
 ##node45.gt.vicci.org public_ip=130.207.98.54 server_index=89
-node46.mpisws.vicci.org public_ip=141.39.220.56 server_index=90
+#node46.mpisws.vicci.org public_ip=141.39.220.56 server_index=90
 node46.gt.vicci.org public_ip=130.207.98.55 server_index=91
 node47.mpisws.vicci.org public_ip=141.39.220.57 server_index=92
 node47.gt.vicci.org public_ip=130.207.98.56 server_index=93
