@@ -69,10 +69,10 @@
             creates=/usr/lib64/libmysqlcppconn.so.6.1.1.1
   - name: set tmp dir perms #needed for mysql
     file: path=/tmp state=directory mode=0777
-  - name: start mysql
-    service: name=mysqld.service state=started
-  - name: create mysql db test_cube
-    mysql_db: name=test_cube state=present login_user=root login_password=""
+#  - name: start mysql
+#    service: name=mysqld.service state=started
+#  - name: create mysql db test_cube
+#    mysql_db: name=test_cube state=present login_user=root login_password=""
 #protobufs
   - name: make sure protobufs dir exists
     file: dest=${js_deps}/protobufs state=directory mode=777
