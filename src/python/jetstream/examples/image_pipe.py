@@ -20,6 +20,10 @@ ch.setFormatter(formatter)
 
 window_len_sec = 1.0
 
+INTERVAL = "interval"
+HASH = "hash"
+NONE = "none"
+
 def main():
 
   parser = standard_option_parser()
@@ -47,12 +51,12 @@ def main():
     print "FAIL: not enough nodes"
     sys.exit(0)
   
-  if options.deg == "interval":
-    INTERVAL = True
+  if options.deg == INTERVAL:
     print "Using interval sampling (Coarse-grained)"
-  elif options.deg == "hash":
-    INTERVAL = False
+  elif options.deg ==  HASH:
     print "Using hash-sampling. (Fine-grained)"
+  elif options.deg == NONE:
+    print "No degradation"
   else:
     print "unknown degradation %s. Aborting" % options.deg
     sys.exit(0)
@@ -61,15 +65,20 @@ def main():
     if node == root_node and not options.generate_at_union:
       continue
     reader = jsapi.BlobReader(g, dirname=options.dirname, prefix=options.prefix, files_per_window=files_per_window, ms_per_window = 1000 * window_len_sec)
-    if INTERVAL:
+    if options.deg == INTERVAL:
       filter = jsapi.IntervalSampling(g, max_interval=4)
-    else:
+    elif options.deg ==  HASH:
       filter = jsapi.VariableSampling(g, field=0, type='I')
       filter.set_cfg("steps", "20")
+      
     timestamp = jsapi.TimestampOperator(g, "ms")
     reader.instantiate_on(node)
     
-    g.chain([reader, filter, timestamp,  collector])
+    if options.deg == NONE:
+      g.chain([reader, timestamp,  collector])
+    else:
+      g.chain([reader, filter, timestamp,  collector])
+      
   print "deploying"
   deploy_or_dummy(options, server, g)
 
