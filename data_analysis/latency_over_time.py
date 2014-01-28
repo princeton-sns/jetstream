@@ -27,6 +27,7 @@ matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
 MEDIAN_LAT = "Median"
+#QUART_LAT = "75th percentile"
 MY_LAT = "95th percentile"
 LAT_999 = "99.9th percentile latency (msec)"
 GLOBAL_DEVIATION = "BW-deviation"
@@ -55,6 +56,7 @@ FIELDS_TO_PLOT = {
  
 
 def main():
+  global DATE
   parser = OptionParser()
   parser.add_option("-o", "--output", dest="out_dir",
                   help="output directory name", default="")
@@ -74,6 +76,8 @@ def main():
   if options.experiment_time:
     t_offset = data['Time'][0] # - 5 * 60 * 60 * 1000 #change time zone
     data['Time'] = [x -t_offset for x in data['Time']]
+  else:
+    DATE = True
   
   for lat in [LAT_999, MEDIAN_LAT, MY_LAT, LAT_MAX]:
     data[lat] = [x/1000.0 for x in data[lat]]
@@ -87,13 +91,14 @@ def main():
   for c,name in counts_by_name:
     print " %s    %d" % (name,c)
 
-#  plot_data_over_time(data, [MY_LAT], "latency_local.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT], out_dir+ "latency_median.pdf", MAX_Y = 16)
+  plot_data_over_time(data, [MY_LAT], out_dir+ "latency_95th.pdf")
+  plot_data_over_time(data, [MEDIAN_LAT], out_dir+ "latency_median.pdf") #MAX_Y = 16
   plot_data_over_time(data, [COEF_VAR], out_dir+ "internode_variation.pdf")
   plot_data_over_time(data, [LAT_999], out_dir + "latency_highquant.pdf")
   plot_data_over_time(data, [LAT_MAX], out_dir + "latency_extremum.pdf")
   plot_data_over_time(data, [MEDIAN_LAT, MY_LAT, LAT_MAX], out_dir + "latency_multi.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi2.pdf", MAX_Y = 16)
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi2.pdf") 
+    #, MAX_Y = 16
 
   plot_bw(data, out_dir + "img_bw_over_time.pdf")
 
@@ -202,24 +207,26 @@ def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
     figure.autofmt_xdate()
     time = [get_x_from_time(x / 1000) for x in data['Time']]
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_xlabel('Time', fontsize=AXIS_LABEL_FONT)  
   else:
     time = [ x / (60 * 1000) for x in data['Time']]
-    
+    ax.set_xlabel('Elapsed time (minutes)', fontsize=AXIS_LABEL_FONT)  
+
   if MAX_Y == 0:
     MAX_Y = 1.15 * max([max(data[sname]) for sname in seriesnames])
   ax.set_ylim( 0, MAX_Y)  
+  print "MAX Y for %s was %d seconds" % (filename,MAX_Y)
   
   for seriesname,linelabel in zip(seriesnames, linelabels):
     line, = ax.plot(time, data[seriesname], linelabel)
     legend_artists.append( line )
   
-  ax.set_xlabel('Elapsed time (minutes)', fontsize=AXIS_LABEL_FONT)  
   if len(seriesnames) == 1:
     ax.set_ylabel(seriesnames[0], fontsize=AXIS_LABEL_FONT)
   else:
     ax.set_ylabel("Latency (sec)", fontsize=AXIS_LABEL_FONT)
 
-  plt.yticks(numpy.arange(0, MAX_Y, 2))
+#  plt.yticks(numpy.arange(0, MAX_Y, 2))
   ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONT)
 
 
@@ -231,9 +238,9 @@ def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
     plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
 
   figure.set_size_inches(6.25, 2.25  if SHORT_GRAPHS else 4.25)
-  figure.subplots_adjust(left=0.10)
+  figure.subplots_adjust(left=0.12)
   figure.subplots_adjust(right=0.97)  
-  figure.subplots_adjust(bottom= (0.19 if SHORT_GRAPHS else 0.16))
+  figure.subplots_adjust(bottom= (0.19 if SHORT_GRAPHS else 0.18))
   figure.subplots_adjust(top=0.99)
   
   plt.savefig(filename)
@@ -248,18 +255,19 @@ def plot_bw(data, filename):
     time = [get_x_from_time(x / 1000) for x in data['Time']]
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     figure.autofmt_xdate()
-
+    ax.set_xlabel('Time', fontsize=AXIS_LABEL_FONT)  
   else:
     time = [ x / (60 * 1000) for x in data['Time']]
+    ax.set_xlabel('Experiment time (minutes)', fontsize=AXIS_LABEL_FONT)  
 
   line, = ax.plot(time, bw_series, "r.")  
-  ax.set_xlabel('Experiment time (minutes)', fontsize=AXIS_LABEL_FONT)  
+
   ax.set_ylabel('Bandwidth (Mbits/sec)', fontsize=AXIS_LABEL_FONT)
   ax.set_ylim( 0, 1.1 * max(bw_series))  
   ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONT)
 
   figure.set_size_inches(6.25, 2.25 if SHORT_GRAPHS else 3.25) 
-  figure.subplots_adjust(bottom=(0.23 if SHORT_GRAPHS else 0.17)) 
+  figure.subplots_adjust(bottom=(0.23 if SHORT_GRAPHS else 0.2)) 
   figure.subplots_adjust(top=0.98)
   figure.subplots_adjust(left=0.12)
   figure.subplots_adjust(right=0.97)

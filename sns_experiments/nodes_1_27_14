@@ -1,11 +1,3 @@
-import socket
-
-servers = []
-#for i in range(1, 51):
-#  servers.append("node"+str(i)+".mpisws.vicci.org")
-#  servers.append("node"+str(i)+".gt.vicci.org")
-
-s_as_str = """
 node1.washington.vicci.org
 node10.washington.vicci.org
 node12.washington.vicci.org
@@ -97,17 +89,3 @@ node45.mpisws.vicci.org
 node47.mpisws.vicci.org
 node49.mpisws.vicci.org
 node50.mpisws.vicci.org
-"""
-
-
-
-servers = [s for s in s_as_str.splitlines()]
-
-#servers=["node1.mpisws.vicci.org"]
-
-for index, server in enumerate(servers):
-  print server + " public_ip=" +socket.gethostbyname(server)+" server_index="+str(index)
-
-print "---------------"
-for server in servers:
-  print server,
