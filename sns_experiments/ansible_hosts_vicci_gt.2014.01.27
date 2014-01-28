@@ -1,0 +1,35 @@
+[workers:children]
+setup
+
+[setup]
+node6.gt.vicci.org public_ip=130.207.98.15 server_index=0
+node19.gt.vicci.org public_ip=130.207.98.28 server_index=1
+node15.gt.vicci.org public_ip=130.207.98.24 server_index=2
+node8.gt.vicci.org public_ip=130.207.98.17 server_index=3
+node5.gt.vicci.org public_ip=130.207.98.14 server_index=4
+node18.gt.vicci.org public_ip=130.207.98.27 server_index=5
+node14.gt.vicci.org public_ip=130.207.98.23 server_index=6
+node9.gt.vicci.org public_ip=130.207.98.18 server_index=7
+node35.gt.vicci.org public_ip=130.207.98.44 server_index=8
+node3.gt.vicci.org public_ip=130.207.98.12 server_index=9
+node1.gt.vicci.org public_ip=130.207.98.10 server_index=10
+node10.gt.vicci.org public_ip=130.207.98.19 server_index=11
+node11.gt.vicci.org public_ip=130.207.98.20 server_index=12
+node12.gt.vicci.org public_ip=130.207.98.21 server_index=13
+node15.gt.vicci.org public_ip=130.207.98.24 server_index=15
+node16.gt.vicci.org public_ip=130.207.98.25 server_index=16
+node17.gt.vicci.org public_ip=130.207.98.26 server_index=17
+node18.gt.vicci.org public_ip=130.207.98.27 server_index=18
+node19.gt.vicci.org public_ip=130.207.98.28 server_index=19
+node20.gt.vicci.org public_ip=130.207.98.29 server_index=20
+node22.gt.vicci.org public_ip=130.207.98.31 server_index=21
+node24.gt.vicci.org public_ip=130.207.98.33 server_index=22
+node28.gt.vicci.org public_ip=130.207.98.37 server_index=23
+node29.gt.vicci.org public_ip=130.207.98.38 server_index=24
+node30.gt.vicci.org public_ip=130.207.98.39 server_index=25
+node31.gt.vicci.org public_ip=130.207.98.40 server_index=26
+node32.gt.vicci.org public_ip=130.207.98.41 server_index=27
+node33.gt.vicci.org public_ip=130.207.98.42 server_index=28
+node4.gt.vicci.org public_ip=130.207.98.13 server_index=29
+#---------------
+#node6.gt.vicci.org node19.gt.vicci.org node15.gt.vicci.org node8.gt.vicci.org node5.gt.vicci.org node18.gt.vicci.org node14.gt.vicci.org node9.gt.vicci.org node35.gt.vicci.org node3.gt.vicci.org node1.gt.vicci.org node10.gt.vicci.org node11.gt.vicci.org node12.gt.vicci.org node14.gt.vicci.org node15.gt.vicci.org node16.gt.vicci.org node17.gt.vicci.org node18.gt.vicci.org node19.gt.vicci.org node20.gt.vicci.org node22.gt.vicci.org node24.gt.vicci.org node28.gt.vicci.org node29.gt.vicci.org node30.gt.vicci.org node31.gt.vicci.org node32.gt.vicci.org node33.gt.vicci.org

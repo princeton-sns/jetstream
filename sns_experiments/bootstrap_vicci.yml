@@ -2,7 +2,7 @@
 - hosts: setup
 #  serial: 2
   tasks:
-    - service: name=network state=restarted
+    #- service: name=network state=restarted
     - name: install packages
       yum: name=$item state=present
       with_items:
