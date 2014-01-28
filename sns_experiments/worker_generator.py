@@ -9,7 +9,6 @@ s_as_str = """
 node1.washington.vicci.org
 node10.washington.vicci.org
 node12.washington.vicci.org
-node14.washington.vicci.org
 node15.washington.vicci.org
 node16.washington.vicci.org
 node17.washington.vicci.org
@@ -52,16 +51,12 @@ node22.gt.vicci.org
 node24.gt.vicci.org
 node28.gt.vicci.org
 node29.gt.vicci.org
-node3.gt.vicci.org
 node30.gt.vicci.org
 node31.gt.vicci.org
 node32.gt.vicci.org
 node33.gt.vicci.org
 node35.gt.vicci.org
-node5.gt.vicci.org
 node6.gt.vicci.org
-node8.gt.vicci.org
-node9.gt.vicci.org
 node1.mpisws.vicci.org
 node2.mpisws.vicci.org
 node3.mpisws.vicci.org
