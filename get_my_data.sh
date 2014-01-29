@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUN=127_smallimg_none
+RUN=128_smallimg_hash_r25
 mkdir $RUN
 scp sns48:/disk/local/asr_jetstream/image_quality.out $RUN/sns48_$RUN.log
 

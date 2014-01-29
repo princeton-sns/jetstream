@@ -12,7 +12,7 @@ from numpy import array
 
 OUT_TO_FILE = True
 DATE = False
-SHORT_GRAPHS = True
+SHORT_GRAPHS = False
 AXIS_LABEL_FONT = 13 if SHORT_GRAPHS else 18
 TICK_LABEL_FONT = 11 if SHORT_GRAPHS else 15
 
