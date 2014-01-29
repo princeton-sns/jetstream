@@ -13,8 +13,6 @@ from numpy import array
 OUT_TO_FILE = True
 DATE = False
 SHORT_GRAPHS = False
-AXIS_LABEL_FONT = 13 if SHORT_GRAPHS else 18
-TICK_LABEL_FONT = 11 if SHORT_GRAPHS else 15
 
 import matplotlib
 if OUT_TO_FILE:
@@ -56,12 +54,14 @@ FIELDS_TO_PLOT = {
  
 
 def main():
-  global DATE
+  global DATE,SHORT_GRAPHS
   parser = OptionParser()
   parser.add_option("-o", "--output", dest="out_dir",
                   help="output directory name", default="")
   parser.add_option("-e", "--etime", dest="experiment_time", action="store_true",
                   help="experiment starts at t = 0", default=False)
+  parser.add_option("-s", "--short", dest="shortgraphs", action="store_true",
+                  help="draw short graphs", default=False)
                   
   (options, args) = parser.parse_args()
 
@@ -72,6 +72,8 @@ def main():
   infile = args[0]
   
   data,counts_by_name = parse_infile(infile)
+  
+  SHORT_GRAPHS = options.shortgraphs
   
   if options.experiment_time:
     t_offset = data['Time'][0] # - 5 * 60 * 60 * 1000 #change time zone
@@ -202,6 +204,9 @@ def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
   
   figure, ax = plt.subplots()
 
+  AXIS_LABEL_FONT = 18
+  TICK_LABEL_FONT = 15
+
   
   if DATE:
     figure.autofmt_xdate()
@@ -237,7 +242,10 @@ def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
     legend_artists.reverse()
     plt.legend(legend_artists, leg_labels, loc="center", bbox_to_anchor=(0.5, 0.9), frameon=False, ncol=2);
 
-  figure.set_size_inches(6.25, 2.25  if SHORT_GRAPHS else 4.25)
+  if SHORT_GRAPHS:
+    figure.set_size_inches(8, 3)
+  else:
+    figure.set_size_inches(6.25, 4.25)
   figure.subplots_adjust(left=0.12)
   figure.subplots_adjust(right=0.97)  
   figure.subplots_adjust(bottom= (0.19 if SHORT_GRAPHS else 0.18))
@@ -250,6 +258,11 @@ def plot_data_over_time(data, seriesnames, filename, MAX_Y = 0):
 def plot_bw(data, filename):
   bw_series = [ 8 * x / 1000 for x in data['BW']] #already got a factor of a thousand because time is in millis
   figure, ax = plt.subplots()
+
+
+  AXIS_LABEL_FONT = 18
+  TICK_LABEL_FONT = 15
+  
 
   if DATE:
     time = [get_x_from_time(x / 1000) for x in data['Time']]
@@ -266,7 +279,11 @@ def plot_bw(data, filename):
   ax.set_ylim( 0, 1.1 * max(bw_series))  
   ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONT)
 
-  figure.set_size_inches(6.25, 2.25 if SHORT_GRAPHS else 3.25) 
+
+  if SHORT_GRAPHS:
+    figure.set_size_inches(8, 3.25)
+  else: 
+    figure.set_size_inches(6.25, 3.25) 
   figure.subplots_adjust(bottom=(0.23 if SHORT_GRAPHS else 0.2)) 
   figure.subplots_adjust(top=0.98)
   figure.subplots_adjust(left=0.12)
