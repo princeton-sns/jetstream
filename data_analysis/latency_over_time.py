@@ -62,6 +62,8 @@ def main():
                   help="experiment starts at t = 0", default=False)
   parser.add_option("-s", "--short", dest="shortgraphs", action="store_true",
                   help="draw short graphs", default=False)
+  parser.add_option("-y", "--maxy", dest="maxy", action="store",
+                  help="maximum y coordinate", default=0)
                   
   (options, args) = parser.parse_args()
 
@@ -80,6 +82,8 @@ def main():
     data['Time'] = [x -t_offset for x in data['Time']]
   else:
     DATE = True
+    
+  y = int(options.maxy)
   
   for lat in [LAT_999, MEDIAN_LAT, MY_LAT, LAT_MAX]:
     data[lat] = [x/1000.0 for x in data[lat]]
@@ -94,13 +98,13 @@ def main():
     print " %s    %d" % (name,c)
 
   plot_data_over_time(data, [MY_LAT], out_dir+ "latency_95th.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT], out_dir+ "latency_median.pdf") #MAX_Y = 16
+  plot_data_over_time(data, [MEDIAN_LAT], out_dir+ "latency_median.pdf", MAX_Y=y) 
   plot_data_over_time(data, [COEF_VAR], out_dir+ "internode_variation.pdf")
   plot_data_over_time(data, [LAT_999], out_dir + "latency_highquant.pdf")
   plot_data_over_time(data, [LAT_MAX], out_dir + "latency_extremum.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT, LAT_MAX], out_dir + "latency_multi.pdf")
-  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi2.pdf") 
-    #, MAX_Y = 16
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT, LAT_MAX], out_dir + "latency_multi.pdf", MAX_Y=y)
+  plot_data_over_time(data, [MEDIAN_LAT, MY_LAT], out_dir + "latency_multi2.pdf", MAX_Y=y) 
+  
 
   plot_bw(data, out_dir + "img_bw_over_time.pdf")
 
