@@ -2,4 +2,11 @@ JetStream is confidential and proprietary software. Copyright is held by Princet
 
 NOTE: We currently use a GPLed library, the Mysql connector. As a result, it is not possible to distribute JetStream except under GPL. Our other dependencies are all permissive licenses.
 
+In particular:
+
+Boost is licensed under the "Boost license", which is a short non-copyleft license functionally equivalent to the MIT license.
+Protobuf, Google Test, GLog: "New BSD"
+
+
+
 Contact Michael Freedman with any questions.
